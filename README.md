@@ -54,9 +54,7 @@ This tab shows a compact view of repeated and missing stickers for sharing with 
 
 This tab helps compare your collection with another collector to identify possible swaps. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
 
-You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. For that reason, the sheet shows the maximum number of stickers you may receive for each possible trade combination.
-
-The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first.
+You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
 
 The results are prioritized to help complete teams more efficiently while keeping trade review simple.
 
@@ -99,7 +97,7 @@ Please consider the following rules:
 - Repeats in parentheses are optional.
 - Use comma `,` as delimiter.
 - Country code must exist in the `COUNTRIES` named range in the `Stickers` tab.
-- Sticker `0` only exists for `FWC`. For other countries it is accepted and mapped to count `0`.
+- Sticker `0` only exists for `FWC`. For other country codes it is accepted and mapped to count `0`.
 - Sticker `20` only exists for non-`FWC` countries. For `FWC` it is accepted and mapped to count `0`.
 
 Example:
