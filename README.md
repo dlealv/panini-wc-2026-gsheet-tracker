@@ -6,7 +6,7 @@ This project was first published as a draft on [Reddit](https://www.reddit.com/r
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Note:** in this document, `country code` also includes special sticker groups such as `FWC`. This also applies throughout the tracker.
+**Note:** In this document, country code (code of the soccer team in the Panini Album) also includes special sticker groups such as `FWC`. This also applies throughout the tracker.
 
 ## Live tracker
 
@@ -40,7 +40,7 @@ The columns `Done` (number of completed stickers for the team), `%` (percentage 
 
 ### Reports tab
 
-This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here. The pivot table on the right helps visualize the information sorted by group and progress, making it easier to review collection status and completion percentages.
+This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here. The pivot table on the right helps visualize the information sorted by team collection completion progress, not by the order of the album as in `Stickers` tab.
 
 ![Reports tab](images/reportsView.jpg)
 
@@ -52,13 +52,15 @@ This tab shows a compact view of repeated and missing stickers for sharing with 
 
 ### Trade tab
 
-This tab helps compare your collection with another collector to identify possible swaps. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
+This tab helps compare your collection with another collector to identify possible swaps. Paste the other collector data in the expected format (see [Import Format](#import-format) section below) in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
 
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
 
-The results are prioritized to help complete teams more efficiently while keeping trade review simple.
-
 ![Trade tab](images/tradeView.jpg)
+
+**Note:** For easy visualization, the stickers `KOR,7` and `CAN,4` are manually highlighted in red in this example.
+
+The results are prioritized to ensure the efficient completion of teams while maintaining a straightforward trade review process. In this sample, `KOR` has the highest completion rate from the stickers to trade, which is why it appears at the top of the list in the Receive Stickers table from the **OUTPUT** section. The count `2` from the Receive Stickers table is highlighted with a green background because the total match of the Send Stickers table is `2`. In this case, for a swap, you will *send* the stickers `KOR,7` and `CAN,4` *to* another collector, and *receive* the stickers: `KOR,12,20` *from* another collector.
 
 ### Manage Panini menu
 
@@ -130,7 +132,7 @@ The project was initially announced on Reddit, but future updates are maintained
 
 - `Code.gs`: Main Google Apps Script source file. It contains menu creation, import/export logic, validation, and spreadsheet updates.
 - `importDialog.html`: HTML user interface for the import and export dialogs shown inside Google Sheets.
-- `Requirements.md`: Functional and technical notes for the project, including behavior rules and implementation details.
+- `Requirements.md`: Functional and technical notes for the App Script project, including behavior rules and implementation details.
 - `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
 - `examples/example_sticker-data.txt`: Sample data file that can be used both as an import example and as an example of the exported format.
 
