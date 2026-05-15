@@ -6,6 +6,8 @@ This project was first published as a draft on [Reddit](https://www.reddit.com/r
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
+**Note:** in this document, `country code` also includes special sticker groups such as `FWC`, it applies also for the tracker.
+
 ## Live tracker
 
 Use the live Google Sheet here:
@@ -28,19 +30,24 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 
 ### Stickers tab
 
-This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically.
+This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically. The country codes are organized with the order in the [Panini Album](https://www.paniniamerica.net/fifa-world-cup-2026-official-sticker-collection-album.html). The column `Pg`, shows the page number where to find the corresponding information in the Album.
+
+This tab has two hidden columns: `AD`, the country code to populate the flags) and `AE`, the corresponding group of the team. The group is required to generate the pivot table in `Reports` tab. The column `A` (`Gr`) shows the groups but merged vertically and it can't be used in the Pivot table.
+
+The columns: `Done` (counts of completed stickers for the team),`%`(percentage completion),`Rep` (counts of repeated stickers),`Miss` (counts of missing stickers) are calculated fields and are shown as a heat map from green (good) to red (bad) depending on the case.
+
 
 ![Stickers tab](images/stickersView.jpg)
 
 ### Reports tab
 
-This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here.
+This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here. The Pivot table on the right helps to visualize the information sorted in descending order by the %-Completion. It helps to identify the teams or groups (via slicer) close to completion.
 
 ![Reports tab](images/reportsView.jpg)
 
 ### Compact Swap View tab
 
-This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here.
+This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here. I helps to exchange the collector information in a compact view in a single view (or screen) usefull to share in social medial or groups.
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
@@ -67,8 +74,6 @@ Use this dialog to load sticker data from pasted text or a local file. It is use
 - **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
 - **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
 - **Update counts**: only overwrites sticker positions explicitly provided in the input; all other values remain unchanged.
-
-**Note:** in this document, `country code` also includes special sticker groups such as `FWC`.
 
 ![Import dialog](images/importDialogView.jpg)
 
