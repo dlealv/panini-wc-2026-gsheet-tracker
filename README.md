@@ -46,7 +46,7 @@ This tab generates reports and visual summaries from the data entered in the `St
 
 ### Compact Swap View tab
 
-This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here. It helps exchange collection status quickly in a more compact format.
+This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here. It helps exchange collection status quickly in a more compact format and is especially useful for sharing your swap information through social media or messaging apps.
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
