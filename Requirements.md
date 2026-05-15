@@ -36,45 +36,18 @@ This solution does not require:
 
 ---
 
-## Target sheet and ranges
+## Target sheet and named ranges
 
 ### Main sheet
 - Sheet name: `Stickers`
 
-### Data used for import
-- Country code column: `C`
-- Writable sticker count range: `E3:Y51`
+### Named ranges used by the solution
+- `COUNTRIES`: country code column in the `Stickers` sheet
+- `COUNTS`: writable sticker count range in the `Stickers` sheet
 
 ### Data used for export
-- Read range: `C3:Y51`
-
----
-
-## Sticker column mapping
-
-Sticker numbers are mapped to columns as follows:
-
-- sticker `0` → column `E`
-- sticker `1` → column `F`
-- sticker `2` → column `G`
-- sticker `3` → column `H`
-- sticker `4` → column `I`
-- sticker `5` → column `J`
-- sticker `6` → column `K`
-- sticker `7` → column `L`
-- sticker `8` → column `M`
-- sticker `9` → column `N`
-- sticker `10` → column `O`
-- sticker `11` → column `P`
-- sticker `12` → column `Q`
-- sticker `13` → column `R`
-- sticker `14` → column `S`
-- sticker `15` → column `T`
-- sticker `16` → column `U`
-- sticker `17` → column `V`
-- sticker `18` → column `W`
-- sticker `19` → column `X`
-- sticker `20` → column `Y`
+- Export reads the country codes from `COUNTRIES`
+- Export reads the sticker counts from `COUNTS`
 
 ---
 
@@ -98,8 +71,8 @@ BRA,7(3)
 
 ### Syntax rules
 
-- The first token must be a 3-letter country code.
-- Country codes must exist in column `C` of the `Stickers` sheet.
+- The first token must be a country code.
+- Country codes must exist in the `COUNTRIES` named range.
 - Values must be separated only by commas `,`.
 - A sticker token must be:
   - `N`
@@ -112,23 +85,10 @@ BRA,7(3)
 
 ## Sticker mapping rules for import
 
-### General rule
-
-- If a sticker token is written as `N`, its default mapped count is `1`, unless a special sticker rule applies.
+- If a sticker token is written as `N`, its mapped count is `1`, unless a special sticker rule applies.
 - If a sticker token is written as `N(X)`, its mapped count is `X`, unless a special sticker rule applies.
-
-### Special sticker rules
-
-#### Sticker 0
-
-- Sticker `0` only exists for `FWC`.
-- For `FWC`:
-  - `FWC,0` → mapped count `1`
-  - `FWC,0(2)` → mapped count `2`
-- For non-`FWC` countries:
-  - sticker `0` is accepted as input
-  - it does not exist for those countries
-  - it must always be mapped to count `0`
+- Sticker `0` only exists for `FWC`. For other country codes it is accepted as input and mapped to count `0`.
+- Sticker `20` only exists for non-`FWC` country codes. For `FWC` it is accepted as input and mapped to count `0`.
 
 Examples:
 
@@ -137,26 +97,10 @@ FWC,0      -> sticker 0 = 1
 FWC,0(2)   -> sticker 0 = 2
 MEX,0      -> sticker 0 = 0
 MEX,0(5)   -> sticker 0 = 0
-```
-
-#### Sticker 20
-
-- Sticker `20` only exists for non-`FWC` countries.
-- For non-`FWC` countries:
-  - `MEX,20` → mapped count `1`
-  - `MEX,20(3)` → mapped count `3`
-- For `FWC`:
-  - sticker `20` is accepted as input
-  - it does not exist for `FWC`
-  - it must always be mapped to count `0`
-
-Examples:
-
-```text
-FWC,20      -> sticker 20 = 0
-FWC,20(3)   -> sticker 20 = 0
-MEX,20      -> sticker 20 = 1
-MEX,20(3)   -> sticker 20 = 3
+FWC,20     -> sticker 20 = 0
+FWC,20(3)  -> sticker 20 = 0
+MEX,20     -> sticker 20 = 1
+MEX,20(3)  -> sticker 20 = 3
 ```
 
 ---
@@ -170,7 +114,7 @@ The import process must validate:
   - one country code
   - one sticker token
 - the country code format is valid
-- the country code exists in the `Stickers` sheet
+- the country code exists in the `COUNTRIES` named range
 - comma is the only accepted delimiter
 - each sticker token uses valid syntax
 - sticker numbers are within range `0..20`
@@ -188,12 +132,12 @@ The solution must provide 3 loading modes.
 
 ### 1. Import data
 
-- Clears all values in `Stickers!E3:Y51`
+- Clears all values in `COUNTS`
 - Imports all provided input data
 
 ### 2. Update counts clearing country counts
 
-- Clears only the sticker count cells for countries present in the input
+- Clears only the sticker count cells in `COUNTS` for countries present in the input
 - Imports the provided values for those same countries
 - Other countries remain unchanged
 
@@ -217,11 +161,7 @@ During import:
 
 ## Export requirements
 
-The solution must provide an export function that reads current sticker counts from:
-
-- `Stickers!C3:Y51`
-
-and produces text in the same general syntax accepted by the import process.
+The solution must provide an export function that reads current sticker counts from the `COUNTS` named range and country codes from the `COUNTRIES` named range, and produces text in the same general syntax accepted by the import process.
 
 ### Export format
 
@@ -235,12 +175,13 @@ CODE,number[,number(repeats)]...
 
 ### Export rules
 
-- Country code is read from column `C`
-- Sticker counts are read from columns `E:Y`
+- Country code is read from `COUNTRIES`
+- Sticker counts are read from `COUNTS`
 - Only sticker counts greater than `0` are exported
 - Exported sticker values follow these rules:
   - count `1` → export as `number`
   - count greater than `1` → export as `number(repeats)`
+- Sticker positions that are not valid for a given country code are treated as count `0`
 
 ### Export examples
 
@@ -255,21 +196,11 @@ then the export line must be:
 FWC,1,5(2),18
 ```
 
-### Export exclusions
-
-Values equal to `0` must not be included in exported output.
-
-This means that special non-existing sticker mappings stored as `0` are not exported.
-
-Examples:
-- non-`FWC` sticker `0 = 0` → not exported
-- `FWC` sticker `20 = 0` → not exported
-
 ### Export output usage
 
 The exported content can be:
 - copied to clipboard
-- downloaded as a local text file
+- downloaded as a local `.txt` file
 - reused later as import input
 
 ---
@@ -345,7 +276,7 @@ The export dialog must:
 
 - load exported sticker data automatically when opened
 - display the exported content in a text area
-- allow the user to download the exported content as a local file
+- allow the user to download the exported content as a local `.txt` file
 - allow the user to copy the exported content to the clipboard
 - allow the user to close the dialog
 
@@ -355,7 +286,7 @@ Import-only controls must not be shown in export mode.
 ### Export dialog action behavior
 
 - **Download file**
-  - downloads the exported content as a local text file
+  - downloads the exported content as a local `.txt` file
   - browser settings determine the final download folder, typically the default Downloads folder
 
 - **Copy**
@@ -378,7 +309,7 @@ The user must be able to provide import data in either of these ways:
 The user must be able to:
 
 - copy exported content manually
-- download exported content as a local file without using external libraries
+- download exported content as a local `.txt` file without using external libraries
 
 The solution does not need to force saving into a specific local folder, because that depends on browser behavior.
 
