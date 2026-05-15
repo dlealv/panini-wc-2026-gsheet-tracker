@@ -185,10 +185,13 @@ CODE,number[,number(repeats)]...
 
 ### Export examples
 
-If a row contains:
-- sticker `1` = `1`
-- sticker `5` = `2`
-- sticker `18` = `1`
+If the tracker contains these counts for country code `FWC`:
+
+| Sticker | Stored count |
+| --- | --- |
+| `1` | `1` |
+| `5` | `2` |
+| `18` | `1` |
 
 then the export line must be:
 
