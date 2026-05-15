@@ -2,11 +2,7 @@
 
 A practical Google Sheets tracker for the **Panini FIFA World Cup 2026** sticker collection.
 
-This project was first published as a draft on [Reddit](https://www.reddit.com/r/Panini/comments/1taj3mn/google_sheet_tracker_for_panini_fifa_wc_2026/), and GitHub is now the main place for source code, documentation, and future updates. If you already track your stickers with another tool, the import/export feature lets you move your data without re-entering everything manually.
-
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
-
-**Note:** in this document, `country code` also includes special sticker groups such as `FWC`, it applies also for the tracker.
 
 ## Live tracker
 
@@ -30,24 +26,19 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 
 ### Stickers tab
 
-This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically. The country codes are organized with the order in the [Panini Album](https://www.paniniamerica.net/fifa-world-cup-2026-official-sticker-collection-album.html). The column `Pg`, shows the page number where to find the corresponding information in the Album.
-
-This tab has two hidden columns: `AD`, the country code to populate the flags) and `AE`, the corresponding group of the team. The group is required to generate the pivot table in `Reports` tab. The column `A` (`Gr`) shows the groups but merged vertically and it can't be used in the Pivot table.
-
-The columns: `Done` (counts of completed stickers for the team),`%`(percentage completion),`Rep` (counts of repeated stickers),`Miss` (counts of missing stickers) are calculated fields and are shown as a heat map from green (good) to red (bad) depending on the case.
-
+This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically.
 
 ![Stickers tab](images/stickersView.jpg)
 
 ### Reports tab
 
-This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here. The Pivot table on the right helps to visualize the information sorted in descending order by the %-Completion. It helps to identify the teams or groups (via slicer) close to completion.
+This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here.
 
 ![Reports tab](images/reportsView.jpg)
 
 ### Compact Swap View tab
 
-This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here. I helps to exchange the collector information in a compact view in a single view (or screen) usefull to share in social medial or groups.
+This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here.
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
@@ -57,9 +48,11 @@ This tab helps compare your collection with another collector to identify possib
 
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. For that reason, the sheet shows the maximum number of stickers you may receive for each possible trade combination.
 
-The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first.
+The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first.
 
 The results are prioritized to help complete teams more efficiently while keeping trade review simple.
+
+![Trade tab](images/tradeView.jpg)
 
 ### Manage Panini menu
 
@@ -74,6 +67,8 @@ Use this dialog to load sticker data from pasted text or a local file. It is use
 - **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
 - **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
 - **Update counts**: only overwrites sticker positions explicitly provided in the input; all other values remain unchanged.
+
+**Note:** in this document, `country code` also includes special sticker groups such as `FWC`.
 
 ![Import dialog](images/importDialogView.jpg)
 
