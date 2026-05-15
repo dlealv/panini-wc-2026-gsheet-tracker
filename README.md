@@ -48,9 +48,11 @@ This tab shows a compact view of repeated and missing stickers for sharing with 
 
 This tab helps compare your collection with another collector to identify possible swaps. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
 
-The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to trade. Green highlights indicate values that are lower than or equal to the stickers available for trade. The results are prioritized to help complete teams more efficiently.
+You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. For that reason, the sheet shows the maximum number of stickers you may receive for each possible trade combination.
 
-![Trade tab](images/tradeView.jpg)
+The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first.
+
+The results are prioritized to help complete teams more efficiently while keeping trade review simple.
 
 ### Manage Panini menu
 
