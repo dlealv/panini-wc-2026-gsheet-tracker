@@ -26,19 +26,19 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 
 ### Stickers tab
 
-This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically.
+This is the main input tab of the tracker. Enter and update your sticker counts here. All other tabs are generated from this data automatically.
 
 ![Stickers tab](images/stickersView.jpg)
 
 ### Reports tab
 
-This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here.
+This tab shows reports and visual summaries based on the data entered in the `Stickers` tab. No manual input is required here.
 
 ![Reports tab](images/reportsView.jpg)
 
 ### Compact Swap View tab
 
-This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here.
+This tab shows a compact view of repeated and missing stickers that you can share with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here.
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
@@ -88,7 +88,7 @@ One country per line:
 CODE,number[,number(repeats)]...
 ```
 
-Please consider the following rules:
+Please note the following rules:
 
 - Repeats in parentheses are optional.
 - Use comma `,` as delimiter.
@@ -120,7 +120,7 @@ This repository is the main place for:
 - future updates
 - improvement history
 
-The project was initially announced on Reddit, but future updates are maintained in GitHub.
+The project was initially announced on Reddit, but future updates are maintained on GitHub.
 
 ## Files
 
