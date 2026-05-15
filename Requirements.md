@@ -90,18 +90,18 @@ BRA,7(3)
 - Sticker `0` only exists for `FWC`. For other country codes it is accepted as input and mapped to count `0`.
 - Sticker `20` only exists for non-`FWC` country codes. For `FWC` it is accepted as input and mapped to count `0`.
 
-Examples:
+### Examples
 
-```text
-FWC,0      -> sticker 0 = 1
-FWC,0(2)   -> sticker 0 = 2
-MEX,0      -> sticker 0 = 0
-MEX,0(5)   -> sticker 0 = 0
-FWC,20     -> sticker 20 = 0
-FWC,20(3)  -> sticker 20 = 0
-MEX,20     -> sticker 20 = 1
-MEX,20(3)  -> sticker 20 = 3
-```
+| Input file value | Count stored in the tracker |
+| --- | --- |
+| `FWC,0` | sticker `0` → `1` |
+| `FWC,0(2)` | sticker `0` → `2` |
+| `MEX,0` | sticker `0` → `0` |
+| `MEX,0(5)` | sticker `0` → `0` |
+| `FWC,20` | sticker `20` → `0` |
+| `FWC,20(3)` | sticker `20` → `0` |
+| `MEX,20` | sticker `20` → `1` |
+| `MEX,20(3)` | sticker `20` → `3` |
 
 ---
 
