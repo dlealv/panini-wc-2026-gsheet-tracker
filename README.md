@@ -199,7 +199,7 @@ The project was initially announced on Reddit, but future updates are maintained
 
 - `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs
 - `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows
-- `StickerImportApp.gs`: import/export application logic, including preview generation, import execution, export generation, and input parsing
+- `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing
 - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates
 - `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets
 - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog
