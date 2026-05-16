@@ -2,11 +2,13 @@
 
 A practical Google Sheets tracker for the **Panini FIFA World Cup 2026** sticker collection.
 
-This project was first published as a draft on [Reddit](https://www.reddit.com/r/Panini/comments/1taj3mn/google_sheet_tracker_for_panini_fifa_wc_2026/), and GitHub is now the main place for source code, documentation, and future updates.
+This project was first published as a draft on Reddit, and GitHub is now the main place for source code, documentation, and future updates.
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Note:** In this document, country code, meaning the code of the soccer team in the Panini album, also includes special sticker groups such as `FWC`. This applies throughout the tracker.
+**Note:** In this document, country code means the code of the soccer team in the Panini album, and also includes special sticker groups such as `FWC`. This applies throughout the tracker.
+
+**Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick Sticker Entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning).
 
 ## Live tracker
 
@@ -17,6 +19,8 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 ```
 
 **Recommended use:** open the sheet and make your own copy.
+
+**Apps Script note:** Some scripted features may trigger Google’s authorization flow and, for some users, an unverified app warning. See **Apps Script authorization and Google unverified app warning** below for details, safety guidance, and review steps.
 
 ## Main features
 
@@ -35,15 +39,13 @@ The tracker stores your sticker ownership data in the `Stickers` tab, which acts
 
 The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, and `Miss` so you can quickly understand each team's completion level without leaving the main view.
 
-One support column is hidden `Stickers` tab: `AD`, which stores the country group. This column is required for the Pivot table in the `Reports` tab. Since Pivot tables range input requires a single range, it needs to be part of the `Stickers` tab range.
-
-These support columns are required for derived views and reports, but they are hidden because they are not intended for manual editing.
+One support column is hidden Stickers tab `AD`, which stores the country group. This column is required for the Pivot table in the Reports tab. Since Pivot tables range input requires a single range, it needs to be part of the Stickers tab range.
 
 ![Stickers tab](images/stickersView.jpg)
 
 ### Update sticker counts quickly
 
-The **Quick Sticker Entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, filter the visible cards, and increment or decrement counts with dedicated buttons.
+The **Quick Sticker Entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, or multiple visible teams after filtering, and increment or decrement counts with dedicated buttons.
 
 This service is enabled through the **Quick Sticker Entry** dialog in the **Manage Panini** menu. The dialog reads from the same data used by the `Stickers` tab and writes updates back to the `COUNTS` named range only when **Update** is pressed.
 
@@ -90,7 +92,8 @@ Export is useful when you want to create a reusable backup, share your current c
 
 Export behavior:
 - Generates a text representation using the same syntax accepted by the import tool
-- Includes only sticker counts greater than 0
+- Includes only sticker counts greater than `0`
+- Exports only stickers valid for each country code
 - Can be copied or downloaded for reuse
 
 ![Export dialog](images/exportView.jpg)
@@ -175,6 +178,76 @@ In the previous example, sticker `5` for `FWC` appears twice, and sticker `7` fo
 - `FLAGS_URL`: flag image source used by the dialogs
 - `COUNTRY_NAMES`: country name used by Quick Sticker Entry incremental search
 
+## Apps Script authorization and Google unverified app warning
+
+This tracker includes Google Apps Script features such as:
+- the custom **Manage Panini** menu
+- the **Import / Export** dialog
+- the **Quick Sticker Entry** dialog
+
+When you make your own copy of the spreadsheet and run one of these features for the first time, Google may ask you to authorize the attached Apps Script project. Depending on your Google account type and Google’s OAuth rules, you may also see an **unverified app** warning in the web browser authorization flow.
+
+![Google Apps Script authorization warning in browser](images/googleAppsScriptAuthorizationWarningBrowser.jpg)
+
+### Why this warning can appear
+
+Google explains that Apps Script requires user authorization to access private data from Google services. Authorization scopes are determined automatically by scanning the script code, and users can see an authorization dialog when the script is first run. Google also warns that web apps and other scripts that use sensitive scopes are subject to review, and users attempting to authorize them may see a warning screen saying the app is unverified by Google.
+
+This does **not automatically mean the spreadsheet is unsafe or malicious**. It means the script project has not been formally verified by Google through its OAuth app verification flow. Google’s Apps Script verification documentation also explains that projects used only within the same Google Workspace domain or customer are generally exempt, but users outside that domain can see the unverified app screen if the OAuth client has not been verified.
+
+### What this script is used for
+
+In this tracker, the script is used only to support spreadsheet features such as:
+- opening custom dialogs
+- reading and writing sticker counts in your spreadsheet copy
+- validating import data
+- exporting tracker data
+
+The source code is published in this repository so users can review what the script does before authorizing it.
+
+### Recommended safety steps before authorizing
+
+If you are unsure, you can take these steps before approving access:
+
+1. **Make your own copy** of the spreadsheet
+2. Open **Extensions → Apps Script**
+3. Review the attached script project
+4. Compare it with the source code published in this repository
+5. Authorize it only if you are comfortable with what it does
+
+If you prefer not to authorize the script, you can still use the spreadsheet manually without scripted features.
+
+### How to reproduce the browser authorization screen
+
+If you want to capture the warning screen again for documentation or testing, the most reliable method is:
+
+1. Open an **incognito/private browser window**
+2. Sign in with a Google account that has **never authorized** the script
+3. Open a fresh copy of the spreadsheet
+4. Run **Quick Sticker Entry** or **Import / Export**
+5. Capture the Google authorization or unverified-app browser screen if it appears
+
+Google’s Apps Script authorization documentation explains that scripts request authorization when run, and that previously authorized scripts can ask again if code changes add new services. Google’s troubleshooting documentation covers the **This app isn't verified** warning specifically.
+
+### Official Google documentation
+
+For more details, see Google’s official documentation:
+- **Authorization for Google Services | Apps Script**
+- **OAuth Client Verification | Apps Script**
+- **Troubleshoot authentication & authorization issues | Apps Script**
+
+These documents explain why the authorization dialog appears, why some users may see the unverified-app warning, and what is required to remove the warning for external users.
+
+### Can this warning be removed?
+
+For public users, removing the warning usually requires the owner of the Apps Script project to complete Google’s OAuth verification process for the related Google Cloud project. Google explains that verified apps no longer show the unverified app screen to users, and that the verification process may require a configured OAuth consent screen, a verified domain, a homepage URL, a privacy policy URL, and other app details requested by Google.
+
+Until that verification is completed, some users may continue to see Google’s warning before using scripted features.
+
+### Additional note for Google Workspace organizations
+
+Google explains that Apps Script projects used only within the same Google Workspace domain or customer may be exempt from this public verification requirement. That means the warning behavior may differ depending on whether the spreadsheet is being used privately, internally in one organization, or shared publicly with external users.
+
 ## Documentation
 
 Service-specific documents are available in the `docs/` folder:
@@ -182,6 +255,12 @@ Service-specific documents are available in the `docs/` folder:
 - `docs/ImportExportServiceRequirements.md`: functional requirements and business rules for the import/export service
 - `docs/QuickEntryServiceRequirements.md`: functional requirements and business rules for the Quick Sticker Entry service
 - `docs/QuickEntryServiceMockDesign.md`: mock design notes and UI behavior references for the Quick Sticker Entry service
+
+## Changelog
+
+Project history and notable updates are documented in:
+
+- `CHANGELOG.md`
 
 ## Repository purpose
 
@@ -204,11 +283,5 @@ The project was initially announced on Reddit, but future updates are maintained
 - `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service
 - `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service
 - `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry
+- `CHANGELOG.md`: chronological summary of notable project changes
 - `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance
-- `examples/example_sticker-data.txt`: sample data file that can be used both as an import example and as an example of the exported format
-
-## Examples
-
-Example files are available in the `examples/` folder
-
-- `examples/example_sticker`
