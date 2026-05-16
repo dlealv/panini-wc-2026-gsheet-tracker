@@ -35,9 +35,7 @@ The tracker stores your sticker ownership data in the `Stickers` tab, which acts
 
 The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, and `Miss` so you can quickly understand each team's completion level without leaving the main view.
 
-Two support columns are hidden in this tab:
-- `AD`, which stores the country code used to populate the flags
-- `AE`, which stores the corresponding team group
+One support column is hidden `Stickers` tab: `AD`, which stores the country group. This column is required for the Pivot table in the `Reports` tab. Since Pivot tables range input requires a single range, it needs to be part of the `Stickers` tab range.
 
 These support columns are required for derived views and reports, but they are hidden because they are not intended for manual editing.
 
