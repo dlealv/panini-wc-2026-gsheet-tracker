@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<!--
+  QuickEntryDialog.html
+
+  Provides the Quick Sticker Entry dialog UI.
+  It renders country cards, supports incremental filtering, and queues sticker updates
+  before applying them back to the spreadsheet.
+
+  Version:
+  - v1.7
+  - Based on stable version v1.6
+  - Replaces PHOTO icon label with TEAM
+  - Search supports team code and country name
+-->
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --border: #c7cdd4;
+      --button-border: #bcc4cc;
+      --text: #202124;
+      --muted: #5f6368;
+      --bg-soft: #f8f9fa;
+      --success: #137333;
+      --error: #c5221f;
+      --pending: #f29900;
+      --pending-text: #c5221f;
+      --count-0-bg: #ffffff;
+      --count-0-text: #202124;
+      --count-1-bg: #cfe2f3;
+      --count-1-text: #202124;
+      --count-2-bg: #fff200;
+      --count-2-text: #202124;
+      --count-3-bg: #f6b26b;
+      --count-3-text: #202124;
+      --count-4-bg: #d9d2e9;
+      --count-4-text: #202124;
+      --count-5-plus-bg: #e06666;
+      --count-5-plus-text: #202124;
+      --completed-bg: #0b5394;
+      --completed-text: #ffffff;
+      --scrollbar-width: 12px;
+      --stickers-per-row: 8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body {
+      padding: 16px;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: calc(100vh - 32px);
+      overflow: hidden;
+    }
+
+    .section {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto auto auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      background: #fff;
+      flex: 0 0 auto;
+    }
+
+    .legend-swatch.count-0 {
+      background: var(--count-0-bg);
+    }
+
+    .legend-swatch.count-1 {
+      background: var(--count-1-bg);
+    }
+
+    .legend-swatch.count-2 {
+      background: var(--count-2-bg);
+    }
+
+    .legend-swatch.count-3 {
+      background: var(--count-3-bg);
+    }
+
+    .legend-swatch.count-4 {
+      background: var(--count-4-bg);
+    }
+
+    .legend-swatch.count-5-plus {
+      background: var(--count-5-plus-bg);
+    }
+
+    .legend-swatch.pending {
+      position: relative;
+      background: #fff;
+    }
+
+    .legend-swatch.pending::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--pending);
+    }
+
+    .legend-swatch.completed {
+      background: var(--completed-bg);
+      border-color: var(--completed-bg);
+    }
+
+    .filter-input,
+    .filter-select,
+    button {
+      font: inherit;
+    }
+
+    .filter-input,
+    .filter-select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--bg-soft);
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .primary-button {
+      border-color: #1a73e8;
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    .primary-button:hover:not(:disabled) {
+      background: #1765cc;
+    }
+
+    .filter-btn.active {
+      border-color: #1a73e8;
+      color: #1a73e8;
+    }
+
+    .message {
+      min-height: 20px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .message.success {
+      color: var(--success);
+    }
+
+    .message.error {
+      color: var(--error);
+    }
+
+    .message.info {
+      color: var(--muted);
+    }
+
+    .message.pending {
+      color: var(--pending-text);
+      font-weight: 700;
+    }
+
+    .country-list-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .country-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: 100%;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding-right: 4px;
+      scrollbar-gutter: stable;
+    }
+
+    .country-list::-webkit-scrollbar {
+      width: var(--scrollbar-width);
+    }
+
+    .country-list::-webkit-scrollbar-track {
+      background: #f1f3f4;
+      border-radius: 999px;
+    }
+
+    .country-list::-webkit-scrollbar-thumb {
+      background: #c1c7cd;
+      border-radius: 999px;
+      border: 2px solid #f1f3f4;
+    }
+
+    .country-list::-webkit-scrollbar-thumb:hover {
+      background: #a8b0b8;
+    }
+
+    .country-section {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .country-section.completed {
+      background: var(--completed-bg);
+      color: var(--completed-text);
+    }
+
+    .country-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .country-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .country-flag {
+      width: 48px;
+      height: 28px;
+      object-fit: contain;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      background: #fff;
+      display: block;
+      flex: 0 0 auto;
+    }
+
+    .country-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .summary-value {
+      font-weight: 700;
+    }
+
+    .sticker-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .sticker-grid.compact {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .sticker-row {
+      display: grid;
+      grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+
+    .sticker-row.last-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .sticker-card {
+      position: relative;
+      min-height: 0;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 4px 6px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: #202124;
+      aspect-ratio: 1 / 1;
+    }
+
+    .sticker-row.last-row .sticker-card,
+    .sticker-grid.compact .sticker-card {
+      width: calc((100% - (7 * 6px)) / 8);
+    }
+
+    .sticker-card.count-0 {
+      background: var(--count-0-bg);
+      color: var(--count-0-text);
+    }
+
+    .sticker-card.count-1 {
+      background: var(--count-1-bg);
+      color: var(--count-1-text);
+    }
+
+    .sticker-card.count-2 {
+      background: var(--count-2-bg);
+      color: var(--count-2-text);
+    }
+
+    .sticker-card.count-3 {
+      background: var(--count-3-bg);
+      color: var(--count-3-text);
+    }
+
+    .sticker-card.count-4 {
+      background: var(--count-4-bg);
+      color: var(--count-4-text);
+    }
+
+    .sticker-card.count-5-plus {
+      background: var(--count-5-plus-bg);
+      color: var(--count-5-plus-text);
+    }
+
+    .sticker-card.pending-change::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--pending);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+    }
+
+    .sticker-corner-label {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
+      opacity: 0.98;
+    }
+
+    .sticker-label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .sticker-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .sticker-actions button {
+      padding: 0;
+      width: 26px;
+      height: 24px;
+      min-width: 26px;
+      font-size: 16px;
+      line-height: 1;
+      border: 2px solid var(--button-border);
+    }
+
+    .sticker-actions button:disabled {
+      opacity: 0.7;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="section">
+      <div class="top-bar">
+        <div class="top-actions">
+          <button type="button" id="applyChangesButton" class="primary-button" onclick="applyChanges()">Update</button>
+        </div>
+
+        <div class="filters">
+          <input
+              type="text"
+              id="teamSearchInput"
+              class="filter-input"
+              placeholder="Search by team code or country name"
+              oninput="handleFiltersChange()"
+            >
+          <select id="groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
+              <option value="all">All groups</option>
+            </select>
+          <button type="button" class="filter-btn" data-filter="all" onclick="setStatusFilter('all')">All</button>
+          <button type="button" class="filter-btn" data-filter="missing" onclick="setStatusFilter('missing')">Missing</button>
+          <button type="button" class="filter-btn" data-filter="repeated" onclick="setStatusFilter('repeated')">Repeated</button>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item">
+              <span class="legend-swatch count-0"></span>
+          <span>Missing</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch count-1"></span>
+          <span>Owned x1</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch count-2"></span>
+          <span>Repeated x2</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch count-3"></span>
+          <span>Repeated x3</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch count-4"></span>
+          <span>Repeated x4</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch count-5-plus"></span>
+          <span>Repeated x5+</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch pending"></span>
+          <span>Pending changes</span>
+          </span>
+          <span class="legend-item">
+              <span class="legend-swatch completed"></span>
+          <span>Complete team</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div id="message" class="message info"></div>
+
+    <div class="section country-list-wrapper">
+      <div id="countryList" class="country-list"></div>
+    </div>
+  </div>
+
+  <script>
+    /** Maintains the current dialog state for rendering and updates. */
+      const state = {
+        countries: [],
+        groupCodes: [],
+        selectedStatusFilter: 'all',
+        selectedGroupFilter: 'all',
+        teamSearchText: '',
+        pendingUpdates: {},
+        isBusy: false,
+        isLoaded: false
+      }
+
+      /** Stores fixed layout values used by the sticker matrix. */
+      const layout = {
+        stickersPerRow: 8
+      }
+
+      const teamSearchInput = document.getElementById('teamSearchInput')
+      const groupFilterSelect = document.getElementById('groupFilterSelect')
+      const messageEl = document.getElementById('message')
+      const countryListEl = document.getElementById('countryList')
+      const applyChangesButton = document.getElementById('applyChangesButton')
+
+      /** Loads the initial Quick Sticker Entry data. */
+      function initialize() {
+        setBusy(true)
+        setMessage('Loading countries...', 'info')
+        document.documentElement.style.setProperty('--stickers-per-row', String(layout.stickersPerRow))
+
+        google.script.run
+          .withSuccessHandler((result) => {
+            state.countries = result.countries || []
+            state.groupCodes = result.groupCodes || []
+            state.selectedStatusFilter = result.selectedStatusFilter || 'all'
+            state.selectedGroupFilter = result.selectedGroupFilter || 'all'
+            state.isLoaded = true
+
+            setBusy(false)
+            renderAll()
+            setMessage('Ready.', 'success')
+          })
+          .withFailureHandler(handleFailure)
+          .getQuickEntryInitialData()
+      }
+
+      /** Handles search and group filter changes. */
+      function handleFiltersChange() {
+        state.teamSearchText = teamSearchInput.value.trim().toLowerCase()
+        state.selectedGroupFilter = groupFilterSelect.value
+        renderCountryList()
+      }
+
+      /** Updates the active sticker status filter. */
+      function setStatusFilter(filterName) {
+        state.selectedStatusFilter = filterName
+        renderFilterButtons()
+        renderCountryList()
+      }
+
+      /** Renders the full dialog state. */
+      function renderAll() {
+        renderGroupFilterOptions()
+        renderFilterButtons()
+        renderApplyButton()
+        renderCountryList()
+      }
+
+      /** Renders group filter options. */
+      function renderGroupFilterOptions() {
+        const currentValue = state.selectedGroupFilter
+        groupFilterSelect.innerHTML = ''
+
+        groupFilterSelect.appendChild(buildGroupOption('all', 'All groups'))
+
+        state.groupCodes.forEach(groupCode => {
+          groupFilterSelect.appendChild(buildGroupOption(groupCode, groupCode))
+        })
+
+        groupFilterSelect.value = currentValue
+      }
+
+      /** Builds one group option element. */
+      function buildGroupOption(value, text) {
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = text
+        return option
+      }
+
+      /** Highlights the active status filter button. */
+      function renderFilterButtons() {
+        document.querySelectorAll('.filter-btn').forEach(button => {
+          const isActive = button.dataset.filter === state.selectedStatusFilter
+          button.classList.toggle('active', isActive)
+          button.disabled = state.isBusy
+        })
+
+        teamSearchInput.disabled = state.isBusy
+        groupFilterSelect.disabled = state.isBusy
+      }
+
+      /** Updates the Update button enabled state. */
+      function renderApplyButton() {
+        applyChangesButton.disabled = state.isBusy || getPendingUpdates().length === 0
+      }
+
+      /** Renders the visible country sections. */
+      function renderCountryList() {
+        const visibleCountries = getVisibleCountries()
+        countryListEl.innerHTML = ''
+
+        if (!visibleCountries.length) {
+          countryListEl.appendChild(buildEmptyState(getEmptyStateMessage()))
+          return
+        }
+
+        visibleCountries.forEach(country => {
+          countryListEl.appendChild(buildCountrySection(country))
+        })
+      }
+
+      /** Returns the empty-state message for the current state. */
+      function getEmptyStateMessage() {
+        if (!state.isLoaded) {
+          return 'Loading countries...'
+        }
+
+        return 'No countries match the selected filters.'
+      }
+
+      /** Returns countries visible for the current filters. */
+      function getVisibleCountries() {
+        return state.countries
+          .map(country => applyPendingCountryUpdates(country))
+          .filter(country => matchesTeamSearch(country))
+          .filter(country => matchesGroupFilter(country))
+          .map(country => buildFilteredCountry(country))
+          .filter(Boolean)
+      }
+
+      /** Applies pending local changes to one country view model. */
+      function applyPendingCountryUpdates(country) {
+        const updatedStickers = country.stickers.map(sticker => applyPendingStickerUpdate(country.code, sticker))
+        const summary = buildCountrySummary(updatedStickers)
+
+        return {
+          ...country,
+          stickers: updatedStickers,
+          summary,
+          isCompleted: summary.missing === 0
+        }
+      }
+
+      /** Applies one pending local change to a sticker view model. */
+      function applyPendingStickerUpdate(countryCode, sticker) {
+        const pendingKey = buildPendingKey(countryCode, sticker.number)
+        const pendingCount = state.pendingUpdates[pendingKey]
+        const hasPendingChange = pendingCount != null
+
+        if (!hasPendingChange) {
+          return {
+            ...sticker,
+            hasPendingChange: false
+          }
+        }
+
+        return {
+          ...sticker,
+          count: pendingCount,
+          status: getStickerStatus(pendingCount),
+          colorClass: getStickerColorClass(pendingCount),
+          label: `${sticker.number} (${pendingCount})`,
+          hasPendingChange: true
+        }
+      }
+
+      /** Returns whether a country matches the team search filter. */
+      function matchesTeamSearch(country) {
+        if (!state.teamSearchText) {
+          return true
+        }
+
+        const normalizedCode = String(country.code || '').trim().toLowerCase()
+        const normalizedCountryName = String(country.countryName || '').trim().toLowerCase()
+
+        return normalizedCode.startsWith(state.teamSearchText)
+          || normalizedCountryName.startsWith(state.teamSearchText)
+      }
+
+      /** Returns whether a country matches the group filter. */
+      function matchesGroupFilter(country) {
+        if (state.selectedGroupFilter === 'all') {
+          return true
+        }
+
+        return country.group === state.selectedGroupFilter
+      }
+
+      /** Builds a filtered country section or null if no sticker matches. */
+      function buildFilteredCountry(country) {
+        const visibleStickers = filterCountryStickers(country.stickers)
+        if (!visibleStickers.length) {
+          return null
+        }
+
+        return {
+          ...country,
+          stickers: visibleStickers
+        }
+      }
+
+      /** Filters sticker cards for the active status filter. */
+      function filterCountryStickers(stickers) {
+        if (state.selectedStatusFilter === 'missing') {
+          return stickers.filter(sticker => sticker.count === 0)
+        }
+
+        if (state.selectedStatusFilter === 'repeated') {
+          return stickers.filter(sticker => sticker.count > 1)
+        }
+
+        return stickers
+      }
+
+      /** Builds one country section element. */
+      function buildCountrySection(country) {
+        const section = document.createElement('div')
+        const header = document.createElement('div')
+        const title = document.createElement('div')
+        const summary = document.createElement('div')
+
+        section.className = 'country-section'
+        if (country.isCompleted) {
+          section.classList.add('completed')
+        }
+
+        header.className = 'country-header'
+        title.className = 'country-title'
+        summary.className = 'country-summary'
+
+        if (country.flag) {
+          title.appendChild(buildCountryFlag(country.flag))
+        }
+
+        title.appendChild(buildCountryTitleText(buildCountryHeaderText(country)))
+        summary.appendChild(buildSummaryItem('Owned', `${country.summary.owned}/${country.summary.total}`))
+        summary.appendChild(buildSummaryItem('Missing', String(country.summary.missing)))
+        summary.appendChild(buildSummaryItem('Repeated', String(country.summary.repeated)))
+        summary.appendChild(buildSummaryItem('Complete', `${country.summary.completionPercent}%`))
+
+        header.appendChild(title)
+        header.appendChild(summary)
+        section.appendChild(header)
+        section.appendChild(buildStickerGrid(country))
+
+        return section
+      }
+
+      /** Builds the visible header text for one country section. */
+      function buildCountryHeaderText(country) {
+        if (!country.group) {
+          return country.code
+        }
+
+        return `${country.code} · ${country.group}`
+      }
+
+      /** Builds one summary item element with bold value only. */
+      function buildSummaryItem(label, value) {
+        const item = document.createElement('div')
+        const labelEl = document.createElement('span')
+        const valueEl = document.createElement('span')
+
+        labelEl.textContent = `${label}: `
+        valueEl.className = 'summary-value'
+        valueEl.textContent = value
+
+        item.appendChild(labelEl)
+        item.appendChild(valueEl)
+
+        return item
+      }
+
+      /** Builds the sticker grid for one country. */
+      function buildStickerGrid(country) {
+        if (usesCompactGrid()) {
+          return buildCompactStickerGrid(country)
+        }
+
+        return buildAlbumStickerGrid(country)
+      }
+
+      /** Returns whether filtered views should use the compact layout. */
+      function usesCompactGrid() {
+        return state.selectedStatusFilter !== 'all'
+      }
+
+      /** Builds the album-like sticker grid for the All view. */
+      function buildAlbumStickerGrid(country) {
+        const grid = document.createElement('div')
+        const rows = chunkStickers(country.stickers, layout.stickersPerRow)
+
+        grid.className = 'sticker-grid'
+
+        rows.forEach((rowStickers, index) => {
+          const isLastRow = index === rows.length - 1
+          grid.appendChild(buildStickerRow(country.code, rowStickers, isLastRow))
+        })
+
+        return grid
+      }
+
+      /** Builds the compact wrapped grid for filtered views. */
+      function buildCompactStickerGrid(country) {
+        const grid = document.createElement('div')
+        grid.className = 'sticker-grid compact'
+
+        country.stickers.forEach(sticker => {
+          grid.appendChild(buildStickerCard(country.code, sticker))
+        })
+
+        return grid
+      }
+
+      /** Builds one sticker row and centers the last partial row. */
+      function buildStickerRow(countryCode, stickers, isLastRow) {
+        const row = document.createElement('div')
+        row.className = 'sticker-row'
+
+        if (isLastRow && stickers.length < layout.stickersPerRow) {
+          row.classList.add('last-row')
+        }
+
+        stickers.forEach(sticker => {
+          row.appendChild(buildStickerCard(countryCode, sticker))
+        })
+
+        return row
+      }
+
+      /** Splits stickers into rows of a fixed size. */
+      function chunkStickers(stickers, size) {
+        const rows = []
+
+        for (let index = 0; index < stickers.length; index += size) {
+          rows.push(stickers.slice(index, index + size))
+        }
+
+        return rows
+      }
+
+      /** Returns the original saved count for one sticker. */
+      function getOriginalStickerCount(countryCode, stickerNumber) {
+        const country = state.countries.find(item => item.code === countryCode)
+        if (!country) {
+          return 0
+        }
+
+        const sticker = country.stickers.find(item => item.number === stickerNumber)
+        return sticker ? sticker.count : 0
+      }
+
+      /** Builds one sticker card with increment and decrement actions. */
+      function buildStickerCard(countryCode, sticker) {
+        const card = document.createElement('div')
+        const cornerLabel = document.createElement('div')
+        const label = document.createElement('div')
+        const actions = document.createElement('div')
+        const decrementButton = document.createElement('button')
+        const incrementButton = document.createElement('button')
+
+        card.className = `sticker-card ${sticker.colorClass}`
+        if (sticker.hasPendingChange) {
+          card.classList.add('pending-change')
+        }
+
+        cornerLabel.className = 'sticker-corner-label'
+        label.className = 'sticker-label'
+        actions.className = 'sticker-actions'
+        cornerLabel.textContent = sticker.iconLabel || ''
+        label.textContent = sticker.label
+
+        decrementButton.type = 'button'
+        decrementButton.textContent = '-'
+        decrementButton.disabled = state.isBusy || sticker.count === 0
+        decrementButton.onclick = () => queueStickerChange(countryCode, sticker.number, sticker.count - 1)
+
+        incrementButton.type = 'button'
+        incrementButton.textContent = '+'
+        incrementButton.disabled = state.isBusy
+        incrementButton.onclick = () => queueStickerChange(countryCode, sticker.number, sticker.count + 1)
+
+        actions.appendChild(decrementButton)
+        actions.appendChild(incrementButton)
+
+        if (sticker.iconLabel) {
+          card.appendChild(cornerLabel)
+        }
+
+        card.appendChild(label)
+        card.appendChild(actions)
+
+        return card
+      }
+
+      /** Queues a local sticker change without saving immediately. */
+      function queueStickerChange(countryCode, stickerNumber, nextCount) {
+        const safeCount = Math.max(0, nextCount)
+        const pendingKey = buildPendingKey(countryCode, stickerNumber)
+        const originalCount = getOriginalStickerCount(countryCode, stickerNumber)
+
+        if (safeCount === originalCount) {
+          delete state.pendingUpdates[pendingKey]
+        } else {
+          state.pendingUpdates[pendingKey] = safeCount
+        }
+
+        updatePendingChangesMessage()
+        renderAll()
+      }
+
+      /** Applies all pending changes to the sheet. */
+      function applyChanges() {
+        const pendingUpdates = getPendingUpdates()
+        if (!pendingUpdates.length) {
+          setMessage('There are no pending changes to update.', 'info')
+          return
+        }
+
+        setBusy(true)
+        setMessage('Updating sticker data...', 'info')
+
+        google.script.run
+          .withSuccessHandler((result) => {
+            state.countries = result.countries || []
+            state.pendingUpdates = {}
+            setBusy(false)
+            renderAll()
+            setMessage(result.message || 'Updated', 'success')
+          })
+          .withFailureHandler(handleFailure)
+          .applyQuickEntryUpdates({ pendingUpdates })
+      }
+
+      /** Returns all pending updates as an array payload. */
+      function getPendingUpdates() {
+        return Object.keys(state.pendingUpdates).map(key => {
+          const parts = key.split('|')
+
+          return {
+            countryCode: parts[0],
+            stickerNumber: Number(parts[1]),
+            count: state.pendingUpdates[key]
+          }
+        })
+      }
+
+      /** Updates the top pending changes message. */
+      function updatePendingChangesMessage() {
+        const pendingCount = getPendingUpdates().length
+
+        if (pendingCount > 0) {
+          setMessage(`Pending changes: ${pendingCount}`, 'pending')
+          return
+        }
+
+        setMessage('Ready.', 'success')
+      }
+
+      /** Builds the pending update key for one sticker. */
+      function buildPendingKey(countryCode, stickerNumber) {
+        return `${countryCode}|${stickerNumber}`
+      }
+
+      /** Builds summary values from visible sticker data. */
+      function buildCountrySummary(stickers) {
+        const total = stickers.length
+        const owned = stickers.filter(sticker => sticker.count > 0).length
+        const missing = stickers.filter(sticker => sticker.count === 0).length
+        const repeated = stickers.filter(sticker => sticker.count > 1).length
+        const completionPercent = total === 0 ? 0 : Math.round((owned / total) * 100)
+
+        return {
+          owned,
+          missing,
+          repeated,
+          total,
+          completionPercent
+        }
+      }
+
+      /** Returns the status for one sticker count. */
+      function getStickerStatus(count) {
+        if (count === 0) {
+          return 'missing'
+        }
+
+        if (count > 1) {
+          return 'repeated'
+        }
+
+        return 'all'
+      }
+
+      /** Returns the color class for one sticker count. */
+      function getStickerColorClass(count) {
+        if (count <= 0) {
+          return 'count-0'
+        }
+
+        if (count === 1) {
+          return 'count-1'
+        }
+
+        if (count === 2) {
+          return 'count-2'
+        }
+
+        if (count === 3) {
+          return 'count-3'
+        }
+
+        if (count === 4) {
+          return 'count-4'
+        }
+
+        return 'count-5-plus'
+      }
+
+      /** Builds the empty-state element. */
+      function buildEmptyState(text) {
+        const emptyState = document.createElement('div')
+        emptyState.className = 'empty-state'
+        emptyState.textContent = text
+        return emptyState
+      }
+
+      /** Updates the busy state and refreshes interactive controls. */
+      function setBusy(isBusy) {
+        state.isBusy = isBusy
+        renderFilterButtons()
+        renderApplyButton()
+        renderCountryList()
+      }
+
+      /** Displays a status message for the user. */
+      function setMessage(text, type) {
+        messageEl.className = `message ${type || 'info'}`
+        messageEl.textContent = text || ''
+      }
+
+      /** Handles a failed Apps Script request. */
+      function handleFailure(error) {
+        setBusy(false)
+        state.isLoaded = true
+        setMessage(error && error.message ? error.message : String(error), 'error')
+      }
+
+      /** Builds the flag element displayed beside the country title. */
+      function buildCountryFlag(flag) {
+        const flagEl = document.createElement('img')
+        flagEl.className = 'country-flag'
+        flagEl.src = flag
+        flagEl.alt = 'Flag'
+        flagEl.referrerPolicy = 'no-referrer'
+        return flagEl
+      }
+
+      /** Builds the title text element for the country header. */
+      function buildCountryTitleText(text) {
+        const textEl = document.createElement('span')
+        textEl.textContent = text
+        return textEl
+      }
+
+      window.addEventListener('load', initialize)
+  </script>
+</body>
+
+</html>
