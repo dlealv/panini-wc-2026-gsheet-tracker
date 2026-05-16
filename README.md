@@ -187,7 +187,8 @@ This tracker includes Google Apps Script features such as:
 
 When you make your own copy of the spreadsheet and run one of these features for the first time, Google may ask you to authorize the attached Apps Script project. Depending on your Google account type and Google’s OAuth rules, you may also see an **unverified app** warning in the web browser authorization flow.
 
-![Google Apps Script authorization warning in browser](images/googleAppsScriptAuthorizationWarningBrowser.jpg)
+Check the [Step by Step document](docs/GoogleAccessStepByStep.md) that will guide you through the process.
+
 
 ### Why this warning can appear
 
