@@ -6,7 +6,7 @@ This project was first published as a draft on [Reddit](https://www.reddit.com/r
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Note:** In this document, country code (code of the soccer team in the Panini Album) also includes special sticker groups such as `FWC`. This also applies throughout the tracker.
+**Note:** In this document, country code, meaning the code of the soccer team in the Panini album, also includes special sticker groups such as `FWC`. This applies throughout the tracker.
 
 ## Live tracker
 
@@ -21,68 +21,125 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 ## Main features
 
 - Track owned stickers in the `Stickers` tab
+- Update sticker counts quickly through the **Quick Sticker Entry** dialog
+- Import and export sticker data with Google Apps Script tools
 - See progress summaries in the `Reports` tab
 - Share a compact swap view with other collectors
-- Compare your list with another collector in the `Trade` tab
-- Import and export sticker data with Google Apps Script tools
+- Trade with another collector in the `Trade` tab
 
-## Screenshots
+## Services
 
-### Stickers tab
+### Track your collection
 
-This is the main input tab of the tracker. Enter and update your sticker counts here. The other tabs use this data and are generated automatically. The country codes are organized in the same order as shown in the album, which makes it easier to update your collection while reviewing your stickers.
+The tracker stores your sticker ownership data in the `Stickers` tab, which acts as the main source for the rest of the spreadsheet. This is where the collection is represented in the same order as the album, making it easier to review and maintain your counts while checking physical stickers.
 
-This tab has two hidden columns: `AD`, which stores the country code used to populate the flags, and `AE`, which stores the corresponding team group. The group is required to generate the pivot table in the `Reports` tab. These columns are hidden because they are support data and are not intended for manual editing.
+The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, and `Miss` so you can quickly understand each team's completion level without leaving the main view.
 
-The columns `Done` (number of completed stickers for the team), `%` (percentage of completion), `Rep` (number of repeated stickers), and `Miss` (number of missing stickers) are calculated fields and are shown for quick reference.
+Two support columns are hidden in this tab:
+- `AD`, which stores the country code used to populate the flags
+- `AE`, which stores the corresponding team group
+
+These support columns are required for derived views and reports, but they are hidden because they are not intended for manual editing.
 
 ![Stickers tab](images/stickersView.jpg)
 
-### Reports tab
+### Update sticker counts quickly
 
-This tab generates reports and visual summaries from the data entered in the `Stickers` tab. No manual input is required here. The pivot table on the right helps visualize the information sorted by team collection completion progress, not by the order of the album as in `Stickers` tab.
+The **Quick Sticker Entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, filter the visible cards, and increment or decrement counts with dedicated buttons.
 
-![Reports tab](images/reportsView.jpg)
+This service is enabled through the **Quick Sticker Entry** dialog in the **Manage Panini** menu. The dialog reads from the same data used by the `Stickers` tab and writes updates back to the `COUNTS` named range only when **Update** is pressed.
 
-### Compact Swap View tab
+It is especially useful for day-to-day collection tracking because it combines team progress, missing stickers, repeated stickers, and pending changes in one place.
 
-This tab shows a compact view of repeated and missing stickers for sharing with other collectors. The information comes from the `Stickers` tab, so no manual input is needed here. It helps exchange collection status quickly in a more compact format and is especially useful for sharing your swap information through social media or messaging apps.
+Main capabilities:
+- Search incrementally by **team code** or **country name**
+- Filter by **group**
+- Filter by sticker status: **All**, **Missing**, or **Repeated**
+- Review each team with a compact summary:
+  - Owned
+  - Missing
+  - Repeated
+  - Completion percentage
+- Update sticker counts with `-` and `+` buttons
+- Queue multiple local changes before applying them via the **Update** button
+- Highlight pending changes before writing them to the sheet
+- Use a color convention for missing and repeated stickers based on count
+- Easily identify special cards such as crest and team stickers
+- Mark fully completed teams visually
+
+![Quick Sticker Entry](images/quickStickerEntryView.jpg)
+
+### Import or export collection data
+
+The tracker provides import and export tools so you can load collection data from external sources or create reusable backups of your current sticker counts.
+
+This service is enabled through the **Import / Export** dialog in the **Manage Panini** menu.
+
+#### Import collection data
+
+Import is useful when you already track your collection somewhere else and want to move it into this spreadsheet without manual re-entry.
+
+Available import modes:
+- **Import data**: clears all values in the `COUNTS` named range, then loads the input data
+- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries
+- **Update counts**: only overwrites sticker positions explicitly provided in the input, while all other values remain unchanged
+
+![Import dialog](images/importDialogView.jpg)
+
+#### Export collection data
+
+Export is useful when you want to create a reusable backup, share your current counts, or generate data that can later be imported again.
+
+Export behavior:
+- Generates a text representation using the same syntax accepted by the import tool
+- Includes only sticker counts greater than 0
+- Can be copied or downloaded for reuse
+
+![Export dialog](images/exportView.jpg)
+
+### Share your swap status
+
+The tracker includes a compact swap service that helps you share repeated and missing stickers with other collectors in a concise format.
+
+This service is enabled mainly through the `Compact Swap View` tab. The information is generated automatically from the `Stickers` tab, so no manual input is needed in this view.
+
+It is especially useful when sharing your collection status through messaging apps or social media, where a compact and readable summary is more practical than a full tracker view.
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
-### Trade tab
+### Review your progress
 
-This tab helps compare your collection with another collector to identify possible swaps. Paste the other collector data in the expected format (see [Import Format](#import-format) section below) in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
+The tracker provides visual summaries and completion analysis so you can monitor progress across all teams.
 
-You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive. Green background highlights indicate values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
+This service is enabled mainly through the `Reports` tab, which generates reports and pivot-based summaries from the data entered in the `Stickers` tab. No manual input is required there.
+
+It helps you visualize which teams are closest to completion and review your overall progress from a reporting perspective rather than from the album order used in the `Stickers` tab.
+
+![Reports tab](images/reportsView.jpg)
+
+### Trade with another collector
+
+The tracker includes a trade comparison service that helps identify possible exchanges between your collection and another collector's collection.
+
+This service is enabled through the `Trade` tab. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
+
+You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive.
+
+Green background highlights values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
 
 ![Trade tab](images/tradeView.jpg)
 
 **Note:** For easy visualization, the stickers `KOR,7` and `CAN,4` are manually highlighted in red in this example.
 
-The results are prioritized to ensure the efficient completion of teams while maintaining a straightforward trade review process. In this sample, `KOR` has the highest completion rate from the stickers to trade, which is why it appears at the top of the list in the Receive Stickers table from the **OUTPUT** section. The count `2` from the Receive Stickers table is highlighted with a green background because the total match of the Send Stickers table is `2`. In this case, for a swap, you will *send* the stickers `KOR,7` and `CAN,4` *to* another collector, and *receive* the stickers: `KOR,12,20` *from* another collector.
+The results are prioritized to support efficient team completion while keeping the trade review process straightforward. In this sample, `KOR` has the highest completion rate among the stickers to trade, which is why it appears at the top of the list in the Receive Stickers table from the **OUTPUT** section. The count `2` from the Receive Stickers table is highlighted with a green background because the total match of the Send Stickers table is `2`. In this case, for a swap, you will *send* the stickers `KOR,7` and `CAN,4` *to* another collector, and *receive* the stickers `KOR,12,20` *from* another collector.
 
-### Manage Panini menu
+## Manage Panini menu
 
-Custom spreadsheet menu added by the Apps Script. Use it to open the import dialog or export the current sticker data.
+The custom **Manage Panini** spreadsheet menu is added by the Apps Script project and provides access to the main supported workflows:
+- Import or export collection data
+- Open the Quick Sticker Entry dialog
 
-![Manage Panini menu](images/panini%20Manage.jpg)
-
-### Import dialog
-
-Use this dialog to load sticker data from pasted text or a local file. It is useful when you already track your collection somewhere else and want to move it into this spreadsheet without manual re-entry.
-
-- **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
-- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
-- **Update counts**: only overwrites sticker positions explicitly provided in the input; all other values remain unchanged.
-
-![Import dialog](images/importDialogView.jpg)
-
-### Export dialog
-
-Use this dialog to generate a reusable text version of your current sticker counts. You can copy or download the exported data to keep a backup, share it, or use it later for import.
-
-![Export dialog](images/exportView.jpg)
+![Manage Panini menu](images/managePaniniMenuView.jpg)
 
 ## Import / Export tools
 
@@ -96,11 +153,11 @@ CODE,number[,number(repeats)]...
 
 Please consider the following rules:
 
-- Repeats in parentheses are optional.
-- Use comma `,` as delimiter.
-- Country code must exist in the `COUNTRIES` named range in the `Stickers` tab.
-- Sticker `0` only exists for `FWC`. For other country codes it is accepted and mapped to count `0`.
-- Sticker `20` only exists for non-`FWC` countries. For `FWC` it is accepted and mapped to count `0`.
+- Repeats in parentheses are optional
+- Use comma `,` as delimiter
+- Country code must exist in the `COUNTRIES` named range in the `Stickers` tab
+- Sticker `0` only exists for `FWC`. For other country codes it is accepted and mapped to count `0`
+- Sticker `20` only exists for non-`FWC` countries. For `FWC` it is accepted and mapped to count `0`
 
 Example:
 
@@ -114,13 +171,23 @@ In the previous example, sticker `5` for `FWC` appears twice, and sticker `7` fo
 
 ### Named ranges used by the script
 
-- `COUNTRIES`: refers to the country code column (`Ctry`) in the `Stickers` tab.
-- `COUNTS`: refers to the range representing sticker counts for stickers `0-20` across all participating country codes.
+- `COUNTRIES`: country code column in the `Stickers` tab
+- `COUNTS`: sticker counts for stickers `0-20`
+- `GROUPS`: team group for each country code
+- `FLAGS_URL`: flag image source used by the dialogs
+- `COUNTRY_NAMES`: country name used by Quick Sticker Entry incremental search
+
+## Documentation
+
+Service-specific documents are available in the `docs/` folder:
+
+- `docs/ImportExportServiceRequirements.md`: functional requirements and business rules for the import/export service
+- `docs/QuickEntryServiceRequirements.md`: functional requirements and business rules for the Quick Sticker Entry service
+- `docs/QuickEntryServiceMockDesign.md`: mock design notes and UI behavior references for the Quick Sticker Entry service
 
 ## Repository purpose
 
 This repository is the main place for:
-
 - source code
 - documentation
 - future updates
@@ -130,18 +197,20 @@ The project was initially announced on Reddit, but future updates are maintained
 
 ## Files
 
-- `Code.gs`: Main Google Apps Script source file. It contains menu creation, import/export logic, validation, and spreadsheet updates.
-- `importDialog.html`: HTML user interface for the import and export dialogs shown inside Google Sheets.
-- `Requirements.md`: Functional and technical notes for the App Script project, including behavior rules and implementation details.
-- `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
-- `examples/example_sticker-data.txt`: Sample data file that can be used both as an import example and as an example of the exported format.
+- `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs
+- `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows
+- `StickerImportApp.gs`: import/export application logic, including preview generation, import execution, export generation, and input parsing
+- `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates
+- `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets
+- `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog
+- `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service
+- `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service
+- `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry
+- `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance
+- `examples/example_sticker-data.txt`: sample data file that can be used both as an import example and as an example of the exported format
 
 ## Examples
 
-Example files are available in the `examples/` folder:
+Example files are available in the `examples/` folder
 
-- `examples/example_sticker-data.txt`
-
-## Feedback
-
-Suggestions and improvements are welcome.
+- `examples/example_sticker`
