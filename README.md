@@ -187,7 +187,7 @@ This tracker includes Google Apps Script features such as:
 
 When you make your own copy of the spreadsheet and run one of these features for the first time, Google may ask you to authorize the attached Apps Script project. Depending on your Google account type and Google’s OAuth rules, you may also see an **unverified app** warning in the web browser authorization flow.
 
-Check the [Step by Step document](docs/GoogleAccessStepByStep.md) that will guide you through the process.
+Check the [Step by Step document](docs/GoogleAccessStepByStep.md) that will guide you through the copy and Apps Script access process.
 
 
 ### Why this warning can appear
@@ -198,11 +198,7 @@ This does **not automatically mean the spreadsheet is unsafe or malicious**. It 
 
 ### What this script is used for
 
-In this tracker, the script is used only to support spreadsheet features such as:
-- opening custom dialogs
-- reading and writing sticker counts in your spreadsheet copy
-- validating import data
-- exporting tracker data
+The scope of the script is limited by the manifesto file of the project [appsscript.json](appsscript.json) this file clearly specifies it makes changes to the **current template only**. This is guarantee that the actions in the **Manage Panini** menu won't affect other resources from your google account.
 
 The source code is published in this repository so users can review what the script does before authorizing it.
 
@@ -233,15 +229,15 @@ Google’s Apps Script authorization documentation explains that scripts request
 ### Official Google documentation
 
 For more details, see Google’s official documentation:
-- **Authorization for Google Services | Apps Script**
-- **OAuth Client Verification | Apps Script**
-- **Troubleshoot authentication & authorization issues | Apps Script**
+- [Authorization for Google Services | Apps Script](https://developers.google.com/apps-script/guides/services/authorization)
+- [OAuth Client Verification | Apps Script](https://developers.google.com/apps-script/guides/client-verification)
+- [Troubleshoot authentication & authorization issues | Apps Script](https://developers.google.com/apps-script/api/troubleshoot-authentication-authorization)
 
 These documents explain why the authorization dialog appears, why some users may see the unverified-app warning, and what is required to remove the warning for external users.
 
 ### Can this warning be removed?
 
-For public users, removing the warning usually requires the owner of the Apps Script project to complete Google’s OAuth verification process for the related Google Cloud project. Google explains that verified apps no longer show the unverified app screen to users, and that the verification process may require a configured OAuth consent screen, a verified domain, a homepage URL, a privacy policy URL, and other app details requested by Google.
+For public users, removing the warning usually requires the owner of the Apps Script project to complete Google’s OAuth verification process for the related Google Cloud project. Google explains that verified apps no longer show the unverified app screen to users, and that the verification process may require a configured OAuth consent screen, a verified domain, a homepage URL, a privacy policy URL, and other app details requested by Google. All this sounds disproportionate for a harmless spreadsheet template like this one.
 
 Until that verification is completed, some users may continue to see Google’s warning before using scripted features.
 
