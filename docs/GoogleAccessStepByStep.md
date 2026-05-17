@@ -9,7 +9,7 @@ Once you click on the link to the template, you will be prompted to view the con
 You may also see a banner message like this:
 ![Allow access banner](../images/google%20access/allowAccessBanner.jpg)
 
-Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on `Allow access` to avoid any error in the template while getting access to the country flags.
+Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on "Allow access" to avoid any error in the template while getting access to the country flags.
 
 To create a copy of the file, go to the “File” menu and select “Make a Copy.”
 
@@ -33,13 +33,13 @@ This message is normal, even for the first time. The owner of the file, when att
 
 ![Unverified message after clickin Advance link](../images/google%20access/unverifiedGoogleMessageAfterClick.jpg)
 
-To access the template, click on `Go to Template panini FIFA WC 2026 Manage (unsafe)`. This is the name of the Apps Script project associated with the template.
+To access the template, click on "Go to Template panini FIFA WC 2026 Manage (unsafe)". This is the name of the Apps Script project associated with the template.
 
 Once clicked, you’ll see a form where you can configure permissions.
 
 ![Access Request Form](../images/google%20access/accessRequestForm.jpg)
 
-Select all options and click the `Continue` button.
+Select all options and click the "Continue" button.
 
 Now, you can execute services from the **Manage Panini** menu.
 
