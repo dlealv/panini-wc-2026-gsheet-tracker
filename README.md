@@ -284,5 +284,6 @@ The project was initially announced on Reddit, but future updates are maintained
 - `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service
 - `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service
 - `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry
+- `docs/GoogleAccessStepByStep.md`: Step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project
 - `CHANGELOG.md`: chronological summary of notable project changes
 - `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance
