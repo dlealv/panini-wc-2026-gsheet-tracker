@@ -18,17 +18,17 @@ Use the live Google Sheet here:
 https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/copy
 ```
 
-**Recommended use:** open the sheet and make your own copy.
+Since the URL link has the `/copy` at the end, it generates a copy of the template at the time you click on the link.
 
-**Apps Script note:** Some scripted features may trigger Google’s authorization flow and, for some users, an unverified app warning. See **Apps Script authorization and Google unverified app warning** below for details, safety guidance, and review steps.
+**Apps Script note:** Some scripted features (**Manage Panini** custom menu) may trigger Google’s authorization flow and, for some users, an unverified app warning. See [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning) below for details, safety guidance, and review steps.
 
 ## Main features
 
 - Track owned stickers in the `Stickers` tab
-- Update sticker counts quickly through the **Quick Sticker Entry** dialog
-- Import and export sticker data with Google Apps Script tools
+- Update sticker counts quickly through the **Quick Sticker Entry** dialog inside **Manage Panini** custom menu.
+- Import and export sticker data via **Manage Panini** custom menu
 - See progress summaries in the `Reports` tab
-- Share a compact swap view with other collectors
+- Share a compact swap view with other collectors in the `Compact Swap View` tab.
 - Trade with another collector in the `Trade` tab
 
 ## Services
@@ -39,7 +39,7 @@ The tracker stores your sticker ownership data in the `Stickers` tab, which acts
 
 The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, and `Miss` so you can quickly understand each team's completion level without leaving the main view.
 
-One support column is hidden Stickers tab `AD`, which stores the country group. This column is required for the Pivot table in the Reports tab. Since Pivot tables range input requires a single range, it needs to be part of the Stickers tab range.
+One support column is hidden Stickers tab `AD`, which stores the country group. This column is required for the Pivot table in the `Reports` tab. Since Pivot tables range input requires a single range, it needs to be part of the `Stickers` tab range.
 
 ![Stickers tab](images/stickersView.jpg)
 
@@ -63,7 +63,7 @@ Main capabilities:
 - Update sticker counts with `-` and `+` buttons
 - Queue multiple local changes before applying them via the **Update** button
 - Highlight pending changes before writing them to the sheet
-- Use a color convention for missing and repeated stickers based on count
+- Use a color convention for missing and repeated stickers based on count. The colors are the same used in `Stickers` tab and specified in the **Legend** section of the Description in the same tab.
 - Easily identify special cards such as crest and team stickers
 - Mark fully completed teams visually
 
@@ -73,7 +73,7 @@ Main capabilities:
 
 The tracker provides import and export tools so you can load collection data from external sources or create reusable backups of your current sticker counts.
 
-This service is enabled through the **Import / Export** dialog in the **Manage Panini** menu.
+This service is enabled through the **Import / Export** dialog in the **Manage Panini** menu. The format is Comma Separated Value (CSV) in both directions.
 
 #### Import collection data
 
@@ -84,6 +84,8 @@ Available import modes:
 - **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries
 - **Update counts**: only overwrites sticker positions explicitly provided in the input, while all other values remain unchanged
 
+After import is executed, **only** the values part of the input will be replaced in the `Stickers` tab. The pattern and rules are detail in the input view:
+
 ![Import dialog](images/importDialogView.jpg)
 
 #### Export collection data
@@ -92,8 +94,8 @@ Export is useful when you want to create a reusable backup, share your current c
 
 Export behavior:
 - Generates a text representation using the same syntax accepted by the import tool
+- Exports only valid sticker numbers, i.e. `0` only for `FWC` and `20` sticker for non-`FWC` countries.
 - Includes only sticker counts greater than `0`
-- Exports only stickers valid for each country code
 - Can be copied or downloaded for reuse
 
 ![Export dialog](images/exportView.jpg)
@@ -237,7 +239,7 @@ These documents explain why the authorization dialog appears, why some users may
 
 ### Can this warning be removed?
 
-For public users, removing the warning usually requires the owner of the Apps Script project to complete Google’s OAuth verification process for the related Google Cloud project. Google explains that verified apps no longer show the unverified app screen to users, and that the verification process may require a configured OAuth consent screen, a verified domain, a homepage URL, a privacy policy URL, and other app details requested by Google. All this sounds disproportionate for a harmless spreadsheet template like this one.
+For public users, removing the warning usually requires the owner of the Apps Script project to complete Google’s OAuth verification process for the related Google Cloud project. Google explains that verified apps no longer show the unverified app screen to users, and that the verification process may require a configured OAuth consent screen, a verified domain, a homepage URL, a privacy policy URL, and other app details requested by Google. **All this sounds disproportionate for a harmless spreadsheet template like this one**.
 
 Until that verification is completed, some users may continue to see Google’s warning before using scripted features.
 
@@ -271,15 +273,16 @@ The project was initially announced on Reddit, but future updates are maintained
 
 ## Files
 
-- `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs
-- `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows
-- `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing
-- `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates
-- `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets
-- `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog
-- `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service
-- `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service
-- `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry
-- `docs/GoogleAccessStepByStep.md`: Step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project
-- `CHANGELOG.md`: chronological summary of notable project changes
-- `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance
+- `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
+- `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
+- `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing.
+- `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
+- `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets.
+- `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
+- `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service.
+- `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service.
+- `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry.
+- `docs/GoogleAccessStepByStep.md`: Step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project.
+- `CHANGELOG.md`: chronological summary of notable project changes.
+- `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance.
+- `TODO.md`: Features to include in future releases. The check mark indicates if the feature was already implemented.
