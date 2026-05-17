@@ -6,10 +6,9 @@ This document provides a comprehensive guide on the main steps to follow to crea
 
 Once you click on the link to the template
 
-```
+```text
 https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/copy
 ```
-
 
 you will be prompted to view the content with permission to comment. Since the template was shared for anyone with the link, you can download the file and post comments to the editors if you have any questions or suggestions.
 
