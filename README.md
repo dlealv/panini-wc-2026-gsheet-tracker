@@ -15,7 +15,7 @@ Track your collection, duplicates, missing stickers, swap summary, and possible 
 Use the live Google Sheet here:
 
 ```text
-https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/edit?usp=sharing
+https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/copy
 ```
 
 **Recommended use:** open the sheet and make your own copy.
