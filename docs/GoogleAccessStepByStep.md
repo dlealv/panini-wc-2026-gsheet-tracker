@@ -19,7 +19,7 @@ After creating the copy, you will be prompted to provide access to the Apps Scri
 
 ## Provide Access to the Apps Script Project
 
-To access the Apps Script project, you need to provide the required access. This access is essential for executing the services under the “Manage Panini” menu.
+To access the Apps Script project, you need to provide the required access. This access is essential for executing the services under the **Manage Panini** menu.
 
 After clicking "OK", the following message appears:
 
