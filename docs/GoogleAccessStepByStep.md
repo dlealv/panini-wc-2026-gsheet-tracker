@@ -21,7 +21,7 @@ After creating the copy, you will be prompted to provide access to the Apps Scri
 
 To access the Apps Script project, you need to provide the required access. This access is essential for executing the services under the “Manage Panini” menu.
 
-After clicking **OK**, the following message appears:
+After clicking "OK", the following message appears:
 
 ![Unverified Message](../images/google%20access/unverifiedGoogleMessage.jpg)
 
