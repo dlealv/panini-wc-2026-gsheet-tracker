@@ -15,7 +15,7 @@ To create a copy of the file, go to the “File” menu and select “Make a Cop
 
 ![Make a copy](../images/google%20access/createACopy.jpg)
 
-After creating the copy, you will be prompted to provide access to the Apps Script project. This access is necessary to execute the services under the “Manage Panini” menu.
+After creating the copy, you will be prompted to provide access to the Apps Script project. This access is necessary to execute the services under the **Manage Panini** menu.
 
 ## Provide Access to the Apps Script Project
 
