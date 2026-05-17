@@ -9,7 +9,7 @@ Once you click on the link to the template, you will be prompted to view the con
 You may also see a banner message like this:
 ![Allow access banner](../images/google%20access/allowAccessBanner.jpg)
 
-Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags.
+Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on `Allow access` to avoid any error in the template while getting access to the country flags.
 
 To create a copy of the file, go to the “File” menu and select “Make a Copy.”
 
