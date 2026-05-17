@@ -29,7 +29,7 @@ For shared Google Sheets with attached Apps Script, users may encounter Googleâ€
 
 Verification is the formal process to remove this warning for external users. However, it requires setting up the OAuth consent screen in a standard Google Cloud project and providing essential information such as an app homepage, privacy policy, and authorized domain.
 
-This message is normal. Even for the owner of the file the first time tried to execute a service from the **Manage Panini** menu, got the same message. To fully experience the template, click on the Advanced link.
+This message is normal. Even for the owner of the file the first time tried to execute a service from the **Manage Panini** menu. The same message pop-up. To fully experience the template, click on the "Advanced" link.
 
 ![Unverified message after clickin Advance link](../images/google%20access/unverifiedGoogleMessageAfterClick.jpg)
 
