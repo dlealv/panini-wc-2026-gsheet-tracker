@@ -17,27 +17,21 @@ You may also see a banner message like this:
 
 Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on "Allow access" to avoid any error in the template while getting access to the country flags.
 
-To create a copy of the file, go to the “File” menu and select “Make a Copy.”
-
-![Make a copy](../images/google%20access/createACopy.jpg)
-
-After creating the copy, you will be prompted to provide access to the Apps Script project. This access is necessary to execute the services under the **Manage Panini** menu.
+After you make a copy of the file, you are ready to go. 
 
 ## Provide Access to the Apps Script Project
 
-To access the Apps Script project, you need to provide the required access. This access is essential for executing the services under the **Manage Panini** menu.
+If you want to use one of the services of the **Manage Panini** menu then you need to provide access to the Apps Script project. Select any of the service under the manu and you will get the following message:
 
-After clicking "OK", the following message appears:
+![Access request](../images/google%20access/authorizationRequiredMessage.jpg)
+
+After clicking "OK", you may see the following message appears:
 
 ![Unverified Message](../images/google%20access/unverifiedGoogleMessage.jpg)
 
-For shared Google Sheets with attached Apps Script, users may encounter Google’s unverified app warning if the script requests OAuth scopes that Google considers sensitive and the project hasn’t undergone Google verification. [Unverified Apps](https://support.google.com/googleapi/answer/7454865?hl=en&utm_source=openai).
-
-Verification is the formal process to remove this warning for external users. However, it requires setting up the OAuth consent screen in a standard Google Cloud project and providing essential information such as an app homepage, privacy policy, and authorized domain.
+This is Google common practice, even the scope of the app was restricted to the minimum, it may show this message. Google requires an OAuth and to have the application validated by Google. This authorization process is a disproportionate effort because Google requests: app homepage, privacy policy, support email, domain ownership, demo video. Such requirements are required even for a harmless spreadsheet like this one. So far that is the only way to get rid of this scary message.
 
 This message is normal. Even for the owner of the file the first time tried to execute a service from the **Manage Panini** menu. The same message pop-up. To fully experience the template, click on the "Advanced" link.
-
-![Unverified message after clickin Advance link](../images/google%20access/unverifiedGoogleMessageAfterClick.jpg)
 
 To access the template, click on "Go to Template panini FIFA WC 2026 Manage (unsafe)". This is the name of the Apps Script project associated with the template.
 
@@ -45,7 +39,7 @@ Once clicked, you’ll see a form where you can configure permissions.
 
 ![Access Request Form](../images/google%20access/accessRequestForm.jpg)
 
-Select all options and click the "Continue" button.
+Select "All" options and click the "Continue" button.
 
 Now, you can execute services from the **Manage Panini** menu.
 
