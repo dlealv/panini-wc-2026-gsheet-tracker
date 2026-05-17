@@ -4,7 +4,14 @@ This document provides a comprehensive guide on the main steps to follow to crea
 
 ## Obtain a Copy of the File
 
-Once you click on the link to the template, you will be prompted to view the content with permission to comment. Since the template was shared for anyone with the link, you can download the file and post comments to the editors if you have any questions or suggestions.
+Once you click on the link to the template
+
+```
+https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/copy
+```
+
+
+you will be prompted to view the content with permission to comment. Since the template was shared for anyone with the link, you can download the file and post comments to the editors if you have any questions or suggestions.
 
 You may also see a banner message like this:
 ![Allow access banner](../images/google%20access/allowAccessBanner.jpg)
