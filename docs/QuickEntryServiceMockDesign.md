@@ -22,44 +22,44 @@ This mock design reflects the current UI direction shown in the latest screen ca
 ### Initial loaded layout
 
 ```text
-+------------------------------------------------------------------------------------------------------------------+
-| Quick Sticker Entry                                                                                         [X]  |
-+------------------------------------------------------------------------------------------------------------------+
-|                                                                                                   [ Update ]      |
-|                                                                                                                  |
-| [ Search by team code or country name__________________________ ] [ All groups v ] [All] [Missing] [Repeated]  |
-|                                                                                                                  |
-| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+            |
-| [•] Pending changes   [■] Complete team                                                                         |
-+------------------------------------------------------------------------------------------------------------------+
-| Ready.                                                                                                           |
-+------------------------------------------------------------------------------------------------------------------+
-| +--------------------------------------------------------------------------------------------------------------+ |
-| | [flag] FWC                                                     Owned: 7/20  Missing: 13  Repeated: 0  35%   | |
-| |                                                                                                              | |
-| | [ 0 (0) ] [ 1 (1) ] [ 2 (0) ] [ 3 (0) ] [ 4 (0) ] [ 5 (0) ] [ 6 (1) ] [ 7 (0) ]                           | |
-| | [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                           | |
-| |                                                                                                              | |
-| | [ 8 (0) ] [ 9 (0) ] [10 (0) ] [11 (0) ] [12 (1) ] [13 (1) ] [14 (0) ] [15 (1) ]                           | |
-| | [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                           | |
-| |                                                                                                              | |
-| | [16 (1) ] [17 (0) ] [18 (1) ] [19 (0) ]                                                                      | |
-| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                                                      | |
-| +--------------------------------------------------------------------------------------------------------------+ |
-|                                                                                                                  |
-| +--------------------------------------------------------------------------------------------------------------+ |
-| | [flag] MEX                                                      Owned: 8/20  Missing: 12  Repeated: 0  40%  | |
-| |                                                                                                              | |
-| | [CREST] [ 1 (0) ] [ 2 (0) ] [ 3 (0) ] [ 4 (1) ] [ 5 (0) ] [ 6 (0) ] [ 7 (1) ] [ 8 (0) ]                  | |
-| |         [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                  | |
-| |                                                                                                              | |
-| | [ 9 (0) ] [10 (0) ] [11 (1) ] [12 (1) ] [TEAM] [13 (1) ] [14 (1) ] [15 (1) ] [16 (0) ]                   | |
-| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]        [  -  + ] [  -  + ] [  -  + ] [  -  + ]                   | |
-| |                                                                                                              | |
-| | [17 (0) ] [18 (1) ] [19 (0) ] [20 (0) ]                                                                      | |
-| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                                                      | |
-| +--------------------------------------------------------------------------------------------------------------+ |
-+------------------------------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------+
+| Quick Sticker Entry                                                                                             [X]  |
++----------------------------------------------------------------------------------------------------------------------+
+|                                                                                                       [ Update ]     |
+|                                                                                                                      |
+| [ Search by team code or country name__________________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
+|                                                                                                                      |
+| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+                  |
+| [•] Pending changes   [■] Complete team                                                                              |
++----------------------------------------------------------------------------------------------------------------------+
+| Ready.                                                                                                               |
++----------------------------------------------------------------------------------------------------------------------+
+| +------------------------------------------------------------------------------------------------------------------+ |
+| | [flag] FWC                                                     Owned: 7/20  Missing: 13  Repeated: 0  35%        | |
+| |                                                                                                                  | |
+| | [ 0 (0) ] [ 1 (1) ] [ 2 (0) ] [ 3 (0) ] [ 4 (0) ] [ 5 (0) ] [ 6 (1) ] [ 7 (0) ]                                  | |
+| | [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                  | |
+| |                                                                                                                  | |
+| | [ 8 (0) ] [ 9 (0) ] [10 (0) ] [11 (0) ] [12 (1) ] [13 (1) ] [14 (0) ] [15 (1) ]                                  | |
+| | [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                  | |
+| |                                                                                                                  | |
+| | [16 (1) ] [17 (0) ] [18 (1) ] [19 (0) ]                                                                          | |
+| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                                                          | |
+| +------------------------------------------------------------------------------------------------------------------+ |
+|                                                                                                                      |
+| +------------------------------------------------------------------------------------------------------------------+ |
+| | [flag] MEX                                                      Owned: 8/20  Missing: 12  Repeated: 0  40%       | |
+| |                                                                                                                  | |
+| | [CREST] [ 1 (0) ] [ 2 (0) ] [ 3 (0) ] [ 4 (1) ] [ 5 (0) ] [ 6 (0) ] [ 7 (1) ] [ 8 (0) ]                          | |
+| |         [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ] [  -  + ]                          | |
+| |                                                                                                                  | |
+| | [ 9 (0) ] [10 (0) ] [11 (1) ] [12 (1) ] [TEAM] [13 (1) ] [14 (1) ] [15 (1) ] [16 (0) ]                           | |
+| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]        [  -  + ] [  -  + ] [  -  + ] [  -  + ]                           | |
+| |                                                                                                                  | |
+| | [17 (0) ] [18 (1) ] [19 (0) ] [20 (0) ]                                                                          | |
+| | [  -  + ] [  -  + ] [  -  + ] [  -  + ]                                                                          | |
+| +------------------------------------------------------------------------------------------------------------------+ |
++----------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
@@ -81,20 +81,20 @@ This example reflects the actual card pattern from the current UI and explicitly
 ## Empty result layout
 
 ```text
-+------------------------------------------------------------------------------------------------------------------+
-| Quick Sticker Entry                                                                                         [X]  |
-+------------------------------------------------------------------------------------------------------------------+
-|                                                                                                   [ Update ]      |
-|                                                                                                                  |
-| [ zzz_______________________________________________ ] [ Group B v ] [All] [Missing] [Repeated]                |
-|                                                                                                                  |
-| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+            |
-| [•] Pending changes   [■] Complete team                                                                         |
-+------------------------------------------------------------------------------------------------------------------+
-| No countries match the current search and filter criteria.                                                      |
-+------------------------------------------------------------------------------------------------------------------+
-| [empty country list area]                                                                                        |
-+------------------------------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------+
+| Quick Sticker Entry                                                                                             [X]  |
++----------------------------------------------------------------------------------------------------------------------+
+|                                                                                                       [ Update ]     |
+|                                                                                                                      |
+| [ zzz__________________________________ ] [ Group B v ] [All] [Missing] [Repeated] [Pending]                         |
+|                                                                                                                      |
+| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+                  |
+| [•] Pending changes   [■] Complete team                                                                              |
++----------------------------------------------------------------------------------------------------------------------+
+| No countries match the current search and filter criteria.                                                           |
++----------------------------------------------------------------------------------------------------------------------+
+| [empty country list area]                                                                                            |
++----------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
@@ -102,20 +102,20 @@ This example reflects the actual card pattern from the current UI and explicitly
 ## Loading layout
 
 ```text
-+------------------------------------------------------------------------------------------------------------------+
-| Quick Sticker Entry                                                                                         [X]  |
-+------------------------------------------------------------------------------------------------------------------+
-|                                                                                                   [ Update ]      |
-|                                                                                                                  |
-| [ Search by team code or country name__________________________ ] [ All groups v ] [All] [Missing] [Repeated]  |
-|                                                                                                                  |
-| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+            |
-| [•] Pending changes   [■] Complete team                                                                         |
-+------------------------------------------------------------------------------------------------------------------+
-| Loading countries...                                                                                             |
-+------------------------------------------------------------------------------------------------------------------+
-| [loading content area]                                                                                           |
-+------------------------------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------+
+| Quick Sticker Entry                                                                                             [X]  |
++----------------------------------------------------------------------------------------------------------------------+
+|                                                                                                       [ Update ]     |
+|                                                                                                                      |
+| [ Search by team code or country name__________________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
+|                                                                                                                      |
+| [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+                  |
+| [•] Pending changes   [■] Complete team                                                                              |
++----------------------------------------------------------------------------------------------------------------------+
+| Loading countries...                                                                                                 |
++----------------------------------------------------------------------------------------------------------------------+
+| [loading content area]                                                                                               |
++----------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
@@ -138,6 +138,7 @@ The top control area must include:
   - `All`
   - `Missing`
   - `Repeated`
+  - `Pending`
 - `Update` button aligned to the right
 
 Purpose:
@@ -306,6 +307,8 @@ After each local click:
 
 If the active sticker filter no longer matches the updated sticker card, the card must disappear from the filtered view.
 
+This must also apply to the `Pending` filter. If a sticker no longer has a pending change, it must immediately disappear from that filtered view.
+
 ---
 
 ## Filter behavior
@@ -325,11 +328,17 @@ Available filters:
 - `All`
 - `Missing`
 - `Repeated`
+- `Pending`
 
 Behavior:
 - `All` shows all valid sticker cards
 - `Missing` shows only stickers with count `0`
 - `Repeated` shows only stickers with count greater than `1`
+- `Pending` shows only stickers whose local count differs from the persisted spreadsheet count
+
+The `Pending` filter must use the same condition as the pending-change dot displayed on the sticker card.
+
+If a local edit is reverted so that the local count again matches the persisted spreadsheet count, that sticker must stop matching the `Pending` filter immediately.
 
 ### Filter persistence
 The current search text, group selection, and sticker filter selection must remain active while:
@@ -379,7 +388,7 @@ Invalid sticker positions used internally by the spreadsheet must not be shown i
 4. If no country matches, the no-results message is shown
 
 ### Change sticker filter
-1. User clicks `All`, `Missing`, or `Repeated`
+1. User clicks `All`, `Missing`, `Repeated`, or `Pending`
 2. Visible sticker cards refresh immediately inside all visible country sections
 3. No spreadsheet write is performed
 
@@ -403,6 +412,7 @@ Invalid sticker positions used internally by the spreadsheet must not be shown i
 3. User changes the same sticker back to its original persisted value
 4. The pending marker disappears
 5. That sticker is removed from the pending update set
+6. If the `Pending` filter is active, that sticker disappears from view immediately
 
 ### Apply updates
 1. User clicks **Update**
@@ -432,6 +442,7 @@ Invalid sticker positions used internally by the spreadsheet must not be shown i
 - include group filtering
 - include legend items for color and state interpretation
 - include a pending-change dot indicator
+- include the `Pending` sticker filter
 - include loading and empty-result states
 - show `TEAM` for sticker `13` and `CREST` for sticker `1` in non-`FWC` countries
 
