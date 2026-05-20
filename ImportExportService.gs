@@ -24,15 +24,7 @@ class ImportExportService {
       throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`)
     }
 
-    this.sheet = this.countriesRange.getSheet()
-
-    if (this.sheet.getName() !== this.SHEET_NAME) {
-      throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" must be in the "${this.SHEET_NAME}" sheet.`)
-    }
-
-    if (this.countsRange.getSheet().getName() !== this.SHEET_NAME) {
-      throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" must be in the "${this.SHEET_NAME}" sheet.`)
-    }
+    this.sheet = this.countsRange.getSheet()
 
     this._validateNamedRanges()
 
@@ -128,12 +120,6 @@ class ImportExportService {
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-
-    if (this.countriesRange.getRow() !== this.countsRange.getRow()) {
-      throw new Error(
-        `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must start on the same row.`
-      )
-    }
   }
 
   /** Builds a map of country code to row metadata. */
@@ -148,7 +134,7 @@ class ImportExportService {
       }
 
       countryMap[code] = {
-        row: this.startRow + index,
+        row: this.countsRange.getRow() + index,
         index
       }
     })
@@ -241,6 +227,8 @@ class StickerInputParser {
   constructor(countryMap) {
     this.countryMap = countryMap
     this.tokenRegex = /^(\d+)(?:\((\d+)\))?$/
+    this.rangeRegex = /^(\d+)-(\d+)$/
+    this.rangeWithCountRegex = /^(\d+)-(\d+)\((\d+)\)$/
   }
 
   /** Parses and validates the full import payload. */
@@ -313,40 +301,97 @@ class StickerInputParser {
   /** Parses one sticker token into the counts object. */
   _parseStickerToken(token, lineIndex, code, counts) {
     if (!token) {
-      throw new Error(`Line ${lineIndex + 1}: empty token detected. Check comma placement.`)
+      throw new Error(`Country "${code}": empty token detected. Check comma placement.`)
     }
 
-    const match = token.match(this.tokenRegex)
-    if (!match) {
-      throw new Error(
-        `Line ${lineIndex + 1}: invalid token "${token}". Use N or N(X), for example 5 or 5(2).`
-      )
+    const expandedTokens = this._expandStickerToken(token, code)
+
+    expandedTokens.forEach(expandedToken => {
+      const match = expandedToken.match(this.tokenRegex)
+      if (!match) {
+        throw new Error(
+          `Country "${code}": invalid token "${token}". Use N, N(X), or ranges like 1-4.`
+        )
+      }
+
+      const stickerNumber = Number(match[1])
+      const explicitCount = match[2] ? Number(match[2]) : null
+
+      this._validateStickerNumber(stickerNumber, code)
+      this._validateExplicitCount(explicitCount, expandedToken, code)
+
+      if (counts[stickerNumber] != null) {
+        throw new Error(`Country "${code}": sticker ${stickerNumber} appears more than once.`)
+      }
+
+      counts[stickerNumber] = this._mapTokenToCount(code, stickerNumber, explicitCount)
+    })
+  }
+
+  /** Expands one sticker token to one or more normalized tokens. */
+  _expandStickerToken(token, code) {
+    const rangeWithCountMatch = token.match(this.rangeWithCountRegex)
+    if (rangeWithCountMatch) {
+      const startSticker = Number(rangeWithCountMatch[1])
+      const endSticker = Number(rangeWithCountMatch[2])
+      const explicitCount = Number(rangeWithCountMatch[3])
+
+      this._validateRange(startSticker, endSticker, token, code)
+      return this._buildExpandedRange(startSticker, endSticker, explicitCount)
     }
 
-    const stickerNumber = Number(match[1])
-    const explicitCount = match[2] ? Number(match[2]) : null
+    const rangeMatch = token.match(this.rangeRegex)
+    if (rangeMatch) {
+      const startSticker = Number(rangeMatch[1])
+      const endSticker = Number(rangeMatch[2])
 
-    this._validateStickerNumber(stickerNumber, lineIndex)
-    this._validateExplicitCount(explicitCount, token, lineIndex)
-
-    if (counts[stickerNumber] != null) {
-      throw new Error(`Line ${lineIndex + 1}: sticker ${stickerNumber} for "${code}" appears more than once.`)
+      this._validateRange(startSticker, endSticker, token, code)
+      return this._buildExpandedRange(startSticker, endSticker, null)
     }
 
-    counts[stickerNumber] = this._mapTokenToCount(code, stickerNumber, explicitCount)
+    return [token]
+  }
+
+  /** Builds expanded tokens for one sticker range. */
+  _buildExpandedRange(startSticker, endSticker, explicitCount) {
+    const expandedTokens = []
+
+    for (let stickerNumber = startSticker; stickerNumber <= endSticker; stickerNumber++) {
+      if (explicitCount === null) {
+        expandedTokens.push(String(stickerNumber))
+      } else {
+        expandedTokens.push(`${stickerNumber}(${explicitCount})`)
+      }
+    }
+
+    return expandedTokens
+  }
+
+  /** Validates one sticker range token. */
+  _validateRange(startSticker, endSticker, token, code) {
+    if (!Number.isInteger(startSticker) || !Number.isInteger(endSticker)) {
+      throw new Error(`Country "${code}": invalid range "${token}".`)
+    }
+
+    if (startSticker > endSticker) {
+      throw new Error(`Country "${code}": invalid range "${token}". Start must be less than or equal to end.`)
+    }
+
+    this._validateStickerNumber(startSticker, code)
+    this._validateStickerNumber(endSticker, code)
   }
 
   /** Validates one sticker number. */
-  _validateStickerNumber(stickerNumber, lineIndex) {
+  _validateStickerNumber(stickerNumber, code) {
     if (!Number.isInteger(stickerNumber) || stickerNumber < 0 || stickerNumber > 20) {
-      throw new Error(`Line ${lineIndex + 1}: sticker number ${stickerNumber} is outside allowed range 0-20.`)
+      throw new Error(`Country "${code}": sticker number ${stickerNumber} is outside allowed range 0-20.`)
     }
   }
 
   /** Validates one explicit repeat count. */
-  _validateExplicitCount(explicitCount, token, lineIndex) {
+  _validateExplicitCount(explicitCount, token, code) {
     if (explicitCount !== null && (!Number.isInteger(explicitCount) || explicitCount < 0)) {
-      throw new Error(`Line ${lineIndex + 1}: invalid repeat count in "${token}".`)
+      throw new Error(`Country "${code}": invalid repeat count in "${token}".`)
     }
   }
 
