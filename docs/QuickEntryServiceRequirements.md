@@ -4,7 +4,7 @@
 
 Provide a faster and more visual way to update sticker counts than editing cells directly in the `Stickers` tab.
 
-The service must allow the user to browse countries, view stickers in a compact interactive layout, filter what is visible, make multiple local count changes, and apply those updates to the spreadsheet in one action.
+The service must allow the user to browse countries, view stickers in a compact interactive layout, filter what is visible, make multiple local count changes, and apply those updates to the spreadsheet in one batch.
 
 The service is intended for day-to-day collection tracking and must provide a cleaner and more guided workflow than editing spreadsheet cells manually.
 
@@ -149,11 +149,17 @@ The dialog must provide these sticker status options:
 - `All`
 - `Missing`
 - `Repeated`
+- `Pending`
 
 Sticker status behavior:
 - `All` shows all valid stickers for the visible countries
 - `Missing` shows only stickers with count `0`
 - `Repeated` shows only stickers with count greater than `1`
+- `Pending` shows only stickers whose local count differs from the persisted spreadsheet count
+
+The `Pending` filter must use the same condition as the pending-change indicator shown on the sticker card.
+
+If a local edit is reverted so that the local count again matches the persisted spreadsheet count, that sticker must stop matching the `Pending` filter immediately.
 
 The status filter applies to sticker visibility inside each visible country section.
 
@@ -257,6 +263,8 @@ After each local increment or decrement:
 - the current sticker status filter must be reapplied immediately
 
 If a local count change causes a sticker card to no longer match the active sticker status filter, that card must stop being visible in the filtered view.
+
+This rule also applies to the `Pending` filter. If a sticker no longer has a pending change, it must stop being visible under that filter immediately.
 
 ---
 
@@ -409,7 +417,7 @@ Version 1 does not need to include:
 3. Select `Quick Sticker Entry`
 4. Wait for the initial country data to load
 5. Use search and group filters to narrow the visible countries
-6. Use the sticker status filter to focus on all, missing, or repeated stickers
+6. Use the sticker status filter to focus on all, missing, repeated, or pending stickers
 7. Adjust one or more sticker counts with the increment and decrement controls
 8. Review pending visual changes
 9. Press **Update**
