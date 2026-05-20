@@ -251,7 +251,7 @@
             <option value="update" <?= defaultMode === 'update' ? 'selected' : '' ?>>Update counts</option>
           </select>
           <ul class="rules-list hint">
-            <li><strong>Import data</strong>: clears all values in the <span class="inline-code">COUNTS</span> named range, then loads the input data.</li>
+           <li><strong>Import data</strong>: validates country codes against the <span class="inline-code">COUNTRIES</span> named range, clears all values in the <span class="inline-code">COUNTS</span> named range, then loads the input data.</li>
             <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries present in the input, then loads those countries again.</li>
             <li><strong>Update counts</strong>: only overwrites sticker positions explicitly provided in the input; all other values remain unchanged.</li>
           </ul>
@@ -259,11 +259,17 @@
 
         <div class="section">
           <div class="section-title">Input rules</div>
-          <ul class="rules-list hint">
-            <li>Format: <span class="inline-code">CODE,number[,number(repeats)]...</span></li>
-            <li>Repeats in parentheses are optional.</li>
+                      <ul class="rules-list hint">
+            <li>Format: <span class="inline-code">CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...</span></li>
             <li>Use comma <span class="inline-code">,</span> as delimiter.</li>
-            <li>Country code must exist in the <span class="inline-code">COUNTRIES</span> named range in the <span class="inline-code">Stickers</span> tab.</li>
+            <li>Single sticker values are supported. Repeats in parentheses and sticker ranges are optional.</li>
+            <li>Example: <span class="inline-code">MEX,1,2,3(2),5-8,10-12(2)</span>
+              <ul>
+                <li>Range <span class="inline-code">5-8</span> is interpreted as stickers <span class="inline-code">5,6,7,8</span>.</li>
+                <li>Range <span class="inline-code">10-12(2)</span> is interpreted as stickers <span class="inline-code">10(2),11(2),12(2)</span>.</li>
+              </ul>
+            </li>
+            <li>Country code must exist in the <span class="inline-code">COUNTRIES</span> named range.</li>
             <li>Sticker <span class="inline-code">0</span> only exists for <span class="inline-code">FWC</span>. For other countries it is accepted and mapped to count <strong>0</strong>.</li>
             <li>Sticker <span class="inline-code">20</span> only exists for non-<span class="inline-code">FWC</span> countries. For <span class="inline-code">FWC</span> it is accepted and mapped to count <strong>0</strong>.</li>
           </ul>
