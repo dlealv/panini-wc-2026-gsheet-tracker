@@ -22,8 +22,8 @@ class StickerSheetRepository {
     this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
 
     this._validateRanges()
-    this.sheet = this.countriesRange.getSheet()
-    this.startRow = this.countriesRange.getRow()
+    this.sheet = this.countsRange.getSheet()
+    this.startRow = this.countsRange.getRow()
     this.startCol = this.countsRange.getColumn()
     this.numRows = this.countriesRange.getNumRows()
     this.numStickerCols = this.countsRange.getNumColumns()
@@ -107,17 +107,7 @@ class StickerSheetRepository {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`)
     }
 
-    this._validateRangeSheet(this.countriesRange, this.COUNTRIES_RANGE_NAME)
-    this._validateRangeSheet(this.countsRange, this.COUNTS_RANGE_NAME)
-    this._validateRangeSheet(this.groupsRange, this.GROUPS_RANGE_NAME)
     this._validateRangeShape()
-  }
-
-  /** Validates a named range sheet. */
-  _validateRangeSheet(range, rangeName) {
-    if (range.getSheet().getName() !== this.SHEET_NAME) {
-      throw new Error(`Named range "${rangeName}" must be in the "${this.SHEET_NAME}" sheet.`)
-    }
   }
 
   /** Validates named range dimensions. */
@@ -165,18 +155,6 @@ class StickerSheetRepository {
     if (this.countriesRange.getNumRows() !== this.countryNamesRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTRY_NAMES_RANGE_NAME}" must have the same number of rows.`
-      )
-    }
-
-    if (this.countriesRange.getRow() !== this.countsRange.getRow()) {
-      throw new Error(
-        `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must start on the same row.`
-      )
-    }
-
-    if (this.countriesRange.getRow() !== this.groupsRange.getRow()) {
-      throw new Error(
-        `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.GROUPS_RANGE_NAME}" must start on the same row.`
       )
     }
   }
