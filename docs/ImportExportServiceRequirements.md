@@ -56,8 +56,9 @@ The service uses the combined `ImportExportDialog.html` template and backend log
 
 ### Named ranges used by the service
 
-- `COUNTRIES`: country code column in the `Stickers` sheet
+- `COUNTRIES`: country code column
 - `COUNTS`: writable sticker count range in the `Stickers` sheet
+**Note:** Named ranges don’t necessarily need to be defined in the same sheet. For instance, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows in both ranges must be identical.
 
 ### Data used for export
 
@@ -73,7 +74,7 @@ One country per line.
 General syntax:
 
 ```text
-CODE,number[,number(repeats)]...
+CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...
 ```
 
 Examples:
@@ -82,6 +83,8 @@ Examples:
 FWC,1,3,5(2),7
 MEX,18,20
 BRA,7(3)
+MEX,1-4,8
+BRA,5-8(2),10
 ```
 
 ### Syntax rules
@@ -91,10 +94,19 @@ BRA,7(3)
 - Values must be separated only by commas `,`
 - A sticker token must be:
   - `N`
-  - or `N(X)`
-- `N` is the sticker number
+  - `N(X)`
+  - `A-B`
+  - `A-B(X)`
+- `N` is one sticker number
 - `X` is the count or repeat value
-- Repeats in parentheses are optional
+- `A-B` is an inclusive sticker range
+- `A-B(X)` applies the same repeat count to each sticker in the inclusive range
+- Single sticker values are supported. Repeats in parentheses and sticker ranges are optional
+
+### Range interpretation examples
+
+- `1-4` is interpreted as stickers `1,2,3,4`
+- `1-4(2)` is interpreted as stickers `1(2),2(2),3(2),4(2)`
 
 ---
 
@@ -102,6 +114,8 @@ BRA,7(3)
 
 - If a sticker token is written as `N`, its mapped count is `1`, unless a special sticker rule applies
 - If a sticker token is written as `N(X)`, its mapped count is `X`, unless a special sticker rule applies
+- If a sticker token is written as `A-B`, each sticker in the inclusive range is mapped as if written individually with count `1`, unless a special sticker rule applies
+- If a sticker token is written as `A-B(X)`, each sticker in the inclusive range is mapped as if written individually with count `X`, unless a special sticker rule applies
 - Sticker `0` only exists for `FWC`. For other country codes it is accepted as input and mapped to count `0`
 - Sticker `20` only exists for non-`FWC` country codes. For `FWC` it is accepted as input and mapped to count `0`
 
@@ -117,6 +131,8 @@ BRA,7(3)
 | `FWC,20(3)` | sticker `20` → `0` |
 | `MEX,20` | sticker `20` → `1` |
 | `MEX,20(3)` | sticker `20` → `3` |
+| `MEX,1-3` | stickers `1,2,3` → `1,1,1` |
+| `BRA,5-7(2)` | stickers `5,6,7` → `2,2,2` |
 
 ---
 
@@ -133,8 +149,10 @@ The import process must validate:
 - each sticker token uses valid syntax
 - sticker numbers are within range `0..20`
 - repeat values, if present, are non-negative integers
+- range start and range end are valid integers
+- range start must be less than or equal to range end
 - the same country code cannot appear more than once in the same import
-- the same sticker number cannot appear more than once for the same country in the same line
+- the same sticker number cannot appear more than once for the same country in the same line, including after range expansion
 
 If validation fails, the process must stop and return a clear error message including the line number.
 
@@ -188,7 +206,7 @@ During import:
 
 ## Export requirements
 
-The service must provide an export function that reads current sticker counts from the `COUNTS` named range and country codes from the `COUNTRIES` named range, and produces text in the same general syntax accepted by the import process.
+The service must provide an export function that reads current sticker counts from the `COUNTS` named range and country codes from the `COUNTRIES` named range, and produces text in the same general syntax accepted by import.
 
 ### Export format
 
@@ -358,6 +376,8 @@ The service must return clear messages for user-facing errors, including cases s
 - invalid sticker token format
 - invalid sticker number range
 - invalid repeat value
+- invalid range syntax
+- invalid range order
 - duplicate country code in the same import
 - duplicate sticker number for the same country
 - export failure
@@ -365,7 +385,7 @@ The service must return clear messages for user-facing errors, including cases s
 - clipboard copy failure
 - download start failure
 
-Error messages should be concise and understandable by a spreadsheet user.
+Error messages should be concise and easily understandable for spreadsheet users. For instance, if the error pertains to data values, include the country code as a reference. Conversely, if the error is related to the country code, provide the line number.
 
 ---
 
