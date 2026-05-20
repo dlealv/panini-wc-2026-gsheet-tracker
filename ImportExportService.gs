@@ -5,7 +5,6 @@
 class ImportExportService {
   /** Creates an import/export application service. */
   constructor() {
-    this.SHEET_NAME = 'Stickers'
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
     this.STICKER_MIN = 0
@@ -24,15 +23,7 @@ class ImportExportService {
       throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`)
     }
 
-    this.sheet = this.countriesRange.getSheet()
-
-    if (this.sheet.getName() !== this.SHEET_NAME) {
-      throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" must be in the "${this.SHEET_NAME}" sheet.`)
-    }
-
-    if (this.countsRange.getSheet().getName() !== this.SHEET_NAME) {
-      throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" must be in the "${this.SHEET_NAME}" sheet.`)
-    }
+    this.sheet = this.countsRange.getSheet()
 
     this._validateNamedRanges()
 
@@ -287,10 +278,34 @@ class StickerInputParser {
 
     const counts = {}
     for (let partIndex = 1; partIndex < parts.length; partIndex++) {
-      this._parseStickerToken(parts[partIndex], lineIndex, code, counts)
+      const expanded = this._expandRangeToken(parts[partIndex], code)
+      for (const token of expanded) {
+        this._parseStickerToken(token, code, counts)
+      }
     }
 
     return { code, counts }
+  }
+
+  /** Expands a range token like "1-4" into individual tokens ["1","2","3","4"]. */
+  _expandRangeToken(token, code) {
+    const rangeMatch = token.match(/^(\d+)-(\d+)$/)
+    if (!rangeMatch) {
+      return [token]
+    }
+
+    const start = Number(rangeMatch[1])
+    const end = Number(rangeMatch[2])
+
+    if (start > end) {
+      throw new Error(`"${code}": invalid range "${token}"; start must be <= end.`)
+    }
+
+    const result = []
+    for (let i = start; i <= end; i++) {
+      result.push(String(i))
+    }
+    return result
   }
 
   /** Validates one country code token. */
@@ -311,42 +326,42 @@ class StickerInputParser {
   }
 
   /** Parses one sticker token into the counts object. */
-  _parseStickerToken(token, lineIndex, code, counts) {
+  _parseStickerToken(token, code, counts) {
     if (!token) {
-      throw new Error(`Line ${lineIndex + 1}: empty token detected. Check comma placement.`)
+      throw new Error(`"${code}": empty token detected. Check comma placement.`)
     }
 
     const match = token.match(this.tokenRegex)
     if (!match) {
       throw new Error(
-        `Line ${lineIndex + 1}: invalid token "${token}". Use N or N(X), for example 5 or 5(2).`
+        `"${code}": invalid token "${token}". Use N or N(X), for example 5 or 5(2).`
       )
     }
 
     const stickerNumber = Number(match[1])
     const explicitCount = match[2] ? Number(match[2]) : null
 
-    this._validateStickerNumber(stickerNumber, lineIndex)
-    this._validateExplicitCount(explicitCount, token, lineIndex)
+    this._validateStickerNumber(stickerNumber, code)
+    this._validateExplicitCount(explicitCount, token, code)
 
     if (counts[stickerNumber] != null) {
-      throw new Error(`Line ${lineIndex + 1}: sticker ${stickerNumber} for "${code}" appears more than once.`)
+      throw new Error(`"${code}": sticker ${stickerNumber} appears more than once.`)
     }
 
     counts[stickerNumber] = this._mapTokenToCount(code, stickerNumber, explicitCount)
   }
 
   /** Validates one sticker number. */
-  _validateStickerNumber(stickerNumber, lineIndex) {
+  _validateStickerNumber(stickerNumber, code) {
     if (!Number.isInteger(stickerNumber) || stickerNumber < 0 || stickerNumber > 20) {
-      throw new Error(`Line ${lineIndex + 1}: sticker number ${stickerNumber} is outside allowed range 0-20.`)
+      throw new Error(`"${code}": sticker number ${stickerNumber} is outside allowed range 0-20.`)
     }
   }
 
   /** Validates one explicit repeat count. */
-  _validateExplicitCount(explicitCount, token, lineIndex) {
+  _validateExplicitCount(explicitCount, token, code) {
     if (explicitCount !== null && (!Number.isInteger(explicitCount) || explicitCount < 0)) {
-      throw new Error(`Line ${lineIndex + 1}: invalid repeat count in "${token}".`)
+      throw new Error(`"${code}": invalid repeat count in "${token}".`)
     }
   }
 

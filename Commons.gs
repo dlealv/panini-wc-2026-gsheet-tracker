@@ -22,7 +22,7 @@ class StickerSheetRepository {
     this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
 
     this._validateRanges()
-    this.sheet = this.countriesRange.getSheet()
+    this.sheet = this.countsRange.getSheet()
     this.startRow = this.countriesRange.getRow()
     this.startCol = this.countsRange.getColumn()
     this.numRows = this.countriesRange.getNumRows()
@@ -107,8 +107,6 @@ class StickerSheetRepository {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`)
     }
 
-    this._validateRangeSheet(this.countriesRange, this.COUNTRIES_RANGE_NAME)
-    this._validateRangeSheet(this.countsRange, this.COUNTS_RANGE_NAME)
     this._validateRangeSheet(this.groupsRange, this.GROUPS_RANGE_NAME)
     this._validateRangeShape()
   }
