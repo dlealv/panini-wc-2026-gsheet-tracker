@@ -1,3 +1,5 @@
+/** @OnlyCurrentDoc */
+
 /**
  * Encapsulates sticker import and export use cases for the Panini tracker.
  * This file contains the import/export application service and the input parser.
@@ -8,6 +10,7 @@ class ImportExportService {
     this.SHEET_NAME = 'Stickers'
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
+    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.STICKER_MIN = 0
     this.STICKER_MAX = 20
     this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
@@ -15,6 +18,7 @@ class ImportExportService {
     this.ss = SpreadsheetApp.getActiveSpreadsheet()
     this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)
     this.countsRange = this.ss.getRangeByName(this.COUNTS_RANGE_NAME)
+    this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
 
     if (!this.countriesRange) {
       throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" not found.`)
@@ -34,6 +38,7 @@ class ImportExportService {
     this.startCol = this.countsRange.getColumn()
     this.numStickerCols = this.countsRange.getNumColumns()
     this.countryMap = this._buildCountryMap()
+    this.flagIconMap = this._buildFlagIconMap()
   }
 
   /** Parses input and returns a preview payload without modifying the sheet. */
@@ -79,7 +84,8 @@ class ImportExportService {
   }
 
   /** Exports sheet data using the same syntax as the import input format. */
-  exportData() {
+  exportData(includeFlags) {
+    const shouldIncludeFlags = Boolean(includeFlags)
     const countryValues = this.countriesRange.getValues()
     const countValues = this.countsRange.getValues()
     const lines = []
@@ -92,7 +98,7 @@ class ImportExportService {
 
       const stickerTokens = this._buildExportStickerTokens(code, countValues[rowIndex])
       if (stickerTokens.length > 0) {
-        lines.push([code].concat(stickerTokens).join(','))
+        lines.push(this._buildExportLine(code, stickerTokens, shouldIncludeFlags))
       }
     }
 
@@ -120,6 +126,18 @@ class ImportExportService {
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must have the same number of rows.`
       )
     }
+
+    if (this.flagIconsRange) {
+      if (this.flagIconsRange.getNumColumns() !== 1) {
+        throw new Error(`Named range "${this.FLAG_ICONS_RANGE_NAME}" must contain exactly 1 column.`)
+      }
+
+      if (this.flagIconsRange.getNumRows() !== this.countriesRange.getNumRows()) {
+        throw new Error(
+          `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.FLAG_ICONS_RANGE_NAME}" must have the same number of rows.`
+        )
+      }
+    }
   }
 
   /** Builds a map of country code to row metadata. */
@@ -140,6 +158,30 @@ class ImportExportService {
     })
 
     return countryMap
+  }
+
+  /** Builds a map of country code to flag icon. */
+  _buildFlagIconMap() {
+    const flagIconMap = {}
+    if (!this.flagIconsRange) {
+      return flagIconMap
+    }
+
+    const countryValues = this.countriesRange.getValues()
+    const flagValues = this.flagIconsRange.getDisplayValues()
+
+    countryValues.forEach((row, index) => {
+      const code = String(row[0] || '').trim().toUpperCase()
+      const icon = String(flagValues[index][0] || '').trim()
+
+      if (!code || !icon) {
+        return
+      }
+
+      flagIconMap[code] = icon
+    })
+
+    return flagIconMap
   }
 
   /** Clears all sticker count values in the counts range. */
@@ -179,6 +221,21 @@ class ImportExportService {
 
       range.setValues([outputValues])
     })
+  }
+
+  /** Builds one export line for a country. */
+  _buildExportLine(countryCode, stickerTokens, shouldIncludeFlags) {
+    const lineTokens = [countryCode].concat(stickerTokens)
+    if (!shouldIncludeFlags) {
+      return lineTokens.join(',')
+    }
+
+    const flagIcon = this.flagIconMap[countryCode]
+    if (!flagIcon) {
+      return lineTokens.join(',')
+    }
+
+    return [flagIcon, lineTokens[0]].concat(lineTokens.slice(1)).join(',')
   }
 
   /** Builds export tokens for one row of sticker counts. */
@@ -229,6 +286,7 @@ class StickerInputParser {
     this.tokenRegex = /^(\d+)(?:\((\d+)\))?$/
     this.rangeRegex = /^(\d+)-(\d+)$/
     this.rangeWithCountRegex = /^(\d+)-(\d+)\((\d+)\)$/
+    this.flagPrefixRegex = /^(\p{Regional_Indicator}{2}|\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u
   }
 
   /** Parses and validates the full import payload. */
@@ -269,7 +327,8 @@ class StickerInputParser {
     }
 
     const codeRaw = parts[0]
-    const code = codeRaw.toUpperCase()
+    const normalizedCodeRaw = this._stripOptionalFlagIcon(codeRaw)
+    const code = normalizedCodeRaw.toUpperCase()
 
     this._validateCountryCode(codeRaw, code, lineIndex, seen)
 
@@ -279,6 +338,11 @@ class StickerInputParser {
     }
 
     return { code, counts }
+  }
+
+  /** Removes one optional leading flag icon from the first token. */
+  _stripOptionalFlagIcon(codeRaw) {
+    return String(codeRaw || '').replace(this.flagPrefixRegex, '').trim()
   }
 
   /** Validates one country code token. */
