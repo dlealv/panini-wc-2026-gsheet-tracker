@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
 project structure, and documentation.
 
+## [1.0.1] - 2026-05-20
+
+## Added
+- `docs/FAQ.md` moved related questions to Google Access/Security for Apps Script
+ 
+## Changes
+- Modified Google Sheet tracker
+  - `Conf` (hidden tab)
+    - Removed the `TB_COUNTRY` table object because Apps Script doesn’t handle it properly. Instead, defined the columns that are referred to as named ranges.
+    - Added flag icons, which are useful when sharing the information in text format. Associated a `FLAG_ICONS` named range.
+  - `Stickers` tab now refers to the columns from the `Conf` tab.
+  - `Report` tab added icons for each country.
+  - `Compact Swap View` tab added icons.
+  - `Trade` tab
+    - Added icons in the **INPUT** and **OUTPUT** sections.
+    - The formulas used in the **OUTPUT** section clean the icons portions for the country before calculation.
+    - Added a `Cnt` in the OUTPUT section for sending stickers, since it is required when there are more matches in the other direction.
+    - The conditional formatting for the `Cnt` column now takes the minimum of both `TOTALS`.
+    - Optionally allow the user to sort the output based on %-completion (prioritize complete teams first) or by Panini album order (easier to find the sticker).
+    - The `GET_TRADE` function doesn’t sort the input data anymore. Now, in the `Trade` tab, the user can sort the result. To find the match, there’s no need to sort the data; the sorting should come after the output.
+    - Option to sort the output for Receive Stickers in the `OUTPUT` section.
+- `Commons.gs` removed the constraints that `COUNTRIES` and `COUNT` should be part of the same tab.
+- `ImportExportService.gs` included the logic for parsing sticker ranges (for example, 1-4, 1-(2)).
+- `QuickEntryDialog.html` now includes the front-end logic for the `Pending` filter.
+- `docs/QuickEntryServiceRequirements.md` has been updated to include the requirement for the `Pending` filter.
+- `docs/QuickEntryServiceMockDesign.md` has been updated to include the design of the `Pending` filter.
+- `README.md` has been updated to document the input range in the import service, the Pending action in Quick Sticker Entry, and to move significant security/access information for Apps Script to the `FAQ.md` document.
+
+## Fixed
+- When an error is raised during the Import process, the program now provides the country code as a reference instead of a line number when the country code is valid. If the country code is invalid, the line number is referenced in the error message.
+- The constraint that the `COUNTRIES` named range has to be defined in `Stickers` tab was removed because it was unnecessary.
+
 ## [1.0.0] - 2026-05-17
 
 ### Added
