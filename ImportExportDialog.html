@@ -105,6 +105,10 @@
         color: var(--text);
       }
 
+      input[type="checkbox"] {
+        margin-right: 6px;
+      }
+
       textarea:disabled,
       select:disabled,
       input[type="file"]:disabled {
@@ -127,6 +131,10 @@
       .rules-list li,
       .actions-help li {
         margin: 4px 0;
+      }
+
+      .checkbox-row {
+        margin-top: 10px;
       }
 
       .actions {
@@ -219,7 +227,7 @@
         <h2><?= dialogMode === 'export' ? 'Export Stickers' : 'Import sticker counts' ?></h2>
         <div class="hint">
           <? if (dialogMode === 'export') { ?>
-            Export current sticker counts from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges in the <span class="inline-code">Stickers</span> tab using the same format accepted by the import process.
+            Export current sticker counts from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges in the <span class="inline-code">Stickers</span> tab.
           <? } else { ?>
             Load a text/CSV file or paste its content. Data will be written to the <span class="inline-code">COUNTS</span> named range in the <span class="inline-code">Stickers</span> tab, preserving formatting.
           <? } ?>
@@ -239,7 +247,7 @@
         <div class="section">
           <div class="section-title">2) Or paste content</div>
           <label for="textInput">Input data</label>
-          <textarea id="textInput" placeholder="FWC,0,1,3,5(2),20&#10;MEX,0,18&#10;BRA,7(3)"></textarea>
+          <textarea id="textInput" placeholder="🇲🇽 MEX,1,2,3(2),5-8&#10;FWC,0,1,3,5(2),20&#10;BRA,7(3)"></textarea>
         </div>
 
         <div class="section">
@@ -251,7 +259,7 @@
             <option value="update" <?= defaultMode === 'update' ? 'selected' : '' ?>>Update counts</option>
           </select>
           <ul class="rules-list hint">
-           <li><strong>Import data</strong>: validates country codes against the <span class="inline-code">COUNTRIES</span> named range, clears all values in the <span class="inline-code">COUNTS</span> named range, then loads the input data.</li>
+            <li><strong>Import data</strong>: validates country codes against the <span class="inline-code">COUNTRIES</span> named range, clears all values in the <span class="inline-code">COUNTS</span> named range, then loads the input data.</li>
             <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries present in the input, then loads those countries again.</li>
             <li><strong>Update counts</strong>: only overwrites sticker positions explicitly provided in the input; all other values remain unchanged.</li>
           </ul>
@@ -259,12 +267,13 @@
 
         <div class="section">
           <div class="section-title">Input rules</div>
-                      <ul class="rules-list hint">
-            <li>Format: <span class="inline-code">CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...</span></li>
+          <ul class="rules-list hint">
+            <li>Format: <span class="inline-code">[flag] CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...</span></li>
             <li>Use comma <span class="inline-code">,</span> as delimiter.</li>
-            <li>Single sticker values are supported. Repeats in parentheses and sticker ranges are optional.</li>
-            <li>Example: <span class="inline-code">MEX,1,2,3(2),5-8,10-12(2)</span>
+            <li>Single sticker values are supported. Repeats in parentheses, sticker ranges, and a leading flag icon are optional.</li>
+            <li>Example: <span class="inline-code">🇲🇽 MEX,1,2,3(2),5-8,10-12(2)</span>
               <ul>
+                <li>Flag <span class="inline-code">🇲🇽</span> before the country code is optional and ignored by the parser.</li>
                 <li>Range <span class="inline-code">5-8</span> is interpreted as stickers <span class="inline-code">5,6,7,8</span>.</li>
                 <li>Range <span class="inline-code">10-12(2)</span> is interpreted as stickers <span class="inline-code">10(2),11(2),12(2)</span>.</li>
               </ul>
@@ -297,6 +306,12 @@
           <div class="section-title">Export result</div>
           <label for="exportText">Sticker data</label>
           <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+          <div class="checkbox-row hint">
+            <label>
+              <input type="checkbox" id="includeFlagsCheckbox">
+              Include flag icon before country code
+            </label>
+          </div>
           <div class="hint" style="margin-top:8px;">
             The exported content uses the same syntax accepted by the import process. Only sticker counts greater than 0 are included.
           </div>
@@ -328,219 +343,230 @@
     </div>
 
     <script>
-      const DIALOG_MODE = '<?= dialogMode ?>';
+      const DIALOG_MODE = '<?= dialogMode ?>'
 
-      const fileInput = document.getElementById('fileInput');
-      const textInput = document.getElementById('textInput');
-      const modeInput = document.getElementById('mode');
-      const exportText = document.getElementById('exportText');
-      const messageEl = document.getElementById('message');
-      const previewEl = document.getElementById('preview');
+      const fileInput = document.getElementById('fileInput')
+      const textInput = document.getElementById('textInput')
+      const modeInput = document.getElementById('mode')
+      const exportText = document.getElementById('exportText')
+      const includeFlagsCheckbox = document.getElementById('includeFlagsCheckbox')
+      const messageEl = document.getElementById('message')
+      const previewEl = document.getElementById('preview')
 
       if (fileInput) {
         fileInput.addEventListener('change', async (event) => {
-          const file = event.target.files && event.target.files[0];
-          if (!file) return;
+          const file = event.target.files && event.target.files[0]
+          if (!file) return
 
           try {
-            setBusy(true);
-            setMessage(`Reading file: ${file.name}...`, 'info');
-            const text = await file.text();
-            textInput.value = text;
-            setMessage(`Loaded file: ${file.name}`, 'success');
+            setBusy(true)
+            setMessage(`Reading file: ${file.name}...`, 'info')
+            const text = await file.text()
+            textInput.value = text
+            setMessage(`Loaded file: ${file.name}`, 'success')
           } catch (error) {
-            setMessage(`Could not read the selected file.\n${error.message || error}`, 'error');
+            setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
           } finally {
-            setBusy(false);
+            setBusy(false)
           }
-        });
+        })
+      }
+
+      if (includeFlagsCheckbox) {
+        includeFlagsCheckbox.addEventListener('change', () => {
+          if (DIALOG_MODE === 'export') {
+            loadExportData()
+          }
+        })
       }
 
       function getPayload() {
         return {
           text: textInput ? textInput.value : '',
-          mode: modeInput ? modeInput.value : 'update'
-        };
+          mode: modeInput ? modeInput.value : 'update',
+          includeFlags: includeFlagsCheckbox ? includeFlagsCheckbox.checked : false
+        }
       }
 
       function setMessage(text, type) {
-        messageEl.className = `message ${type || 'info'}`;
-        messageEl.textContent = text || '';
+        messageEl.className = `message ${type || 'info'}`
+        messageEl.textContent = text || ''
       }
 
       function clearPreview() {
-        if (!previewEl) return;
-        previewEl.style.display = 'none';
-        previewEl.textContent = '';
+        if (!previewEl) return
+        previewEl.style.display = 'none'
+        previewEl.textContent = ''
       }
 
       function renderPreview(result) {
         if (!result || !result.countries || !result.countries.length) {
-          clearPreview();
-          return;
+          clearPreview()
+          return
         }
 
-        const lines = [];
+        const lines = []
         result.countries.forEach(country => {
           const stickerText = country.stickers
             .map(item => `${item.number}:${item.count}`)
-            .join(', ');
-          lines.push(`${country.code} -> ${stickerText}`);
-        });
+            .join(', ')
+          lines.push(`${country.code} -> ${stickerText}`)
+        })
 
-        previewEl.textContent = lines.join('\n');
-        previewEl.style.display = 'block';
+        previewEl.textContent = lines.join('\n')
+        previewEl.style.display = 'block'
       }
 
       function setBusy(isBusy) {
-        const buttons = document.querySelectorAll('button');
-        buttons.forEach(btn => btn.disabled = isBusy);
+        const buttons = document.querySelectorAll('button')
+        buttons.forEach(btn => btn.disabled = isBusy)
 
-        if (fileInput) fileInput.disabled = isBusy;
-        if (modeInput) modeInput.disabled = isBusy;
-        if (textInput) textInput.disabled = isBusy;
+        if (fileInput) fileInput.disabled = isBusy
+        if (modeInput) modeInput.disabled = isBusy
+        if (textInput) textInput.disabled = isBusy
+        if (includeFlagsCheckbox) includeFlagsCheckbox.disabled = isBusy
       }
 
       function previewData() {
-        clearPreview();
-        setBusy(true);
-        setMessage('Validating input...', 'info');
+        clearPreview()
+        setBusy(true)
+        setMessage('Validating input...', 'info')
 
         google.script.run
           .withSuccessHandler((result) => {
-            setBusy(false);
-            setMessage('Validation successful.', 'success');
-            renderPreview(result);
+            setBusy(false)
+            setMessage('Validation successful.', 'success')
+            renderPreview(result)
           })
           .withFailureHandler((error) => {
-            setBusy(false);
-            clearPreview();
-            setMessage(error && error.message ? error.message : String(error), 'error');
+            setBusy(false)
+            clearPreview()
+            setMessage(error && error.message ? error.message : String(error), 'error')
           })
-          .previewStickerData(getPayload());
+          .previewStickerData(getPayload())
       }
 
       function importData() {
-        clearPreview();
-        setBusy(true);
-        setMessage('Importing data...', 'info');
+        clearPreview()
+        setBusy(true)
+        setMessage('Importing data...', 'info')
 
         google.script.run
           .withSuccessHandler((result) => {
-            setBusy(false);
-            setMessage(result && result.message ? result.message : 'Import completed.', 'success');
+            setBusy(false)
+            setMessage(result && result.message ? result.message : 'Import completed.', 'success')
           })
           .withFailureHandler((error) => {
-            setBusy(false);
-            setMessage(error && error.message ? error.message : String(error), 'error');
+            setBusy(false)
+            setMessage(error && error.message ? error.message : String(error), 'error')
           })
-          .importStickerData(getPayload());
+          .importStickerData(getPayload())
       }
 
       function clearInput() {
-        setBusy(false);
-        if (fileInput) fileInput.value = '';
+        setBusy(false)
+        if (fileInput) fileInput.value = ''
         if (textInput) {
-          textInput.value = '';
-          textInput.focus();
+          textInput.value = ''
+          textInput.focus()
         }
-        if (modeInput) modeInput.value = 'update';
-        clearPreview();
-        setMessage('Input cleared.', 'info');
+        if (modeInput) modeInput.value = 'update'
+        clearPreview()
+        setMessage('Input cleared.', 'info')
       }
 
       function loadExportData() {
         if (!exportText) {
-          setMessage('Export text area not found in dialog.', 'error');
-          return;
+          setMessage('Export text area not found in dialog.', 'error')
+          return
         }
 
-        exportText.value = '';
-        setBusy(true);
-        setMessage('Exporting sticker data...', 'info');
+        exportText.value = ''
+        setBusy(true)
+        setMessage('Exporting sticker data...', 'info')
 
         google.script.run
           .withSuccessHandler((result) => {
-            setBusy(false);
+            setBusy(false)
 
             if (!result) {
-              setMessage('Export returned no result.', 'error');
-              return;
+              setMessage('Export returned no result.', 'error')
+              return
             }
 
             if (!result.success) {
-              setMessage('Export did not complete successfully.', 'error');
-              return;
+              setMessage('Export did not complete successfully.', 'error')
+              return
             }
 
-            exportText.value = result.text || '';
-            setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success');
+            exportText.value = result.text || ''
+            setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success')
           })
           .withFailureHandler((error) => {
-            setBusy(false);
-            setMessage(`Export failed: ${error && error.message ? error.message : String(error)}`, 'error');
+            setBusy(false)
+            setMessage(`Export failed: ${error && error.message ? error.message : String(error)}`, 'error')
           })
-          .exportStickerData();
+          .exportStickerData(getPayload())
       }
 
       async function copyExport() {
         if (!exportText || !exportText.value) {
-          setMessage('There is no exported content to copy.', 'error');
-          return;
+          setMessage('There is no exported content to copy.', 'error')
+          return
         }
 
         try {
-          await navigator.clipboard.writeText(exportText.value);
-          setMessage('Export copied to clipboard.', 'success');
+          await navigator.clipboard.writeText(exportText.value)
+          setMessage('Export copied to clipboard.', 'success')
         } catch (error) {
-          exportText.select();
-          document.execCommand('copy');
-          setMessage('Export copied to clipboard.', 'success');
+          exportText.select()
+          document.execCommand('copy')
+          setMessage('Export copied to clipboard.', 'success')
         }
       }
 
       function downloadExport() {
         if (!exportText || !exportText.value) {
-          setMessage('There is no exported content to download.', 'error');
-          return;
+          setMessage('There is no exported content to download.', 'error')
+          return
         }
 
         try {
-          const fileName = buildExportFileName();
-          const blob = new Blob([exportText.value], { type: 'text/plain;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
+          const fileName = buildExportFileName()
+          const blob = new Blob([exportText.value], { type: 'text/plain;charset=utf-8' })
+          const url = URL.createObjectURL(blob)
 
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = fileName;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
+          const anchor = document.createElement('a')
+          anchor.href = url
+          anchor.download = fileName
+          document.body.appendChild(anchor)
+          anchor.click()
+          document.body.removeChild(anchor)
 
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          setMessage(`Download started: ${fileName}`, 'success');
+          setTimeout(() => URL.revokeObjectURL(url), 1000)
+          setMessage(`Download started: ${fileName}`, 'success')
         } catch (error) {
-          setMessage(`Could not start download.\n${error.message || error}`, 'error');
+          setMessage(`Could not start download.\n${error.message || error}`, 'error')
         }
       }
 
       function buildExportFileName() {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mi = String(now.getMinutes()).padStart(2, '0');
-        const ss = String(now.getSeconds()).padStart(2, '0');
+        const now = new Date()
+        const yyyy = now.getFullYear()
+        const mm = String(now.getMonth() + 1).padStart(2, '0')
+        const dd = String(now.getDate()).padStart(2, '0')
+        const hh = String(now.getHours()).padStart(2, '0')
+        const mi = String(now.getMinutes()).padStart(2, '0')
+        const ss = String(now.getSeconds()).padStart(2, '0')
 
-        return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`;
+        return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
       }
 
       window.addEventListener('load', () => {
         if (DIALOG_MODE === 'export') {
-          loadExportData();
+          loadExportData()
         }
-      });
+      })
     </script>
   </body>
 </html>
