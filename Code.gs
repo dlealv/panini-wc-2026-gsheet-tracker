@@ -1,3 +1,5 @@
+/** @OnlyCurrentDoc */
+
 /**
  * Provides shared spreadsheet access, named range validation, and common lookup utilities.
  * This file centralizes reusable data access for import/export and Quick Entry flows.
@@ -77,9 +79,9 @@ function importStickerData(payload) {
 }
 
 /** Exports sticker data from the sheet. */
-function exportStickerData() {
+function exportStickerData(payload) {
   const app = new ImportExportService()
-  return app.exportData()
+  return app.exportData(payload && payload.includeFlags)
 }
 
 /** Opens the Quick Sticker Entry dialog. */
