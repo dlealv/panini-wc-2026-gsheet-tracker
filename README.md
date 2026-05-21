@@ -97,6 +97,7 @@ Export behavior:
 - Exports only valid sticker numbers, i.e. `0` only for `FWC` and `20` sticker for non-`FWC` countries.
 - Includes only sticker counts greater than `0`
 - Can be copied or downloaded for reuse
+- Allow the user to decide whether to include flag icons in the export.
 
 ![Export dialog](images/exportView.jpg)
 
