@@ -54,7 +54,7 @@ It is especially useful for day-to-day collection tracking because it combines t
 Main capabilities:
 - Search incrementally by **team code** or **country name**
 - Filter by **group**
-- Filter by sticker status: **All**, **Missing**, or **Repeated**
+- Filter stickers based on their status: **All**, **Missing**, **Repeated**, or **Pending** (pending changes that haven’t been committed via the **Update** button yet).
 - Review each team with a compact summary:
   - Owned
   - Missing
@@ -125,17 +125,23 @@ It helps you visualize which teams are closest to completion and review your ove
 
 The tracker includes a trade comparison service that helps identify possible exchanges between your collection and another collector's collection.
 
-This service is enabled through the `Trade` tab. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive.
+This service is enabled through the `Trade` tab. Paste the other collector data in the expected format in the **INPUT** section, then review the generated **OUTPUT** section to see what you can offer and what you may receive. You can include the flag icons before the country code.
 
-You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive.
+You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive/send.
 
-Green background highlights values that are lower than or equal to the number of stickers you can send, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
+Green background highlights values that are lower than or equal to the number of stickers you can send/receive, making it easier to identify equal or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches on each direction in the **OUTPUT** section. In the **INPUT** section it represents the total counts from Another Collector.
 
 ![Trade tab](images/tradeView.jpg)
 
-**Note:** For easy visualization, the stickers `KOR,7` and `CAN,4` are manually highlighted in red in this example.
+In the **OUTPUT** section, you can sort the Receive Sticker output by either `%-Done` or `Album`. This dropdown menu is located next to the **SORT** label.
 
-The results are prioritized to support efficient team completion while keeping the trade review process straightforward. In this sample, `KOR` has the highest completion rate among the stickers to trade, which is why it appears at the top of the list in the Receive Stickers table from the **OUTPUT** section. The count `2` from the Receive Stickers table is highlighted with a green background because the total match of the Send Stickers table is `2`. In this case, for a swap, you will *send* the stickers `KOR,7` and `CAN,4` *to* another collector, and *receive* the stickers `KOR,12,20` *from* another collector.
+- **%-Done**: This sorting prioritizes stickers with the closest completion status. By sorting by `%-Done`, you can easily identify and collect stickers that are close to completion, helping you finish your team more efficiently. However, for large exchanges, it can be challenging to find specific stickers since they aren’t organized in the same way as albums. Collectors often maintain a list of repeated stickers in the same order as the album.
+
+- **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
+
+In the provided example, the maximum swap occurs when the cumulative number of stickers is `9`, meaning both collectors receive an equal number of stickers. This number represents the minimum `TOTAL` in both directions. Of course, you can negotiate with another collector to send more stickers and receive payment for them. 
+
+📌 This entire process is significantly simplified by the information provided in this tab.
 
 ## Manage Panini menu
 
