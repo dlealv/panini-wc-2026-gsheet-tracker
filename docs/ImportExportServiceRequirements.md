@@ -58,12 +58,14 @@ The service uses the combined `ImportExportDialog.html` template and backend log
 
 - `COUNTRIES`: country code column
 - `COUNTS`: writable sticker count range in the `Stickers` sheet
-**Note:** Named ranges don’t necessarily need to be defined in the same sheet. For instance, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows in both ranges must be identical.
+- `FLAG_ICONS` flag icons column
+**Note:** Named ranges don’t necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows for these named ranges should be the same.
 
 ### Data used for export
 
 - Export reads country codes from `COUNTRIES`
 - Export reads sticker counts from `COUNTS`
+- Export reads flag icons from `FLAG_ICONS`
 
 ---
 
@@ -74,7 +76,7 @@ One country per line.
 General syntax:
 
 ```text
-CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...
+Format: [flag] CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...
 ```
 
 Examples:
@@ -84,13 +86,16 @@ FWC,1,3,5(2),7
 MEX,18,20
 BRA,7(3)
 MEX,1-4,8
+🇲🇽 MEX,1,2,3(2),5-8,10-12(2)
 BRA,5-8(2),10
 ```
 
 ### Syntax rules
 
-- The first token must be a country code
+- The first mandatory token must be a country code, the flag icon is optional
+- The parser will skip flag icon if present
 - Country codes must exist in the `COUNTRIES` named range
+- Flag icon most exist in the `FLAG_ICON` named range
 - Values must be separated only by commas `,`
 - A sticker token must be:
   - `N`
@@ -215,13 +220,15 @@ One country per line.
 General format:
 
 ```text
-CODE,number[,number(repeats)]...
+[flag] CODE,number[,number(repeats)]...
 ```
 
 ### Export rules
 
+- Include flag icons before the country code if the user selected this option
 - Country code is read from `COUNTRIES`
 - Sticker counts are read from `COUNTS`
+- Flag icons are read from `FLAG_ICONS`
 - Only sticker counts greater than `0` are exported
 - Export must include only sticker positions valid for the selected country code
 - Exported sticker values follow these rules:
@@ -330,6 +337,7 @@ The export dialog must:
 - allow the user to download the exported content as a local `.txt` file
 - allow the user to copy the exported content to the clipboard
 - allow the user to close the dialog
+- Allow users to decide whether the export will include or not the flag icon before each country code. If the user selects the option “Include flag icon before country code,” the icon flag will be populated for each country code. Otherwise, the flag icon is not populated (default).
 
 The export dialog must show only export-related sections and actions.
 Import-only controls must not be shown in export mode.
