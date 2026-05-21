@@ -180,6 +180,9 @@ In the previous example, sticker `5` for `FWC` appears twice, and sticker `7` fo
 - `FLAGS_URL`: flag image source used by the dialogs
 - `COUNTRY_NAMES`: country name used by Quick Sticker Entry incremental search
 
+### Hidden tabs
+- `Conf`: Country specific information such as flag, iso country code, icon, name, etc.
+
 ## Apps Script authorization and Google unverified app warning
 
 This tracker includes Google Apps Script features such as:
@@ -239,6 +242,7 @@ The project was initially announced on Reddit, but future updates are maintained
 - `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service.
 - `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry.
 - `docs/GoogleAccessStepByStep.md`: Step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project.
+- `doc/FAQ.md` Frequently Asked Questions document. It include also questions related to Google Security and Access for Apps Script.
 - `CHANGELOG.md`: chronological summary of notable project changes.
 - `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance.
 - `TODO.md`: Features to include in future releases. The check mark indicates if the feature was already implemented.
