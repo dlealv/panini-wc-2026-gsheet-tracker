@@ -1,5 +1,16 @@
+/** @OnlyCurrentDoc */
+//src/Commons.gs
+
 /**
- * Provides shared access to sticker sheet data stored in named ranges.
+ * Provides shared spreadsheet access, named range validation, and common lookup utilities.
+ * This file centralizes reusable data access for import/export and Quick Entry flows.
+ * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
+ * external use, so they should not be removed or altered without consideration of their role in the overall 
+ * application architecture.
+ */
+
+/** Provides shared access to sticker sheet data stored in named ranges. 
+ * @export
  */
 class StickerSheetRepository {
   /** Creates a repository for sticker data. */
@@ -58,7 +69,6 @@ class StickerSheetRepository {
     const groups = this.groupsRange.getValues()
       .map(row => String(row[0] || '').trim().toUpperCase())
       .filter(Boolean)
-
     return Array.from(new Set(groups))
   }
 
@@ -72,9 +82,17 @@ class StickerSheetRepository {
 
   /** Returns one stored sticker count. */
   getStickerCount(countryCode, stickerNumber) {
-    const counts = this.getCountryCounts(countryCode)
-    return counts[this._validateStickerNumber(stickerNumber)]
+  const validStickerNumber = this._validateStickerNumber(stickerNumber)
+  const normalizedCountryCode = this._normalizeCountryCode(countryCode)
+
+  const countryIndex = this.countryMap[normalizedCountryCode].index
+  const countValues = this.countsRange.getValues()[countryIndex]
+
+  if (!countValues) {
+    throw new Error(`No count data found for country "${countryCode}"`)
   }
+  return countValues.map(v => this._toCount(v))[validStickerNumber]
+}
 
   /** Updates multiple sticker counts in one batch write. */
   updateStickerCounts(updates) {
@@ -90,19 +108,15 @@ class StickerSheetRepository {
     if (!this.countriesRange) {
       throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" not found.`)
     }
-
     if (!this.countsRange) {
       throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`)
     }
-
     if (!this.groupsRange) {
       throw new Error(`Named range "${this.GROUPS_RANGE_NAME}" not found.`)
     }
-
     if (!this.flagsRange) {
       throw new Error(`Named range "${this.FLAGS_RANGE_NAME}" not found.`)
     }
-
     if (!this.countryNamesRange) {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`)
     }
@@ -115,43 +129,35 @@ class StickerSheetRepository {
     if (this.countriesRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" must contain exactly 1 column.`)
     }
-
     if (this.groupsRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.GROUPS_RANGE_NAME}" must contain exactly 1 column.`)
     }
-
     if (this.flagsRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.FLAGS_RANGE_NAME}" must contain exactly 1 column.`)
     }
-
     if (this.countryNamesRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" must contain exactly 1 column.`)
     }
-
     if (this.countsRange.getNumColumns() !== this.EXPECTED_STICKER_COLUMNS) {
       throw new Error(
         `Named range "${this.COUNTS_RANGE_NAME}" must contain exactly ${this.EXPECTED_STICKER_COLUMNS} columns.`
       )
     }
-
     if (this.countriesRange.getNumRows() !== this.countsRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-
     if (this.countriesRange.getNumRows() !== this.groupsRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.GROUPS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-
     if (this.countriesRange.getNumRows() !== this.flagsRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.FLAGS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-
     if (this.countriesRange.getNumRows() !== this.countryNamesRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTRY_NAMES_RANGE_NAME}" must have the same number of rows.`
@@ -288,42 +294,4 @@ class StickerSheetRepository {
   _isUrl(value) {
     return /^https?:\/\//i.test(String(value || '').trim())
   }
-}
-
-/** Returns the country name for one ISO country code. */
-function getCountryNameByCode(isoCountryCode) {
-  const normalizedIsoCountryCode = String(isoCountryCode || '').trim().toUpperCase()
-
-  if (!normalizedIsoCountryCode) {
-    return ''
-  }
-
-  const specialNamesByIsoCode = {
-    'GB-ENG': 'England',
-    'GB-SCT': 'Scotland',
-    'GB-WLS': 'Wales',
-    'GB-NIR': 'Northern Ireland'
-  }
-
-  if (specialNamesByIsoCode[normalizedIsoCountryCode]) {
-    return specialNamesByIsoCode[normalizedIsoCountryCode]
-  }
-
-  const response = UrlFetchApp.fetch(
-    `https://restcountries.com/v3.1/alpha/${normalizedIsoCountryCode}`,
-    { muteHttpExceptions: true }
-  )
-
-  if (response.getResponseCode() !== 200) {
-    throw new Error(`Could not resolve country name for ISO country code "${normalizedIsoCountryCode}".`)
-  }
-
-  const payload = JSON.parse(response.getContentText())
-  const country = Array.isArray(payload) ? payload[0] : payload
-
-  if (!country || !country.name || !country.name.common) {
-    throw new Error(`Country name not found for ISO country code "${normalizedIsoCountryCode}".`)
-  }
-
-  return String(country.name.common).trim()
 }

@@ -89,6 +89,7 @@ MEX,1-4,8
 🇲🇽 MEX,1,2,3(2),5-8,10-12(2)
 BRA,5-8(2),10
 ```
+**Note**: flag (emojis) is decorative, they will be removed before parsing the text.
 
 ### Syntax rules
 

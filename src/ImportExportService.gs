@@ -1,8 +1,20 @@
 /** @OnlyCurrentDoc */
+//src/ImportExportService.gs
+
+/**
+ * Classes and methods for importing and exporting sticker data in the Panini tracker.
+ * This file includes the:
+ *  - ImportExportService which handles the core logic for both operations,
+ *  - StickerInputParser which validates and parses raw input text for imports.
+ * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
+ * external use, so they should not be removed or altered without consideration of their role in the overall 
+ * application architecture.
+ */
 
 /**
  * Encapsulates sticker import and export use cases for the Panini tracker.
  * This file contains the import/export application service and the input parser.
+ * export tag is used for testable classes/methods, don't remove them.
  */
 class ImportExportService {
   /** Creates an import/export application service. */
@@ -23,7 +35,6 @@ class ImportExportService {
     if (!this.countriesRange) {
       throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" not found.`)
     }
-
     if (!this.countsRange) {
       throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`)
     }
@@ -39,6 +50,47 @@ class ImportExportService {
     this.numStickerCols = this.countsRange.getNumColumns()
     this.countryMap = this._buildCountryMap()
     this.flagIconMap = this._buildFlagIconMap()
+  }
+
+  /** Static GAS entrypoint for preview operations. */
+  static previewStickerData(payload) {
+    const service = new ImportExportService()
+
+    return service.preview(
+      payload && payload.text
+        ? payload.text
+        : ''
+    )
+  }
+
+  /** Static GAS entrypoint for import operations. */
+  static importStickerData(payload) {
+    const service = new ImportExportService()
+
+    return service.import(
+      payload && payload.text
+        ? payload.text
+        : '',
+      payload && payload.mode
+        ? payload.mode
+        : 'update'
+    )
+  }
+
+  /** Static GAS entrypoint for export operations. 
+   * @export
+   */
+  static exportStickerData(payload) {
+    const service = new ImportExportService()
+
+    const includeFlags =
+      payload != null &&
+      payload.includeFlags != null &&
+      payload.includeFlags !== false &&
+      payload.includeFlags !== 'false' &&
+      payload.includeFlags !== ''
+
+    return service.exportData(includeFlags)
   }
 
   /** Parses input and returns a preview payload without modifying the sheet. */
@@ -61,7 +113,9 @@ class ImportExportService {
     }
   }
 
-  /** Imports validated sticker data into the sheet using the selected mode. */
+  /** Imports validated sticker data into the sheet using the selected mode.
+   * @export
+   */
   import(text, mode) {
     const normalizedMode = mode || 'update'
     const parser = new StickerInputParser(this.countryMap)
@@ -83,7 +137,9 @@ class ImportExportService {
     }
   }
 
-  /** Exports sheet data using the same syntax as the import input format. */
+  /** Exports sheet data using the same syntax as the import input format.
+   * @export
+   */
   exportData(includeFlags) {
     const shouldIncludeFlags = Boolean(includeFlags)
     const countryValues = this.countriesRange.getValues()
@@ -114,24 +170,20 @@ class ImportExportService {
     if (this.countriesRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" must contain exactly 1 column.`)
     }
-
     if (this.countsRange.getNumColumns() !== this.EXPECTED_STICKER_COLUMNS) {
       throw new Error(
         `Named range "${this.COUNTS_RANGE_NAME}" must contain exactly ${this.EXPECTED_STICKER_COLUMNS} columns.`
       )
     }
-
     if (this.countriesRange.getNumRows() !== this.countsRange.getNumRows()) {
       throw new Error(
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.COUNTS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-
     if (this.flagIconsRange) {
       if (this.flagIconsRange.getNumColumns() !== 1) {
         throw new Error(`Named range "${this.FLAG_ICONS_RANGE_NAME}" must contain exactly 1 column.`)
       }
-
       if (this.flagIconsRange.getNumRows() !== this.countriesRange.getNumRows()) {
         throw new Error(
           `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.FLAG_ICONS_RANGE_NAME}" must have the same number of rows.`
@@ -223,20 +275,35 @@ class ImportExportService {
     })
   }
 
-  /** Builds one export line for a country. */
+/*
   _buildExportLine(countryCode, stickerTokens, shouldIncludeFlags) {
-    const lineTokens = [countryCode].concat(stickerTokens)
-    if (!shouldIncludeFlags) {
-      return lineTokens.join(',')
+    if (!stickerTokens || stickerTokens.length === 0) {
+      return countryCode
     }
-
+    const lineTokens = [countryCode].concat(stickerTokens)
     const flagIcon = this.flagIconMap[countryCode]
     if (!flagIcon) {
       return lineTokens.join(',')
     }
-
-    return [flagIcon, lineTokens[0]].concat(lineTokens.slice(1)).join(',')
+    return `${flagIcon} ${lineTokens.join(',')}`
   }
+  */
+  _buildExportLine(countryCode, stickerTokens, shouldIncludeFlags) {
+  if (!stickerTokens || stickerTokens.length === 0) {
+    return countryCode
+  }
+  const lineTokens = [countryCode].concat(stickerTokens)
+  const baseLine = lineTokens.join(',')
+  // Only include flags when checkbox is enabled
+  if (!shouldIncludeFlags) {
+    return baseLine
+  }
+  const flagIcon = this.flagIconMap[countryCode]
+  if (!flagIcon) {
+    return baseLine
+  }
+  return `${flagIcon} ${baseLine}`
+}
 
   /** Builds export tokens for one row of sticker counts. */
   _buildExportStickerTokens(countryCode, rowCounts) {
@@ -246,14 +313,19 @@ class ImportExportService {
       if (!this._isExportableSticker(countryCode, sticker)) {
         continue
       }
-
       const cellValue = rowCounts[sticker]
-      const numericValue = Number(cellValue)
-
-      if (cellValue === '' || cellValue === null || Number.isNaN(numericValue) || numericValue <= 0) {
+      // normalize safely
+      const numericValue = typeof cellValue === 'number'
+        ? cellValue
+        : Number(cellValue)
+      // skip only truly empty/invalid values
+      if (cellValue === '' || cellValue === null || Number.isNaN(numericValue)) {
         continue
       }
-
+      // export 0 only for FWC
+      if (numericValue === 0 && countryCode !== 'FWC') {
+        continue
+      }
       if (numericValue === 1) {
         stickerTokens.push(String(sticker))
       } else {
@@ -275,10 +347,7 @@ class ImportExportService {
 
 }
 
-
-/**
- * Parses raw import text and converts it into validated country and sticker counts.
- */
+/** Parses raw import text and converts it into validated country and sticker counts. */
 class StickerInputParser {
   /** Creates a parser using the available country codes. */
   constructor(countryMap) {
@@ -291,7 +360,11 @@ class StickerInputParser {
 
   /** Parses and validates the full import payload. */
   parse(text) {
-    const normalized = String(text || '').replace(/\r\n/g, '\n').trim()
+    // Remove emoojis first
+    const normalized = String(text || '')
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+      .replace(/\r\n/g, '\n')
+      .trim()
     if (!normalized) {
       throw new Error('No input provided. Paste content or upload a file.')
     }
@@ -320,7 +393,6 @@ class StickerInputParser {
     if (line.includes(';')) {
       throw new Error(`Line ${lineIndex + 1}: invalid delimiter ";". Use comma only.`)
     }
-
     const parts = line.split(',').map(part => part.trim())
     if (parts.length < 2) {
       throw new Error(`Line ${lineIndex + 1}: expected COUNTRY_CODE plus at least one sticker token.`)
@@ -350,11 +422,9 @@ class StickerInputParser {
     if (!/^[A-Z]{3}$/.test(code)) {
       throw new Error(`Line ${lineIndex + 1}: invalid country code "${codeRaw}".`)
     }
-
     if (!this.countryMap[code]) {
       throw new Error(`Line ${lineIndex + 1}: country code "${code}" not found in the COUNTRIES named range.`)
     }
-
     if (seen.has(code)) {
       throw new Error(`Line ${lineIndex + 1}: duplicate country code "${code}" in input.`)
     }
@@ -374,7 +444,7 @@ class StickerInputParser {
       const match = expandedToken.match(this.tokenRegex)
       if (!match) {
         throw new Error(
-          `Country "${code}": invalid token "${token}". Use N, N(X), or ranges like 1-4.`
+          `Country "${code}": invalid token "${token}". Use N, N(X), N>=0,X>0 or ranges like 1-4.`
         )
       }
 

@@ -1,0 +1,411 @@
+<script>
+    //src/html/QuickEntryDialogHelpers.html    
+
+    /**
+     * Quick entry helpers (pure logic layer - Jest safe).
+     * - contains core state management and UI helper functions.
+     * - designed for testability and separation of concerns.
+     * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
+     * external use, so they should not be removed or altered without consideration of their role in the overall 
+     * application architecture.
+     */
+
+    let stickersPerRow = 8
+
+    // CORE STATE
+
+    /**
+     * Updates the current sticker grid layout.
+     * - stores the selected stickers-per-row value
+     * - updates the CSS variable in browser environments
+     * - safely skips DOM access during Jest execution
+     * @export
+     */
+    function applyLayout(value) {
+        stickersPerRow = value
+
+        if (typeof document === 'undefined') return
+
+        document.documentElement.style.setProperty('--stickers-per-row', String(value))
+    }
+
+    /**
+     * Returns the current UI configuration state.
+     * - exposes shared UI values
+     * - used by rendering and tests
+     */
+    function getUIState() {
+        return { stickersPerRow }
+    }
+
+    
+    // UI HELPERS
+
+    /**
+     * Creates a normalized group option object.
+     * - converts dropdown values into a consistent structure
+     */
+    function buildGroupOption(value, text) {
+        return { value, text }
+    }
+
+    /**
+     * Builds an empty-state UI representation.
+     * - browser: creates a DOM element
+     * - Jest/Node: returns a safe plain object
+     * @export
+     */
+    function buildEmptyState(msg) {
+        if (typeof document === 'undefined') {
+            return {
+                className: 'empty-state',
+                textContent: msg
+            }
+        }
+
+        const el = document.createElement('div')
+        el.className = 'empty-state'
+        el.textContent = msg
+        return el
+    }
+
+    /**
+     * Updates a message element consistently.
+     * - updates text content
+     * - applies standardized message styling
+     * - safe for tests and browser execution
+     * @export
+     */
+    function setMessage(el, text, type) {
+        if (el) {
+            el.textContent = text || ''
+            el.className = `message ${type || 'info'}`
+        }
+        return el
+    }
+
+    // CORE FILTER LOGIC
+
+    /**
+     * Returns countries visible under current filters.
+     * - applies pending changes
+     * - applies search filters
+     * - applies group filters
+     * - applies sticker visibility filters
+     * @export
+     */
+    function getVisibleCountries(state) {
+        return state.countries
+            .map(c => applyPendingCountryUpdates(c, state))
+            .filter(c => matchesTeamSearch(c, state))
+            .filter(c => matchesGroupFilter(c, state))
+            .map(c => filterCountryStickers(c, state))
+            .filter(country => country && country.stickers && country.stickers.length > 0)
+    }
+
+    /**
+     * Applies pending sticker updates to a country.
+     * - recalculates sticker counts
+     * - recalculates summary metrics
+     * - marks completion state
+     */
+    function applyPendingCountryUpdates(country, state) {
+        const stickers = country.stickers.map(s =>
+            applyPendingStickerUpdate(country.code, s, state)
+        )
+
+        const summary = buildCountrySummary(stickers)
+
+        return {
+            ...country,
+            stickers,
+            summary,
+            isCompleted: summary.missing === 0
+        }
+    }
+
+    /**
+     * Applies pending changes to a single sticker.
+     * - overlays temporary pending counts
+     * - marks stickers with pending changes
+     * @export
+     */
+    function applyPendingStickerUpdate(countryCode, sticker, state) {
+        const key = buildPendingKey(countryCode, sticker.number)
+        const pending = state.pendingUpdates[key]
+
+        if (pending == null) {
+            return { ...sticker, hasPendingChange: false }
+        }
+
+        return {
+            ...sticker,
+            count: pending,
+            label: `${sticker.number} (${pending})`,
+            hasPendingChange: true
+        }
+    }
+
+    /**
+     * Matches a country against the active team search.
+     * - performs case-insensitive prefix matching
+     * - checks both country code and country name
+     * @export
+     */
+    function matchesTeamSearch(country, state) {
+        if (!state.teamSearchText) return true
+
+        const code = String(country.code || '').toLowerCase()
+        const name = String(country.countryName || '').toLowerCase()
+
+        const search = String(state.teamSearchText).toLowerCase()
+
+        return code.startsWith(search) || name.startsWith(search)
+    }
+
+    /**
+     * Matches a country against the selected group filter.
+     * - supports "all" as wildcard
+     * - otherwise requires exact group match
+     * @export  
+     */
+    function matchesGroupFilter(country, state) {
+        return state.selectedGroupFilter === 'all'
+            ? true
+            : country.group === state.selectedGroupFilter
+    }
+
+    /**
+     * Filters stickers according to the active status filter.
+     * - supports missing stickers
+     * - supports repeated stickers
+     * - supports pending sticker changes
+     * @export
+     */
+    function filterCountryStickers(country, state) {
+        let stickers = country.stickers
+
+        if (state.selectedStatusFilter === 'missing') {
+            stickers = stickers.filter(s => s.count === 0)
+        }
+
+        if (state.selectedStatusFilter === 'repeated') {
+            stickers = stickers.filter(s => s.count > 1)
+        }
+
+        if (state.selectedStatusFilter === 'pending') {
+            stickers = stickers.filter(s => s.hasPendingChange)
+        }
+
+        // 🔴 CRITICAL FIX: drop empty countries
+        if (state.selectedStatusFilter !== 'all' && stickers.length === 0) {
+            return null
+        }
+
+        return {
+            ...country,
+            stickers
+        }
+    }
+
+    /**
+     * Builds summary statistics for a sticker collection.
+     * - calculates owned stickers
+     * - calculates missing stickers
+     * - calculates repeated stickers
+     * - calculates completion percentage
+     * @export
+     */
+    function buildCountrySummary(stickers) {
+        const total = stickers.length
+        const owned = stickers.filter(s => s.count > 0).length
+        const missing = stickers.filter(s => s.count === 0).length
+        const repeated = stickers.filter(s => s.count > 1).length
+
+        return {
+            total,
+            owned,
+            missing,
+            repeated,
+            completionPercent: total ? Math.round((owned / total) * 100) : 0
+        }
+    }
+
+    /**
+     * Builds a stable pending-update identifier.
+     * - combines country code and sticker number
+     * - used for deterministic update tracking
+     * @export
+     */
+    function buildPendingKey(c, n) {
+        return `${c}|${n}`
+    }
+
+    /**
+     * Converts pending update map into payload array.
+     * - transforms UI state into backend-friendly format
+     * @export
+     */
+    function getPendingUpdates(pendingUpdates) {
+        return Object.keys(pendingUpdates || {}).map(k => {
+            const [countryCode, stickerNumber] = k.split('|')
+
+            return {
+                countryCode,
+                stickerNumber: Number(stickerNumber),
+                count: pendingUpdates[k]
+            }
+        })
+    }
+
+    /**
+     * Queues a sticker count modification.
+     * - prevents negative sticker counts
+     * - removes updates when values match originals
+     * - stores pending modifications deterministically
+     * @export
+     */
+    function queueStickerChange(state, c, n, next) {
+        const key = buildPendingKey(c, n)
+        const safe = Math.max(0, next)
+
+        const original =
+            state.countries
+                .find(x => x.code === c)
+                ?.stickers.find(s => s.number === n)?.count || 0
+
+        if (safe === original) {
+            delete state.pendingUpdates[key]
+        } else {
+            state.pendingUpdates[key] = safe
+        }
+
+        return { pendingUpdates: state.pendingUpdates }
+    }
+
+    /**
+     * - shows ready state when no changes exist
+     * - shows pending change count otherwise
+     * @export
+     */
+    function updatePendingChangesMessage(state, setMessageFn) {
+        const count = getPendingUpdates(state.pendingUpdates).length
+
+        setMessageFn(
+            count ? `Pending changes: ${count}` : 'Ready.',
+            count ? 'pending' : 'success'
+        )
+    }
+
+    // PREVIEW / EXPORT
+
+    /**
+     * Builds preview text for import/export operations.
+     * - converts parsed countries into readable preview lines
+     */
+    function renderPreviewData(result) {
+        if (!result || !Array.isArray(result.countries) || result.countries.length === 0) {
+            return ''
+        }
+
+        return result.countries.map(country => {
+            const stickers = Array.isArray(country.stickers)
+                ? country.stickers.map(s => `${s.number}:${s.count}`).join(', ')
+                : ''
+
+            return `${country.code} -> ${stickers}`
+        }).join('\n')
+    }
+
+    /**
+     * Converts UI state into import/export payload.
+     * - normalizes export settings
+     * - guarantees predictable payload structure
+     */
+    function getPayloadFromState(state = {}) {
+        return {
+            text: state.text || '',
+            mode: state.mode || 'update',
+            includeFlags: !!state.includeFlags
+        }
+    }
+
+    /**
+     * Toggles busy-state UI controls.
+     * - disables inputs during async operations
+     * - safe for browser and Jest environments
+     */
+    function setBusy(isBusy) {
+        const elements = [
+            global.fileInput,
+            global.modeInput,
+            global.includeFlagsCheckbox
+        ].filter(Boolean)
+
+        elements.forEach(el => {
+            el.disabled = !!isBusy
+        })
+
+        if (typeof document !== 'undefined' && document.querySelectorAll) {
+            document.querySelectorAll('button, input, select, textarea')
+                .forEach(el => (el.disabled = !!isBusy))
+        }
+    }
+
+    /**
+     * Renders import/export preview text.
+     * - displays preview data
+     * - hides preview when no data exists
+     */
+    function renderPreview(input) {
+        if (!global.previewEl) return
+
+        if (!input || !input.countries || input.countries.length === 0) {
+            global.previewEl.style.display = 'none'
+            global.previewEl.textContent = ''
+            return
+        }
+
+        global.previewEl.style.display = 'block'
+
+        const lines = input.countries.map(c => {
+            const stickers = (c.stickers || [])
+                .map(s => `${s.number}:${s.count}`)
+                .join(', ')
+            return `${c.code} -> ${stickers}`
+        })
+
+        global.previewEl.textContent = lines.join('\n')
+    }
+
+    /**
+     * Clears the current preview area.
+     * - hides preview container
+     * - removes preview text
+     */
+    function clearPreview() {
+        if (global.previewEl) {
+            global.previewEl.style.display = 'none'
+            global.previewEl.textContent = ''
+        }
+    }
+
+    /**
+     * Builds deterministic export filenames.
+     * - formats timestamps consistently
+     * - produces sortable export filenames
+     */
+    function buildExportFileName(date = new Date()) {
+        const pad = n => String(n).padStart(2, '0')
+
+        const yyyy = date.getFullYear()
+        const mm = pad(date.getMonth() + 1)
+        const dd = pad(date.getDate())
+        const hh = pad(date.getHours())
+        const min = pad(date.getMinutes())
+        const ss = pad(date.getSeconds())
+
+        return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${min}${ss}.txt`
+    }
+
+</script>

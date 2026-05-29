@@ -1,6 +1,20 @@
+/** @OnlyCurrentDoc */
+//src/QuickEntryService.gs
+
+/**
+ * Provides classes and methods related to the Quick Sticker Entry dialog, including data transformation, 
+ * view model construction, and sticker count updates.
+ * This service acts as the core logic layer for the Quick Entry dialog, handling all interactions between 
+ * the shared sheet data and the UI payloads.
+ * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
+ * external use, so they should not be removed or altered without consideration of their role in the overall 
+ * application architecture.
+ */
+
 /**
  * Builds Quick Sticker Entry view models and applies sticker count updates.
  * This service transforms shared sheet data into UI-ready payloads for the Quick Entry dialog.
+ * export tag is used for testable classes/methods, don't remove them.
  */
 class QuickEntryService {
   /** Creates a service for Quick Sticker Entry. */
@@ -10,7 +24,9 @@ class QuickEntryService {
     this.DEFAULT_GROUP_FILTER = 'all'
   }
 
-  /** Returns the initial dialog payload. */
+  /** Returns the initial dialog payload. 
+   * @export
+   */
   getInitialData() {
     const countries = this.repository.getCountries()
     const groupCodes = this.repository.getGroupCodes()
@@ -35,7 +51,9 @@ class QuickEntryService {
     }
   }
 
-  /** Builds country view models for the UI. */
+  /** Builds country view models for the UI. 
+   * @export
+   */
   _buildCountryViewModels(countries) {
     return countries.map(country => this._buildCountryViewModel(country))
   }
@@ -57,7 +75,9 @@ class QuickEntryService {
     }
   }
 
-  /** Builds sticker cards for one country. */
+  /** Builds sticker cards for one country. 
+   * @export
+   */
   _buildStickerViews(countryCode, counts) {
     return this._getVisibleStickerNumbers(countryCode).map(stickerNumber => {
       const count = counts[stickerNumber]
@@ -77,16 +97,16 @@ class QuickEntryService {
     }
   }
 
-  /** Returns the sticker corner label for special sticker numbers. */
+  /** Returns the sticker corner label for special sticker numbers. 
+   * @export
+   */
   _getStickerIconLabel(countryCode, stickerNumber) {
     if (countryCode === 'FWC') {
       return ''
     }
-
     if (stickerNumber === 1) {
       return 'CREST'
     }
-
     if (stickerNumber === 13) {
       return 'TEAM'
     }
@@ -94,12 +114,13 @@ class QuickEntryService {
     return ''
   }
 
-  /** Returns the status for one sticker count. */
+  /** Returns the status for one sticker count. 
+   * @export
+   */
   _getStickerStatus(count) {
     if (count === 0) {
       return 'missing'
     }
-
     if (count > 1) {
       return 'repeated'
     }
@@ -107,24 +128,22 @@ class QuickEntryService {
     return 'all'
   }
 
-  /** Returns the color class for one sticker count. */
+  /** Returns the color class for one sticker count. 
+   * @export
+   */
   _getStickerColorClass(count) {
     if (count <= 0) {
       return 'count-0'
     }
-
     if (count === 1) {
       return 'count-1'
     }
-
     if (count === 2) {
       return 'count-2'
     }
-
     if (count === 3) {
       return 'count-3'
     }
-
     if (count === 4) {
       return 'count-4'
     }
@@ -132,7 +151,9 @@ class QuickEntryService {
     return 'count-5-plus'
   }
 
-  /** Returns visible sticker numbers for one country. */
+  /** Returns visible sticker numbers for one country. 
+   * @export
+   */
   _getVisibleStickerNumbers(countryCode) {
     if (countryCode === 'FWC') {
       return this._buildNumberRange(0, 19)
@@ -141,7 +162,9 @@ class QuickEntryService {
     return this._buildNumberRange(1, 20)
   }
 
-  /** Builds an inclusive number range. */
+  /** Builds an inclusive number range. 
+   * @export
+   */
   _buildNumberRange(start, end) {
     const numbers = []
 
@@ -152,7 +175,9 @@ class QuickEntryService {
     return numbers
   }
 
-  /** Builds summary values for the selected country. */
+  /** Builds summary values for the selected country. 
+   * @export
+   */
   _buildSummary(stickers) {
     const total = stickers.length
     const owned = stickers.filter(sticker => sticker.count > 0).length
@@ -169,7 +194,9 @@ class QuickEntryService {
     }
   }
 
-  /** Validates and normalizes pending updates. */
+  /** Validates and normalizes pending updates. 
+   * @export
+   */
   _normalizePendingUpdates(pendingUpdates) {
     if (!Array.isArray(pendingUpdates) || !pendingUpdates.length) {
       throw new Error('There are no pending updates to apply.')
@@ -197,7 +224,9 @@ class QuickEntryService {
     }
   }
 
-  /** Normalizes a country code. */
+  /** Normalizes a country code. 
+   * @export
+   */
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
 
@@ -208,7 +237,9 @@ class QuickEntryService {
     return normalizedCountryCode
   }
 
-  /** Validates a visible sticker for the selected country. */
+  /** Validates a visible sticker for the selected country. 
+   * @export
+   */
   _validateVisibleSticker(countryCode, stickerNumber) {
     if (!this._getVisibleStickerNumbers(countryCode).includes(stickerNumber)) {
       throw new Error(`Sticker ${stickerNumber} is not valid for country code "${countryCode}".`)

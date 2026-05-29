@@ -1,0 +1,225 @@
+<script>
+//src/html/QuickEntryDialogHelpers.html
+
+/** Renders the entire dialog content based on current state and layout.
+ * DOM/UI rendering is not covered by automated tests yet, but functions have been designed to
+ * facilitate testing in the future.
+ * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
+ * external use, so they should not be removed or altered without consideration of their role in the overall
+ * application architecture.
+ */
+
+/** Returns the CSS class for a sticker count.
+ * @export */
+function getStickerCountClass(count) {
+  if (count >= 5) return 'count-5-plus'
+  return `count-${count}`
+}
+
+/** Builds one country section element.
+ * optional input parameters are used for testing purposes, don't remove them
+ * Currently this function is not tested, but it has been designed to facilitate
+ * testing.
+ */
+function buildCountrySection(country, state = {}, layout = {}, onStickerChange = () => { }) {
+  // Section: root
+  const section = document.createElement('div')
+  const header = document.createElement('div')
+  const title = document.createElement('div')
+  const summary = document.createElement('div')
+  section.className = 'country-section'
+  if (country.isCompleted) {
+    section.classList.add('completed')
+  }
+  // Section: header
+  header.className = 'country-header'
+
+  // Section: title
+  title.className = 'country-title'
+  if (country.flag) {
+    title.appendChild(buildCountryFlag(country.flag))
+  }
+  title.appendChild(buildCountryTitleText(buildCountryHeaderText(country)))
+
+  // Section: summary
+  summary.className = 'country-summary'
+  summary.appendChild(buildSummaryItem('Owned', `${country.summary.owned}/${country.summary.total}`))
+  summary.appendChild(buildSummaryItem('Missing', String(country.summary.missing)))
+  summary.appendChild(buildSummaryItem('Repeated', String(country.summary.repeated)))
+  summary.appendChild(buildSummaryItem('Complete', `${country.summary.completionPercent}%`))
+  header.appendChild(title)
+  header.appendChild(summary)
+  section.appendChild(header)
+
+  // Section: stickers
+  // FIX: Pass parameters explicitly down the chain
+  section.appendChild(buildStickerGrid(country, state, layout, onStickerChange))
+  return section
+}
+
+/** Builds country header text.
+ * @export */
+function buildCountryHeaderText(country) {
+  if (!country.group) {
+    return country.code
+  }
+  return `${country.code} · ${country.group}`
+}
+
+/** Builds summary item. */
+function buildSummaryItem(label, value) {
+  const item = document.createElement('div')
+  const labelEl = document.createElement('span')
+  labelEl.textContent = `${label}: `
+  const valueEl = document.createElement('span')
+  valueEl.className = 'summary-value'
+  valueEl.textContent = value
+  item.appendChild(labelEl)
+  item.appendChild(valueEl)
+  return item
+}
+
+/** Builds sticker grid. */
+function buildStickerGrid(country, state, layout, onStickerChange) {
+  // Uses the passed-in state parameter instead of global state
+  return usesCompactGrid(state)
+    ? buildCompactStickerGrid(country, state, onStickerChange)
+    : buildAlbumStickerGrid(country, state, layout, onStickerChange)
+}
+
+/** Compact layout used in filtered views. */
+function usesCompactGrid(state) {
+  return state.selectedStatusFilter !== 'all'
+}
+
+/** Standard album layout. */
+function buildAlbumStickerGrid(country, state, layout, onStickerChange) {
+  const grid = document.createElement('div')
+  grid.className = 'sticker-grid'
+  // Uses the passed-in layout parameter instead of global layout
+  const perRow = layout.stickersPerRow || 8
+  const rows = chunkStickers(country.stickers, perRow)
+
+  rows.forEach((rowStickers, index) => {
+    const isLastRow = index === rows.length - 1
+    grid.appendChild(
+      // FIX: Changed first argument from country.code to country object
+      buildStickerRow(country, rowStickers, isLastRow, perRow, state, onStickerChange)
+    )
+  })
+  return grid
+}
+
+/** Compact filtered layout. */
+function buildCompactStickerGrid(country, state, onStickerChange) {
+  const grid = document.createElement('div')
+  grid.className = 'sticker-grid compact'
+  country.stickers.forEach(sticker => {
+    grid.appendChild(
+      buildStickerCard(country, sticker, state, onStickerChange)
+    )
+  })
+  return grid
+}
+
+/** Builds one sticker row. */
+// FIX: Updated signature to receive layout, state and callback arguments
+function buildStickerRow(country, stickers, isLastRow, perRow, state, onStickerChange) {
+  const row = document.createElement('div')
+  row.className = 'sticker-row'
+  
+  // FIX: Read from scoped perRow parameter instead of global layout object
+  if (isLastRow && stickers.length < perRow) {
+    row.classList.add('last-row')
+  }
+  
+  stickers.forEach(sticker => {
+    // FIX: Match the exact variable setup needed for buildStickerCard
+    row.appendChild(buildStickerCard(country, sticker, state, onStickerChange))
+  })
+  return row
+}
+
+/** Splits stickers into rows.
+ * @export */
+function chunkStickers(stickers, size) {
+  const rows = []
+  for (let i = 0; i < stickers.length; i += size) {
+    rows.push(stickers.slice(i, i + size))
+  }
+  return rows
+}
+
+/** Builds one sticker card. */
+function buildStickerCard(country, sticker, state, onStickerChange) {
+  const card = document.createElement('div')
+  card.className = `sticker-card ${getStickerColorClass(sticker.count)}`
+  if (sticker.hasPendingChange) {
+    card.classList.add('pending-change')
+  }
+
+  const label = document.createElement('div')
+  label.className = 'sticker-label'
+  label.textContent = sticker.label || sticker.number
+
+  const actions = document.createElement('div')
+  actions.className = 'sticker-actions'
+
+  const decrementButton = document.createElement('button')
+  decrementButton.type = 'button'
+  decrementButton.textContent = '-'
+  decrementButton.disabled = state.isBusy || sticker.count === 0
+  decrementButton.onclick = () => {
+    if (typeof onStickerChange === 'function') {
+      onStickerChange(country.code, sticker.number, sticker.count - 1)
+    } else {
+      queueStickerChangeHandler(country.code, sticker.number, sticker.count - 1)
+    }
+  }
+
+  const incrementButton = document.createElement('button')
+  incrementButton.type = 'button'
+  incrementButton.textContent = '+'
+  incrementButton.disabled = state.isBusy
+  incrementButton.onclick = () => {
+    if (typeof onStickerChange === 'function') {
+      onStickerChange(country.code, sticker.number, sticker.count + 1)
+    } else {
+      queueStickerChangeHandler(country.code, sticker.number, sticker.count + 1)
+    }
+  }
+
+  actions.appendChild(decrementButton)
+  actions.appendChild(incrementButton)
+  card.appendChild(label)
+  card.appendChild(actions)
+  return card
+}
+
+/** Builds flag image. */
+function buildCountryFlag(flagUrl) {
+  const image = document.createElement('img')
+  image.className = 'country-flag'
+  image.src = flagUrl
+  image.alt = ''
+  return image
+}
+
+/** Builds title text. */
+function buildCountryTitleText(text) {
+  const element = document.createElement('span')
+  element.textContent = text
+  return element
+}
+
+/** Returns sticker color class.
+ * @export */
+function getStickerColorClass(count) {
+  if (count <= 0) return 'count-0'
+  if (count === 1) return 'count-1'
+  if (count === 2) return 'count-2'
+  if (count === 3) return 'count-3'
+  if (count === 4) return 'count-4'
+  return 'count-5-plus'
+}
+</script>

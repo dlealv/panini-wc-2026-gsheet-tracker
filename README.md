@@ -88,6 +88,8 @@ After import is executed, **only** the values part of the input will be replaced
 
 ![Import dialog](images/importDialogView.jpg)
 
+**Note**: Optionally, users can include flag icons; they are considered purely decorative and are ignored by the parser.
+
 #### Export collection data
 
 Export is useful when you want to create a reusable backup, share your current counts, or generate data that can later be imported again.
@@ -220,6 +222,10 @@ Service-specific documents are available in the `docs/` folder:
 - `docs/ImportExportServiceRequirements.md`: functional requirements and business rules for the import/export service
 - `docs/QuickEntryServiceRequirements.md`: functional requirements and business rules for the Quick Sticker Entry service
 - `docs/QuickEntryServiceMockDesign.md`: mock design notes and UI behavior references for the Quick Sticker Entry service
+- `docs/TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+
+## Testing
+Since version `1.0.2` Apps Script artifacts has been tested under VS Code `node.js` project via `Jest`. For more information please check `docs/TechnicalArchitecture.md`.
 
 ## Changelog
 
@@ -231,6 +237,7 @@ Project history and notable updates are documented in:
 
 This repository is the main place for:
 - source code
+- testing artifacts
 - documentation
 - future updates
 - improvement history
@@ -239,17 +246,39 @@ The project was initially announced on Reddit, but future updates are maintained
 
 ## Files
 
-- `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
-- `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
-- `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing.
-- `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
-- `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets.
-- `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
+- `src/Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
+- `src/Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
+- `src/ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing.
+- `src/QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
+- `src/html/ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets.
+- `src/html/QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
+- `src/html/QuickEntryDialogHelpers.html`: helpers pure logic functions and testable used in `src/html/QuickEntryDialog.html`.
+- `src/html/QuickEntryDialogRender.html`: DOM/UI specific functions partially tested used in `src/html/QuickEntryDialog.html`.
+- `test/Commons.unit.test.js`: test file for testing `src/Commons.gs`.
+- `test/ImportExportService.unit.test.js`: test file for testing `src/ImportExportService.gs`.
+- `test/ImportExportHelpers.unit.test.js`: test file for testing `src/html/ImportExportDialogHelpers.gs`.
+- `test/QuickEntryService.unit.test.js`: test file for testing `src/QuickEntryService.gs`.
+- `test/QuickEntryDialogHelpers.unit.test.js`: test file for testing `src/html/QuickEntryDialogHelpers.gs`.
+- `test/QuickEntryDialogRender.unit.test.js`: test file for testing `src/html/QuickEntryDialogRender.gs`.
+- `test/fixtures/createValidRanges.js`: creates valid default named-range configuration for repository tests.
+- `test/utils/testKernel.js`: Global test kernel for GAS unit tests.
+- `test/jest.config.js`: `Jest` configuration file.
+- `scripts/build.js`: prepares the `src/*.gs` to be tested with Jest.
+- `scripts/clasp.zsh`: zsh script to handle `clasp` operation (`pull`/`push`) to synchronize VS Code (local) environment with GAS remote server repository. It creates preventive backup zip file before updating the source codee (local/server).
+- `scripts/fix/jsdoc.js`: used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates 3-lines comments. 
+- `clasp.json`: `clasp` configuration file.
+- `.claspignore`: folder or files to ignore in `clasp` execution.
+- `.eslintignore`: folder or files to ignore by `eslint`.
+- `.eslintrc.js`: `eslint` configuration (customize rules). 
+- `.gitignore`: files and folders to ignore by `git` commands.
+- `jsconfig.json`: javascript project configuration file.
+- `package.json`: project `node.js` configuration file. Dependencies, script automation tasks, etc.
 - `docs/ImportExportServiceRequirements.md`: requirements document for the import/export service.
 - `docs/QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service.
 - `docs/QuickEntryServiceMockDesign.md`: mock design document for Quick Entry.
-- `docs/GoogleAccessStepByStep.md`: Step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project.
-- `doc/FAQ.md` Frequently Asked Questions document. It include also questions related to Google Security and Access for Apps Script.
-- `CHANGELOG.md`: chronological summary of notable project changes.
-- `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance.
+- `docs/GoogleAccessStepByStep.md`: step by step guide to help you through the process to get a copy of the template and provide access to the Apps Script project.
+- `docs/TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+- `docs/FAQ.md` Frequently Asked Questions document. It includes questions related to Google Security and Access for Apps. Script.
+- `CHANGELOG.md`: Chronological summary of notable project changes.
+- `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
 - `TODO.md`: Features to include in future releases. The check mark indicates if the feature was already implemented.

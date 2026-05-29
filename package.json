@@ -1,0 +1,40 @@
+{
+  "name": "gas-unit-testing",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:fix": "npm run fix-jsdoc && eslint . --no-cache --fix",
+    "lint:info": "eslint . --format stylish",
+    "lint:dry-run": "npx eslint . --fix-dry-run --format stylish",
+    "fix-jsdoc": "node scripts/fix-jsdoc.js --fix",
+    "fix-jsdoc:dry-run": "node scripts/fix-jsdoc.js",
+    "clasp:login": "clasp login",
+    "clasp:pull": "zsh scripts/clasp.zsh pull",
+    "clasp:push": "zsh scripts/clasp.zsh push",
+    "clasp:open": "clasp open",
+    "deploy:prod": "npm run lint && npm run build && npm run test && npm run clasp:push",
+    "backup": "zip -rq panini-wc-2026-gsheet-tracker.zip . -x 'node_modules/*' -x 'images/*' -x 'build/*'"
+  },
+  "standard": {
+    "env": [
+      "jest"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/generator": "^7.29.1",
+    "@babel/parser": "^7.29.3",
+    "@babel/traverse": "^7.29.0",
+    "@google/clasp": "^3.3.0",
+    "@types/google-apps-script": "^1.0.84",
+    "@types/jest": "^29.5.14",
+    "eslint": "^8.57.1",
+    "eslint-plugin-jsdoc": "^63.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "jest-transform-stub": "^2.0.0",
+    "standard": "^17.1.2"
+  }
+}

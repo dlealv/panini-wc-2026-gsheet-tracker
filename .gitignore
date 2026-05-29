@@ -1,0 +1,14 @@
+build/
+backup/
+node_modules/
+tmp_clasp/
+backup/
+package-lock.json
+*.zip
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd

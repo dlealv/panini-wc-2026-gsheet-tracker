@@ -1,5 +1,7 @@
 /** @OnlyCurrentDoc */
 
+//src/Code.gs (pull final test)
+
 /**
  * Provides shared spreadsheet access, named range validation, and common lookup utilities.
  * This file centralizes reusable data access for import/export and Quick Entry flows.
@@ -105,4 +107,14 @@ function applyQuickEntryUpdates(payload) {
   const service = new QuickEntryService()
   const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
   return service.applyPendingUpdates(pendingUpdates)
+}
+
+/**
+ * Includes HTML partials inside templates.
+ * Used by: <?!= include('FileName') ?>
+ */
+function include(filename) {
+  return HtmlService
+    .createHtmlOutputFromFile(filename)
+    .getContent();
 }

@@ -1,0 +1,170 @@
+<script>
+  // src/html/ImportExportDialogHelpers.html
+  /**
+   * Pure functions (testable) related to import/export dialog logic, separated from DOM manipulation.
+   * These functions can be unit tested without relying on the DOM, making them more robust and easier to maintain.
+   * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
+   * external use, so they should not be removed or altered without consideration of their role in the overall 
+   * application architecture.
+   */
+
+  /** Builds a deterministic export filename using timestamp.
+   * @export
+   */
+  function buildExportFileName(now = new Date()) {
+    const yyyy = now.getFullYear()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const dd = String(now.getDate()).padStart(2, '0')
+    const hh = String(now.getHours()).padStart(2, '0')
+    const mi = String(now.getMinutes()).padStart(2, '0')
+    const ss = String(now.getSeconds()).padStart(2, '0')
+
+    return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
+  }
+
+  /** Normalizes state into backend payload format.
+   * @export
+   */
+  function getPayloadFromState(state) {
+    return {
+      text: state.text || '',
+      mode: state.mode || 'update',
+      includeFlags: !!state.includeFlags
+    }
+  }
+
+  /** Converts backend export result into displayable text.
+   * @export
+   */
+  function renderPreviewData(result) {
+    if (!result || !result.countries || !result.countries.length) return ''
+
+    return result.countries.map(country => {
+      const stickerText = (country.stickers || [])
+        .map(item => `${item.number}:${item.count}`)
+        .join(', ')
+
+      return `${country.code} -> ${stickerText}`
+    }).join('\n')
+  }
+
+  // =========================
+  // DOM HELPERS (NOT TESTED YET)
+  // =========================
+
+  /** Reads current UI state from DOM inputs.
+   * @export
+   */
+  function getUIState(deps = {}) {
+    const textEl = deps.textInput || textInput
+    const modeEl = deps.modeInput || modeInput
+    const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
+
+    return {
+      text: textEl ? textEl.value : '',
+      mode: modeEl ? modeEl.value : 'update',
+      includeFlags: flagsEl ? flagsEl.checked : false
+    }
+  }
+
+  /** Backend payload wrapper (stable contract for services).
+   * @export
+   */
+  function getPayload(deps = {}) {
+    return getUIState(deps)
+  }
+
+  /** Displays a message in the dialog UI.
+   * @export
+   */
+  function setMessage(text, type, deps = {}) {
+    const el = deps.messageEl || messageEl
+    el.className = `message ${type || 'info'}`
+    el.textContent = text || ''
+  }
+
+  /** Clears preview output area.
+   * @export
+   */
+  function clearPreview(deps = {}) {
+    const el = deps.previewEl
+    if (!el) return
+    el.style.display = 'none'
+    el.textContent = ''
+  }
+
+  /** Renders preview content into UI.
+   * @export
+   */
+  function renderPreview(result, deps = {}) {
+    const el = deps.previewEl || previewEl
+    const text = renderPreviewData(result)
+    if (!text) {
+      clearPreview({ previewEl: el })
+      return
+    }
+    el.textContent = text
+    el.style.display = 'block'
+  }
+
+  /** Enables/disables UI during async operations. 
+   * @export
+   */
+  function setBusy(isBusy, deps = {}) {
+    const doc = deps.document || document
+    const controls = deps.controls || [
+      fileInput,
+      modeInput,
+      textInput,
+      includeFlagsCheckbox
+    ]
+    doc.querySelectorAll('button').forEach(btn => {
+      btn.disabled = isBusy
+    })
+    controls.forEach(el => {
+      if (el) el.disabled = isBusy
+    })
+  }
+
+  /** Copies text to clipboard (with fallback). 
+   * @export
+   */
+  async function copyToClipboard(text, deps = {}) {
+    const clipboard = deps.clipboard || navigator.clipboard
+    try {
+      await clipboard.writeText(text)
+    } catch (error) {
+      const exportTextEl = deps.exportTextEl || exportText
+      const execCommand = deps.execCommand || document.execCommand
+      exportTextEl.select()
+      execCommand('copy')
+    }
+  }
+
+  /** Triggers download of a text file in browser. 
+   * @export
+   */
+  function triggerDownload(content, fileName, deps = {}) {
+    const doc = deps.document || document
+    const urlApi = deps.URL || URL
+    const setTimeoutFn = deps.setTimeoutFn || setTimeout
+
+    const blob = new Blob([content], {
+      type: 'text/plain;charset=utf-8'
+    })
+
+    const url = urlApi.createObjectURL(blob)
+
+    const a = doc.createElement('a')
+    a.href = url
+    a.download = fileName
+
+    doc.body.appendChild(a)
+    a.click()
+    doc.body.removeChild(a)
+
+    setTimeoutFn(() => {
+      urlApi.revokeObjectURL(url)
+    }, 1000)
+  }
+</script>

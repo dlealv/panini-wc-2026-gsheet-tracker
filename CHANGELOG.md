@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
 project structure, and documentation.
 
+## [1.0.2] 2026-05-28
+Deployed the project in VS Code, reorganized by proper folders. Added testing artifacts, configuration files and 
+documented the technical architecture. No functional changes, just minor fixes in Import/Export service.
+
+## Added
+- Folders:
+  - `test/` Contains all testing files and `Jest` configuration.
+  - `test/fixtures/` default testing objects to be used during the testing process.
+  - `test/utils/` global test helpers for GAS unit test.
+  - `src` source files, previously all source (Apps Script) were located at the root folder.
+  - `src/html` All html files are located under this folder. Previously located at root folder.
+  - `scripts/` Location of all scripts required during the testing cycle.
+- Config files:
+  - `.clasp.json.template` template file to be used for for clasp actions (create, edit and deploy locally Apps Script).
+  - `.claspignore` list of folder to exclude from `clasp`.
+  - `eslintrc.js` `Eslint` configuration file and rules.
+  - `eslintignore` list of folders/files to exclude from `Eslint`.
+  - `jsconfig.json` Visual Studio Code configuration file for editor settings.
+  - `package.json` `Node.js` project configuration.
+- Script files:
+  - `scripts/build.js` Prepare the `build/` folder, source files ready for testing.
+  - `scripts/clasp.zsh` Shell script to used to execute `clasp` `push` or `pull`. It prepares the `.clasp.json` file to use. Create a preventive backup zip fle for the files to be replaced (local or on remote GAS server) and execute the corresponding `clasp` command (`push`/`pull`). Optionally, you can use a second input argument to specify the `scriptId`.
+  - `scripts/fix-jsdoc.js` Script to fix some edge cases where `Eslint` is not able to handle short JS Doc descriptions that can fit in a single line via: `/**description */` instead of 3-lines.
+- Source files:
+  - `src/html/ImportExportDialogHelpers.html` Consolidate all pure logic functions used in `ImportExportDialog.html`.
+  - `src/html/QuickEntryDialogHelpers.html` Consolidate all pure logic functions used in `QuickEntryDialog.html`.
+  - `src/html/QuickEntryDialogRender.html` Consolidate all DOM/UI rendering functions used in `QuickEntryDialog.html`.
+- Test files:
+  - `test/fixture/createValidRanges.js` Creates default named range configuration for testing.
+  - `utils/testKernel.js` Global test kernel for GAS unit tests.
+  - `test/Commons.unit.test.js` `Jest` test file for `src/Commons.gs`.
+  - `test/ImportExportService.unit.test.js` `Jest` test file for `src/ImportExportService.gs`.
+  - `test/QuickEntryService.unit.test.js` `Jest` test file for `src/QuickEntryService.gs`.
+  - `test/ImportExportDialogHelpers.unit.test.js` `Jest` file for `src/ImportExportDialogHelpers.html`.
+  - `test/QuickEntryHelpers.unit.test.js` `Jest` file for `src/QuickEntryHelpers.html`.
+  - `test/QuickEntryRender.unit.test.js` `Jest` file for `src/QuickEntryRender.html`.
+  - `test/jest.config.cjs` `Jest` configuration file.
+- Documentation files:
+  - `Technical Architecture.md` comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+
+## Changes
+- `Code.gs` moved to the `src/` folder. Now using `static` methods of `ImportExportService.gs`.
+- `Commons.gs` moved to the `src/` folder. Changed the implementation of `getStickerCount` function but the behaviour is the same. Remove the function `getCountryNamedByCode` not required, since the country name is provided in by the `Conf` tab from gsheet tracker directly.
+- `ImportExportService.gs` moved to `src/` folder. Added the `static` methods: `previewStickerData`, `importStickerData`, `exportStickerData` and `@export` tag to identify artifacts from the file to declare in the module export during testing process.
+- `QuickEntryService.gs` moved to the `src/` folder. Added `@export` tag to identify artifacts from the file to declare in the module export during testing process.
+- `ImportExportDialog.html` moved to `src/html` folder and moved to `ImportExportDialogHelpers.html` pure logic functions. Some of moved functions where adjusted to delimit responsibilities and added optional input arguments to simplify testing process. 
+  - Functions moved to `src/html/ImportExportDialogHelpers.html`: `getPayLoad`, `setMessage`, `clearPreview`, `renderPreview`, `setBusy`, `buildExportFileName`.
+  - Functions removed: `previewData`, `importData`, `clearInput`, `copyExport`, `downloadExport`.
+- `QuickEntryDialog.html` moved to the `src/html` folder. Added functions via include command inserting the files: `src/html/QuickEntryDialogHelpers.html` (pure logic functions), and `src/html/QuickEntryDialogRender.html` (DOM/UI render functions). Added to some functions aditional default input argument for testing purpose.
+  - Functions moved to `src/html/QuickEntryDialogHelpers.html`: `buildGroupOption`, `getVisibleCountries`, `applyPendingCountryUpdates`, `applyPendingStickerUpdate`, `matchesTeamSearch`, `matchesGroupFilter`,`filterCountryStickers`, `queueStickerChange`, `getPendingUpdates`, `buildEmptyState`, `setMessage`.
+  - Functions moved to `src/html/QuickEntryDialogRender.html`: `buildCountryHeaderText`,  `buildSummaryItem`, `buildStickerGrid`, `usesCompactGrid`, `buildAlbumStickerGrid`, `buildCompactStickerGrid`, `buildStickerRow`, `chunkStickers`, `buildCountrySection`.
+  - Functions added: `queueStickerChangeHandler`, `showMessage`, `showBusyState`
+  - Functions removed: `buildFilteredCountry`, `getOriginalStickerCount`, `getStickerStatus`, `getStickerColorClass`, `buildPendingKey`
+- `README.md` Provided details about testing process and updated the Files sections with the folder structure.
+
+## Removed
+- All source files in the root folder, now moved to `src/` or `src/html/` folders
+
+## Fixed
+- Export Sticker service:
+  - when users select to include icon flags (emojis) in the output a comma was added as a delimiter between the
+flag icon and the country code. Fixed to match the specification: the delimiter is now a single space.
+  - when user select to include icon flags in the output. When the output is a long line. For example, when the country code has many stickers and repeats, lines were not wrapped. Now fixed, long lines are wrapped.
+- Import Service: parser failed to parse some scenarios with icon flag (emojis) as part of the syntax. Emojis are decorative elements not part of the data model in Apps Script, so they should be removed before parsing the country line. Now flag icon are excluding before any parsing process.
+- Import Service: parser failed to parse some scenarios with icon flag (emojis) as part of the syntax. Emojis are decorative elements not part of the data model in Apps Script, so they should be removed before parsing the country line. Now flag icons are excluded before any parsing process.
+
 ## [1.0.1] - 2026-05-20
 
 ## Added

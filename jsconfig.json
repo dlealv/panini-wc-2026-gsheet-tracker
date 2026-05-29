@@ -1,0 +1,28 @@
+//jsconfig.json
+/*
+ * JavaScript project configuration file (jsconfig.json)
+ * This file configures the JavaScript language features and settings for the project.
+ * It specifies the target ECMAScript version, included libraries, and files to include/exclude.
+ * The configuration is tailored for a Google Apps Script project, with specific settings for type acquisition.
+ */
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "lib": [
+      "ES2015"
+    ],
+    "checkJs": false
+  },
+  "include": [
+    "**/*.js",
+    "**/*.gs"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "typeAcquisition": {
+    "include": [
+      "google-apps-script"
+    ]
+  }
+}
