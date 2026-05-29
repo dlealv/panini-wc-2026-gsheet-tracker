@@ -266,7 +266,7 @@ The project was initially announced on Reddit, but future updates are maintained
 - `scripts/build.js`: prepares the `src/*.gs` to be tested with Jest.
 - `scripts/clasp.zsh`: zsh script to handle `clasp` operation (`pull`/`push`) to synchronize VS Code (local) environment with GAS remote server repository. It creates preventive backup zip file before updating the source codee (local/server).
 - `scripts/fix/jsdoc.js`: used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates 3-lines comments. 
-- `clasp.json`: `clasp` configuration file.
+- `clasp.json.template`: template file to be used for for `clasp` operations (create, edit and deploy locally Apps Script).
 - `.claspignore`: folder or files to ignore in `clasp` execution.
 - `.eslintignore`: folder or files to ignore by `eslint`.
 - `.eslintrc.js`: `eslint` configuration (customize rules). 
