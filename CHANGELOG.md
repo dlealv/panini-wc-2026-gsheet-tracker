@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
 project structure, and documentation.
 
-## [1.0.2] 2026-05-28
+## [1.0.2] 2026-05-29
 Deployed the project in VS Code, reorganized by proper folders. Added testing artifacts, configuration files and 
 documented the technical architecture. No functional changes, just minor fixes in Import/Export service.
 
@@ -58,7 +58,7 @@ documented the technical architecture. No functional changes, just minor fixes i
   - Functions moved to `src/html/QuickEntryDialogRender.html`: `buildCountryHeaderText`,  `buildSummaryItem`, `buildStickerGrid`, `usesCompactGrid`, `buildAlbumStickerGrid`, `buildCompactStickerGrid`, `buildStickerRow`, `chunkStickers`, `buildCountrySection`.
   - Functions added: `queueStickerChangeHandler`, `showMessage`, `showBusyState`
   - Functions removed: `buildFilteredCountry`, `getOriginalStickerCount`, `getStickerStatus`, `getStickerColorClass`, `buildPendingKey`
-- `README.md` Provided details about testing process and updated the Files sections with the folder structure.
+- `README.md` Provided details about testing process, updated the Files sections with the folder structure. Updated the export view and added a note in Import Service clarifying that icon flags (emojis) are removed during the parser process and not taken into account by the parser syntax.
 
 ## Removed
 - All source files in the root folder, now moved to `src/` or `src/html/` folders
