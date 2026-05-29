@@ -22,10 +22,11 @@ The application isolates execution states between the cloud-based Google Sheets 
 ```text
  Google Sheets (GAS Cloud Runtime)
    │
-   ├── [ npm run clasp:pull ] ──> 1. Backs up local 'src/' inside 'backup/'
-   │                              2. Downloads flat assets into 'tmp_clasp'
-   │                              3. Reorganizes flat code cleanly into 'src/'
-   │                              4. Converts file extensions (.js -> .gs)
+   ├── [ npm run clasp:pull ] ──> 1. Downloads flat assets into 'tmp/tmp_clasp'
+   │                              2. Reorganizes flat code into 'src/' folder structure
+   │                              3. Converts file extensions (.js -> .gs)
+   │                              4. Creates timestamped in backup archive 'backup/YYYYMMDDhhmmss_src.zip'
+   |                              5. Move downloaded and transformed files from `tmp/tmp_clasp` into `src/`
    │                              5. Deletes 'tmp_clasp' folder when empty
    ▼
  src/ (MUTABLE LOCAL SOURCE OF TRUTH)
@@ -38,8 +39,8 @@ The application isolates execution states between the cloud-based Google Sheets 
    │                          - Appends 'module.exports' via @export tags
    ▼
  build/ (AUTO-GENERATED TESTING WORKSPACE — DO NOT EDIT MANUALLY)
-   ├── Code.js, Commons.js, QuickEntryService.js
-   └── QuickEntryDialogHelpers.html.js
+   ├── Code.js, Commons.js, ImportExportService.gs, ImportExportDialogHelpers.html.js
+   |── QuickEntryService.js, QuickEntryDialogHelpers.html.js, QuickEntryDialogRender.js
    │
    ├── [ npm run test ] ───> Triggers 'jest' runner engine:
    │                         - Loads 'test/utils/testKernel.js' mocks
@@ -48,7 +49,7 @@ The application isolates execution states between the cloud-based Google Sheets 
  Isolated Test Environment Compliance Checks
    │
    ├── [ npm run clasp:push ] ──> 1. Fetches current server code to 'gas_download'
-   │                              2. Creates timestamped 'gas.zip' backup archive
+   │                              2. Creates timestamped in backup archive 'backup/YYYYMMDDhhmmss_gas.zip'
    │                              3. Flattens 'src/' and 'src/html/' into 'tmp_clasp'
    │                              4. Swaps out active scriptId tokens if passed
    │                              5. Executes 'clasp push' from built flat folder
@@ -58,17 +59,18 @@ The application isolates execution states between the cloud-based Google Sheets 
 
 ### 📥 The Pull Sync Sequence (Remote Cloud ──> Local Repository)
 *   **Trigger**: Executed locally via `npm run clasp:pull`.
-*   **Backup Action**: Automatically bundles your current local `src/` directory into a timestamped recovery archive within the `backup/` folder (`[TIMESTAMP]_vs_src.zip`).
+*   **Backup Action**: Automatically bundles your current local `src/` directory into a timestamped recovery archive within the `backup/` folder (`[TIMESTAMP]_src.zip`).
 *   **Asset Ingestion**: Downloads the production flat file namespace from the remote Google Apps Script repository directly into a temporary `tmp_clasp/` folder.
 *   **Code Restructuring**: Restructures the flat file collection into modular project folders. This converts `.js` scripts back into local `.gs` modules, drops HTML files cleanly into `src/html/`, and runs empty folder checks before deleting the temporary staging workspace.
 
 ### 🔨 The Test Compilation Bridge (Source ──> Build Cache)
 *   **Trigger**: Executed locally via `npm run build`.
-*   **Compilation Bridge (`scripts/build.js`)**:
-    1. Translates cloud `.gs` backend files into standard Node-compatible JS modules.
-    2. Extracts encapsulated browser script blocks out of specialized template views in `src/html/`.
+*   **Compilation Bridge (`scripts/build.js`)**: Prepares the `buld` folder content into testable scripts.
+    1. Translates cloud `.gs` backend files into standard Node-compatible JS modules. Converts `.gs` → `.js`
+    2. Extracts encapsulated browser script blocks (`*Dialog[Helpers|Render].html`) out of specialized template views in `src/html/`. Converts `.html` → `html.js`
     3. Appends explicit modular common JS exports via dynamic `@export` code flags.
-*   **Staging Output (`build/`)**: Caches the transformed scripts (e.g., `Code.js`, `QuickEntryDialogHelpers.html.js`) as ready test elements. It is an optimized practice to execute this compilation step *only* when the underling `src/` environment shifts.
+    4. Preserves source traceability via `SOURCE` header of the files in `build` folder. 
+*   **Staging Output (`build/`)**: Caches the transformed scripts (e.g., `build/*gs`, `build/*Dialog[Helpers|Render].html`) as ready test elements. It is an optimized practice to execute this compilation step *only* when the underling `src/` environment shifts. 
 
 ### 🧪 The Isolated Unit Testing Suite (Build Cache ──> Test Execution)
 *   **Trigger**: Executed locally via `npm run test`.
@@ -86,32 +88,37 @@ The application isolates execution states between the cloud-based Google Sheets 
 
 ```text
 panini-wc-2026-gsheet-tracker/
-├── .clasp.json            # Permanent local deployment routing configurations
-├── package.json           # Node project descriptors, dependencies, and pipeline bindings
-├── .gitignore             # Strict patterns blocking transient workspace and cache leaks
+├── .clasp.json.template    # Template clasp configuration file, used in 'npm run clasp'
+|── .claspignore            # Indicates folders/files to ignore by clasp
+|── .eslintignore           # Indicates folders/files to ignore by eslint (code analysis)
+|── .eslintirc.js           # Eslint configuration file with customized rules
+|── .gitignore              # Folders/files to ignore by git (repository)
+├── package.json            # Node project descriptors, dependencies, and pipeline bindings
+├── jsconfig.json           # VS Code config file to specify JavaScript project's configuration
+├── .gitignore              # Strict patterns blocking transient workspace and cache leaks
 ├── scripts/
-│   ├── build.js           # JavaScript bridge extracting HTML blocks for local unit tests
-│   └── clasp.zsh          # Unified, transactional shell sync-and-backup engine
-├── src/                   # MUTABLE LOCAL SOURCE OF TRUTH
-│   ├── Code.gs            # Structural GAS cloud UI generation menu bindings
-│   ├── Commons.gs         # General runtime utilities and global system declarations
-│   ├── *.gs               # Modular system business data service providers
-│   └── html/              # User Interface markup layouts and layer scripts
-│       ├── *Dialog.html   # Main view frameworks handling events and cloud calls
-│       ├── *Helpers.html  # Extracted browser-independent pure processing logic
-│       └── *Render.html   # Dedicated UI factory components building visual DOM structures
-├── build/                 # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS)
-│   ├── *.js               # Code blocks compiled into common JS specifications
-│   └── *.html.js          # Extracted helper algorithms wrapped for mock evaluation
-├── test/                  # ISOLATED JEST UNIT TESTING GRID
-│   ├── *.unit.test.js     # Target test cases checking functional service compliance
-│   ├── jest.config.js     # Jest configuration file
+│   ├── build.js            # JavaScript bridge extracting HTML blocks for local unit tests
+│   └── clasp.zsh           # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository)
+├── src/                    # MUTABLE LOCAL SOURCE OF TRUTH
+│   ├── Code.gs             # Structural GAS cloud UI generation menu bindings
+│   ├── Commons.gs          # General runtime utilities and global system declarations
+│   ├── *.gs                # Modular system business data service providers
+│   └── html/               # User Interface markup layouts and layer scripts
+│       ├── *Dialog.html    # Main view frameworks handling events and cloud calls
+│       ├── *Helpers.html   # Extracted browser-independent pure processing logic
+│       └── *Render.html    # Dedicated UI factory components building visual DOM structures
+├── build/                  # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS)
+│   ├── *.js                # Code blocks compiled into common JS specifications
+│   └── *.html.js           # Extracted helper end render algorithms wrapped for mock evaluation
+├── test/                   # ISOLATED JEST UNIT TESTING GRID
+│   ├── *.unit.test.js      # Target test cases checking functional service compliance
+│   ├── jest.config.js      # Jest configuration file
 │   ├── utils/
-│   │   └── testKernel.js  # Main environment emulation stubbing global Google objects
-│   └── fixtures/          # Deterministic test variables and mock range parameters
-└── backup/                # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED)
-    ├── [TIMESTAMP]_vs_src.zip  # Rollback snapshots of local 'src' right before a pull merge
-    └── [TIMESTAMP]_gas.zip     # Rollback snapshots of cloud remote code right before a push deploy
+│   │   └── testKernel.js   # Main environment emulation stubbing global Google objects
+│   └── fixtures/           # Deterministic test variables and mock range parameters
+└── backup/                 # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED)
+    ├── [TIMESTAMP]_src.zip # Rollback snapshots of local 'src' right before a pull merge
+    └── [TIMESTAMP]_gas.zip # Rollback snapshots of cloud remote code right before a push deploy
 ```
 
 ---
@@ -151,17 +158,17 @@ Before promoting code changes to GitHub or the Google Apps Script production ins
 npm run deploy:prod
 ```
 This single gatekeeper script sequentially commands the local workspace to:
-1. Run ESLint structural syntax checks (`npm run lint`).
+1. Run ESLint structural syntax checks and minor corrections (`npm run lint:fix`).
 2. Recompile testing artifacts (`npm run build`).
 3. Verify feature compliance across all test suites via Jest (`npm run test`).
 4. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass.
 
 ### Transactional Configuration Swaps & Safety Cleanups
-Because Google's `clasp` utility does not accept directory path parameters via command-line arguments, the script modifies the localized configuration file (`.clasp.json`) dynamically at runtime. 
+Because Google's `clasp` utility does not accept directory path parameters via command-line arguments, the script uses the localized configuration file (`.clasp.json.template`) dynamically at runtime. 
 
 To safeguard the repository tracking environment from structural configuration corruption if a network error occurs or a process is aborted (`Ctrl+C`), the synchronization script implements localized `trap` handlers inside its operational execution blocks. 
 
-Whenever an active operation enters a task—such as modifying `rootDir` to a transient build directory or swapping out the active `scriptId` credential token—the system registers an emergency cleanup function. If the deployment succeeds cleanly or encounters a sudden crash, the system fires these safety hooks to automatically restore your configurations back to their safe, initial states:
+Whenever an active operation enters a task—such as modifying `rootDir` to a transient build directory or swapping out the active `scriptId` credential token—the system registers an emergency cleanup function. If the deployment succeeds cleanly or encounters a sudden crash, the system fires these safety hooks to automatically restore clasp configurations back to their safe, initial states:
 *   `"rootDir"` is reset to its default token placeholder (`"__ROOT_DIR__"`).
 *   `"scriptId"` is reset back to its original development/testing sandbox credentials.
 
