@@ -18,7 +18,7 @@ instead of:
 ```text
 <>MEX,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 ```
-
+---
 
 ## Google Access/Security Questions
 
@@ -65,3 +65,5 @@ These documents explain why the authorization dialog appears, why some users may
 ### Additional note for Google Workspace organizations
 
 Google explains that Apps Script projects used only within the same Google Workspace domain or customer may be exempt from this public verification requirement. That means the warning behavior may differ depending on whether the spreadsheet is being used privately, internally in one organization, or shared publicly with external users.
+
+---
