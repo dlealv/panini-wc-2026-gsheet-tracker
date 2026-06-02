@@ -15,7 +15,7 @@
  * any compiled GAS build modules.
  */
 
-const { initTestKernel } = require('./utils/testKernel')
+const { initTestKernel } = require('./utils/testKernel.js')
 
 /* Initializes the test environment with mocked Google Apps Script services and global variables,
 ensuring that each test runs in a clean, isolated context without side effects from previous tests

@@ -6,19 +6,6 @@ const { StickerSheetRepository } = require('../build/Commons.js')
 
 /** Unit tests for StickerSheetRepository. */
 describe('StickerSheetRepository unit tests', () => {
-  /* Helper to create a test instance of StickerSheetRepository with necessary properties for unit testing. */
-  function createUnitRepo () {
-    const repo = Object.create(StickerSheetRepository.prototype)
-    repo.STICKER_MIN = 0
-    repo.STICKER_MAX = 20
-    repo.countryMap = {
-      ARG: { index: 0, row: 1 },
-      BRA: { index: 1, row: 2 }
-    }
-
-    return repo
-  }
-
   // ===========================
   // UNIT TESTS (PURE FUNCTIONS)
   // ===========================
@@ -240,3 +227,15 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 })
+
+/* Helper to create a test instance of StickerSheetRepository with necessary properties for unit testing. */
+function createUnitRepo () {
+  const repo = Object.create(StickerSheetRepository.prototype)
+  repo.STICKER_MIN = 0
+  repo.STICKER_MAX = 20
+  repo.countryMap = {
+    ARG: { index: 0, row: 1 },
+    BRA: { index: 1, row: 2 }
+  }
+  return repo
+}

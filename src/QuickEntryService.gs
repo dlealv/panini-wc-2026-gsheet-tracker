@@ -15,6 +15,7 @@
  * Builds Quick Sticker Entry view models and applies sticker count updates.
  * This service transforms shared sheet data into UI-ready payloads for the Quick Entry dialog.
  * export tag is used for testable classes/methods, don't remove them.
+ * @export
  */
 class QuickEntryService {
   /** Creates a service for Quick Sticker Entry. */
@@ -24,9 +25,7 @@ class QuickEntryService {
     this.DEFAULT_GROUP_FILTER = 'all'
   }
 
-  /** Returns the initial dialog payload. 
-   * @export
-   */
+  /** Returns the initial dialog payload. */
   getInitialData() {
     const countries = this.repository.getCountries()
     const groupCodes = this.repository.getGroupCodes()
@@ -51,9 +50,7 @@ class QuickEntryService {
     }
   }
 
-  /** Builds country view models for the UI. 
-   * @export
-   */
+  /** Builds country view models for the UI. */
   _buildCountryViewModels(countries) {
     return countries.map(country => this._buildCountryViewModel(country))
   }
@@ -75,9 +72,7 @@ class QuickEntryService {
     }
   }
 
-  /** Builds sticker cards for one country. 
-   * @export
-   */
+  /** Builds sticker cards for one country. */
   _buildStickerViews(countryCode, counts) {
     return this._getVisibleStickerNumbers(countryCode).map(stickerNumber => {
       const count = counts[stickerNumber]
@@ -97,9 +92,7 @@ class QuickEntryService {
     }
   }
 
-  /** Returns the sticker corner label for special sticker numbers. 
-   * @export
-   */
+  /** Returns the sticker corner label for special sticker numbers. */
   _getStickerIconLabel(countryCode, stickerNumber) {
     if (countryCode === 'FWC') {
       return ''
@@ -114,9 +107,7 @@ class QuickEntryService {
     return ''
   }
 
-  /** Returns the status for one sticker count. 
-   * @export
-   */
+  /** Returns the status for one sticker count. */
   _getStickerStatus(count) {
     if (count === 0) {
       return 'missing'
@@ -128,9 +119,7 @@ class QuickEntryService {
     return 'all'
   }
 
-  /** Returns the color class for one sticker count. 
-   * @export
-   */
+  /** Returns the color class for one sticker count. */
   _getStickerColorClass(count) {
     if (count <= 0) {
       return 'count-0'
@@ -151,9 +140,7 @@ class QuickEntryService {
     return 'count-5-plus'
   }
 
-  /** Returns visible sticker numbers for one country. 
-   * @export
-   */
+  /** Returns visible sticker numbers for one country. */
   _getVisibleStickerNumbers(countryCode) {
     if (countryCode === 'FWC') {
       return this._buildNumberRange(0, 19)
@@ -162,9 +149,7 @@ class QuickEntryService {
     return this._buildNumberRange(1, 20)
   }
 
-  /** Builds an inclusive number range. 
-   * @export
-   */
+  /** Builds an inclusive number range. */
   _buildNumberRange(start, end) {
     const numbers = []
 
@@ -175,9 +160,7 @@ class QuickEntryService {
     return numbers
   }
 
-  /** Builds summary values for the selected country. 
-   * @export
-   */
+  /** Builds summary values for the selected country. */
   _buildSummary(stickers) {
     const total = stickers.length
     const owned = stickers.filter(sticker => sticker.count > 0).length
@@ -194,9 +177,7 @@ class QuickEntryService {
     }
   }
 
-  /** Validates and normalizes pending updates. 
-   * @export
-   */
+  /** Validates and normalizes pending updates. */
   _normalizePendingUpdates(pendingUpdates) {
     if (!Array.isArray(pendingUpdates) || !pendingUpdates.length) {
       throw new Error('There are no pending updates to apply.')
@@ -224,9 +205,7 @@ class QuickEntryService {
     }
   }
 
-  /** Normalizes a country code. 
-   * @export
-   */
+  /** Normalizes a country code. */
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
 
@@ -237,9 +216,7 @@ class QuickEntryService {
     return normalizedCountryCode
   }
 
-  /** Validates a visible sticker for the selected country. 
-   * @export
-   */
+  /** Validates a visible sticker for the selected country. */
   _validateVisibleSticker(countryCode, stickerNumber) {
     if (!this._getVisibleStickerNumbers(countryCode).includes(stickerNumber)) {
       throw new Error(`Sticker ${stickerNumber} is not valid for country code "${countryCode}".`)

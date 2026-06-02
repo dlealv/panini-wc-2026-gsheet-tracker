@@ -1,34 +1,25 @@
 <!DOCTYPE html>
 <!--
-  src/html/ImportExportDialog.html (exactly)
+  src/html/ImportExportDialog.html
 
   Provides the dialog used for both sticker import and export actions.
   The same UI template is configured in import or export mode from Code.gs.
 
-  This HTML file provides the user interface for the Panini sticker data tools.
-  It is rendered by Google Apps Script as a template and supports two dialog modes:
+  This HTML file is a thin adapter over ImportExportService. All parsing,
+  validation, and business logic live in the backend. The UI is responsible
+  only for wiring inputs to GAS calls and rendering results.
 
-  1. import
-     - allows file upload or pasted input
-     - validates and previews parsed sticker data
-     - imports data into the COUNTS named range
-
-  2. export
-     - loads current sticker data automatically
-     - displays exported text using the same syntax accepted by the import process
-     - allows copy to clipboard or local file download
+  Two dialog modes:
+  1. import  — file upload or paste, validate/preview, import
+  2. export  — auto-loads on open, copy or download
 
   Template variables injected from Code.gs:
-  - dialogMode: controls whether import or export sections are shown
-  - defaultMode: preselects the import loading mode
+  - dialogMode:   controls which section is shown ('import' | 'export')
+  - defaultMode:  preselects the import loading mode
 
-  Via include command helper functions (*Helpers.html) are loaded.
-  Functions remaining in this file are specific GAS calls and DOM manipulation and not covered by 
-  automated tests yet, but they have been designed to facilitate testing in the future.
+  Helpers (setBusy, setMessage, renderPreview, etc.) are loaded via include.
 -->
-
 <html>
-
 <head>
   <base target="_top">
   <meta charset="utf-8">
@@ -42,12 +33,9 @@
       --primary-hover: #1765cc;
       --success: #137333;
       --error: #c5221f;
+      --warning: #b06000;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 16px;
@@ -55,49 +43,33 @@
       color: var(--text);
       background: #fff;
     }
-
-    h2 {
-      margin: 0 0 12px 0;
-      font-size: 22px;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
+    h2 { margin: 0 0 12px 0; font-size: 22px; }
+    .container { display: flex; flex-direction: column; gap: 14px; }
     .section {
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
       background: #fff;
     }
-
     .section-title {
       margin: 0 0 10px 0;
       font-size: 14px;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-
-    label {
-      display: inline-block;
+    /* label row: label text on the left, inline action button on the right */
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 6px;
-      font-weight: 600;
     }
-
-    input[type="file"],
-    select,
-    textarea {
-      width: 100%;
-      font: inherit;
-    }
-
-    input[type="file"],
-    select {
-      padding: 8px;
-    }
-
+    .label-row label { margin-bottom: 0; }
+    label { display: inline-block; margin-bottom: 6px; font-weight: 600; }
+    input[type="file"], select, textarea { width: 100%; font: inherit; }
+    input[type="file"], select { padding: 8px; }
     textarea {
       min-height: 220px;
       padding: 10px;
@@ -109,45 +81,16 @@
       background: #fff;
       color: var(--text);
     }
-
-    input[type="checkbox"] {
-      margin-right: 6px;
-    }
-
-    textarea:disabled,
-    select:disabled,
-    input[type="file"]:disabled {
+    input[type="checkbox"] { margin-right: 6px; }
+    textarea:disabled, select:disabled, input[type="file"]:disabled {
       background: #f1f3f4;
       color: #5f6368;
     }
-
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .rules-list,
-    .actions-help {
-      margin: 8px 0 0 18px;
-      padding: 0;
-    }
-
-    .rules-list li,
-    .actions-help li {
-      margin: 4px 0;
-    }
-
-    .checkbox-row {
-      margin-top: 10px;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
+    .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .actions-help { margin: 8px 0 0 18px; padding: 0; }
+    .actions-help li { margin: 4px 0; }
+    .checkbox-row { margin-top: 10px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
     button {
       border: 1px solid var(--border);
       background: #fff;
@@ -157,44 +100,31 @@
       cursor: pointer;
       font-weight: 600;
     }
-
-    button:hover:not(:disabled) {
-      background: var(--bg-soft);
-    }
-
-    button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
+    button:hover:not(:disabled) { background: var(--bg-soft); }
+    button:disabled { opacity: 0.7; cursor: not-allowed; }
     .btn-primary {
       background: var(--primary);
       border-color: var(--primary);
       color: #fff;
     }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--primary-hover);
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    /* small secondary button used inline next to a label */
+    .btn-inline {
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
     }
-
-    .message {
-      min-height: 20px;
-      font-size: 13px;
+    .message { min-height: 20px; font-size: 13px; white-space: pre-wrap; }
+    .message.success { color: var(--success); }
+    .message.error   { color: var(--error); }
+    .message.info    { color: var(--muted); }
+    .warnings {
+      display: none;
+      font-size: 12px;
+      color: var(--warning);
       white-space: pre-wrap;
+      margin-top: 4px;
     }
-
-    .message.success {
-      color: var(--success);
-    }
-
-    .message.error {
-      color: var(--error);
-    }
-
-    .message.info {
-      color: var(--muted);
-    }
-
     .preview {
       display: none;
       border: 1px solid var(--border);
@@ -206,16 +136,9 @@
       font-family: Consolas, "Courier New", monospace;
       font-size: 12px;
       white-space: pre-wrap;
-      /* allow wrapping long lines*/
       overflow-wrap: anywhere;
       word-break: break-word;
     }
-
-    .footer-note {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
     .inline-code {
       font-family: Consolas, "Courier New", monospace;
       background: var(--bg-soft);
@@ -223,31 +146,133 @@
       border-radius: 4px;
       padding: 1px 4px;
     }
-
-    .hidden {
-      display: none !important;
+    .hidden { display: none !important; }
+    /* Info icon button — borderless, inline with section title */
+    .help-btn {
+      border: none;
+      background: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 0 2px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .help-btn:hover { color: var(--primary-hover); background: none; }
+    /* Format summary card — 3-row table, always visible */
+    .format-card {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .format-card th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 3px 8px 3px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .format-card td {
+      padding: 4px 8px 4px 0;
+      vertical-align: top;
+    }
+    /* tip row inside actions section */
+    .tip-row {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    /* header row inside the help modal, with title and (+info) link */
+    .help-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    /* slightly smaller font size for the modal header to fit the (+info) link better */
+    .help-header h3 {
+      margin: 0;
+      line-height: 1.1;
+      font-size: 18px; /* optional slight reduction */
+    }
+    /* Help modal */
+    dialog {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 480px;
+      width: 95%;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+    dialog h3 { margin: 0 0 12px 0; font-size: 16px; }
+    /* general note shown above all format sections */
+    dialog .modal-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    dialog details { margin-bottom: 10px; }
+    dialog summary {
+      font-weight: 700;
+      cursor: pointer;
+      padding: 4px 0;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* custom triangle for summary */
+    dialog summary::before {
+      content: '▶';
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform 0.15s;
+    }
+    dialog details[open] summary::before { transform: rotate(90deg); }
+    dialog .modal-body {
+      padding: 8px 0 4px 14px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    dialog .modal-body .inline-code {
+      font-family: Consolas, "Courier New", monospace;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 4px;
+      color: var(--text);
+    }
+    dialog .modal-footer {
+      margin-top: 14px;
+      text-align: right;
     }
   </style>
 </head>
-
 <body>
   <div class="container">
+
     <div>
-      <h2>
-        <?= dialogMode === 'export' ? 'Export Stickers' : 'Import sticker counts' ?>
-      </h2>
+      <h2><?= dialogMode === 'export' ? 'Export Stickers' : 'Import sticker counts' ?></h2>
       <div class="hint">
         <? if (dialogMode === 'export') { ?>
-        Export current sticker counts from the <span class="inline-code">COUNTRIES</span> and <span
-          class="inline-code">COUNTS</span> named ranges in the <span class="inline-code">Stickers</span> tab.
+        Export current sticker counts from the <span class="inline-code">COUNTRIES</span> and
+        <span class="inline-code">COUNTS</span> named ranges in the <span class="inline-code">Stickers</span> tab.
         <? } else { ?>
-        Load a text/CSV file or paste its content. Data will be written to the <span class="inline-code">COUNTS</span>
-        named range in the <span class="inline-code">Stickers</span> tab, preserving formatting.
+        Load a text/CSV file or paste its content. Data will be written to the
+        <span class="inline-code">COUNTS</span> named range in the
+        <span class="inline-code">Stickers</span> tab, preserving formatting.
         <? } ?>
       </div>
     </div>
 
+    <!-- Import mode sections -->
     <div id="importModeWrapper" class="<?= dialogMode === 'import' ? '' : 'hidden' ?>">
+
       <div class="section">
         <div class="section-title">1) Upload file</div>
         <label for="fileInput">Select a .txt or .csv file</label>
@@ -259,8 +284,52 @@
 
       <div class="section">
         <div class="section-title">2) Or paste content</div>
-        <label for="textInput">Input data</label>
-        <textarea id="textInput" placeholder="🇲🇽 MEX,1,2,3(2),5-8&#10;FWC,0,1,3,5(2),20&#10;BRA,7(3)"></textarea>
+        <!-- Clear button sits inline with the label for immediate discoverability -->
+        <div class="label-row">
+          <label for="textInput">Input data</label>
+          <button type="button" class="btn-inline" onclick="clearInput()">Clear</button>
+        </div>
+        <!-- placeholder shows one example per format for an immediate hint -->
+        <textarea id="textInput"
+          placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
+      </div>
+
+      <div class="section">
+        <!-- Input format section: 3-row summary card + ⓘ info icon -->
+        <div class="section-title">
+          Input format
+          <button type="button" class="help-btn" onclick="openHelpModal()"
+            title="Open full format guide">&#x24D8;</button>
+        </div>
+        <table class="format-card hint">
+          <thead>
+            <tr>
+              <th>Format</th>
+              <th>Example</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Format 1</td>
+              <td><span class="inline-code">MEX,1,3-7,10(2)</span></td>
+              <td>Country code once; comma-separated stickers, ranges (<span class="inline-code">3-7</span>), 
+                repeats (<span class="inline-code">10(2)</span>)</td>
+            </tr>
+            <tr>
+              <td>Format 2</td>
+              <td><span class="inline-code">MEX-1,MEX-5(2),MEX3</span></td>
+              <td>Country prefix per sticker; dash is optional (as in <span class="inline-code">MEX3</span>)</td>
+            </tr>
+            <tr>
+              <td>Exclusion</td>
+              <td><span class="inline-code">&lt;&gt;MEX,1,2,3</span></td>
+              <td>Imports all stickers <em>except</em> those listed; use
+                <span class="inline-code">!=</span> or <span class="inline-code">^</span>
+                instead of <span class="inline-code">&lt;&gt;</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div class="section">
@@ -268,45 +337,17 @@
         <label for="mode">Choose how to apply the load</label>
         <select id="mode">
           <option value="clean_all" <?=defaultMode==='clean_all' ? 'selected' : '' ?>>Import data</option>
-          <option value="replace_countries" <?=defaultMode==='replace_countries' ? 'selected' : '' ?>>Update counts
-            clearing country counts</option>
+          <option value="replace_countries"
+            <?=defaultMode==='replace_countries' ? 'selected' : '' ?>>Update counts clearing country counts</option>
           <option value="update" <?=defaultMode==='update' ? 'selected' : '' ?>>Update counts</option>
         </select>
-        <ul class="rules-list hint">
-          <li><strong>Import data</strong>: validates country codes against the <span
-              class="inline-code">COUNTRIES</span> named range, clears all values in the <span
-              class="inline-code">COUNTS</span> named range, then loads the input data.</li>
-          <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries present in the
-            input, then loads those countries again.</li>
-          <li><strong>Update counts</strong>: only overwrites sticker positions explicitly provided in the input; all
-            other values remain unchanged.</li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Input rules</div>
-        <ul class="rules-list hint">
-          <li>Format: <span class="inline-code">[flag]
-              CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...</span></li>
-          <li>Use comma <span class="inline-code">,</span> as delimiter.</li>
-          <li>Single sticker values are supported. Repeats in parentheses, sticker ranges, and a leading flag icon are
-            optional.</li>
-          <li>Example: <span class="inline-code">🇲🇽 MEX,1,2,3(2),5-8,10-12(2)</span>
-            <ul>
-              <li>Flag <span class="inline-code">🇲🇽</span> before the country code is optional and ignored by the
-                parser.</li>
-              <li>Range <span class="inline-code">5-8</span> is interpreted as stickers <span
-                  class="inline-code">5,6,7,8</span>.</li>
-              <li>Range <span class="inline-code">10-12(2)</span> is interpreted as stickers <span
-                  class="inline-code">10(2),11(2),12(2)</span>.</li>
-            </ul>
-          </li>
-          <li>Country code must exist in the <span class="inline-code">COUNTRIES</span> named range.</li>
-          <li>Sticker <span class="inline-code">0</span> only exists for <span class="inline-code">FWC</span>. For other
-            countries it is accepted and mapped to count <strong>0</strong>.</li>
-          <li>Sticker <span class="inline-code">20</span> only exists for non-<span class="inline-code">FWC</span>
-            countries. For <span class="inline-code">FWC</span> it is accepted and mapped to count <strong>0</strong>.
-          </li>
+        <ul class="actions-help hint">
+          <li><strong>Import data</strong>: clears all values in <span class="inline-code">COUNTS</span>, then loads
+            the input.</li>
+          <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries in the input,
+            then loads those countries.</li>
+          <li><strong>Update counts</strong>: overwrites only the sticker positions explicitly provided; all other
+            values remain unchanged.</li>
         </ul>
       </div>
 
@@ -321,15 +362,24 @@
         <ul class="actions-help hint">
           <li><strong>Validate / Preview</strong>: checks syntax and shows how values will be mapped without writing to
             the sheet.</li>
-          <li><strong>Clear</strong>: removes the selected file, clears the pasted input, clears the preview, and resets
-            the message.</li>
-          <li><strong>Import</strong>: writes the validated values to the sheet using the selected loading mode.</li>
+          <li><strong>Clear</strong>: removes the selected file, clears the pasted input, clears the preview, and
+            resets the message.</li>
+          <li><strong>Import</strong>: writes the validated values to the sheet using the selected loading mode.
+            Validation runs automatically before writing.</li>
           <li><strong>Cancel</strong>: closes the dialog without importing anything.</li>
         </ul>
+        <!-- tip promoted from footer into the actions section for better visibility -->
+        <div class="tip-row">
+          📌 <strong>Tip:</strong> use <em>Validate / Preview</em> first to confirm how counts will be mapped before
+          importing.
+        </div>
       </div>
-    </div>
 
+    </div><!-- /importModeWrapper -->
+
+    <!-- Export mode sections -->
     <div id="exportModeWrapper" class="<?= dialogMode === 'export' ? '' : 'hidden' ?>">
+
       <div class="section">
         <div class="section-title">Export result</div>
         <label for="exportText">Sticker data</label>
@@ -341,8 +391,8 @@
           </label>
         </div>
         <div class="hint" style="margin-top:8px;">
-          The exported content uses the same syntax accepted by the import process. Only sticker counts greater than 0
-          are included.
+          The exported content uses the same Format 1 syntax accepted by the import process.
+          Only sticker counts greater than 0 are included.
         </div>
       </div>
 
@@ -360,17 +410,88 @@
           <li><strong>Close</strong>: closes the dialog.</li>
         </ul>
       </div>
-    </div>
+
+    </div><!-- /exportModeWrapper -->
 
     <div id="message" class="message info"></div>
+    <!-- warnings shown below the status message in amber, populated after preview or import -->
+    <div id="warnings" class="warnings"></div>
     <div id="preview" class="preview"></div>
 
-    <div class="footer-note">
-      <?= dialogMode === 'export'
-          ? 'Tip: download or copy the exported text and save it as a backup or import it into another sheet copy.'
-          : 'Tip: validate first to confirm how counts will be mapped before importing.' ?>
+  </div><!-- /container -->
+
+  <!-- Full format guide modal — opened by the ⓘ button, no GAS calls -->
+  <dialog id="helpModal" aria-label="Input format guide">
+    <div class="help-header">
+      <h3>Input format guide</h3>
+      <a href="https://github.com/dlealv/panini-wc-2026-gsheet-tracker/blob/main/README.md"
+        target="_blank"
+        rel="noopener noreferrer">
+        (+info)
+      </a>
     </div>
-  </div>
+    <h4>Common rules</h4>
+    <!-- general rule applying to all formats, shown before the per-format sections -->
+    <div class="modal-note">
+      &bull; Comma <span class="inline-code">,</span> or semicolon <span class="inline-code">;</span>.<br>
+      &bull; Repeats: <span class="inline-code">N(X)</span> or <span class="inline-code">N(xX)</span> or
+      <span class="inline-code">NxX</span>; sticker <span class="inline-code">N</span> owned <span class="inline-code">X</span> 
+      times.<br>
+      &bull; Range: <span class="inline-code">A-B</span> is an inclusive range 
+        from <span class="inline-code">A</span> to <span class="inline-code">B</span> (<span class="inline-code">A&gt;B</span>).<br>
+      &bull; Range Repeats: <span class="inline-code">A-B(X)</span> or <span class="inline-code">A-B(xX)</span> or
+      <span class="inline-code">A-BxX</span>; stickers <span class="inline-code">A-B</span>
+        owned <span class="inline-code">X</span> times.<br>
+      &bull; Non-ASCII characters (e.g. <span class="inline-code">&#x1F1F2;&#x1F1FD; MEX,1,2</span>) are stripped automatically.
+    </div>
+
+    <details open>
+      <summary>Format 1 — country code once</summary>
+      <div class="modal-body">
+        Syntax: <span class="inline-code">CODE,N[,N(X)][,A-B][,A-B(X)]...</span><br>
+        Examples:<br>
+        &nbsp;&nbsp;<span class="inline-code">MEX,1,3-7,10(2)</span>
+        &rarr; <span class="inline-code">MEX,1,3,4,5,6,7,10(2)</span><br>
+        &nbsp;&nbsp;<span class="inline-code">FWC,0,1,3-5(2)</span>
+        &rarr; <span class="inline-code">FWC,0,1,3(2),4(2),5(2)</span>
+      </div>
+    </details>
+
+    <details>
+      <summary>Format 2 — country prefix per sticker</summary>
+      <div class="modal-body">
+        Syntax: <span class="inline-code">CODE[-]N[,CODE[-]N(X)][,CODE[-]A-B]...</span><br>
+        Format printed on the back of each Panini sticker (e.g. <span class="inline-code">MEX-10</span>).<br>
+        Examples:<br>
+        &nbsp;&nbsp;<span class="inline-code">MEX-1,MEX-5(2),MEX3</span><br>
+        &nbsp;&nbsp;<span class="inline-code">FWC-1,FWC3-5(2)</span><br>
+        &bull; The dash between the country code and the sticker number is <strong>optional</strong>
+        (e.g. <span class="inline-code">MEX3</span> and <span class="inline-code">MEX-3</span> are identical).
+      </div>
+    </details>
+
+    <details>
+      <summary>Exclusion operator — import missing stickers</summary>
+      <div class="modal-body">
+        Prefix the line with <span class="inline-code">&lt;&gt;</span>,
+        <span class="inline-code">!=</span>, or <span class="inline-code">^</span>.<br>
+        The parser imports every valid sticker position <strong>except</strong> those listed.<br>
+        Examples:<br>
+        &nbsp;&nbsp;<span class="inline-code">&lt;&gt;MEX,1,2,3</span>
+        &rarr; imports stickers <span class="inline-code">4&ndash;20</span>.<br>
+        &nbsp;&nbsp;<span class="inline-code">!=FWC,1-10,12-19</span>
+        &rarr; imports stickers <span class="inline-code">0</span> and
+        <span class="inline-code">11</span>.<br>
+        &bull; Repeat counts inside an exclusion line are ignored; the complement always uses count
+        <span class="inline-code">1</span>.<br>
+        &bull; Works with Format 1 and Format 2 tokens on the same line.
+      </div>
+    </details>
+
+    <div class="modal-footer">
+      <button type="button" onclick="closeHelpModal()">Close</button>
+    </div>
+  </dialog>
 
   <?!= include('ImportExportDialogHelpers') ?>
 
@@ -383,6 +504,7 @@
     const includeFlagsCheckbox = document.getElementById('includeFlagsCheckbox')
     const messageEl = document.getElementById('message')
     const previewEl = document.getElementById('preview')
+    const warningsEl = document.getElementById('warnings')
 
     if (fileInput) {
       fileInput.addEventListener('change', async (event) => {
@@ -404,26 +526,50 @@
 
     if (includeFlagsCheckbox) {
       includeFlagsCheckbox.addEventListener('change', () => {
-        if (DIALOG_MODE === 'export') {
-          loadExportData()
-        }
+        if (DIALOG_MODE === 'export') loadExportData()
       })
     }
 
-    // =========================
-    // UI ACTIONS (GAS + DOM ONLY)
-    // =========================
+    /**Opens the full format guide modal. */
+    function openHelpModal() {
+      document.getElementById('helpModal').showModal()
+    }
 
-    /** Validates the current import input and renders a preview without writing data. */
+    /**Closes the full format guide modal. */
+    function closeHelpModal() {
+      document.getElementById('helpModal').close()
+    }
+
+    /**
+     * Renders backend warnings below the status message in amber.
+     * Clears previous warnings first; hides the block when the list is empty.
+     */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) { // no warnings — keep the block hidden
+        warningsEl.style.display = 'none'
+        return
+      }
+      warningsEl.style.display = 'block'
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.style.margin = '2px 0'
+        p.textContent = `⚠ ${w}`
+        warningsEl.appendChild(p)
+      })
+    }
+
+    /**Validates the current import input and renders a preview without writing data. */
     function previewData() {
       clearPreview()
+      renderWarnings([]) // clear stale warnings from previous action
       setBusy(true)
       setMessage('Validating input...', 'info')
-
       google.script.run
         .withSuccessHandler((result) => {
           setBusy(false)
           setMessage('Validation successful.', 'success')
+          renderWarnings(result.warnings)
           renderPreview(result)
         })
         .withFailureHandler((error) => {
@@ -434,16 +580,17 @@
         .previewStickerData(getPayload())
     }
 
-    /** Imports the current sticker payload into the spreadsheet. */
+    /**Imports the current sticker payload into the spreadsheet. */
     function importData() {
       clearPreview()
+      renderWarnings([]) // clear stale warnings from previous action
       setBusy(true)
       setMessage('Importing data...', 'info')
-
       google.script.run
         .withSuccessHandler((result) => {
           setBusy(false)
           setMessage(result && result.message ? result.message : 'Import completed.', 'success')
+          renderWarnings(result.warnings)
         })
         .withFailureHandler((error) => {
           setBusy(false)
@@ -452,17 +599,15 @@
         .importStickerData(getPayload())
     }
 
-    /** Loads exported sticker data into the export text area. */
+    /**Loads exported sticker data into the export text area. */
     function loadExportData() {
       if (!exportText) {
         setMessage('Export text area not found in dialog.', 'error')
         return
       }
-
       exportText.value = ''
       setBusy(true)
       setMessage('Exporting sticker data...', 'info')
-
       google.script.run
         .withSuccessHandler((result) => {
           setBusy(false)
@@ -475,6 +620,9 @@
             return
           }
           exportText.value = result.text || ''
+          // once load completes the status message explains the result; placeholder no longer needed
+          exportText.placeholder = '' 
+          renderWarnings(result.warnings)
           setMessage(
             `Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`,
             'success'
@@ -490,25 +638,23 @@
         .exportStickerData(getPayload())
     }
 
-    /** Copies the exported sticker data to the clipboard. */
+    /**Copies the exported sticker data to the clipboard. */
     function copyExport() {
       if (!exportText || !exportText.value) {
         setMessage('There is no exported content to copy.', 'error')
         return
       }
-
       copyToClipboard(exportText.value)
         .then(() => setMessage('Export copied to clipboard.', 'success'))
         .catch(() => setMessage('Failed to copy export.', 'error'))
     }
 
-    /** Downloads the exported sticker data as a local file. */
+    /**Downloads the exported sticker data as a local file. */
     function downloadExport() {
       if (!exportText || !exportText.value) {
         setMessage('There is no exported content to download.', 'error')
         return
       }
-
       try {
         const fileName = buildExportFileName()
         triggerDownload(exportText.value, fileName)
@@ -518,31 +664,21 @@
       }
     }
 
-    /** Resets the import form inputs and clears the preview area. */
+    /**Resets the import form inputs, preview, and warnings areas. */
     function clearInput() {
       setBusy(false)
-
-      if (fileInput) {
-        fileInput.value = ''
-      }
-      if (textInput) {
-        textInput.value = ''
-        textInput.focus()
-      }
-      if (modeInput) {
-        modeInput.value = 'update'
-      }
+      if (fileInput) fileInput.value = ''
+      if (textInput) { textInput.value = ''; textInput.focus() }
+      if (modeInput) modeInput.value = 'update'
       clearPreview()
+      renderWarnings([])
       setMessage('Input cleared.', 'info')
     }
 
-    /** Automatically loads export data when the dialog opens in export mode. */
+    /**Automatically loads export data when the dialog opens in export mode. */
     window.addEventListener('load', () => {
-      if (DIALOG_MODE === 'export') {
-        loadExportData()
-      }
+      if (DIALOG_MODE === 'export') loadExportData()
     })
   </script>
 </body>
-
 </html>

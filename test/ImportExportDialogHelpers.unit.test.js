@@ -2,7 +2,7 @@
 
 /** Unit tests for ImportExportDialogHelpers. */
 
-const { initTestKernel } = require('./utils/testKernel')
+const { initTestKernel } = require('./utils/testKernel.js')
 const { helpers } = require('../build/ImportExportDialogHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
