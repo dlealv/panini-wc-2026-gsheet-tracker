@@ -3,7 +3,7 @@
 /** Unit tests for QuickEntryDialogHelpers. */
 
 const { helpers } = require('../build/QuickEntryDialogHelpers.html.js')
-const { initTestKernel } = require('./utils/testKernel')
+const { initTestKernel } = require('./utils/testKernel.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 global.document = {

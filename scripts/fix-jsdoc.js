@@ -26,10 +26,6 @@ const TARGET_DIR = './src'
 // Targets three-line JSDocs with no parameters or inner tags
 const jsdocRegex = /\/\*\*\r?\n\s*\* ([^\r\n*@]+)\r?\n\s*\*\//g
 
-function getLineNumber (content, index) {
-  return content.substring(0, index).split(/\r?\n/).length
-}
-
 function processDirectory (dir) {
   if (!fs.existsSync(dir)) {
     console.error(`❌ Error: Target directory '${dir}' does not exist.`)
@@ -72,6 +68,10 @@ function processDirectory (dir) {
       }
     }
   })
+}
+
+function getLineNumber (content, index) {
+  return content.substring(0, index).split(/\r?\n/).length
 }
 
 if (IS_FIX_MODE) {

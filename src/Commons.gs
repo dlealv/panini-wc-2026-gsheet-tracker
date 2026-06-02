@@ -84,7 +84,6 @@ class StickerSheetRepository {
   getStickerCount(countryCode, stickerNumber) {
   const validStickerNumber = this._validateStickerNumber(stickerNumber)
   const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-
   const countryIndex = this.countryMap[normalizedCountryCode].index
   const countValues = this.countsRange.getValues()[countryIndex]
 
@@ -97,7 +96,6 @@ class StickerSheetRepository {
   /** Updates multiple sticker counts in one batch write. */
   updateStickerCounts(updates) {
     const groupedUpdates = this._groupUpdatesByCountry(updates)
-
     Object.keys(groupedUpdates).forEach(countryCode => {
       this._updateCountryCounts(countryCode, groupedUpdates[countryCode])
     })
@@ -120,7 +118,6 @@ class StickerSheetRepository {
     if (!this.countryNamesRange) {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`)
     }
-
     this._validateRangeShape()
   }
 
@@ -185,7 +182,6 @@ class StickerSheetRepository {
     if (!countryCode) {
       return null
     }
-
     const groupCode = String(groupRow[0] || '').trim().toUpperCase()
     const countryName = String(countryNameRow[0] || '').trim()
 
@@ -212,15 +208,12 @@ class StickerSheetRepository {
   /** Validates one sticker number. */
   _validateStickerNumber(stickerNumber) {
     const numericStickerNumber = Number(stickerNumber)
-
     if (!Number.isInteger(numericStickerNumber)) {
       throw new Error(`Sticker number "${stickerNumber}" is not a valid integer.`)
     }
-
     if (numericStickerNumber < this.STICKER_MIN || numericStickerNumber > this.STICKER_MAX) {
       throw new Error(`Sticker number ${numericStickerNumber} is outside allowed range 0-20.`)
     }
-
     return numericStickerNumber
   }
 
@@ -248,18 +241,15 @@ class StickerSheetRepository {
       const stickerNumber = this._validateStickerNumber(update.stickerNumber)
       updatedValues[stickerNumber] = update.count
     })
-
     range.setValues([updatedValues])
   }
 
   /** Converts raw sheet values to non-negative counts. */
   _toCount(value) {
     const numericValue = Number(value)
-
     if (value === '' || value === null || Number.isNaN(numericValue) || numericValue < 0) {
       return 0
     }
-
     return numericValue
   }
 
@@ -273,7 +263,6 @@ class StickerSheetRepository {
       if (imageUrlMatch) {
         return imageUrlMatch[1]
       }
-
       if (this._isUrl(formulaValue)) {
         return formulaValue
       }
@@ -282,7 +271,6 @@ class StickerSheetRepository {
     if (this._isUrl(displayValue)) {
       return displayValue
     }
-
     if (countryCode === 'FWC') {
       return ''
     }

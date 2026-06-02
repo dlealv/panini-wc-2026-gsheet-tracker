@@ -1,5 +1,7 @@
 // test/util/testKernel.js
 
+const { ImportExportService, InputLineNormalize, StickerInputParser } = require('../../build/ImportExportService.js')
+
 /**
  * Global test kernel for GAS unit tests.
  *
@@ -11,21 +13,22 @@
  * - ensures all services run without SpreadsheetApp
  */
 
-/** SpreadsheetApp mock (GAS runtime) */
-function initializeSpreadsheetAppMock () {
-  global.SpreadsheetApp = {
-    getActiveSpreadsheet: () => ({
-      getSheetByName: () => ({
-        getRange: () => ({
-          getValues: () => [[0]],
-          setValues: jest.fn()
-        })
-      })
-    })
-  }
-  global.Logger = {
-    log: jest.fn()
-  }
+let countriesRange
+let countsRange
+let flagIconsRange
+
+/** Mock for a range object, providing getValues, setValues, and clearContent methods. */
+
+/** Mock for the write range, which is used to update counts in the sheet. */
+const writeRangeMock = {
+  getValues: jest.fn(() => [Array(21).fill(0)]),
+  setValues: jest.fn(),
+  clearContent: jest.fn()
+}
+
+/** Mock for the sheet, providing getRange method to return the write range mock. */
+const sheetMock = {
+  getRange: jest.fn(() => writeRangeMock)
 }
 
 /** Shared deterministic dataset used across ALL tests */
@@ -57,73 +60,6 @@ class MockStickerSheetRepository {
   }
 }
 
-/** Mock ImportExportService dependency (minimal deterministic behavior for unit tests) */
-class MockImportExportService {
-  import (input) {
-    if (!input || input.trim() === '') {
-      throw new Error('Empty input')
-    }
-    const [rawCountry, ...values] = input.split(',')
-    const country = rawCountry. // remove emojis
-      replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').
-      replace(/^[^\w]*\s*/, '').
-      trim()
-    if (!/^[A-Z]{3}$/.test(country)) {
-      throw new Error('Invalid country code')
-    }
-    for (const v of values) {
-      const cleaned = String(v).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim()
-      if (cleaned === '') continue
-      const n = parseInt(cleaned, 10)
-      if (isNaN(n)) {
-        throw new Error(`Invalid sticker: ${cleaned}`)
-      }
-      if (n < 0 || n > 24) {
-        throw new Error(`Out of bounds sticker: ${n}`)
-      }
-    }
-    return { success: true, message: 'Imported OK' }
-  }
-
-  exportData (flagMode = false, opts = {}) {
-    if (opts.includeFlags === true) {
-      return { success: true, text: 'FLAG_EXPORT', lines: 3 }
-    }
-    const icon = opts.icon || '🏆'
-    const code = opts.code || 'FWC'
-
-    let stickers = opts.stickers
-    if (!Array.isArray(stickers)) {
-      if (typeof opts.mockText === 'string') {
-        const parts = opts.mockText.split(',')
-        stickers = parts.slice(1)
-      } else {
-        stickers = []
-      }
-    }
-
-    const formatWithIcons = !!opts.formatWithIcons
-    const normalize = arr => (arr || []).filter(v => {
-      if (code === 'FWC') return true
-      return v !== 0 && v !== '0'
-    })
-    if (formatWithIcons) {
-      const list = normalize(stickers)
-      return {
-        success: true,
-        text: `${icon} ${code}${list.length ? ',' + list.join(',') : ''}`,
-        lines: 3
-      }
-    }
-    const list = normalize(stickers)
-    return {
-      success: true,
-      text: flagMode ? 'FLAG_EXPORT' : `${code}${list.length ? ',' + list.join(',') : ''}`,
-      lines: 3
-    }
-  }
-}
-
 /** Initializes full test environment */
 function initTestKernel () {
   jest.resetModules()
@@ -131,7 +67,56 @@ function initTestKernel () {
   // reset shared global state for UI-layer tests
   global.state = {}
   global.StickerSheetRepository = MockStickerSheetRepository
-  global.ImportExportService = MockImportExportService
+  global.InputLineNormalize = InputLineNormalize
+  global.StickerInputParser = StickerInputParser
+  global.ImportExportService = ImportExportService
+  global.__writeRangeMock = writeRangeMock
+  global.__sheetMock = sheetMock
+  global.__countsRange = countsRange
+}
+
+/** Initializes a mock for the SpreadsheetApp environment. */
+function initializeSpreadsheetAppMock () {
+  countriesRange = createNamedRangeMock([['FWC'], ['MEX']])
+  const fwcCounts = Array(21).fill('')
+  fwcCounts[1] = 1
+  fwcCounts[3] = 2
+  const mexCounts = Array(21).fill('')
+  countsRange = {
+    getValues: jest.fn(() => [fwcCounts, mexCounts]),
+    getNumRows: jest.fn(() => 2),
+    getNumColumns: jest.fn(() => 21),
+    getRow: jest.fn(() => 1),
+    getColumn: jest.fn(() => 2),
+    getSheet: jest.fn(() => sheetMock),
+    clearContent: jest.fn()
+  }
+  flagIconsRange = {
+    getValues: jest.fn(() => [['🏆'], ['🇲🇽']]),
+    getDisplayValues: jest.fn(() => [['🏆'], ['🇲🇽']]),
+    getNumRows: jest.fn(() => 2),
+    getNumColumns: jest.fn(() => 1),
+    getRow: jest.fn(() => 1),
+    getColumn: jest.fn(() => 1),
+    getSheet: jest.fn(() => sheetMock),
+    clearContent: jest.fn()
+  }
+  global.SpreadsheetApp = { getActiveSpreadsheet: () => ({ getRangeByName: (name) => { if (name === 'COUNTRIES') return countriesRange; if (name === 'COUNTS') return countsRange; if (name === 'FLAG_ICONS') return flagIconsRange; throw new Error(`Unknown range ${name}`) } }) }
+  global.Logger = { log: jest.fn() }
+}
+
+/** SpreadsheetApp mock (GAS runtime) */
+function createNamedRangeMock (values = [['FWC'], ['MEX']]) {
+  return {
+    getValues: jest.fn(() => values),
+    getDisplayValues: jest.fn(() => values),
+    getNumRows: jest.fn(() => values.length),
+    getNumColumns: jest.fn(() => 1),
+    getRow: jest.fn(() => 1),
+    getColumn: jest.fn(() => 1),
+    getSheet: jest.fn(() => sheetMock),
+    clearContent: jest.fn()
+  }
 }
 
 module.exports = {

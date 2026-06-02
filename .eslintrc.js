@@ -8,9 +8,14 @@ module.exports = {
   env: { browser: true, node: true, jest: true },
   extends: ['standard'],
   globals: { google: 'readonly', SpreadsheetApp: 'readonly', Logger: 'readonly' },
-  plugins: ['jsdoc'],
+  plugins: ['jsdoc', 'sort-class-members', 'the-step-down-rule'],
   rules: {
     indent: ['error', 2],
+    'sort-class-members/sort-class-members': ['error', {
+      order: ['[properties]', 'constructor', '[getters]',
+        '[setters]', '[methods]', '[conventional-private-methods]']
+    }],
+    'the-step-down-rule/the-step-down-rule': 'error',
     'no-unused-vars': 'warn',
     'no-undef': 'error',
     'max-len': ['error', { code: 120 }],

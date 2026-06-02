@@ -5,65 +5,125 @@ All notable changes to this project will be documented in this file.
 The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
 project structure, and documentation.
 
-## [1.0.2] 2026-05-29
-Deployed the project in VS Code, reorganized by proper folders. Added testing artifacts, configuration files and 
-documented the technical architecture. No functional changes, just minor fixes in Import/Export service.
+## [1.0.3] 2026-06-02
 
-## Added
-- Folders:
-  - `test/` Contains all testing files and `Jest` configuration.
-  - `test/fixtures/` default testing objects to be used during the testing process.
-  - `test/utils/` global test helpers for GAS unit test.
-  - `src` source files, previously all source (Apps Script) were located at the root folder.
-  - `src/html` All html files are located under this folder. Previously located at root folder.
-  - `scripts/` Location of all scripts required during the testing cycle.
-- Config files:
-  - `.clasp.json.template` template file to be used for for clasp actions (create, edit and deploy locally Apps Script).
-  - `.claspignore` list of folder to exclude from `clasp`.
-  - `eslintrc.js` `Eslint` configuration file and rules.
-  - `eslintignore` list of folders/files to exclude from `Eslint`.
-  - `jsconfig.json` Visual Studio Code configuration file for editor settings.
-  - `package.json` `Node.js` project configuration.
-- Script files:
-  - `scripts/build.js` Prepare the `build/` folder, source files ready for testing.
-  - `scripts/clasp.zsh` Shell script to used to execute `clasp` `push` or `pull`. It prepares the `.clasp.json` file to use. Create a preventive backup zip fle for the files to be replaced (local or on remote GAS server) and execute the corresponding `clasp` command (`push`/`pull`). Optionally, you can use a second input argument to specify the `scriptId`.
-  - `scripts/fix-jsdoc.js` Script to fix some edge cases where `Eslint` is not able to handle short JS Doc descriptions that can fit in a single line via: `/**description */` instead of 3-lines.
-- Source files:
-  - `src/html/ImportExportDialogHelpers.html` Consolidate all pure logic functions used in `ImportExportDialog.html`.
-  - `src/html/QuickEntryDialogHelpers.html` Consolidate all pure logic functions used in `QuickEntryDialog.html`.
-  - `src/html/QuickEntryDialogRender.html` Consolidate all DOM/UI rendering functions used in `QuickEntryDialog.html`.
-- Test files:
-  - `test/fixture/createValidRanges.js` Creates default named range configuration for testing.
-  - `utils/testKernel.js` Global test kernel for GAS unit tests.
-  - `test/Commons.unit.test.js` `Jest` test file for `src/Commons.gs`.
-  - `test/ImportExportService.unit.test.js` `Jest` test file for `src/ImportExportService.gs`.
-  - `test/QuickEntryService.unit.test.js` `Jest` test file for `src/QuickEntryService.gs`.
-  - `test/ImportExportDialogHelpers.unit.test.js` `Jest` file for `src/ImportExportDialogHelpers.html`.
-  - `test/QuickEntryHelpers.unit.test.js` `Jest` file for `src/QuickEntryHelpers.html`.
-  - `test/QuickEntryRender.unit.test.js` `Jest` file for `src/QuickEntryRender.html`.
-  - `test/jest.config.cjs` `Jest` configuration file.
-- Documentation files:
-  - `Technical Architecture.md` comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+### Overview
+This release refactors and rebrands the `ImportExportService` to introduce a more flexible and resilient input parsing pipeline. The system now supports multiple input formats, exclusion operators (to enter missing stickers instead), improved repeat representations, and structured warnings to inform users about how inputs were interpreted and transformed.
 
-## Changes
-- `Code.gs` moved to the `src/` folder. Now using `static` methods of `ImportExportService.gs`.
-- `Commons.gs` moved to the `src/` folder. Changed the implementation of `getStickerCount` function but the behaviour is the same. Remove the function `getCountryNamedByCode` not required, since the country name is provided in by the `Conf` tab from gsheet tracker directly.
-- `ImportExportService.gs` moved to `src/` folder. Added the `static` methods: `previewStickerData`, `importStickerData`, `exportStickerData` and `@export` tag to identify artifacts from the file to declare in the module export during testing process.
-- `QuickEntryService.gs` moved to the `src/` folder. Added `@export` tag to identify artifacts from the file to declare in the module export during testing process.
-- `ImportExportDialog.html` moved to `src/html` folder and moved to `ImportExportDialogHelpers.html` pure logic functions. Some of moved functions where adjusted to delimit responsibilities and added optional input arguments to simplify testing process. 
-  - Functions moved to `src/html/ImportExportDialogHelpers.html`: `getPayLoad`, `setMessage`, `clearPreview`, `renderPreview`, `setBusy`, `buildExportFileName`.
-  - Functions removed: `previewData`, `importData`, `clearInput`, `copyExport`, `downloadExport`.
-- `QuickEntryDialog.html` moved to the `src/html` folder. Added functions via include command inserting the files: `src/html/QuickEntryDialogHelpers.html` (pure logic functions), and `src/html/QuickEntryDialogRender.html` (DOM/UI render functions). Added to some functions aditional default input argument for testing purpose.
-  - Functions moved to `src/html/QuickEntryDialogHelpers.html`: `buildGroupOption`, `getVisibleCountries`, `applyPendingCountryUpdates`, `applyPendingStickerUpdate`, `matchesTeamSearch`, `matchesGroupFilter`,`filterCountryStickers`, `queueStickerChange`, `getPendingUpdates`, `buildEmptyState`, `setMessage`.
-  - Functions moved to `src/html/QuickEntryDialogRender.html`: `buildCountryHeaderText`,  `buildSummaryItem`, `buildStickerGrid`, `usesCompactGrid`, `buildAlbumStickerGrid`, `buildCompactStickerGrid`, `buildStickerRow`, `chunkStickers`, `buildCountrySection`.
-  - Functions added: `queueStickerChangeHandler`, `showMessage`, `showBusyState`
-  - Functions removed: `buildFilteredCountry`, `getOriginalStickerCount`, `getStickerStatus`, `getStickerColorClass`, `buildPendingKey`
-- `README.md` Provided details about testing process, updated the Files sections with the folder structure. Updated the export view and added a note in Import Service clarifying that icon flags (emojis) are removed during the parser process and not taken into account by the parser syntax.
+---
 
-## Removed
-- All source files in the root folder, now moved to `src/` or `src/html/` folders
+### Added
+- No new files were introduced in this release.
+- Existing modules were enhanced with improved parsing, normalization, and expanded test coverage.
 
-## Fixed
+---
+
+### Changes
+
+- `build/build.js`:
+  Refactored build logic to remove hardcoded file and class mappings. Export handling is now driven by `@export` annotations at the class level. This change applies to `*.gs` files. `*.html` export behavior remains unchanged, still relying on explicit function extraction. Reorganized to comply with the `the-step-down-rule` ESLint rule.
+
+- `src/ImportExportService.gs`:
+  Major refactor and rebranding of the service architecture:
+  - Introduced `InputLineNormalize`, responsible for transforming raw user input into a canonical format.
+  - Expanded normalization capabilities:
+    - Range expansion (e.g. `A-B`, `A-B(N)`).
+    - Removal of consecutive delimiters.
+    - Support for semicolon (`;`) separated inputs.
+    - Introduction of exclusion operators (`^`, `<>`, `!=`) to represent missing stickers explicitly.
+    - Introduction of additional repeat formats such as `NxX`, `N(xX)`, `A-BxX`, `A-B(xX)`.
+  - Simplified `StickerInputParser`, delegating most normalization responsibilities to `InputLineNormalize`.
+  - Adjusted the service contract in `ImportExportService` to expose parsing warnings to the frontend, enabling user-facing feedback on input transformations.
+
+- `src/html/ImportExportDialog.html`:
+  - Import service:
+    - Simplified import screen. Format details are now provided via a help icon modal, which opens a lightweight dialog containing the full format reference.
+    - Includes all formats and exclusion operator documentation.
+    - Includes documentation of the flexible parsing process.
+    - Reports warnings to the user.
+    - Out-of-range stickers, duplicates, and invalid entries are now reported as warnings and skipped.
+    - Duplicate country lines (i.e. multiple lines for the same country) are now reported as warnings and the duplicate line is skipped.
+  - Export service:
+    - When no data is available to export, the placeholder message indicating an ongoing export process is no longer shown.
+
+- `test/ImportExportService.unit.test.js`:
+  Restructured and significantly expanded unit test coverage:
+  - Introduced dedicated test sections for `InputLineNormalize` and `StickerInputParser`.
+  - Transitioned from monolithic service-level testing to a more granular unit testing strategy.
+  - Added a mocked Google Sheets environment to simulate realistic execution scenarios.
+  - Improved coverage of import modes, export behavior, and sheet interaction contracts.
+
+- `test/utils/testKernel.js`:
+  Simplified and improved test infrastructure:
+  - Removed redundant and overly complex mock definitions.
+  - Introduced more focused and realistic mocks for Google Sheets interactions.
+  - Improved determinism and isolation of test environments.
+  - Reorganized to comply with the `the-step-down-rule` ESLint rule.
+
+- `docs/ImportExportServiceRequirements.md`:
+  Expanded specification documentation:
+  - Added support for additional input formats.
+  - Clarified warning semantics and parser behavior.
+  - Improved error handling definitions and expected service contracts.
+  - Standardized naming conventions and terminology.
+  - Document fully aligned with the Import/Export service implementation.
+
+- `.eslintrc.js`: Added  `sort-class-members`, `the-step-down-rule` pugins and the corresponding rules.
+- `package.json`: Added convinient task: `lint:file` to run eslint on a specific file.
+- `README.md`: Updated with the changes incorporated in this release.
+-  Rest of the source files in `src/`, `test/`, `scripts/` updated comments or format, not structural changes. After changes ensured all 189 tests passed.
+
+---
+
+### Fixed
+- Fixed incorrect handling of out-of-album stickers (`FWC-20`, non-`FWC-0`) across all import modes.
+  Previously, such stickers were not populated as `0` values after import operations.
+  The updated implementation ensures:
+  - Valid stickers retain their parsed values.
+  - Out-of-album stickers are consistently stored as `0`.
+  - This process is silent and does not require user input.
+  - Spreadsheet formulas remain consistent and unaffected when non-valid values are normalized to zero.
+
+---
+
+## [1.0.2] - 2026-06-01
+
+### Overview
+Refactored and extended the `ImportExportService` with a more flexible and resilient input parsing pipeline.
+The system now supports multiple input formats and provides structured warnings to inform users about how inputs
+were interpreted and transformed.
+
+### Changes
+- `build/build.js`: Removed hardcoded file and class mappings. Export handling is now driven by `@export`
+  annotations at the class level. This change applies to `*.gs` files; `*.html` export behaviour remains
+  unchanged, still relying on explicit function extraction.
+- `src/ImportExportService.gs`: Major refactor of the service architecture:
+  - Introduced `InputLineNormalize`, responsible for transforming raw user input into canonical Format 1.
+  - Expanded normalization capabilities: range expansion (`A-B`, `A-B(N)`), removal of consecutive delimiters,
+    semicolon (`;`) support, and exclusion operators (`^`, `<>`, `!=`) to represent missing stickers.
+  - Simplified `StickerInputParser`, delegating normalization to `InputLineNormalize`.
+  - Updated service contract to expose parsing warnings to the front-end for user-facing feedback.
+- `src/html/ImportExportDialog.html`:
+  - Import: simplified the import screen; format details moved to a help icon modal (`ⓘ`) with the full
+    format reference including all formats and the exclusion operator; warnings are now surfaced to the user;
+    out-of-range stickers are reported as warnings and skipped instead of stopping the import.
+  - Export: when there is no data to export the textarea placeholder is cleared so the empty state is
+    unambiguous; the status message reports the line count.
+- `test/ImportExportService.unit.test.js`: Restructured and significantly expanded unit test coverage:
+  - Dedicated test sections for `InputLineNormalize`, `StickerInputParser`, and `ImportExportService`.
+  - Transitioned from monolithic service-only testing to granular unit testing.
+  - Added mocked Google Sheets environment for realistic execution scenarios.
+  - Improved coverage of import modes, export behaviour, sheet interaction contracts, and warning aggregation.
+- `test/utils/testKernel.js`: Simplified test infrastructure; removed redundant mock definitions; introduced
+  more focused and realistic mocks for Google Sheets interactions.
+- `docs/ImportExportServiceRequirements.md`: Expanded specification — additional input formats, clarified
+  warning semantics and parser behaviour, improved error handling definitions and service contracts.
+
+### Fixed
+- Incorrect handling of non-valid sticker positions (`FWC` sticker `20`, non-`FWC` sticker `0`) in all
+  import modes (`Import data`, `Update counts`, `Update counts clearing country counts`). Non-valid positions
+  are now always written as `0` when the row is touched. Valid stickers retain their parsed values, the
+  operation is silent (no user action required), and spreadsheet formulas remain unaffected.
 - Export Sticker service:
   - when users select to include icon flags (emojis) in the output a comma was added as a delimiter between the
 flag icon and the country code. Fixed to match the specification: the delimiter is now a single space.
@@ -73,10 +133,10 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 
 ## [1.0.1] - 2026-05-20
 
-## Added
+### Added
 - `docs/FAQ.md` moved related questions to Google Access/Security for Apps Script
  
-## Changes
+### Changes
 - Modified Google Sheet tracker
   - `Conf` (hidden tab)
     - Removed the `TB_COUNTRY` table object because Apps Script doesn’t handle it properly. Instead, defined the columns that are referred to as named ranges.
@@ -101,7 +161,7 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 - `docs/QuickEntryServiceMockDesign.md` has been updated to include the design of the `Pending` filter.
 - `README.md` has been updated to document the input range in the import service and flag icons for input and export services, the Pending action in Quick Sticker Entry, and to move significant security/access information for Apps Script to the `FAQ.md` document.
 
-## Fixed
+### Fixed
 - When an error is raised during the Import process, the program now provides the country code as a reference instead of a line number when the country code is valid. If the country code is invalid, the line number is referenced in the error message.
 - The constraint that the `COUNTRIES` named range has to be defined in `Stickers` tab was removed because it was unnecessary.
 
@@ -158,5 +218,5 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 - Reports and pivot-based progress summaries
 - Compact swap view
 
-## Fixed
+### Fixed
 - Fixed export behavior so only valid sticker positions are exported for each country code
