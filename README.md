@@ -96,7 +96,8 @@ The formats supported are detailed in the input view:
 
 If you click on the help icon (ⓘ), it shows more detailed information about the import formats and rules:
 
-![Import dialog](images/importFormatHelp.jpg)
+![Import dialog](images/inputFormatHelp.jpg)
+
 
 > Note: Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
 
