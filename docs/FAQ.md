@@ -1,5 +1,25 @@
 # FAQ
 
+## General Questions
+
+### I’m currently using an old version of the tracker. How can I upgrade to the new one?
+
+From the previous tracker, go to *Manage Panini* and select *Export Stickers*. Make a copy of the new template and import the stickers: *Manage Panini* → *Import Data*. Both processes have back compatibility, so you can start using the new version without losing your data.
+
+### Is there a way to import the data entering missing stickers instead?
+Yes, from version `1.0.3` it is possible via exclusion command (`<>`) you can also use `^` or `!=` for the same purpose. For example if you have all stickers for `MEX` except sticker, `20`, you can enter in the input data box:
+
+```text
+<>MEX,20
+```
+
+instead of:
+
+```text
+<>MEX,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
+```
+
+
 ## Google Access/Security Questions
 
 ### Why this warning can appear
