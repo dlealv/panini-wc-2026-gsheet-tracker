@@ -5,20 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
 project structure, and documentation.
 
+---
+
 ## [1.0.3] 2026-06-02
 
 ### Overview
-This release refactors and rebrands the `ImportExportService` to introduce a more flexible and resilient input parsing pipeline. The system now supports multiple input formats, exclusion operators (to enter missing stickers instead), improved repeat representations, and structured warnings to inform users about how inputs were interpreted and transformed.
+This release refactors and rebrands the `ImportExportService` to introduce a more flexible and resilient input parsing pipeline. The system now supports multiple input formats, exclusion operators (to handle missing stickers), improved repeat representations, and structured warnings to inform users about the interpretation and transformation of inputs. Additionally, a new named function `CLEAN_STICKER_LINE` in Google Sheet tracker has been added to support the `GET_TRADES` named function, which extracts the list of stickers from the `INPUT` section in the `Trade` tab. 
 
----
 
 ### Added
 - No new files were introduced in this release.
 - Existing modules were enhanced with improved parsing, normalization, and expanded test coverage.
 
----
 
 ### Changes
+
+- Google Sheet tracker: added a named function `CLEAN_STICKER_LINE` to simplify the process of cleaning the sticker line. This function is used in the named function `GET_TRADES` within the `Trade` tab. Previously, the cleanup process was minimal. Now, instead of just cleaning, the function extracts unique stickers delimited by commas or semi-colons from a raw string input data that contains commas, semi-colons, spaces, repeats notations (`N(X)`, `NxX`, `N(xX)`), and additional noise. This allows users to paste a more flexible input data in the `Stickers` column in the `INPUT` section from the `Trade` tab and still receive the correct list of stickers to be used in the `OUTPUT` section.
 
 - `build/build.js`:
   Refactored build logic to remove hardcoded file and class mappings. Export handling is now driven by `@export` annotations at the class level. This change applies to `*.gs` files. `*.html` export behavior remains unchanged, still relying on explicit function extraction. Reorganized to comply with the `the-step-down-rule` ESLint rule.
@@ -72,8 +74,8 @@ This release refactors and rebrands the `ImportExportService` to introduce a mor
 - `package.json`: Added convinient task: `lint:file` to run eslint on a specific file.
 - `README.md`: Updated with the changes incorporated in this release.
 -  Rest of the source files in `src/`, `test/`, `scripts/` updated comments or format, not structural changes. After changes ensured all 189 tests passed.
+-  `CHANGLOG.md`: Corrected tne numbers of prevous releases.
 
----
 
 ### Fixed
 - Fixed incorrect handling of out-of-album stickers (`FWC-20`, non-`FWC-0`) across all import modes.
@@ -131,6 +133,8 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 - Import Service: parser failed to parse some scenarios with icon flag (emojis) as part of the syntax. Emojis are decorative elements not part of the data model in Apps Script, so they should be removed before parsing the country line. Now flag icon are excluding before any parsing process.
 - Import Service: parser failed to parse some scenarios with icon flag (emojis) as part of the syntax. Emojis are decorative elements not part of the data model in Apps Script, so they should be removed before parsing the country line. Now flag icons are excluded before any parsing process.
 
+---
+
 ## [1.0.1] - 2026-05-20
 
 ### Added
@@ -164,6 +168,8 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 ### Fixed
 - When an error is raised during the Import process, the program now provides the country code as a reference instead of a line number when the country code is valid. If the country code is invalid, the line number is referenced in the error message.
 - The constraint that the `COUNTRIES` named range has to be defined in `Stickers` tab was removed because it was unnecessary.
+
+---
 
 ## [1.0.0] - 2026-05-17
 
