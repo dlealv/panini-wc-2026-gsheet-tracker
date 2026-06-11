@@ -17,11 +17,6 @@
 
 const { initTestKernel } = require('./utils/testKernel.js')
 
-/* Initializes the test environment with mocked Google Apps Script services and global variables,
-ensuring that each test runs in a clean, isolated context without side effects from previous tests
-or reliance on actual spreadsheet data. */
-initTestKernel()
-
 const { QuickEntryService } = require('../build/QuickEntryService.js')
 
 /** QuickEntryService (unit) */
@@ -30,6 +25,10 @@ describe('QuickEntryService (unit)', () => {
 
   /** Create a fresh service before each test. */
   beforeEach(() => {
+    /* Initializes the test environment with mocked Google Apps Script services and global variables,
+    ensuring that each test runs in a clean, isolated context without side effects from previous tests
+    or reliance on actual spreadsheet data. */
+    initTestKernel()
     service = new QuickEntryService()
   })
 

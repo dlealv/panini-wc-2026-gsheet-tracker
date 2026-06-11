@@ -4,13 +4,165 @@
 
 const { StickerSheetRepository } = require('../build/Commons.js')
 
+/* Helper to create a test instance of StickerSheetRepository with necessary properties for unit testing. */
+function createUnitRepo () {
+  const repo = Object.create(StickerSheetRepository.prototype)
+  repo.STICKER_MIN = 0
+  repo.STICKER_MAX = 20
+  repo.countryMap = {
+    ARG: { index: 0, row: 1 },
+    BRA: { index: 1, row: 2 }
+  }
+  return repo
+}
+
 /** Unit tests for StickerSheetRepository. */
 describe('StickerSheetRepository unit tests', () => {
-  // ===========================
-  // UNIT TESTS (PURE FUNCTIONS)
-  // ===========================
+  describe('updateStickerCounts()', () => {
+    test('groups updates and applies once per country', () => {
+      const repo = createUnitRepo()
+      repo._updateCountryCounts = jest.fn()
+      repo.updateStickerCounts([
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+        { countryCode: 'BRA', stickerNumber: 3, count: 1 },
+        { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+      ])
+      expect(repo._updateCountryCounts).toHaveBeenCalledTimes(2)
+      expect(repo._updateCountryCounts).toHaveBeenCalledWith('ARG', [
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+        { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+      ])
+      expect(repo._updateCountryCounts).toHaveBeenCalledWith('BRA', [
+        { countryCode: 'BRA', stickerNumber: 3, count: 1 }
+      ])
+    })
+    test('writes grouped updates to sheet', () => {
+      const repo = createUnitRepo()
+      const setValues = jest.fn()
+      const expected = Array(21).fill(0)
+      expected[1] = 2
+      expected[5] = 4
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
+      repo.startCol = 1
+      repo.numStickerCols = 21
+      repo.updateStickerCounts([
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+        { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+      ])
+      expect(setValues).toHaveBeenCalledWith([expected])
+    })
+    test('does nothing for empty updates', () => {
+      const repo = createUnitRepo()
+      repo._updateCountryCounts = jest.fn()
+      repo.updateStickerCounts([])
+      expect(repo._updateCountryCounts).not.toHaveBeenCalled()
+    })
+  })
 
-  /** Validation tests ensure input parameters are correctly checked and errors are thrown for invalid data. */
+  describe('getCountryCounts()', () => {
+    test('returns normalized counts', () => {
+      const repo = createUnitRepo()
+      repo.countsRange = { getValues: () => [['', 1, '2', -1], [3, '', null, 'abc']] }
+      expect(repo.getCountryCounts('ARG')).toEqual([0, 1, 2, 0])
+    })
+    test('normalizes invalid values to zero', () => {
+      const repo = createUnitRepo()
+      repo.countsRange = { getValues: () => [['', null, 'abc', -1, 2]] }
+      expect(repo.getCountryCounts('ARG')).toEqual([0, 0, 0, 0, 2])
+    })
+  })
+
+  describe('getStickerCount()', () => {
+    test('returns one sticker count', () => {
+      const repo = createUnitRepo()
+      repo.countsRange = { getValues: () => [[0, 1, 2, 3]] }
+      expect(repo.getStickerCount('ARG', 2)).toBe(2)
+    })
+    test('throws when country row missing', () => {
+      const repo = createUnitRepo()
+      repo.countsRange = { getValues: () => [] }
+      expect(() => repo.getStickerCount('ARG', 1)).toThrow('No count data found for country "ARG"')
+    })
+    test('rejects invalid sticker number', () => {
+      const repo = createUnitRepo()
+      expect(() => repo.getStickerCount('ARG', 99)).
+        toThrow('Sticker number 99 is outside allowed range 0-20.')
+    })
+  })
+
+  describe('getGroupCodes()', () => {
+    test('returns unique normalized group codes preserving order', () => {
+      const repo = createUnitRepo()
+      repo.groupsRange = { getValues: () => [['a'], ['B'], ['A'], [''], [' c ']] }
+      expect(repo.getGroupCodes()).toEqual(['A', 'B', 'C'])
+    })
+  })
+
+  describe('updateStickerCounts()', () => {
+    test('groups updates and applies once per country', () => {
+      const repo = createUnitRepo()
+      repo._updateCountryCounts = jest.fn()
+      repo.updateStickerCounts([
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 }, { countryCode: 'BRA', stickerNumber: 3, count: 1 },
+        { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+      ])
+      expect(repo._updateCountryCounts).toHaveBeenCalledTimes(2)
+      expect(repo._updateCountryCounts).toHaveBeenCalledWith('ARG', [
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+        { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+      ])
+      expect(repo._updateCountryCounts).toHaveBeenCalledWith('BRA', [
+        { countryCode: 'BRA', stickerNumber: 3, count: 1 }
+      ])
+    })
+    test('does nothing for empty updates', () => {
+      const repo = createUnitRepo()
+      repo._updateCountryCounts = jest.fn()
+      repo.updateStickerCounts([])
+      expect(repo._updateCountryCounts).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('_buildCountryRecord()', () => {
+    test('valid record', () => {
+      const repo = createUnitRepo()
+      repo._toCount = jest.fn(v => Number(v))
+      const result = repo._buildCountryRecord(['ARG'], ['A'], ['https://flagcdn.com/w160/ar.png'], ['Argentina'], [1, 2, 3])
+      expect(result).toEqual({
+        code: 'ARG',
+        countryName: 'Argentina',
+        group: 'A',
+        flag: 'https://flagcdn.com/w160/ar.png',
+        counts: [1, 2, 3]
+      })
+    })
+    test('empty code returns null', () => {
+      const repo = createUnitRepo()
+      const result = repo._buildCountryRecord(
+        [''], ['A'], [''], [''], ['Argentina'], [1, 2, 3]
+      )
+      expect(result).toBeNull()
+    })
+    test('builds row and index lookup table', () => {
+      const repo = createUnitRepo()
+      repo.startRow = 5
+      repo.getCountries = jest.fn(() => [{ code: 'ARG' }, { code: 'BRA' }])
+      expect(repo._buildCountryMap()).toEqual({
+        ARG: { row: 5, index: 0 },
+        BRA: { row: 6, index: 1 }
+      })
+    })
+    test('trims and normalizes values', () => {
+      const repo = createUnitRepo()
+      repo._toCount = jest.fn(v => Number(v))
+      const result = repo._buildCountryRecord([' arg '], [' b '], [' flag '], [' Argentina '], [1])
+      expect(result.code).toBe('ARG')
+      expect(result.group).toBe('B')
+      expect(result.flag).toBe('flag')
+      expect(result.countryName).toBe('Argentina')
+    })
+  })
+
   describe('_validateStickerNumber()', () => {
     test('valid values', () => {
       const repo = createUnitRepo()
@@ -37,14 +189,6 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  // =========================
-  // LOGIC TESTS
-  // =========================
-
-  /**
-   * Logic tests verify the core behavior of pure functions, ensuring they produce correct outputs
-   * for valid inputs and handle edge cases appropriately.
-   */
   describe('_toCount()', () => {
     test('valid conversions', () => {
       const repo = createUnitRepo()
@@ -67,34 +211,6 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  /**
-   * URL validation is critical for ensuring that flag URLs are correctly identified and processed,
-   * preventing errors in flag display and data integrity.
-   */
-  describe('_isUrl()', () => {
-    test('valid urls', () => {
-      const repo = createUnitRepo()
-      expect(repo._isUrl('https://example.com')).toBe(true)
-      expect(repo._isUrl('http://example.com')).toBe(true)
-      expect(repo._isUrl(' HTTPS://example.com ')).toBe(true)
-    })
-    test('invalid urls', () => {
-      const repo = createUnitRepo()
-      expect(repo._isUrl('ftp://example.com')).toBe(false)
-      expect(repo._isUrl('example.com')).toBe(false)
-      expect(repo._isUrl('')).toBe(false)
-      expect(repo._isUrl(null)).toBe(false)
-    })
-    test('url detection ignores surrounding whitespace', () => {
-      const repo = createUnitRepo()
-      expect(repo._isUrl('  https://a.com  ')).toBe(true)
-    })
-  })
-
-  /**
-   * Country code normalization ensures that user input is standardized before lookup,
-   * improving the robustness of country data retrieval and reducing errors caused by formatting inconsistencies.
-   */
   describe('_normalizeCountryCode()', () => {
     test('normalization', () => {
       const repo = createUnitRepo()
@@ -111,7 +227,7 @@ describe('StickerSheetRepository unit tests', () => {
       expect(() => repo._normalizeCountryCode('')).
         toThrow('Country code "" was not found in the COUNTRIES named range.')
     })
-    test('normalization trims and uppercases correctly for valid lookup', () => {
+    test('normalization trims and uppercase correctly for valid lookup', () => {
       const repo = createUnitRepo()
       const result = repo._normalizeCountryCode(' arg ')
 
@@ -119,51 +235,6 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  /**
-   * Flag extraction is essential for correctly displaying country flags in the application,
-   * and handling various input formats (formula, direct URL, fallback) ensures flexibility and
-   * resilience in flag data retrieval.
-   */
-  describe('_extractFlagValue()', () => {
-    test('image formula extraction', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue(['=IMAGE("https://flag.com/ar.png")'], [''], 'ARG')
-      expect(result).toBe('https://flag.com/ar.png')
-    })
-    test('direct url', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue(['https://flag.com/br.png'], [''], 'BRA')
-      expect(result).toBe('https://flag.com/br.png')
-    })
-    test('display fallback', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue([''], ['https://flag.com/ar.png'], 'ARG')
-      expect(result).toBe('https://flag.com/ar.png')
-    })
-    test('FWC special case', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue([''], [''], 'FWC')
-      expect(result).toBe('')
-    })
-    test('invalid returns empty', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue(['invalid'], ['invalid'], 'ARG')
-      expect(result).toBe('')
-    })
-    test('image formula with spaces and case-insensitive match', () => {
-      const repo = createUnitRepo()
-      const result = repo._extractFlagValue(
-        ['=image( "https://flag.com/ar.png" )'], [''], 'ARG'
-      )
-
-      expect(result).toBe('https://flag.com/ar.png')
-    })
-  })
-
-  /**
-   * Grouping updates by country allows for efficient processing and application of changes,
-   * ensuring that all updates for a specific country are handled together.
-   */
   describe('_groupUpdatesByCountry()', () => {
     test('grouping behavior', () => {
       const repo = createUnitRepo()
@@ -195,47 +266,54 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  /**
-   * Building country records from raw data is crucial for transforming spreadsheet data
-   * into structured objects that can be easily manipulated and displayed in the application,
-   * ensuring that all relevant information (code, name, group, flag, counts) is correctly assembled.
-   */
-  describe('_buildCountryRecord()', () => {
-    test('valid record', () => {
+  describe('_buildCountryMap()', () => {
+    test('builds row and index lookup table', () => {
       const repo = createUnitRepo()
-      repo._extractFlagValue = jest.fn(() => 'flag-url')
-      repo._toCount = jest.fn(v => Number(v))
-      const result = repo._buildCountryRecord(
-        ['ARG'], ['A'], ['=IMAGE("x")'], [''], ['Argentina'], [1, 2, 3]
-      )
-
-      expect(result).toEqual({
-        code: 'ARG',
-        countryName: 'Argentina',
-        group: 'A',
-        flag: 'flag-url',
-        counts: [1, 2, 3]
+      repo.startRow = 5
+      repo.getCountries = jest.fn(() => [{ code: 'ARG' }, { code: 'BRA' }])
+      expect(repo._buildCountryMap()).toEqual({
+        ARG: { row: 5, index: 0 },
+        BRA: { row: 6, index: 1 }
       })
     })
-    test('empty code returns null', () => {
-      const repo = createUnitRepo()
-      const result = repo._buildCountryRecord(
-        [''], ['A'], [''], [''], ['Argentina'], [1, 2, 3]
-      )
+  })
 
-      expect(result).toBeNull()
+  describe('_updateCountryCounts()', () => {
+    test('updates specified stickers and preserves existing values', () => {
+      const repo = createUnitRepo()
+      const currentRow = Array(21).fill(0)
+      currentRow[1] = 1
+      currentRow[3] = 2
+      const setValues = jest.fn()
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [currentRow], setValues })) }
+      repo.startCol = 1
+      repo.numStickerCols = 21
+      repo._updateCountryCounts('ARG', [
+        { stickerNumber: 3, count: 5 },
+        { stickerNumber: 10, count: 2 }
+      ])
+      expect(setValues).toHaveBeenCalledTimes(1)
+      const written = setValues.mock.calls[0][0][0]
+      expect(written[1]).toBe(1)
+      expect(written[3]).toBe(5)
+      expect(written[10]).toBe(2)
+    })
+    test('last update wins when same sticker appears multiple times', () => {
+      const repo = createUnitRepo()
+      const setValues = jest.fn()
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
+      repo.startCol = 1
+      repo.numStickerCols = 21
+      repo._updateCountryCounts('ARG', [
+        { stickerNumber: 5, count: 1 },
+        { stickerNumber: 5, count: 3 }
+      ])
+      expect(setValues.mock.calls[0][0][0][5]).toBe(3)
+    })
+    test('rejects unknown country', () => {
+      const repo = createUnitRepo()
+      expect(() => repo._updateCountryCounts('XXX', [])).
+        toThrow('Country code "XXX" was not found in the COUNTRIES named range.')
     })
   })
 })
-
-/* Helper to create a test instance of StickerSheetRepository with necessary properties for unit testing. */
-function createUnitRepo () {
-  const repo = Object.create(StickerSheetRepository.prototype)
-  repo.STICKER_MIN = 0
-  repo.STICKER_MAX = 20
-  repo.countryMap = {
-    ARG: { index: 0, row: 1 },
-    BRA: { index: 1, row: 2 }
-  }
-  return repo
-}

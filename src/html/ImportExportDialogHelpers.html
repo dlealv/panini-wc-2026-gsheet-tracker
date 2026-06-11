@@ -59,11 +59,17 @@
     const textEl = deps.textInput || textInput
     const modeEl = deps.modeInput || modeInput
     const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
+    const sortDoneEl = deps.sortByDoneCheckbox ||
+      (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
+    const compactEl = deps.isCompactCheckbox ||
+      (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
 
     return {
       text: textEl ? textEl.value : '',
       mode: modeEl ? modeEl.value : 'update',
-      includeFlags: flagsEl ? flagsEl.checked : false
+      includeFlags: flagsEl ? flagsEl.checked : false,
+      sortByDone: sortDoneEl ? sortDoneEl.checked : false,
+      isCompact: compactEl ? compactEl.checked : false
     }
   }
 

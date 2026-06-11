@@ -5,11 +5,12 @@
 Provide a Google Apps Script solution for importing and exporting sticker count data in the `Stickers` sheet of the Panini FIFA World Cup 2026 tracker.
 
 The service must allow the user to:
-- import sticker data from text or CSV content
-- export existing sticker data back into the same text format
-- validate input before importing
-- preview parsed values before writing them
-- preserve spreadsheet formatting when updating values
+- Import sticker data from text or CSV content.
+- Export existing sticker data back into the same text format.
+- Export shared stickers of stickers (missing and repeats).
+- Validate input before importing.
+- Preview parsed values before writing them.
+- Preserve spreadsheet formatting when updating values.
 
 The service is implemented as a spreadsheet-bound Apps Script solution with an HTML dialog opened from the custom spreadsheet menu.
 
@@ -18,35 +19,39 @@ The service is implemented as a spreadsheet-bound Apps Script solution with an H
 ## Scope
 
 This service covers:
-- import of sticker counts into the spreadsheet
-- export of sticker counts from the spreadsheet
-- validation of import syntax and business rules
-- preview of parsed import values
-- file upload or manual pasting as import input
-- local download of exported data
-- clipboard copy of exported data
+- Import of sticker counts into the spreadsheet.
+- Export of sticker counts from the spreadsheet.
+- Export a shared list of repeated and missing stickers for trading.
+- Validation of import syntax and business rules.
+- Preview of parsed import values.
+- File upload or manual pasting as import input.
+- Local download of exported data.
+- Clipboard copy of exported data.
 
 This service does not cover:
-- Quick Sticker Entry behavior
-- Google Forms integration
-- external libraries
-- web app deployment
-- add-on publishing
-- special collections such as Coca-Cola stickers
+- Quick Sticker Entry behavior.
+- Google Forms integration.
+- External libraries.
+- Web app deployment.
+- Add-on publishing.
+- Special collections such as Coca-Cola stickers.
 
 ---
 
 ## Service entry points
 
 This service is accessed from the **Manage Panini** menu through:
-- `Open Import / Export Dialog`
+- `Import dialog`
+- separator
 - `Import data`
 - `Update counts clearing country counts`
 - `Update counts`
-- `Export Stickers`
+- separator
+- `Export all stickers`
+- `Export shared stickers`
 
 The service uses `ImportExportService.gs` for backend logic and the following HTML dialog files:
-`ImportExportDialog.html` (main shell), `ImportExportDialogHelpers.html` (client-side utilities), and `ImportExportDialogRender.html` (preview rendering).
+`ImportExportDialog.html` (main shell), `ImportExportDialogHelpers.html` (client-side utilities).
 
 ---
 
@@ -58,22 +63,26 @@ The service uses `ImportExportService.gs` for backend logic and the following HT
 
 ### Named ranges used by the service
 
-- `COUNTRIES`: country code column
-- `COUNTS`: writable sticker count range in the `Stickers` sheet
-- `FLAG_ICONS`: flag icons column
+- `COUNTRIES`: country code column.
+- `COUNTS`: writable sticker count range in the `Stickers` sheet.
+- `FLAG_ICONS`: flag icons column.
+- `DONE`: total count of unique stickers (not counting repeats). It helps to identify the progress of the collection for each country.
 
 **Note:** Named ranges do not necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows must match across all named ranges used together.
 
 ### Data used for export
 
-- Export reads country codes from `COUNTRIES`
-- Export reads sticker counts from `COUNTS`
-- Export reads flag icons from `FLAG_ICONS`
+- Export reads country codes from `COUNTRIES` named range.
+- Export reads sticker counts from `COUNTS` named range.
+- Export reads flag icons from `FLAG_ICONS` named range.
+- Export reads total completion from `DONE` named range.
 
 ---
 
-### Sticker classification based on its position
+## Sticker classification based on its position
+
 Consider the following definitions that the parser must take into account:
+
 - `INVALID_STICKER` (hard invalid): Outside global numeric domain or malformed. Example: `25`, `-1`, `99`. Behavior: report a warning and skip the sticker.
 - `OUT_OF_ALBUM_STICKER` (soft invalid / semantic null): Inside numeric domain `[0–20]` but not part of the album mapping for that country. Example: `FWC-20` or `0` for non-`FWC` (team country). `FWC` stickers are a special FIFA sticker category; they do not belong to any competing national team, and their range is `[0-19]`. Example: `MEX,0`, `BRA,0`. Behavior: no warning; mapped to 0; allowed on import. Not included on export.
 - `VALID_STICKER`: Stickers in range `[0-20]` with specific cases based on the type of stickers: 
@@ -98,7 +107,6 @@ One country per line. The parser supports two input formats:
   - 🇲🇽 `MEX-1,MEX-9-10` → same as: `MEX-1,MEX-9,MEX-10`.
   - `MEX-1,MEX-9-10(2)` → same as: `MEX-1,MEX-9(2),MEX-10(2)`.
 
----
 
 See the **Format 1** and **Format 2** sections below for more details.
 
@@ -114,7 +122,6 @@ See the **Format 1** and **Format 2** sections below for more details.
 
 > All steps carried out during the pre-normalization phase are performed at the line level (pre-tokenization).
 
----
 
 ### Repeat representation
 
@@ -132,7 +139,6 @@ Examples:
 
 > After the pre-normalization step, all repeats are normalized to the standard canonical form: `N(X)`, `A-B(X)`. **From this point forward in this document, repeats are represented in canonical form only.**
 
----
 
 ### Syntax rules
 
@@ -157,7 +163,6 @@ All formats enforce the following syntax rules (for simplicity, all examples use
   - *Duplicates in overlapping ranges*: `MEX,1-3,3-5(2)` is expanded internally as `MEX,1,2,3,3(2),4(2),5(2)`; therefore, the second occurrence of sticker `3` (`3(2)`) is skipped and reported as a warning.
   - *Duplicated country lines*: If a line contains `MEX,1,2,3` and another line below contains `MEX,10,11(2),13`, the second line is skipped and reported as a warning.
 
----
 
 ### Format 1 — Classic (country prefix once)
 
@@ -176,8 +181,8 @@ BRA,5-8(2),10
 MEX,1,2,3(2),5-8,10-12(2)
 ```
 
-#### Canonical line form
-After pre-normalization process and parser transformation, the country line will satisfy the following:
+### Canonical line form
+After pre-normalization and parser transformation, the country line will satisfy the following:
 
 ```text
 Format: CODE,sticker-token[,sticker-token]...
@@ -185,12 +190,10 @@ Format: CODE,sticker-token[,sticker-token]...
 
 where a `sticker-token` is either `number` or `number(repeats)`.
 
-It is a simplification of the Format 1, where sticker ranges where removed and expanded.
+It is a simplification of Format 1, where sticker ranges were removed and expanded.
 
-> "Canonical line form" refers to the internal representation after parsing and normalization have completed (delimiters unified, codes uppercased, emojis removed, repeats in canonical form, ranges expanded, duplicate stickers resolved, and exclusion processing applied when present).
+> "Canonical line form" refers to the internal representation after parsing and normalization have completed (delimiters unified, codes uppercase, emojis removed, repeats in canonical form, ranges expanded, duplicate stickers resolved, and exclusion processing applied when present).
 
-
----
 
 ### Format 2 — Per-sticker country prefix (CODE[-]N)
 
@@ -220,18 +223,16 @@ FWC-1,FWC-3-5(2)
 FWC1,FWC3-5(2)
 ```
 
----
-
 ### Range interpretation examples
 
 > All range tokens are expanded into individual sticker entries during parser transformation, before validation and deduplication.
 
-- `1-4` → stickers `1,2,3,4`
-- `1-4(2)` → stickers `1(2),2(2),3(2),4(2)`
-- `MEX-3-5` → stickers `3,4,5`
-- `MEX-3-5(2)` → stickers `3(2),4(2),5(2)`
-- `MEX3-5` → stickers `3,4,5`
-- `MEX3-5(2)` → stickers `3(2),4(2),5(2)`
+- `1-4` → stickers `1,2,3,4`.
+- `1-4(2)` → stickers `1(2),2(2),3(2),4(2)`.
+- `MEX-3-5` → stickers `3,4,5`.
+- `MEX-3-5(2)` → stickers `3(2),4(2),5(2)`.
+- `MEX3-5` → stickers `3,4,5`.
+- `MEX3-5(2)` → stickers `3(2),4(2),5(2)`.
 
 ### Duplicate sticker and range overlap
 
@@ -250,9 +251,7 @@ Examples:
 | `MEX,1,1,2,2,3,3` | `MEX,1,2,3` | stickers `1,2,3` duplicated (single consolidated warning) |
 
 
----
-
-## Sticker mapping rules for import
+### Sticker mapping rules for import
 
 - If a sticker token is written as `N`, its mapped count is `1`, unless a special sticker rule applies.
 - If a sticker token is written as `N(X)`, its mapped count is `X`, unless a special sticker rule applies.
@@ -279,9 +278,9 @@ See **Sticker classification based on its position** for the complete definition
 | `BRA,5-7(2)` | stickers `5,6,7` → `2,2,2` |
 | `MEX-1,MEX-3-5` | stickers `1,3,4,5` (after expansion) → `1,1,1,1` |
 | `MEX1,MEX3-5(2)` | stickers `1,3,4,5` (after parser transformation and range expansion) → `1,2,2,2` |
----
 
-## Exclusion operator
+
+### Exclusion operator
 
 The exclusion operator allows a collector to import only the stickers they are missing, instead of listing all the stickers they own. Since all non-ASCII characters and whitespace are stripped before parsing (pre-normalization), the operator must appear at the very beginning of the line, immediately before the first country code token.
 
@@ -291,7 +290,7 @@ The parser computes the complement after the line has been fully parsed and norm
 
 > Repeat values, if present in an exclusion line, are silently ignored — the complement always assigns a count of `1` to each resulting sticker position.
 
-### Supported operator symbols
+#### Supported operator symbols
 
 The following operator symbols are equivalent and interchangeable:
 
@@ -301,7 +300,7 @@ The following operator symbols are equivalent and interchangeable:
 | `!=` | JavaScript / Java developers |
 | `^` | Regex / set-complement notation |
 
-### Exclusion operator syntax
+#### Exclusion operator syntax
 
 The operator prefix may be applied to any valid import line format:
 
@@ -310,7 +309,7 @@ The operator prefix may be applied to any valid import line format:
 <OPERATOR> CODE[-]N[,CODE[-]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...              (Format 2)
 ```
 
-### Exclusion examples
+#### Exclusion examples
 
 | Input | Equivalent (stickers imported) |
 | --- | --- |
@@ -321,7 +320,7 @@ The operator prefix may be applied to any valid import line format:
 | `!=MEX,1,2,3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 | `^MEX1,MEX2,MEX3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 
-### Exclusion operator validation rules
+#### Exclusion operator validation rules
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of a line, only the first is recognized; the remainder are silently ignored.
@@ -329,19 +328,18 @@ The operator prefix may be applied to any valid import line format:
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat counts in exclusion lines are silently ignored; the complement always uses count `1`.
 
----
 
-## Import validation rules
+### Import validation rules
 
 The import parser is designed to be flexible: it does not abort the entire import process for recoverable situations. Instead, it distinguishes between **strict rules** that stop the process and **flexible rules** that skip the affected line or token and collect a warning.
 
-### Strict rules — stop on first occurrence, report an error
+#### Strict rules — stop on first occurrence, report an error
 
 - The overall input is empty.
 - A line contains an unrecognized structure that cannot be classified as any known format.
 - After all flexible skips are applied, no valid sticker entries remain to import.
 
-### Flexible rules — skip and continue, collect a warning
+#### Flexible rules — skip and continue, collect a warning
 
 | Condition | Behavior |
 | --- | --- |
@@ -373,86 +371,60 @@ Example:
 
 `Country "MEX": starting with MEX,1,20 (line 4) duplicate country "MEX" ignored; first occurrence wins.`
 
----
 
-## Import modes
+### Import modes
 
 The service must provide three loading modes.
 
-### 1. Import data
+#### 1. Import data
 
-- Clears all values in `COUNTS`
-- Imports all provided input data
+- Clears all values in `COUNTS`.
+- Imports all provided input data.
 
-### 2. Update counts clearing country counts
+#### 2. Update counts clearing country counts
 
-- Clears only the sticker count cells in `COUNTS` for countries present in the input
-- Imports the provided values for those same countries
-- Other countries remain unchanged
+- Clears only the sticker count cells in `COUNTS` for countries present in the input.
+- Imports the provided values for those same countries.
+- Other countries remain unchanged.
 
-### 3. Update counts
+#### 3. Update counts
 
-- Does not clear any existing values before import
-- Updates only sticker positions explicitly provided in the input
-- All other sticker counts for the country remain unchanged
+- Does not clear any existing values before import.
+- Updates only sticker positions explicitly provided in the input.
+- All other sticker counts for the country remain unchanged.
 
-> Note: For all import modes, `OUT_OF_ALBUM_STICKER` (`FWC-20` or non-`FWC-0`) are always silently populated, regardless of whether the user provided them or not.
+> For countries being processed by the import operation, OUT_OF_ALBUM_STICKER positions are always silently populated with `0`, regardless of whether the user explicitly provided them.
 
----
 
-## Data writing requirements
+### Data writing requirements
 
 During import:
 
-- only values must be written
-- existing formatting must be preserved
-- no formulas or formatting outside the target cells should be modified
+- Only values must be written.
+- Existing formatting must be preserved.
+- No formulas or formatting outside the target cells should be modified.
 
-## Import preview requirements
+### Import preview requirements
 
 The service must provide a preview step before writing values to the sheet.
 
 Preview behavior:
-- Validates the input using the same rules as import
-- Parses the data into the same mapped values that would be written
-- Does not modify the sheet
-- Returns countries and sticker counts in a UI-friendly structure
-- Includes all collected warnings alongside the preview result
+- Validates the input using the same rules as import.
+- Parses the data into the same mapped values that would be written.
+- Does not modify the sheet.
+- Returns countries and sticker counts in a UI-friendly structure.
+- Includes all collected warnings alongside the preview result.
 
 The preview is used by the dialog action **Validate / Preview**.
 Clicking **Import** directly triggers the same validation pipeline silently before writing.
 
-
-## Export dialog requirements
-
-The export dialog must:
-
-- load exported sticker data automatically when opened
-- display the exported content in a text area; if no data is available, the textarea placeholder is cleared and the status message reports zero lines generated
-- allow the user to download the exported content as a local `.txt` file
-- allow the user to copy the exported content to the clipboard
-- allow the user to close the dialog
-- provide an option, "Include flag icon before country code"; when selected, the flag emoji is prefixed to each country line in the output. This option is **off by default** — the exported output contains no flag icons unless the user explicitly enables it
-
-The export dialog must show only export-related sections and actions.
-
-Import-only controls must not be shown in export mode.
-
-### Export dialog action behavior
-
-- **Download file**
-  - downloads the exported content as a local `.txt` file
-  - browser settings determine the final download folder, typically the default Downloads folder
-
-- **Copy**
-  - copies the exported content to the clipboard
-
-- **Close**
-  - closes the export dialog
-
 ---
 
-## Export requirements
+
+
+
+
+## Export all stickers requirements
 
 The service must provide an export function that reads current sticker counts from the `COUNTS` named range and country codes from the `COUNTRIES` named range, and produces text output. The export always uses **Format 1** (classic format, with the country prefix appearing once per line and ranges expanded). No other output format is supported.
 
@@ -461,29 +433,32 @@ The service must provide an export function that reads current sticker counts fr
 One country per line.
 
 ```text
-Format: [flag] CODE,number[,number(repeats)]...
+Format: [flag] CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
 ```
+
+where `[flag]` and number-range are present if the user selected the corresponding checkboxes and refresh.
 
 ### Export rules
 
-- The default export output does **not** include flag icons; no user action is required to obtain icon-free output
-- If the user explicitly selects the option **"Include flag icon before country code"**, the flag emoji from `FLAG_ICONS` is prefixed to each line
-- Country code is read from `COUNTRIES`
-- Sticker counts are read from `COUNTS` as flat per-sticker values (no range aggregation or reconstruction is performed during export)
-- Flag icons are read from `FLAG_ICONS`
-- Only sticker counts greater than `0` are exported
-- If all sticker counts for a country are `0` or below, that country is silently omitted from the export output; the status message reports the total line count, which is sufficient to identify an empty result
-- Export only outputs individual sticker numbers (no ranges), filtered to valid positions for the selected country code
+- The default export output does **not** include flag icons; no user action is required to obtain icon-free output.
+- If the user explicitly selects the option **"Flag"**, the flag emoji from `FLAG_ICONS` is prefixed to each line.
+- If the user explicitly selects the option **"Compact (using ranges)"**, consecutive stickers are compacted using ranges.
+- Country code is read from `COUNTRIES`.
+- Sticker counts are read from `COUNTS` as flat per-sticker values (no range aggregation or reconstruction is performed during export).
+- Flag icons are read from `FLAG_ICONS`.
+- Only sticker counts greater than `0` are exported.
+- If all sticker counts for a country are `0` or below, that country is silently omitted from the export output; the status message reports the total line count, which is sufficient to identify an empty result.
+- Export only outputs individual sticker numbers (no ranges), filtered to valid positions for the selected country code.
 - Exported sticker values follow these rules:
-  - count `1` → export as `number`
-  - count greater than `1` → export as `number(repeats)`
-- Sticker `0` must be exported only for `FWC`
-- Sticker `20` must be exported only for non-`FWC` country codes
-- Invalid sticker positions must never appear in exported output, even if the sheet contains a positive stored value
+  - count `1` → export as `number`.
+  - count greater than `1` → export as `number(repeats)`.
+- Sticker `0` must be exported only for `FWC`.
+- Sticker `20` must be exported only for non-`FWC` country codes.
+- Invalid sticker positions must never appear in exported output, even if the sheet contains a positive stored value.
 
 Examples:
-- `MEX,0` must never appear in exported output
-- `FWC,20` must never appear in exported output
+- `MEX,0` must never appear in exported output.
+- `FWC,20` must never appear in exported output.
 
 ### Export example
 
@@ -492,23 +467,129 @@ If the tracker contains these counts for country code `FWC`:
 > Note: Each sticker is stored and exported independently; no range reconstruction is performed.
 
 | Sticker | Stored count |
-| --- | --- |
-| `1` | `1` |
-| `5` | `2` |
-| `18` | `1` |
+| ---     | ---          |
+| `1`     | `1`          |
+| `5`     | `2`          |
+| `7`     | `1`          |
+| `8`     | `1`          |
+| `10`    | `2`          |
+| `11`    | `2`          |
+| `18`    | `1`          |
 
 Then the export line must be:
 
 ```text
-FWC,1,5(2),18
+FWC,1,5(2),7,8,10(2),11(2),18
+```
+If checkbox **Compact (using ranges)** the output will be compacted as follows:
+
+```text
+FWC,1,5(2),7-8,10-11(2),18
 ```
 
 ### Export output usage
 
 The exported content can be:
-- copied to the clipboard
-- downloaded as a local `.txt` file
-- reused later as import input
+- Copied to the clipboard.
+- Downloaded as a local `.txt` file.
+- Reused later as import input.
+
+---
+
+## Export shared stickers requirements
+
+The service must provide an export function that reads current sticker counts from the `COUNTS` named range and produces a shareable text representation composed of two sections: repeated stickers and missing stickers.
+
+The output follows the same export principles as Export all stickers, but applies filtering rules to generate lists intended for sharing with other collectors.
+
+### Output structure
+
+The output consists of two sections.
+
+The first section contains the list of repeated stickers. The second section contains the list of missing stickers. The two sections are separated by a single blank line.
+
+Each section begins with a header line. The header is part of the exported text and is included when copying or downloading the export.
+
+Example:
+
+```text
+Output generated by: https://bit.ly/panini-wc2026-gsheet-tracker
+
+🔄 Repeated stickers
+MEX,6,7,9,11,14
+RSA,1,4,5,8,20
+KOR,2,7,8,9,14
+
+❌ Missing stickers
+MEX,1,2,3,5,10,20
+RSA,2,3,6,7
+KOR,1,3,5,13,16
+```
+
+With **Compact (using range)** checkbox enabled, the output becomes:
+- `7,8,9` → `7-9`
+- `1,2,3` → `1-3`
+
+> Notice the output of this services, doesn't include repeats, i.e. `1(2)`.
+
+
+### Repeated stickers
+
+This section contains all stickers whose stored count is greater than `1`.
+
+- Header of the section: `🔄 Repeated stickers`.
+- A repeated sticker is a sticker with count greater than `1`.
+- Each sticker is exported only once per country, regardless of how many copies exist.
+- Sticker repetition notation is not exported.
+- Countries are ordered according to the `COUNTRIES` named range.
+- If the user has no repeated stickers, below the header will show: `No repeated stickers available for trade.`
+
+For example, if sticker `7` has a stored count of `3`, the exported value is `7` and not `7(3)`.
+
+### Missing stickers
+
+This section contains all stickers whose stored count is equal to `0`.
+
+- Header of the section: `❌ Missing stickers`.
+- A missing sticker is a sticker with count equal to `0`.
+- Countries are ordered according to the `COUNTRIES` named range by default.
+- If the user has no missing sticker, below the header will show: `No missing stickers, album complete. Congratulations!`.
+
+The user may optionally enable sorting by completion. When enabled, countries in the missing stickers section are ordered using the `DONE` named range in descending order. This sorting applies only to the missing stickers section. The user can select this option by selecting the **Sort by Done (descending) missing stickers** checkbox.
+
+### Common rules
+
+Both sections use the same country line format and export rules defined in Export all stickers.
+
+```text
+Format: [flag] CODE,number[,number-range]...
+```
+
+The default export output does not include flag icons nor `number-ranges`. 
+
+If the user selects the checkbox **Compact (using ranges)**, then the output is compacted using ranges, instead of `1,2,3` the output will be `1-3`.
+
+If the user explicitly selects the option **Flag**, the flag icon from `FLAG_ICONS` is prefixed to each country line in both sections.
+
+Countries that do not contain any stickers matching the filter criteria for a section are omitted from that section.
+
+### Compact view
+
+The export supports an optional Compact view mode.
+
+When enabled, consecutive sticker numbers are compressed into ranges.
+
+```text
+Format: [flag] CODE,sticker-token[,sticker-token]...
+```
+
+where a sticker-token is either a number or a number-range.
+
+Examples:
+- `1,2,3` → `1-3`
+- `1,2,3,7,8,10` → `1-3,7-8,10`
+
+Compact view applies independently to both sections. Compact view is disabled by default.
 
 ---
 
@@ -522,56 +603,120 @@ Custom menu name:
 - `Manage Panini`
 
 Menu options related to this service:
-- `Open Import / Export Dialog`
-- `Import data`
-- `Update counts clearing country counts`
-- `Update counts`
-- `Export Stickers`
+- `Import dialog`
+- separator
+  - `Import data`
+  - `Update counts clearing country counts`
+  - `Update counts`
+- separator
+- `Export all stickers`
+- `Export shared stickers`
 
 ### Menu behavior
 
-- `Open Import / Export Dialog` opens the dialog in import mode with the default import mode preselected
-- `Import data` opens the dialog in import mode with **Import data** preselected
-- `Update counts clearing country counts` opens the dialog in import mode with that mode preselected
-- `Update counts` opens the dialog in import mode with that mode preselected
-- `Export Stickers` opens the dialog in export mode
+- `Import dialog` opens the dialog in import mode with the default import mode preselected.
+- `Import data` opens the dialog in import mode with **Import data** preselected.
+- `Update counts clearing country counts` opens the dialog in import mode with that mode preselected.
+- `Update counts` opens the dialog in import mode with that mode preselected.
+- `Export all stickers` opens the dialog to export all stickers with default options enabled.
+- `Export shared stickers` opens the dialog to export the shared list of repeated and missing stickers.
 
 ---
 
-## Import dialog requirements
+### Import dialog requirements
 
 The import dialog must allow the user to:
-- upload a file
-- paste input text
-- select a loading mode
-- validate and preview the parsed result
-- clear the input
-- import the data
-- cancel the dialog
+- Upload a file.
+- Paste input text.
+- Select a loading mode.
+- Validate and preview the parsed result.
+- Clear the input.
+- Import the data.
+- Cancel the dialog.
 
 The import dialog must show only import-related sections and actions.
 Export-only controls must not be shown in import mode.
 
-### Import dialog action behavior
+#### Import dialog action behavior
 
 - **Validate / Preview**
-  - validates syntax and business rules
-  - shows the mapped values without writing to the sheet
-  - displays all collected warnings (e.g. skipped unknown country codes, skipped duplicate stickers)
-  - displays the first error encountered, if any, and stops; the user must correct the input and try again
+  - Validates syntax and business rules.
+  - Shows the mapped values without writing to the sheet.
+  - Displays all collected warnings (e.g. skipped unknown country codes, skipped duplicate stickers).
+  - Displays the first error encountered, if any, and stops; the user must correct the input and try again.
 
 - **Clear**
-  - clears the selected file
-  - clears pasted text
-  - clears the preview and message
-  - resets controls to a usable state
+  - Clears the selected file.
+  - Clears pasted text.
+  - Clears the preview and message.
+  - Resets controls to a usable state.
 
 - **Import**
-  - runs the same validation pipeline as **Validate / Preview** before writing
-  - imports validated data using the selected loading mode
+  - Runs the same validation pipeline as **Validate / Preview** before writing.
+  - Imports validated data using the selected loading mode.
 
 - **Cancel**
-  - closes the dialog without importing
+  - Closes the dialog without importing.
 
 ---
 
+### Export all stickers dialog requirements
+
+The export dialog must:
+
+- Load exported sticker data automatically when opened.
+- Display the exported content in a text area; if no data is available, the textarea placeholder is cleared and the status message reports zero lines generated.
+- Allow the user to download the exported content as a local `.txt` file.
+- Allow the user to copy the exported content to the clipboard.
+- Allow the user to close the dialog.
+- Allow the user to refresh data to update the output based on checkboxes selected.
+- Provide a option (checkbox), **Flag**; when selected, the flag emoji is prefixed to each country line in the output. This option is **off by default** — the exported output contains no flag icons unless the user explicitly enables it.
+- Provide an option (checkbox), **Compact (using ranges)**; when selected, the consecutive stickers will be compacted using ranges, i.e. `1,2,3` → `1-3` or `1(2),2(2),3(2)` → `1-3(2). This option is **off by default** — the exported output contains no ranges unless the user explicitly enables it.
+
+The export dialog must show only export-related sections and actions.
+
+Import-only controls must not be shown in export mode.
+
+#### Export all stickers dialog action behavior
+
+- **Download file**
+  - Downloads the exported content as a local `.txt` file.
+  - Browser settings determine the final download folder, typically the default Downloads folder.
+
+- **Copy**
+  - Copies the exported content to the clipboard.
+
+- **Close**
+  - Closes the export dialog.
+- **Refresh**
+  - Refresh output data based on user checkboxes selection.
+
+### Export shared stickers dialog requirements
+
+The Export shared stickers dialog must:
+
+- Load the generated shared list automatically when opened.
+- Display the generated content in a text area; if no data is available, the textarea placeholder is cleared and the status message reports zero lines generated.
+- Allow the user to download the generated content as a local `.txt` file.
+- Allow the user to copy the generated content to the clipboard.
+- Allow the user to close the dialog.
+- Provide an option (checkbox), **Flag**; when selected, the flag icon is prefixed to each country line in both sections of the output. This option is off by default.
+- Provide an option (checkbox), **Sort by Done (descending) missing stickers**; when selected, countries in the Missing stickers section are sorted using the `DONE` named range in descending order. This option is off by default.
+- Provide an option, **Compact (using ranges)**; when selected, consecutive sticker numbers are compressed into ranges. This option is off by default.
+
+#### Export shared stickers dialog action behavior
+
+- **Download file**
+  - Downloads the generated content as a local `.txt` file.
+  - Browser settings determine the final download folder, typically the default Downloads folder.
+
+- **Copy**
+  - Copies the generated content to the clipboard.
+
+- **Close**
+  - Closes the dialog.
+
+  - **Refresh**
+  - Refresh output data based on user checkboxes selection.
+  
+---

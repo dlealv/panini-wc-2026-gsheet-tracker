@@ -12,3 +12,4 @@ package-lock.json
 .Spotlight-V100
 .Trashes
 .fseventsd
+.vscode/
