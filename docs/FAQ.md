@@ -18,6 +18,19 @@ instead of:
 ```text
 <>MEX,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 ```
+
+### Can I use the exclusion operator to import all stickers?
+You may think that entering: 
+
+```text
+<>MEX
+```
+Will be interpreted as import all stickers from Mexico, but actually this produce a warning, since the exclusion operator after a country code expects the list of stickers. The correct way to achieve it is not using the exclusion operator and instead:
+
+```text
+MEX,1-20
+```
+
 ---
 
 ## Google Access/Security Questions

@@ -15,12 +15,13 @@
 class StickerSheetRepository {
   /** Creates a repository for sticker data. */
   constructor() {
-    this.SHEET_NAME = 'Stickers'
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
     this.GROUPS_RANGE_NAME = 'GROUPS'
-    this.FLAGS_RANGE_NAME = 'FLAGS_URL'
+    this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
+    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
+    this.DONE_RANGE_NAME = 'DONE'
     this.STICKER_MIN = 0
     this.STICKER_MAX = 20
     this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
@@ -29,8 +30,10 @@ class StickerSheetRepository {
     this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)
     this.countsRange = this.ss.getRangeByName(this.COUNTS_RANGE_NAME)
     this.groupsRange = this.ss.getRangeByName(this.GROUPS_RANGE_NAME)
-    this.flagsRange = this.ss.getRangeByName(this.FLAGS_RANGE_NAME)
+    this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
+    this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
     this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
+    this.doneRange = this.ss.getRangeByName(this.DONE_RANGE_NAME)
 
     this._validateRanges()
     this.sheet = this.countsRange.getSheet()
@@ -41,30 +44,32 @@ class StickerSheetRepository {
     this.countryMap = this._buildCountryMap()
   }
 
-  /** Returns all countries with group, flag, country name, and count data. */
-  getCountries() {
-    const countryValues = this.countriesRange.getValues()
-    const countValues = this.countsRange.getValues()
-    const groupValues = this.groupsRange.getValues()
-    const flagFormulaValues = this.flagsRange.getFormulas()
-    const flagDisplayValues = this.flagsRange.getDisplayValues()
-    const countryNameValues = this.countryNamesRange.getDisplayValues()
+  // Getters for named ranges and sheet info
+  getCountriesRange() { return this.countriesRange }
+  getCountsRange() { return this.countsRange }
+  getDoneRange() { return this.doneRange }
+  getFlagIconsRange() { return this.flagIconsRange }
+  getFlagsUrlRange() { return this.flagsUrlRange }
+  getCountryNamesRange() { return this.countryNamesRange }
+  getSheet() { return this.sheet }
+  getStartRow() { return this.startRow }
+  getStartCol() { return this.startCol }
+  getNumRows() { return this.numRows }
+  getNumStickerCols() { return this.numStickerCols }
 
-    return countryValues
-      .map((row, index) => {
-        return this._buildCountryRecord(
-          row,
-          groupValues[index],
-          flagFormulaValues[index],
-          flagDisplayValues[index],
-          countryNameValues[index],
-          countValues[index]
-        )
-      })
-      .filter(Boolean)
-  }
-
-  /** Returns all distinct group codes in sheet order. */
+  /** Returns all distinct group codes in sheet order. 
+   * This method retrieves all group codes from the GROUPS named range, normalizes them by trimming whitespace and 
+   * converting to uppercase, and then filters out any empty values. Finally, it returns an array of unique group codes 
+   * while preserving their original order in the sheet. This allows the application to provide accurate group filtering 
+   * options based on the data defined in the spreadsheet.
+   * Example return value: ['A', 'B', 'C']
+   * If the GROUPS range contains duplicate or empty values, they will be filtered out and only unique, non-empty group 
+   * codes will be returned.
+   * For instance, if the GROUPS range has values ['A', 'B', 'A', '', 'C'], the method will return ['A', 'B', 'C'].
+   * If the GROUPS range is empty or contains only empty values, the method will return an empty array.
+   * If the GROUPS range contains values with extra whitespace or mixed case (e.g., [' a ', 'B', 'c ']), the method 
+   * will normalize them to ['A', 'B', 'C'] before returning.
+  */
   getGroupCodes() {
     const groups = this.groupsRange.getValues()
       .map(row => String(row[0] || '').trim().toUpperCase())
@@ -72,7 +77,16 @@ class StickerSheetRepository {
     return Array.from(new Set(groups))
   }
 
-  /** Returns all sticker counts for one country. */
+
+  /** Returns all sticker counts for one country.
+   * @param {string} countryCode - The country code to retrieve counts for.
+   * This method first normalizes and validates the provided country code against the country map built from the COUNTRIES 
+   * named range. 
+   * It then retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index. 
+   * The raw values from the sheet are converted to non-negative integers using the _toCount helper method, which ensures 
+   * that any empty, null, or invalid values are treated as zero. Finally, it returns an array of sticker counts for the 
+   * specified country, where each index corresponds to a sticker number (0-20).
+   */
   getCountryCounts(countryCode) {
     const normalizedCountryCode = this._normalizeCountryCode(countryCode)
     const countryIndex = this.countryMap[normalizedCountryCode].index
@@ -82,18 +96,32 @@ class StickerSheetRepository {
 
   /** Returns one stored sticker count. */
   getStickerCount(countryCode, stickerNumber) {
-  const validStickerNumber = this._validateStickerNumber(stickerNumber)
-  const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-  const countryIndex = this.countryMap[normalizedCountryCode].index
-  const countValues = this.countsRange.getValues()[countryIndex]
+    const validStickerNumber = this._validateStickerNumber(stickerNumber)
+    const normalizedCountryCode = this._normalizeCountryCode(countryCode)
+    const countryIndex = this.countryMap[normalizedCountryCode].index
+    const countValues = this.countsRange.getValues()[countryIndex]
 
-  if (!countValues) {
-    throw new Error(`No count data found for country "${countryCode}"`)
+    if (!countValues) {
+      throw new Error(`No count data found for country "${countryCode}"`)
+    }
+    return countValues.map(v => this._toCount(v))[validStickerNumber]
   }
-  return countValues.map(v => this._toCount(v))[validStickerNumber]
-}
 
-  /** Updates multiple sticker counts in one batch write. */
+  /** Updates multiple sticker counts in one batch write. 
+   * @param {Array} updates - An array of update objects, each containing a countryCode, stickerNumber, and count.
+   * The method first groups the updates by country code to minimize the number of sheet writes. Then, for each country, 
+   * it retrieves the current sticker counts from the sheet, applies all relevant updates to the in-memory array, 
+   * and writes the updated counts back to the sheet in a single operation. This approach optimizes performance by 
+   * reducing the number of interactions with the spreadsheet, which can be slow if done repeatedly for individual updates.
+   * Example of updates parameter:
+   * [
+   *   { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+   *   { countryCode: 'BRA', stickerNumber: 3, count: 1 },
+   *   { countryCode: 'ARG', stickerNumber: 5, count: 4 }
+   * ]
+   * In this example, the method would group updates for 'ARG' together and apply them in one write, and then 
+   * apply the update for 'BRA' in another write.
+  */
   updateStickerCounts(updates) {
     const groupedUpdates = this._groupUpdatesByCountry(updates)
     Object.keys(groupedUpdates).forEach(countryCode => {
@@ -103,21 +131,14 @@ class StickerSheetRepository {
 
   /** Validates required named ranges. */
   _validateRanges() {
-    if (!this.countriesRange) {
-      throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" not found.`)
-    }
-    if (!this.countsRange) {
-      throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`)
-    }
-    if (!this.groupsRange) {
-      throw new Error(`Named range "${this.GROUPS_RANGE_NAME}" not found.`)
-    }
-    if (!this.flagsRange) {
-      throw new Error(`Named range "${this.FLAGS_RANGE_NAME}" not found.`)
-    }
-    if (!this.countryNamesRange) {
-      throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`)
-    }
+    if (!this.countriesRange) { throw new Error(`Named range "${this.COUNTRIES_RANGE_NAME}" not found.`) }
+    if (!this.countsRange) { throw new Error(`Named range "${this.COUNTS_RANGE_NAME}" not found.`) }
+    if (!this.groupsRange) { throw new Error(`Named range "${this.GROUPS_RANGE_NAME}" not found.`) }
+    if (!this.flagsUrlRange) { throw new Error(`Named range "${this.FLAGS_URL_RANGE_NAME}" not found.`) }
+    if (!this.flagIconsRange) { throw new Error(`Named range "${this.FLAG_ICONS_RANGE_NAME}" not found.`) }
+    if (!this.countryNamesRange) { throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" not found.`) }
+    if (!this.doneRange) { throw new Error(`Named range "${this.DONE_RANGE_NAME}" not found.`) }
+
     this._validateRangeShape()
   }
 
@@ -129,8 +150,8 @@ class StickerSheetRepository {
     if (this.groupsRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.GROUPS_RANGE_NAME}" must contain exactly 1 column.`)
     }
-    if (this.flagsRange.getNumColumns() !== 1) {
-      throw new Error(`Named range "${this.FLAGS_RANGE_NAME}" must contain exactly 1 column.`)
+    if (this.flagsUrlRange.getNumColumns() !== 1) {
+      throw new Error(`Named range "${this.FLAGS_URL_RANGE_NAME}" must contain exactly 1 column.`)
     }
     if (this.countryNamesRange.getNumColumns() !== 1) {
       throw new Error(`Named range "${this.COUNTRY_NAMES_RANGE_NAME}" must contain exactly 1 column.`)
@@ -150,9 +171,9 @@ class StickerSheetRepository {
         `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.GROUPS_RANGE_NAME}" must have the same number of rows.`
       )
     }
-    if (this.countriesRange.getNumRows() !== this.flagsRange.getNumRows()) {
+    if (this.countriesRange.getNumRows() !== this.flagsUrlRange.getNumRows()) {
       throw new Error(
-        `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.FLAGS_RANGE_NAME}" must have the same number of rows.`
+        `Named ranges "${this.COUNTRIES_RANGE_NAME}" and "${this.FLAGS_URL_RANGE_NAME}" must have the same number of rows.`
       )
     }
     if (this.countriesRange.getNumRows() !== this.countryNamesRange.getNumRows()) {
@@ -162,22 +183,49 @@ class StickerSheetRepository {
     }
   }
 
-  /** Builds a country map for direct lookup. */
+  /** Builds a country map for direct lookup. 
+   * @return {Object} countryMap mapping country codes to their row and index in the named ranges.
+   * The country map is built by iterating through the countries defined in the COUNTRIES named range and creating an object where each key is a normalized country code, and the value is an object containing the row number in the sheet and the index of the country in the named range. This allows for efficient lookup of country data when updating counts or retrieving information based on country codes.
+   * Example structure of countryMap:
+   *  {
+   *    "FWC": { row: 1, index: 0 },
+   *    "MEX": { row: 2, index: 1 }
+   *  }
+  */
   _buildCountryMap() {
     const countryMap = {}
-
     this.getCountries().forEach((country, index) => {
       countryMap[country.code] = {
         row: this.startRow + index,
         index
       }
     })
-
     return countryMap
   }
 
+  /** Returns all countries with group, flag, country name, and count data. */
+  getCountries() {
+    const countryValues = this.countriesRange.getValues()
+    const countValues = this.countsRange.getValues()
+    const groupValues = this.groupsRange.getValues()
+    const flagValues = this.flagsUrlRange.getDisplayValues()
+    const countryNameValues = this.countryNamesRange.getDisplayValues()
+
+    return countryValues
+      .map((row, index) => {
+        return this._buildCountryRecord(
+          row,
+          groupValues[index],
+          flagValues[index],
+          countryNameValues[index],
+          countValues[index]
+        )
+      })
+      .filter(Boolean)
+  }
+
   /** Builds one country record from named range rows. */
-  _buildCountryRecord(countryRow, groupRow, flagFormulaRow, flagDisplayRow, countryNameRow, countRow) {
+  _buildCountryRecord(countryRow, groupRow, flagRow, countryNameRow, countRow) {
     const countryCode = String(countryRow[0] || '').trim().toUpperCase()
     if (!countryCode) {
       return null
@@ -189,7 +237,7 @@ class StickerSheetRepository {
       code: countryCode,
       countryName,
       group: groupCode,
-      flag: this._extractFlagValue(flagFormulaRow, flagDisplayRow, countryCode),
+      flag: String(flagRow[0] || '').trim(),
       counts: countRow.map(value => this._toCount(value))
     }
   }
@@ -253,33 +301,4 @@ class StickerSheetRepository {
     return numericValue
   }
 
-  /** Extracts a renderable flag value from FLAGS named range rows. */
-  _extractFlagValue(flagFormulaRow, flagDisplayRow, countryCode) {
-    const formulaValue = flagFormulaRow && flagFormulaRow[0] ? String(flagFormulaRow[0]).trim() : ''
-    const displayValue = flagDisplayRow && flagDisplayRow[0] ? String(flagDisplayRow[0]).trim() : ''
-
-    if (formulaValue) {
-      const imageUrlMatch = formulaValue.match(/IMAGE\(\s*"([^"]+)"/i)
-      if (imageUrlMatch) {
-        return imageUrlMatch[1]
-      }
-      if (this._isUrl(formulaValue)) {
-        return formulaValue
-      }
-    }
-
-    if (this._isUrl(displayValue)) {
-      return displayValue
-    }
-    if (countryCode === 'FWC') {
-      return ''
-    }
-
-    return ''
-  }
-
-  /** Returns whether a text value is an http or https URL. */
-  _isUrl(value) {
-    return /^https?:\/\//i.test(String(value || '').trim())
-  }
 }

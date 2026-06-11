@@ -61,7 +61,8 @@ module.exports = {
         // allow flexible spacing in tests (describe blocks, nested suites, etc.)
         'padding-line-between-statements': 'off',
         // keep tests readable
-        'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }]
+        'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0, maxBOF: 0 }],
+        'the-step-down-rule/the-step-down-rule': 'off'
       }
     }
   ]

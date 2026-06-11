@@ -238,16 +238,6 @@ describe('setMessage()', () => {
     expect(el.className).toBe('message success')
   })
 })
-/*
-test('updates message element text and class', () => {
-  const el = { className: '', textContent: '' }
-  console.log('BEFORE:', el)
-  helpers.setMessage(el, 'Updated', 'success')
-  console.log('AFTER:', el)
-  expect(el.textContent).toBe('Updated')
-  expect(el.className).toBe('message success')
-})
-  */
 
 /** Tests for functions that update CSS variables to adjust layout based on user-selected options. */
 describe('applyLayout()', () => {

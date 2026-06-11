@@ -11,15 +11,15 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Manage Panini')
-    .addItem('Open Import / Export Dialog', 'showImportExportDialog')
-    .addSeparator()
+    .addItem('Open import dialog', 'showImportExportDialog')
     .addItem('Import data', 'showImportDialogCleanAll')
     .addItem('Update counts clearing country counts', 'showImportDialogReplaceCountries')
     .addItem('Update counts', 'showImportDialogUpdate')
     .addSeparator()
-    .addItem('Export Stickers', 'showExportDialog')
+    .addItem('Export all stickers', 'showExportAllDialog')
+    .addItem('Export shared stickers', 'showExportSharedDialog')
     .addSeparator()
-    .addItem('Quick Sticker Entry', 'showQuickStickerEntryDialog')
+    .addItem('Quick sticker entry', 'showQuickStickerEntryDialog')
     .addToUi()
 }
 
@@ -43,9 +43,14 @@ function showImportExportDialog() {
   showImportExportDialog_('import', 'update')
 }
 
-/** Opens the import/export dialog in export mode. */
-function showExportDialog() {
-  showImportExportDialog_('export', 'update')
+/** Opens the export-all dialog. */
+function showExportAllDialog() {
+  showImportExportDialog_('export_all', 'update')
+}
+
+/** Opens the export-shared dialog. */
+function showExportSharedDialog() {
+  showImportExportDialog_('export_shared', 'update')
 }
 
 /** Opens the import/export dialog with the provided mode configuration. */
@@ -59,9 +64,15 @@ function showImportExportDialog_(dialogMode, defaultMode) {
     .setWidth(760)
     .setHeight(760)
 
+  const titles = {
+    import: 'Import sticker counts',
+    export_all: 'Export all stickers',
+    export_shared: 'Export shared stickers'
+  }
+
   SpreadsheetApp.getUi().showModalDialog(
     html,
-    dialogMode === 'export' ? 'Export Stickers' : 'Import sticker counts'
+    titles[dialogMode] || 'Manage Panini'
   )
 }
 
@@ -80,10 +91,14 @@ function importStickerData(payload) {
   )
 }
 
-/** Exports sticker data from the sheet. */
-function exportStickerData(payload) {
-  const app = new ImportExportService()
-  return app.exportData(payload && payload.includeFlags)
+/** Exports all sticker data from the sheet. */
+function exportAllStickerData(payload) {
+  return ImportExportService.exportStickerData(payload)
+}
+
+/** Exports shared sticker data from the sheet. */
+function exportSharedStickerData(payload) {
+  return ImportExportService.exportSharedStickerData(payload)
 }
 
 /** Opens the Quick Sticker Entry dialog. */

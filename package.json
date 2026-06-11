@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "jest",
-    "test:all": "npm run build && npm run test",
+    "test": "npm run build && jest",
     "lint": "eslint .",
     "lint:fix": "npm run fix-jsdoc && eslint . --no-cache --fix",
     "lint:info": "eslint . --format stylish",

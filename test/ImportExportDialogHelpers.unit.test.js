@@ -2,13 +2,10 @@
 
 /** Unit tests for ImportExportDialogHelpers. */
 
-const { initTestKernel } = require('./utils/testKernel.js')
 const { helpers } = require('../build/ImportExportDialogHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 describe('ImportExportDialogHelpers unit tests', () => {
-  beforeEach(() => initTestKernel())
-
   /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
   describe('buildExportFileName()', () => {
     test('formats date correctly', () => {
@@ -39,23 +36,21 @@ describe('ImportExportDialogHelpers unit tests', () => {
       global.modeInput = null
       global.includeFlagsCheckbox = null
       const result = helpers.getUIState()
-      expect(result).toEqual({ text: '', mode: 'update', includeFlags: false })
+      expect(result).toEqual({ text: '', mode: 'update', includeFlags: false, sortByDone: false, isCompact: false })
     })
     test('reads values from mocked inputs', () => {
       global.textInput = { value: 'abc' }
       global.modeInput = { value: 'import' }
       global.includeFlagsCheckbox = { checked: true }
       const result = helpers.getUIState()
-      expect(result).toEqual({ text: 'abc', mode: 'import', includeFlags: true })
+      expect(result).toEqual({ text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false })
     })
     test('returns same result as getUIState', () => {
       global.textInput = { value: 'abc' }
       global.modeInput = { value: 'import' }
       global.includeFlagsCheckbox = { checked: true }
       expect(helpers.getPayload()).toEqual({
-        text: 'abc',
-        mode: 'import',
-        includeFlags: true
+        text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false
       })
     })
   })
@@ -153,9 +148,7 @@ describe('getUIState()', () => {
     global.includeFlagsCheckbox = null
     const result = helpers.getUIState()
     expect(result).toEqual({
-      text: '',
-      mode: 'update',
-      includeFlags: false
+      text: '', mode: 'update', includeFlags: false, sortByDone: false, isCompact: false
     })
   })
   test('reads values from DOM inputs', () => {
@@ -164,9 +157,7 @@ describe('getUIState()', () => {
     global.includeFlagsCheckbox = { checked: true }
     const result = helpers.getUIState()
     expect(result).toEqual({
-      text: 'abc',
-      mode: 'import',
-      includeFlags: true
+      text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false
     })
   })
 })

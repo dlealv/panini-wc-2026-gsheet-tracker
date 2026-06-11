@@ -1,0 +1,370 @@
+<style>
+  /* src/html/QuickEntryDialogStyles.html
+   * Styles specific to the Quick Entry Dialog. This file is included in QuickEntryDialog.html
+   */
+  :root {
+    --pending: #f29900;
+    --pending-text: #c5221f;
+    --count-0-bg: #ffffff;
+    --count-0-text: #202124;
+    --count-1-bg: #cfe2f3;
+    --count-1-text: #202124;
+    --count-2-bg: #fff200;
+    --count-2-text: #202124;
+    --count-3-bg: #f6b26b;
+    --count-3-text: #202124;
+    --count-4-bg: #d9d2e9;
+    --count-4-text: #202124;
+    --count-5-plus-bg: #e06666;
+    --count-5-plus-text: #202124;
+    --completed-bg: #0b5394;
+    --completed-text: #ffffff;
+    --scrollbar-width: 12px;
+    --stickers-per-row: 8;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    padding: 16px;
+  }
+
+  .container {
+    height: calc(100vh - 32px);
+    overflow: hidden;
+  }
+
+  .top-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .top-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.7fr) minmax(150px, 0.85fr) auto auto auto auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-swatch {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    background: #fff;
+    flex: 0 0 auto;
+  }
+
+  .legend-swatch.count-0 {
+    background: var(--count-0-bg);
+  }
+
+  .legend-swatch.count-1 {
+    background: var(--count-1-bg);
+  }
+
+  .legend-swatch.count-2 {
+    background: var(--count-2-bg);
+  }
+
+  .legend-swatch.count-3 {
+    background: var(--count-3-bg);
+  }
+
+  .legend-swatch.count-4 {
+    background: var(--count-4-bg);
+  }
+
+  .legend-swatch.count-5-plus {
+    background: var(--count-5-plus-bg);
+  }
+
+  .legend-swatch.pending {
+    position: relative;
+    background: #fff;
+  }
+
+  .legend-swatch.pending::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pending);
+  }
+
+  .legend-swatch.completed {
+    background: var(--completed-bg);
+    border-color: var(--completed-bg);
+  }
+
+  .filter-input,
+  .filter-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .message.pending {
+    color: var(--pending-text);
+    font-weight: 700;
+  }
+
+  .country-list-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .country-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding-right: 4px;
+    scrollbar-gutter: stable;
+  }
+
+  .country-list::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+  }
+
+  .country-list::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 999px;
+  }
+
+  .country-list::-webkit-scrollbar-thumb {
+    background: #c1c7cd;
+    border-radius: 999px;
+    border: 2px solid #f1f3f4;
+  }
+
+  .country-list::-webkit-scrollbar-thumb:hover {
+    background: #a8b0b8;
+  }
+
+  .country-section {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  .country-section.completed {
+    background: var(--completed-bg);
+    color: var(--completed-text);
+  }
+
+  .country-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .country-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .country-flag {
+    width: 48px;
+    height: 28px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: #fff;
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .country-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .summary-value {
+    font-weight: 700;
+  }
+
+  .sticker-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .sticker-grid.compact {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .sticker-row {
+    display: grid;
+    grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .sticker-row.last-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* Each sticker card represents one sticker and its count. The card's background color changes based on 
+  the count of stickers. */
+  .sticker-card {
+    position: relative;
+    min-height: 0;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 4px 6px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: var(--text);
+    aspect-ratio: 1 / 1;
+  }
+
+  /* For regular rows, we use a CSS grid with a fixed number of columns (defined by the --stickers-per-row variable) 
+  to ensure consistent sizing and spacing of sticker cards. For the last row, if it has fewer stickers than the 
+  defined columns, we switch to a flex layout that centers the remaining sticker cards and adjusts their width 
+  to fill the available space while maintaining the gap. The compact grid layout also uses flexbox to wrap sticker 
+  cards and adjust their width based on the number of stickers per row, ensuring a responsive design. */
+  .sticker-row.last-row .sticker-card,
+  .sticker-grid.compact .sticker-card {
+    width: calc((100% - (7 * 6px)) / 8);
+  }
+
+  .sticker-card.count-0 {
+    background: var(--count-0-bg);
+    color: var(--count-0-text);
+  }
+
+  .sticker-card.count-1 {
+    background: var(--count-1-bg);
+    color: var(--count-1-text);
+  }
+
+  .sticker-card.count-2 {
+    background: var(--count-2-bg);
+    color: var(--count-2-text);
+  }
+
+  .sticker-card.count-3 {
+    background: var(--count-3-bg);
+    color: var(--count-3-text);
+  }
+
+  .sticker-card.count-4 {
+    background: var(--count-4-bg);
+    color: var(--count-4-text);
+  }
+
+  .sticker-card.count-5-plus {
+    background: var(--count-5-plus-bg);
+    color: var(--count-5-plus-text);
+  }
+
+  /* A visual indicator (orange dot) shown on sticker cards that have pending changes 
+  (i.e. changes that have been made but not yet saved). */
+  .sticker-card.pending-change::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--pending);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+  }
+
+  /* The label element on each sticker card, used to display the sticker number or label. */
+  .sticker-label {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* Container for the increment/decrement buttons on each sticker card. */
+  .sticker-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  /* Buttons used to increment/decrement sticker count. */
+  .btn-sticker {
+    padding: 0;
+    width: 26px;
+    height: 24px;
+    min-width: 26px;
+    border-width: 2px;
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .sticker-actions button:disabled {
+    opacity: 0.7;
+  }
+
+  /* A badge that can be optionally shown on a sticker card, used to display special 
+  icons or labels (e.g. for sticker 1 and 13). */
+  .sticker-badge {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
+  .empty-state {
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>

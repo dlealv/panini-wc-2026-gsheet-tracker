@@ -20,248 +20,29 @@
   Helpers (setBusy, setMessage, renderPreview, etc.) are loaded via include.
 -->
 <html>
+
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <style>
-    :root {
-      --border: #dadce0;
-      --text: #202124;
-      --muted: #5f6368;
-      --bg-soft: #f8f9fa;
-      --primary: #1a73e8;
-      --primary-hover: #1765cc;
-      --success: #137333;
-      --error: #c5221f;
-      --warning: #b06000;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: Arial, sans-serif;
-      color: var(--text);
-      background: #fff;
-    }
-    h2 { margin: 0 0 12px 0; font-size: 22px; }
-    .container { display: flex; flex-direction: column; gap: 14px; }
-    .section {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-      background: #fff;
-    }
-    .section-title {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    /* label row: label text on the left, inline action button on the right */
-    .label-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .label-row label { margin-bottom: 0; }
-    label { display: inline-block; margin-bottom: 6px; font-weight: 600; }
-    input[type="file"], select, textarea { width: 100%; font: inherit; }
-    input[type="file"], select { padding: 8px; }
-    textarea {
-      min-height: 220px;
-      padding: 10px;
-      resize: vertical;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 13px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: #fff;
-      color: var(--text);
-    }
-    input[type="checkbox"] { margin-right: 6px; }
-    textarea:disabled, select:disabled, input[type="file"]:disabled {
-      background: #f1f3f4;
-      color: #5f6368;
-    }
-    .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
-    .actions-help { margin: 8px 0 0 18px; padding: 0; }
-    .actions-help li { margin: 4px 0; }
-    .checkbox-row { margin-top: 10px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    button {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      border-radius: 6px;
-      padding: 9px 14px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    button:hover:not(:disabled) { background: var(--bg-soft); }
-    button:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn-primary {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
-    }
-    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
-    /* small secondary button used inline next to a label */
-    .btn-inline {
-      padding: 3px 10px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .message { min-height: 20px; font-size: 13px; white-space: pre-wrap; }
-    .message.success { color: var(--success); }
-    .message.error   { color: var(--error); }
-    .message.info    { color: var(--muted); }
-    .warnings {
-      display: none;
-      font-size: 12px;
-      color: var(--warning);
-      white-space: pre-wrap;
-      margin-top: 4px;
-    }
-    .preview {
-      display: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--bg-soft);
-      padding: 10px;
-      max-height: 260px;
-      overflow: auto;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 12px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .inline-code {
-      font-family: Consolas, "Courier New", monospace;
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 4px;
-    }
-    .hidden { display: none !important; }
-    /* Info icon button — borderless, inline with section title */
-    .help-btn {
-      border: none;
-      background: none;
-      color: var(--primary);
-      cursor: pointer;
-      font-size: 15px;
-      padding: 0 2px;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .help-btn:hover { color: var(--primary-hover); background: none; }
-    /* Format summary card — 3-row table, always visible */
-    .format-card {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 4px;
-    }
-    .format-card th {
-      text-align: left;
-      color: var(--muted);
-      font-weight: 600;
-      padding: 3px 8px 3px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .format-card td {
-      padding: 4px 8px 4px 0;
-      vertical-align: top;
-    }
-    /* tip row inside actions section */
-    .tip-row {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    /* header row inside the help modal, with title and (+info) link */
-    .help-header {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    /* slightly smaller font size for the modal header to fit the (+info) link better */
-    .help-header h3 {
-      margin: 0;
-      line-height: 1.1;
-      font-size: 18px; /* optional slight reduction */
-    }
-    /* Help modal */
-    dialog {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
-      max-width: 480px;
-      width: 95%;
-      font-family: Arial, sans-serif;
-      font-size: 13px;
-      color: var(--text);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    dialog::backdrop { background: rgba(0,0,0,0.35); }
-    dialog h3 { margin: 0 0 12px 0; font-size: 16px; }
-    /* general note shown above all format sections */
-    dialog .modal-note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 12px;
-      line-height: 1.6;
-    }
-    dialog details { margin-bottom: 10px; }
-    dialog summary {
-      font-weight: 700;
-      cursor: pointer;
-      padding: 4px 0;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    /* custom triangle for summary */
-    dialog summary::before {
-      content: '▶';
-      font-size: 10px;
-      color: var(--muted);
-      transition: transform 0.15s;
-    }
-    dialog details[open] summary::before { transform: rotate(90deg); }
-    dialog .modal-body {
-      padding: 8px 0 4px 14px;
-      line-height: 1.7;
-      color: var(--muted);
-    }
-    dialog .modal-body .inline-code {
-      font-family: Consolas, "Courier New", monospace;
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 4px;
-      color: var(--text);
-    }
-    dialog .modal-footer {
-      margin-top: 14px;
-      text-align: right;
-    }
-  </style>
+  <?!= include('CommonDialogStyles') ?>
+  <?!= include('ImportExportDialogStyles') ?>
 </head>
+
 <body>
   <div class="container">
 
     <div>
-      <h2><?= dialogMode === 'export' ? 'Export Stickers' : 'Import sticker counts' ?></h2>
+      <h2>
+        <?= dialogMode.startsWith('export') ? 'Export result' : 'Import sticker counts' ?>
+      </h2>
       <div class="hint">
-        <? if (dialogMode === 'export') { ?>
-        Export current sticker counts from the <span class="inline-code">COUNTRIES</span> and
-        <span class="inline-code">COUNTS</span> named ranges in the <span class="inline-code">Stickers</span> tab.
+        <? if (dialogMode === 'export_all') { ?>
+        Export all sticker (<span class="inline-code">count&gt;0</span>) from the <span class="inline-code">COUNTRIES</span> and
+        <span class="inline-code">COUNTS</span> named ranges.
+        <? } else if (dialogMode === 'export_shared') { ?>
+        Export repeated (<span class="inline-code">count&gt;1</span>) and missing (<span class="inline-code">count=0</span>) 
+        stickers from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> 
+        named ranges.
         <? } else { ?>
         Load a text/CSV file or paste its content. Data will be written to the
         <span class="inline-code">COUNTS</span> named range in the
@@ -270,7 +51,7 @@
       </div>
     </div>
 
-    <!-- Import mode sections -->
+    <!-- Import mode section -->
     <div id="importModeWrapper" class="<?= dialogMode === 'import' ? '' : 'hidden' ?>">
 
       <div class="section">
@@ -287,7 +68,7 @@
         <!-- Clear button sits inline with the label for immediate discoverability -->
         <div class="label-row">
           <label for="textInput">Input data</label>
-          <button type="button" class="btn-inline" onclick="clearInput()">Clear</button>
+          <button class="btn-inline" onclick="clearInput()">Clear</button>
         </div>
         <!-- placeholder shows one example per format for an immediate hint -->
         <textarea id="textInput"
@@ -298,7 +79,7 @@
         <!-- Input format section: 3-row summary card + ⓘ info icon -->
         <div class="section-title">
           Input format
-          <button type="button" class="help-btn" onclick="openHelpModal()"
+          <button class="help-btn" onclick="openHelpModal()"
             title="Open full format guide">&#x24D8;</button>
         </div>
         <table class="format-card hint">
@@ -313,7 +94,7 @@
             <tr>
               <td>Format 1</td>
               <td><span class="inline-code">MEX,1,3-7,10(2)</span></td>
-              <td>Country code once; comma-separated stickers, ranges (<span class="inline-code">3-7</span>), 
+              <td>Country code once; comma-separated stickers, ranges (<span class="inline-code">3-7</span>),
                 repeats (<span class="inline-code">10(2)</span>)</td>
             </tr>
             <tr>
@@ -326,7 +107,8 @@
               <td><span class="inline-code">&lt;&gt;MEX,1,2,3</span></td>
               <td>Imports all stickers <em>except</em> those listed; use
                 <span class="inline-code">!=</span> or <span class="inline-code">^</span>
-                instead of <span class="inline-code">&lt;&gt;</span></td>
+                instead of <span class="inline-code">&lt;&gt;</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -337,8 +119,8 @@
         <label for="mode">Choose how to apply the load</label>
         <select id="mode">
           <option value="clean_all" <?=defaultMode==='clean_all' ? 'selected' : '' ?>>Import data</option>
-          <option value="replace_countries"
-            <?=defaultMode==='replace_countries' ? 'selected' : '' ?>>Update counts clearing country counts</option>
+          <option value="replace_countries" <?=defaultMode==='replace_countries' ? 'selected' : '' ?>>Update counts
+            clearing country counts</option>
           <option value="update" <?=defaultMode==='update' ? 'selected' : '' ?>>Update counts</option>
         </select>
         <ul class="actions-help hint">
@@ -354,10 +136,10 @@
       <div class="section">
         <div class="section-title">Actions</div>
         <div class="actions">
-          <button type="button" onclick="previewData()">Validate / Preview</button>
-          <button type="button" onclick="clearInput()">Clear</button>
-          <button type="button" class="btn-primary" onclick="importData()">Import</button>
-          <button type="button" onclick="google.script.host.close()">Cancel</button>
+          <button class="btn" onclick="previewData()">Validate / Preview</button>
+          <button class="btn" onclick="clearInput()">Clear</button>
+          <button class="btn btn-primary" onclick="importData()">Import</button>
+          <button class="btn" onclick="google.script.host.close()">Cancel</button>
         </div>
         <ul class="actions-help hint">
           <li><strong>Validate / Preview</strong>: checks syntax and shows how values will be mapped without writing to
@@ -375,43 +157,56 @@
         </div>
       </div>
 
-    </div><!-- /importModeWrapper -->
+    </div>
+    <!-- /Import mode section -->
 
     <!-- Export mode sections -->
-    <div id="exportModeWrapper" class="<?= dialogMode === 'export' ? '' : 'hidden' ?>">
-
+    <div id="exportModeWrapper"
+      class="<?= (dialogMode === 'export_all' || dialogMode === 'export_shared') ? '' : 'hidden' ?>">
       <div class="section">
-        <div class="section-title">Export result</div>
-        <label for="exportText">Sticker data</label>
-        <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
-        <div class="checkbox-row hint">
-          <label>
+        <!-- TOOLBAR (checkboxes + refresh in same row) -->
+        <div class="actions" style="margin-bottom:10px; flex-wrap:wrap; gap:14px; align-items:center;">
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="includeFlagsCheckbox">
-            Include flag icon before country code
+            Flags
           </label>
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="isCompactCheckbox">
+            Compact (using ranges)
+          </label>
+          <? if (dialogMode === 'export_shared') { ?>
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="sortByDoneCheckbox">
+            Sort by Done (descending) missing stickers
+          </label>
+          <? } ?>
+          <button class="btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
+            Refresh
+          </button>
         </div>
+        <!-- OUTPUT (expanded use of space comes later if you want further tuning) -->
+        <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+        <? if (dialogMode === 'export_all') { ?>
         <div class="hint" style="margin-top:8px;">
           The exported content uses the same Format 1 syntax accepted by the import process.
-          Only sticker counts greater than 0 are included.
+          Only sticker counts greater than <span class="inline-code">0</span> are included.
         </div>
+        <? } else { ?>
+        <div class="hint" style="margin-top:8px;">
+          The exported content uses the same Format 1 syntax accepted by the import process.
+        </div>
+        <? } ?>
       </div>
-
       <div class="section">
         <div class="section-title">Actions</div>
         <div class="actions">
-          <button type="button" class="btn-primary" onclick="downloadExport()">Download file</button>
-          <button type="button" onclick="copyExport()">Copy</button>
-          <button type="button" onclick="google.script.host.close()">Close</button>
+          <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
+          <button class="btn" onclick="copyExport()">Copy</button>
+          <button class="btn" onclick="google.script.host.close()">Close</button>
         </div>
-        <ul class="actions-help hint">
-          <li><strong>Download file</strong>: downloads the exported sticker data as a local file, usually into your
-            browser's default Downloads folder.</li>
-          <li><strong>Copy</strong>: copies the exported text to the clipboard.</li>
-          <li><strong>Close</strong>: closes the dialog.</li>
-        </ul>
       </div>
-
-    </div><!-- /exportModeWrapper -->
+    </div>
+    <!-- /exportModeWrapper -->
 
     <div id="message" class="message info"></div>
     <!-- warnings shown below the status message in amber, populated after preview or import -->
@@ -424,8 +219,7 @@
   <dialog id="helpModal" aria-label="Input format guide">
     <div class="help-header">
       <h3>Input format guide</h3>
-      <a href="https://github.com/dlealv/panini-wc-2026-gsheet-tracker/blob/main/README.md"
-        target="_blank"
+      <a href="https://github.com/dlealv/panini-wc-2026-gsheet-tracker/blob/main/README.md" target="_blank"
         rel="noopener noreferrer">
         (+info)
       </a>
@@ -435,14 +229,17 @@
     <div class="modal-note">
       &bull; Comma <span class="inline-code">,</span> or semicolon <span class="inline-code">;</span>.<br>
       &bull; Repeats: <span class="inline-code">N(X)</span> or <span class="inline-code">N(xX)</span> or
-      <span class="inline-code">NxX</span>; sticker <span class="inline-code">N</span> owned <span class="inline-code">X</span> 
+      <span class="inline-code">NxX</span>; sticker <span class="inline-code">N</span> owned <span
+        class="inline-code">X</span>
       times.<br>
-      &bull; Range: <span class="inline-code">A-B</span> is an inclusive range 
-        from <span class="inline-code">A</span> to <span class="inline-code">B</span> (<span class="inline-code">A&gt;B</span>).<br>
+      &bull; Range: <span class="inline-code">A-B</span> is an inclusive range
+      from <span class="inline-code">A</span> to <span class="inline-code">B</span> (<span
+        class="inline-code">A&gt;B</span>).<br>
       &bull; Range Repeats: <span class="inline-code">A-B(X)</span> or <span class="inline-code">A-B(xX)</span> or
       <span class="inline-code">A-BxX</span>; stickers <span class="inline-code">A-B</span>
-        owned <span class="inline-code">X</span> times.<br>
-      &bull; Non-ASCII characters (e.g. <span class="inline-code">&#x1F1F2;&#x1F1FD; MEX,1,2</span>) are stripped automatically.
+      owned <span class="inline-code">X</span> times.<br>
+      &bull; Non-ASCII characters (e.g. <span class="inline-code">&#x1F1F2;&#x1F1FD; MEX,1,2</span>) are stripped
+      automatically.
     </div>
 
     <details open>
@@ -489,7 +286,7 @@
     </details>
 
     <div class="modal-footer">
-      <button type="button" onclick="closeHelpModal()">Close</button>
+      <button class="btn" onclick="closeHelpModal()">Close</button>
     </div>
   </dialog>
 
@@ -502,6 +299,8 @@
     const modeInput = document.getElementById('mode')
     const exportText = document.getElementById('exportText')
     const includeFlagsCheckbox = document.getElementById('includeFlagsCheckbox')
+    const sortByDoneCheckbox = document.getElementById('sortByDoneCheckbox')
+    const isCompactCheckbox = document.getElementById('isCompactCheckbox')
     const messageEl = document.getElementById('message')
     const previewEl = document.getElementById('preview')
     const warningsEl = document.getElementById('warnings')
@@ -524,11 +323,18 @@
       })
     }
 
-    if (includeFlagsCheckbox) {
-      includeFlagsCheckbox.addEventListener('change', () => {
-        if (DIALOG_MODE === 'export') loadExportData()
-      })
-    }
+    ;[
+      includeFlagsCheckbox,
+      sortByDoneCheckbox,
+      isCompactCheckbox
+    ].forEach(cb => {
+      if (cb) {
+        cb.addEventListener('change', () => {
+          // only update internal state, DO NOT reload export
+          // export is now manual via Refresh button
+        })
+      }
+    })
 
     /**Opens the full format guide modal. */
     function openHelpModal() {
@@ -608,7 +414,7 @@
       exportText.value = ''
       setBusy(true)
       setMessage('Exporting sticker data...', 'info')
-      google.script.run
+      const request = google.script.run
         .withSuccessHandler((result) => {
           setBusy(false)
           if (!result) {
@@ -620,8 +426,7 @@
             return
           }
           exportText.value = result.text || ''
-          // once load completes the status message explains the result; placeholder no longer needed
-          exportText.placeholder = '' 
+          exportText.placeholder = ''
           renderWarnings(result.warnings)
           setMessage(
             `Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`,
@@ -635,7 +440,18 @@
             'error'
           )
         })
-        .exportStickerData(getPayload())
+      // 🔥 clean switch based on dialogMode (your existing architecture)
+      const payload = getPayload()
+      if (DIALOG_MODE === 'export_shared') {
+        request.exportSharedStickerData(getPayload())
+      } else {
+        request.exportAllStickerData(getPayload())
+      }
+    }
+
+    /**Builds the payload object for export requests based on the current state of the export options. */
+    function refreshExportData() {
+      loadExportData()
     }
 
     /**Copies the exported sticker data to the clipboard. */
@@ -677,8 +493,11 @@
 
     /**Automatically loads export data when the dialog opens in export mode. */
     window.addEventListener('load', () => {
-      if (DIALOG_MODE === 'export') loadExportData()
+      if (DIALOG_MODE.startsWith('export')) {
+        loadExportData()
+      }
     })
   </script>
 </body>
+
 </html>

@@ -15,445 +15,8 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <style>
-    :root {
-      --border: #c7cdd4;
-      --button-border: #bcc4cc;
-      --text: #202124;
-      --muted: #5f6368;
-      --bg-soft: #f8f9fa;
-      --success: #137333;
-      --error: #c5221f;
-      --pending: #f29900;
-      --pending-text: #c5221f;
-      --count-0-bg: #ffffff;
-      --count-0-text: #202124;
-      --count-1-bg: #cfe2f3;
-      --count-1-text: #202124;
-      --count-2-bg: #fff200;
-      --count-2-text: #202124;
-      --count-3-bg: #f6b26b;
-      --count-3-text: #202124;
-      --count-4-bg: #d9d2e9;
-      --count-4-text: #202124;
-      --count-5-plus-bg: #e06666;
-      --count-5-plus-text: #202124;
-      --completed-bg: #0b5394;
-      --completed-text: #ffffff;
-      --scrollbar-width: 12px;
-      --stickers-per-row: 8;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    body {
-      padding: 16px;
-      font-family: Arial, sans-serif;
-      color: var(--text);
-      background: #fff;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      height: calc(100vh - 32px);
-      overflow: hidden;
-    }
-
-    .section {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-      background: #fff;
-    }
-
-    .top-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .top-actions {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .filters {
-      display: grid;
-      grid-template-columns: minmax(260px, 1.7fr) minmax(150px, 0.85fr) auto auto auto auto;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 14px;
-      align-items: center;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-swatch {
-      width: 16px;
-      height: 16px;
-      border: 2px solid var(--border);
-      border-radius: 5px;
-      background: #fff;
-      flex: 0 0 auto;
-    }
-
-    .legend-swatch.count-0 {
-      background: var(--count-0-bg);
-    }
-
-    .legend-swatch.count-1 {
-      background: var(--count-1-bg);
-    }
-
-    .legend-swatch.count-2 {
-      background: var(--count-2-bg);
-    }
-
-    .legend-swatch.count-3 {
-      background: var(--count-3-bg);
-    }
-
-    .legend-swatch.count-4 {
-      background: var(--count-4-bg);
-    }
-
-    .legend-swatch.count-5-plus {
-      background: var(--count-5-plus-bg);
-    }
-
-    .legend-swatch.pending {
-      position: relative;
-      background: #fff;
-    }
-
-    .legend-swatch.pending::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--pending);
-    }
-
-    .legend-swatch.completed {
-      background: var(--completed-bg);
-      border-color: var(--completed-bg);
-    }
-
-    .filter-input,
-    .filter-select,
-    button {
-      font: inherit;
-    }
-
-    .filter-input,
-    .filter-select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-    }
-
-    button {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      border-radius: 6px;
-      padding: 9px 14px;
-      cursor: pointer;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    button:hover:not(:disabled) {
-      background: var(--bg-soft);
-    }
-
-    button:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
-    .primary-button {
-      border-color: #1a73e8;
-      background: #1a73e8;
-      color: #fff;
-    }
-
-    .primary-button:hover:not(:disabled) {
-      background: #1765cc;
-    }
-
-    .filter-btn.active {
-      border-color: #1a73e8;
-      color: #1a73e8;
-    }
-
-    .message {
-      min-height: 20px;
-      font-size: 13px;
-      white-space: pre-wrap;
-    }
-
-    .message.success {
-      color: var(--success);
-    }
-
-    .message.error {
-      color: var(--error);
-    }
-
-    .message.info {
-      color: var(--muted);
-    }
-
-    .message.pending {
-      color: var(--pending-text);
-      font-weight: 700;
-    }
-
-    .country-list-wrapper {
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .country-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      height: 100%;
-      overflow-y: scroll;
-      overflow-x: hidden;
-      padding-right: 4px;
-      scrollbar-gutter: stable;
-    }
-
-    .country-list::-webkit-scrollbar {
-      width: var(--scrollbar-width);
-    }
-
-    .country-list::-webkit-scrollbar-track {
-      background: #f1f3f4;
-      border-radius: 999px;
-    }
-
-    .country-list::-webkit-scrollbar-thumb {
-      background: #c1c7cd;
-      border-radius: 999px;
-      border: 2px solid #f1f3f4;
-    }
-
-    .country-list::-webkit-scrollbar-thumb:hover {
-      background: #a8b0b8;
-    }
-
-    .country-section {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      background: #fff;
-    }
-
-    .country-section.completed {
-      background: var(--completed-bg);
-      color: var(--completed-text);
-    }
-
-    .country-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .country-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .country-flag {
-      width: 48px;
-      height: 28px;
-      object-fit: contain;
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      background: #fff;
-      display: block;
-      flex: 0 0 auto;
-    }
-
-    .country-summary {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 14px;
-    }
-
-    .summary-value {
-      font-weight: 700;
-    }
-
-    .sticker-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      width: 100%;
-    }
-
-    .sticker-grid.compact {
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-    }
-
-    .sticker-row {
-      display: grid;
-      grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
-      gap: 6px;
-      width: 100%;
-    }
-
-    .sticker-row.last-row {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .sticker-card {
-      position: relative;
-      min-height: 0;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      padding: 6px 4px 6px 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-      justify-content: center;
-      background: #fff;
-      color: #202124;
-      aspect-ratio: 1 / 1;
-    }
-
-    .sticker-row.last-row .sticker-card,
-    .sticker-grid.compact .sticker-card {
-      width: calc((100% - (7 * 6px)) / 8);
-    }
-
-    .sticker-card.count-0 {
-      background: var(--count-0-bg);
-      color: var(--count-0-text);
-    }
-
-    .sticker-card.count-1 {
-      background: var(--count-1-bg);
-      color: var(--count-1-text);
-    }
-
-    .sticker-card.count-2 {
-      background: var(--count-2-bg);
-      color: var(--count-2-text);
-    }
-
-    .sticker-card.count-3 {
-      background: var(--count-3-bg);
-      color: var(--count-3-text);
-    }
-
-    .sticker-card.count-4 {
-      background: var(--count-4-bg);
-      color: var(--count-4-text);
-    }
-
-    .sticker-card.count-5-plus {
-      background: var(--count-5-plus-bg);
-      color: var(--count-5-plus-text);
-    }
-
-    .sticker-card.pending-change::after {
-      content: '';
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--pending);
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
-    }
-
-    .sticker-corner-label {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      padding: 2px 5px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.92);
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      line-height: 1.2;
-      opacity: 0.98;
-    }
-
-    .sticker-label {
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .sticker-actions {
-      display: flex;
-      gap: 4px;
-    }
-
-    .sticker-actions button {
-      padding: 0;
-      width: 26px;
-      height: 24px;
-      min-width: 26px;
-      font-size: 16px;
-      line-height: 1;
-      border: 2px solid var(--button-border);
-    }
-
-    .sticker-actions button:disabled {
-      opacity: 0.7;
-    }
-
-    .empty-state {
-      color: var(--muted);
-      font-size: 14px;
-    }
-  </style>
+  <?!= include('CommonDialogStyles') ?>
+  <?!= include('QuickEntryDialogStyles') ?>
 </head>
 
 <body>
@@ -461,7 +24,7 @@
     <div class="section">
       <div class="top-bar">
         <div class="top-actions">
-          <button type="button" id="applyChangesButton" class="primary-button" onclick="applyChanges()">Update</button>
+          <button id="applyChangesButton" class="btn btn-primary" onclick="applyChanges()">Update</button>
         </div>
 
         <div class="filters">
@@ -470,47 +33,44 @@
           <select id="groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
             <option value="all">All groups</option>
           </select>
-          <button type="button" class="filter-btn" data-filter="all" onclick="setStatusFilter('all')">All</button>
-          <button type="button" class="filter-btn" data-filter="missing"
-            onclick="setStatusFilter('missing')">Missing</button>
-          <button type="button" class="filter-btn" data-filter="repeated"
-            onclick="setStatusFilter('repeated')">Repeated</button>
-          <button type="button" class="filter-btn" data-filter="pending"
-            onclick="setStatusFilter('pending')">Pending</button>
+          <button class="btn btn-filter" data-filter="all" onclick="setStatusFilter('all')">All</button>
+          <button class="btn btn-filter" data-filter="missing" onclick="setStatusFilter('missing')">Missing</button>
+          <button class="btn btn-filter" data-filter="repeated" onclick="setStatusFilter('repeated')">Repeated</button>
+          <button class="btn btn-filter" data-filter="pending" onclick="setStatusFilter('pending')">Pending</button>
         </div>
 
         <div class="legend">
           <span class="legend-item">
             <span class="legend-swatch count-0"></span>
-          <span>Missing</span>
+            <span>Missing</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch count-1"></span>
-          <span>Owned x1</span>
+            <span>Owned x1</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch count-2"></span>
-          <span>Repeated x2</span>
+            <span>Repeated x2</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch count-3"></span>
-          <span>Repeated x3</span>
+            <span>Repeated x3</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch count-4"></span>
-          <span>Repeated x4</span>
+            <span>Repeated x4</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch count-5-plus"></span>
-          <span>Repeated x5+</span>
+            <span>Repeated x5+</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch pending"></span>
-          <span>Pending changes</span>
+            <span>Pending changes</span>
           </span>
           <span class="legend-item">
             <span class="legend-swatch completed"></span>
-          <span>Complete team</span>
+            <span>Complete team</span>
           </span>
         </div>
       </div>
@@ -527,244 +87,243 @@
   <?!= include('QuickEntryDialogRender.html') ?>
 
   <script>
-    const state = {
-  countries: [],
-  groupCodes: [],
-  selectedStatusFilter: 'all',
-  selectedGroupFilter: 'all',
-  teamSearchText: '',
-  pendingUpdates: {},
-  isBusy: false,
-  isLoaded: false
-}
-
-const layout = {
-  stickersPerRow: 8
-}
-
-const teamSearchInput = document.getElementById('teamSearchInput')
-const groupFilterSelect = document.getElementById('groupFilterSelect')
-const messageEl = document.getElementById('message')
-const countryListEl = document.getElementById('countryList')
-const applyChangesButton = document.getElementById('applyChangesButton')
-
-/** Initializes the Quick Entry dialog and loads initial data. */
-function initialize() {
-  showBusyState(true)
-  showMessage('Loading countries...', 'info')
-
-  //applyLayout(layout.stickersPerRow) //PREV
-  if (typeof applyLayout === 'function') {
-    applyLayout(layout.stickersPerRow)
-  }
-  google.script.run
-    .withSuccessHandler(result => { // TEST ADDED
-      try {
-        state.countries = result.countries || []
-        state.groupCodes = result.groupCodes || []
-        state.selectedStatusFilter = result.selectedStatusFilter || 'all'
-        state.selectedGroupFilter = result.selectedGroupFilter || 'all'
-        state.isLoaded = true
-
-        showBusyState(false)
-        renderAll()
-        showMessage('Ready.', 'success')
-      } catch (e) {
-        showBusyState(false)
-        showMessage('Render failed: ' + (e.message || e), 'error')
-      }
+    const FILTERS = Object.freeze({
+      ALL: 'all',
+      MISSING: 'missing',
+      REPEATED: 'repeated',
+      PENDING: 'pending'
     })
-    .withFailureHandler(err => {
+    const GROUP_FILTERS = Object.freeze({ALL: 'all'})
+    const state = {
+      countries: [],
+      groupCodes: [],
+      selectedStatusFilter: FILTERS.ALL,
+      selectedGroupFilter: GROUP_FILTERS.ALL,
+      teamSearchText: '',
+      pendingUpdates: {},
+      isBusy: false,
+      isLoaded: false
+    }
+
+    const layout = {
+      stickersPerRow: 8
+    }
+
+    const teamSearchInput = document.getElementById('teamSearchInput')
+    const groupFilterSelect = document.getElementById('groupFilterSelect')
+    const messageEl = document.getElementById('message')
+    const countryListEl = document.getElementById('countryList')
+    const applyChangesButton = document.getElementById('applyChangesButton')
+
+    /** Initializes the Quick Entry dialog and loads initial data. */
+    function initialize() {
+      showBusyState(true)
+      showMessage('Loading countries...', 'info')
+
+      //applyLayout(layout.stickersPerRow)
+      if (typeof applyLayout === 'function') {
+        applyLayout(layout.stickersPerRow)
+      }
+      google.script.run
+        .withSuccessHandler(result => {
+          try {
+            state.countries = result.countries || []
+            state.groupCodes = result.groupCodes || []
+            state.selectedStatusFilter = result.selectedStatusFilter || FILTERS.ALL
+            state.selectedGroupFilter = result.selectedGroupFilter || GROUP_FILTERS.ALL
+            state.isLoaded = true
+            showBusyState(false)
+            renderAll()
+            showMessage('Ready.', 'success')
+          } catch (e) {
+            showBusyState(false)
+            showMessage('Render failed: ' + (e.message || e), 'error')
+          }
+        })
+        .withFailureHandler(err => {
+          showMessage(
+            err && err.message ? err.message : 'Init failed',
+            'error'
+          )
+        })
+        .getQuickEntryInitialData()
+    }
+
+    /** Updates filters and refreshes the country list. */
+    function handleFiltersChange() {
+      state.teamSearchText = teamSearchInput.value.trim().toLowerCase()
+      state.selectedGroupFilter = groupFilterSelect.value
+      renderCountryList()
+    }
+
+    /** Updates the selected status filter. */
+    function setStatusFilter(filterName) {
+      state.selectedStatusFilter = filterName
+      renderFilterButtons()
+      renderCountryList()
+    }
+
+    /**Renders all UI sections (filters, buttons, list).*/
+    function renderAll() {
+      try {
+        renderGroupFilterOptions()
+        renderFilterButtons()
+        renderApplyButton()
+        renderCountryList()
+      } catch (e) {
+        console.error('renderAll failed:', e)
+        setMessage('Render error: ' + (e.message || e), 'error')
+      }
+    }
+
+    /** Renders the group filter dropdown options. */
+    function renderGroupFilterOptions() {
+      const currentValue = state.selectedGroupFilter
+      groupFilterSelect.innerHTML = ''
+
+      const allOption = document.createElement('option')
+      allOption.value = 'all'
+      allOption.textContent = 'All groups'
+      groupFilterSelect.appendChild(allOption)
+
+      state.groupCodes.forEach(code => {
+        const opt = document.createElement('option')
+        opt.value = code
+        opt.textContent = code
+        groupFilterSelect.appendChild(opt)
+      })
+
+      groupFilterSelect.value = currentValue
+    }
+
+    /** Renders filter button states using helper logic. */
+    function renderFilterButtons() {
+      document.querySelectorAll('[data-filter]').forEach(button => {
+        const filter = button.dataset.filter
+        const isActive = (state.selectedStatusFilter === filter)
+        button.classList.toggle('active', isActive)
+        button.disabled = state.isBusy
+      })
+      teamSearchInput.disabled = state.isBusy
+      groupFilterSelect.disabled = state.isBusy
+    }
+
+    /** Enables or disables the Update button. */
+    function renderApplyButton() {
+      applyChangesButton.disabled =
+        state.isBusy ||
+        getPendingUpdates(state.pendingUpdates).length === 0
+    }
+
+
+    /** Renders the visible country cards. */
+    function renderCountryList() {
+      const visibleCountries = getVisibleCountries(state, layout)
+
+      countryListEl.innerHTML = ''
+
+      if (!visibleCountries.length) {
+        countryListEl.appendChild(
+          buildEmptyState(getEmptyStateMessage())
+        )
+        return
+      }
+
+      visibleCountries.forEach(country => {
+        countryListEl.appendChild(
+          buildCountrySection(
+            country,
+            state,
+            layout,
+            queueStickerChangeHandler
+          )
+        )
+      })
+    }
+
+    /** Returns the empty-state message text. */
+    function getEmptyStateMessage() {
+      if (!state.isLoaded) return 'Loading countries...'
+      return 'No countries match the selected filters.'
+    }
+
+    /** Queues a sticker count change locally. */
+    function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
+      const result = queueStickerChange(
+        state,
+        countryCode,
+        stickerNumber,
+        nextCount
+      )
+      state.pendingUpdates = result.pendingUpdates
+      updatePendingChangesMessage(state, showMessage)
+      renderAll()
+    }
+
+    /** Applies pending sticker updates to the backend. */
+    function applyChanges() {
+      const pending = getPendingUpdates(state.pendingUpdates)
+      if (!pending.length) {
+        showMessage(
+          'There are no pending changes to update.',
+          'info'
+        )
+        return
+      }
+
+      showBusyState(true)
+      showMessage('Updating sticker data...', 'info')
+
+      google.script.run
+        .withSuccessHandler(result => {
+          state.countries = result.countries || []
+          state.pendingUpdates = {}
+          showBusyState(false)
+          renderAll()
+          showMessage(
+            result.message || 'Updated',
+            'success'
+          )
+        })
+        .withFailureHandler(handleFailure)
+        .applyQuickEntryUpdates({ pendingUpdates: pending })
+    }
+
+    /** Displays a status message in the dialog. */
+    function showMessage(text, type) {
+      setMessage(messageEl, text, type)
+    }
+
+    /** Updates the busy state safely without helper dependencies. */
+    function showBusyState(isBusy) {
+      try {
+        state.isBusy = Boolean(isBusy)
+
+        applyChangesButton.disabled =
+          state.isBusy ||
+          getPendingUpdates(state.pendingUpdates).length === 0
+
+        teamSearchInput.disabled = state.isBusy
+        groupFilterSelect.disabled = state.isBusy
+
+      } catch (error) {
+        console.error('showBusyState failed:', error)
+      }
+    }
+
+    /** Handles backend request failures. */
+    function handleFailure(error) {
+      showBusyState(false)
+
       showMessage(
-        err && err.message ? err.message : 'Init failed',
+        error && error.message
+          ? error.message
+          : 'Unexpected error.',
         'error'
       )
-    })
-    .getQuickEntryInitialData()
-}
+    }
 
-/** Updates filters and refreshes the country list. */
-function handleFiltersChange() {
-  state.teamSearchText = teamSearchInput.value.trim().toLowerCase()
-  state.selectedGroupFilter = groupFilterSelect.value
-  renderCountryList()
-}
-
-/** Updates the selected status filter. */
-function setStatusFilter(filterName) {
-  state.selectedStatusFilter = filterName
-  renderFilterButtons()
-  renderCountryList()
-}
-
-/**Renders all UI sections (filters, buttons, list).*/ // TEST ADDED
-function renderAll() {
-  try {
-    renderGroupFilterOptions()
-    renderFilterButtons()
-    renderApplyButton()
-    renderCountryList()
-  } catch (e) {
-    console.error('renderAll failed:', e)
-    setMessage('Render error: ' + (e.message || e), 'error')
-  }
-}
-
-/** Renders the group filter dropdown options. */
-function renderGroupFilterOptions() {
-  const currentValue = state.selectedGroupFilter
-  groupFilterSelect.innerHTML = ''
-
-  const allOption = document.createElement('option')
-  allOption.value = 'all'
-  allOption.textContent = 'All groups'
-  groupFilterSelect.appendChild(allOption)
-
-  state.groupCodes.forEach(code => {
-    const opt = document.createElement('option')
-    opt.value = code
-    opt.textContent = code
-    groupFilterSelect.appendChild(opt)
-  })
-
-  groupFilterSelect.value = currentValue
-}
-
-/** Renders filter button states using helper logic. */
-function renderFilterButtons() {
-  document.querySelectorAll('.filter-btn').forEach(button => {
-    const isActive = button.dataset.filter === state.selectedStatusFilter
-    button.classList.toggle('active', isActive)
-    button.disabled = state.isBusy
-  })
-
-  teamSearchInput.disabled = state.isBusy
-  groupFilterSelect.disabled = state.isBusy
-}
-
-/** Enables or disables the Update button. */
-function renderApplyButton() {
-  applyChangesButton.disabled =
-    state.isBusy ||
-    getPendingUpdates(state.pendingUpdates).length === 0
-}
-
-
-/** Renders the visible country cards. */
-function renderCountryList() {
-  const visibleCountries = getVisibleCountries(state, layout)
-
-  countryListEl.innerHTML = ''
-
-  if (!visibleCountries.length) {
-    countryListEl.appendChild(
-      buildEmptyState(getEmptyStateMessage())
-    )
-    return
-  }
-
-  visibleCountries.forEach(country => {
-    countryListEl.appendChild(
-      buildCountrySection(
-        country,
-        state,
-        layout,
-        queueStickerChangeHandler
-      )
-    )
-  })
-}
-
-/** Returns the empty-state message text. */
-function getEmptyStateMessage() {
-  if (!state.isLoaded) return 'Loading countries...'
-  return 'No countries match the selected filters.'
-}
-
-/** Queues a sticker count change locally. */
-function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
-  const result = queueStickerChange(
-    state,
-    countryCode,
-    stickerNumber,
-    nextCount
-  )
-
-  state.pendingUpdates = result.pendingUpdates
-
-  updatePendingChangesMessage(state, showMessage)
-  renderAll()
-}
-
-/** Applies pending sticker updates to the backend. */
-function applyChanges() {
-  const pending = getPendingUpdates(state.pendingUpdates)
-
-  if (!pending.length) {
-    showMessage(
-      'There are no pending changes to update.',
-      'info'
-    )
-    return
-  }
-
-  showBusyState(true)
-  showMessage('Updating sticker data...', 'info')
-
-  google.script.run
-    .withSuccessHandler(result => {
-      state.countries = result.countries || []
-      state.pendingUpdates = {}
-
-      showBusyState(false)
-      renderAll()
-
-      showMessage(
-        result.message || 'Updated',
-        'success'
-      )
-    })
-    .withFailureHandler(handleFailure)
-    .applyQuickEntryUpdates({ pendingUpdates: pending })
-}
-
-/** Displays a status message in the dialog. */
-function showMessage(text, type) {
-  setMessage(messageEl, text, type)
-}
-
-/** Updates the busy state safely without helper dependencies. */
-function showBusyState(isBusy) { // ADDED TESTING
-  try {
-    state.isBusy = Boolean(isBusy)
-
-    applyChangesButton.disabled =
-      state.isBusy ||
-      getPendingUpdates(state.pendingUpdates).length === 0
-
-    teamSearchInput.disabled = state.isBusy
-    groupFilterSelect.disabled = state.isBusy
-
-  } catch (error) {
-    console.error('showBusyState failed:', error)
-  }
-}
-
-/** Handles backend request failures. */
-function handleFailure(error) {
-  showBusyState(false)
-
-  showMessage(
-    error && error.message
-      ? error.message
-      : 'Unexpected error.',
-    'error'
-  )
-}
-
-
-
-initialize()
+    initialize()
   </script>
 
 </body>
