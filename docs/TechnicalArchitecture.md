@@ -45,6 +45,7 @@ The application isolates execution states between the cloud-based Google Sheets 
    ├── [ npm run test ] ───> Triggers 'jest' runner engine:
    │                         - Loads 'test/utils/testKernel.js' mocks
    │                         - Evaluates target test suites (*.unit.test.js)
+   │                         - Note: Preventively test task previously executed build.
    ▼
  Isolated Test Environment Compliance Checks
    │
@@ -82,43 +83,49 @@ The application isolates execution states between the cloud-based Google Sheets 
 *   **Flattening Compilation (`scripts/clasp.zsh`)**: Drops code files from `src/` root and flattens templates out of `src/html/` directly into a temporary flat staging directory (`tmp_clasp/`).
 *   **Token Optimization**: Rewrites `.clasp.json` to point to the staging build folder, injects target script credentials if an optional argument is present, uploads the flat assets cleanly to the cloud via `clasp push`, and triggers a native terminal trap to safely restore original tracking records.
 
+> The script `clasp.zsh` accepts two input arguments: the first one is the action (`pull` or `push`), and the second (optional) is `scriptId`. By default, the configuration file `clasp.json.template` points to the testing file. During the synchronization process between GAS and a local repository or vice versa, you can use the second input argument to specify the `scriptId` of the production Google Sheet file. 
+
 ---
 
 ## 3. Directory Layout Specification
 
 ```text
 panini-wc-2026-gsheet-tracker/
-├── .clasp.json.template    # Template clasp configuration file, used in 'npm run clasp'
-|── .claspignore            # Indicates folders/files to ignore by clasp
-|── .eslintignore           # Indicates folders/files to ignore by eslint (code analysis)
-|── .eslintirc.js           # Eslint configuration file with customized rules
-|── .gitignore              # Folders/files to ignore by git (repository)
-├── package.json            # Node project descriptors, dependencies, and pipeline bindings
-├── jsconfig.json           # VS Code config file to specify JavaScript project's configuration
-├── .gitignore              # Strict patterns blocking transient workspace and cache leaks
+├── .clasp.json.template      # Template clasp configuration file, used in 'npm run clasp'.
+|── .claspignore              # Indicates folders/files to ignore by clasp.
+|── .eslintignore             # Indicates folders/files to ignore by eslint (code analysis).
+|── .eslintirc.js             # Eslint configuration file with customized rules.
+|── .gitignore                # Folders/files to ignore by git (repository).
+├── package.json              # Node project descriptors, dependencies, and pipeline bindings.
+├── jsconfig.json             # VS Code config file to specify JavaScript project's configuration.
+├── .gitignore                # Strict patterns blocking transient workspace and cache leaks.
 ├── scripts/
-│   ├── build.js            # JavaScript bridge extracting HTML blocks for local unit tests
-│   └── clasp.zsh           # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository)
-├── src/                    # MUTABLE LOCAL SOURCE OF TRUTH
-│   ├── Code.gs             # Structural GAS cloud UI generation menu bindings
-│   ├── Commons.gs          # General runtime utilities and global system declarations
-│   ├── *.gs                # Modular system business data service providers
-│   └── html/               # User Interface markup layouts and layer scripts
-│       ├── *Dialog.html    # Main view frameworks handling events and cloud calls
-│       ├── *Helpers.html   # Extracted browser-independent pure processing logic
-│       └── *Render.html    # Dedicated UI factory components building visual DOM structures
-├── build/                  # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS)
-│   ├── *.js                # Code blocks compiled into common JS specifications
-│   └── *.html.js           # Extracted helper end render algorithms wrapped for mock evaluation
-├── test/                   # ISOLATED JEST UNIT TESTING GRID
-│   ├── *.unit.test.js      # Target test cases checking functional service compliance
-│   ├── jest.config.js      # Jest configuration file
+│   ├── build.js              # JavaScript bridge extracting HTML blocks for local unit tests.
+│   ├── clasp.zsh             # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository).
+|   ├── fix-jsdoc.js          # Fit short JSDOC comments into a single line.
+├── src/                      # MUTABLE LOCAL SOURCE OF TRUTH.
+│   ├── appscript.json        # Project manifest. Central configuration file for a Google Apps Script project.
+│   ├── Code.gs               # Structural GAS cloud UI generation menu bindings.
+│   ├── Commons.gs            # General runtime utilities and global system declarations.
+│   ├── *Service.gs           # Modular system business data service providers.
+│   └── html/                 # User Interface markup layouts and layer scripts.
+│       ├── *Dialog.html      # Main view frameworks handling events and cloud calls.
+│       ├── *Helpers.html     # Extracted browser-independent pure processing logic.
+│       └── *Render.html      # Dedicated UI factory components building visual DOM structures.
+│       └── *Styles.html      # Styles files, i.e. CSS configuration.
+├── build/                    # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS).
+│   ├── *.js                  # Code blocks compiled into common JS specifications.
+│   └── *.html.js             # Extracted helper end render algorithms wrapped for mock evaluation.
+├── test/                     # ISOLATED JEST UNIT TESTING GRID.
+│   ├── *.unit.test.js        # Target test cases checking functional service compliance.
+│   ├── jest.config.js        # Jest configuration file.
 │   ├── utils/
-│   │   └── testKernel.js   # Main environment emulation stubbing global Google objects
-│   └── fixtures/           # Deterministic test variables and mock range parameters
-└── backup/                 # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED)
-    ├── [TIMESTAMP]_src.zip # Rollback snapshots of local 'src' right before a pull merge
-    └── [TIMESTAMP]_gas.zip # Rollback snapshots of cloud remote code right before a push deploy
+│   │   └── testKernel.js     # Main environment emulation stubbing global Google objects.
+│   └── fixtures/             # Valid default named ranges.
+│   └────createValidRanges.js # Deterministic test variables and mock range parameters.
+└── backup/                   # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED).
+    ├── [TIMESTAMP]_src.zip   # Rollback snapshots of local 'src' right before a pull merge.
+    └── [TIMESTAMP]_gas.zip   # Rollback snapshots of cloud remote code right before a push deploy.
 ```
 
 ---
