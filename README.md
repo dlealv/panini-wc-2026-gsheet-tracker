@@ -424,13 +424,13 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 
 ## Files
 
-- Under `src` folder:
+- Under the `src` folder:
   - `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
   - `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
   - `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
 
-- Under `src/html` folder:
+- Under the `src/html` folder:
   - `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets.
   - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
   - `QuickEntryDialogHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
@@ -439,7 +439,7 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `ImportExportDialogStyles.html`: Styles to be used in the Import Export dialog.
   - `QuickEntryDialogStyles.html`: Styles used by the Quick Sticker Entry dialog.
 
-- Under `test/` folder:
+- Under the `test/` folder:
   - `Commons.unit.test.js`: test file for testing `src/Commons.gs`.
   - `ImportExportService.unit.test.js`: test file for testing `src/ImportExportService.gs`.
   - `ImportExportHelpers.unit.test.js`: test file for testing `src/html/ImportExportDialogHelpers.gs`.
@@ -450,17 +450,17 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `utils/testKernel.js`: global test kernel for GAS unit tests.
   - `test/jest.config.js`: `Jest` configuration file.
 
-- Under `scripts` folder:
+- Under the `scripts` folder:
   - `build.js`: prepares the `src/*.gs` and `src/html/*Dialog[Helpers|Render].html` files to be tested with Jest.
   - `clasp.zsh`: zsh script to handle `clasp` operations (`pull`/`push`) to synchronize the local VS Code environment with the GAS remote server repository. It creates a preventive backup zip file before updating the source code (local/server).
   - `fix-jsdoc.js`: used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
 
-- Under `images` folder: Images used in the `README.md` file.
+- Under the `images` folder: Images used in the `README.md` file.
 
-- Under `examples`
+- Under the `examples`folder:
   - `example_sticker_data.txt` Sample file of the export all stickers service output.
 
-- Under `docs` folder:
+- Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: requirements document for the import/export service.
   - `QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service.
   - `QuickEntryServiceMockDesign.md`: mock design document for Quick Entry.
