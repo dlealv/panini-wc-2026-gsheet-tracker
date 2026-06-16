@@ -1,56 +1,28 @@
-// test/ImportExportDialogHelpers.unit.test.js
+// test/ImportDialogHelpers.unit.test.js
 
-/** Unit tests for ImportExportDialogHelpers. */
+/** Unit tests for ImportDialogHelpers. */
 
-const { helpers } = require('../build/ImportExportDialogHelpers.html.js')
+const { helpers } = require('../build/ImportDialogHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-describe('ImportExportDialogHelpers unit tests', () => {
-  /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-  describe('buildExportFileName()', () => {
-    test('formats date correctly', () => {
-      const date = new Date(2026, 0, 5, 9, 4, 7)
-      const result = helpers.buildExportFileName(date)
-
-      expect(result).toBe('panini-stickers-export-20260105-090407.txt')
-    })
-    test('pads single digit values correctly', () => {
-      const date = new Date(2026, 9, 3, 1, 2, 3)
-      const result = helpers.buildExportFileName(date)
-
-      expect(result).toBe('panini-stickers-export-20261003-010203.txt')
-    })
-    test('defaults to current date when no parameter is provided', () => {
-      const result = helpers.buildExportFileName()
-
-      expect(typeof result).toBe('string')
-      expect(result.startsWith('panini-stickers-export-')).toBe(true)
-      expect(result.endsWith('.txt')).toBe(true)
-    })
-  })
-
-  /** Get payload for export based on current UI state. */
+describe('ImportDialogHelpers unit tests', () => {
+  /** Get payload for import based on current UI state. */
   describe('getPayload()', () => {
     test('returns default structure when inputs are empty', () => {
-      global.textInput = null
-      global.modeInput = null
-      global.includeFlagsCheckbox = null
       const result = helpers.getUIState()
-      expect(result).toEqual({ text: '', mode: 'update', includeFlags: false, sortByDone: false, isCompact: false })
+      expect(result).toEqual({ text: '', mode: 'update' })
     })
     test('reads values from mocked inputs', () => {
       global.textInput = { value: 'abc' }
-      global.modeInput = { value: 'import' }
-      global.includeFlagsCheckbox = { checked: true }
+      global.modeInput = { value: 'update' }
       const result = helpers.getUIState()
-      expect(result).toEqual({ text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false })
+      expect(result).toEqual({ text: 'abc', mode: 'update' })
     })
     test('returns same result as getUIState', () => {
       global.textInput = { value: 'abc' }
-      global.modeInput = { value: 'import' }
-      global.includeFlagsCheckbox = { checked: true }
+      global.modeInput = { value: 'update' }
       expect(helpers.getPayload()).toEqual({
-        text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false
+        text: 'abc', mode: 'update'
       })
     })
   })
@@ -114,29 +86,12 @@ describe('renderPreview()', () => {
 /** Set the busy state for UI elements. */
 describe('setBusy()', () => {
   test('disables all UI elements when busy', () => {
-    const buttons = [
-      { disabled: false },
-      { disabled: false }
-    ]
-    const controls = [
-      { disabled: false },
-      { disabled: false },
-      { disabled: false },
-      { disabled: false }
-    ]
-    const docMock = {
-      querySelectorAll: jest.fn(() => buttons)
-    }
-    helpers.setBusy(true, {
-      document: docMock,
-      controls
-    })
-    buttons.forEach(btn => {
-      expect(btn.disabled).toBe(true)
-    })
-    controls.forEach(control => {
-      expect(control.disabled).toBe(true)
-    })
+    const buttons = [{ disabled: false }, { disabled: false }]
+    const controls = [{ disabled: false }, { disabled: false }, { disabled: false }, { disabled: false }]
+    const docMock = { querySelectorAll: jest.fn(() => buttons) }
+    helpers.setBusy(true, { document: docMock, controls })
+    buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
+    controls.forEach(control => { expect(control.disabled).toBe(true) })
   })
 })
 
@@ -145,110 +100,50 @@ describe('getUIState()', () => {
   test('returns default values when inputs are missing', () => {
     global.textInput = null
     global.modeInput = null
-    global.includeFlagsCheckbox = null
     const result = helpers.getUIState()
-    expect(result).toEqual({
-      text: '', mode: 'update', includeFlags: false, sortByDone: false, isCompact: false
-    })
+    expect(result).toEqual({ text: '', mode: 'update' })
   })
   test('reads values from DOM inputs', () => {
     global.textInput = { value: 'abc' }
-    global.modeInput = { value: 'import' }
-    global.includeFlagsCheckbox = { checked: true }
+    global.modeInput = { value: 'update' }
     const result = helpers.getUIState()
-    expect(result).toEqual({
-      text: 'abc', mode: 'import', includeFlags: true, sortByDone: false, isCompact: false
-    })
+    expect(result).toEqual({ text: 'abc', mode: 'update' })
   })
 })
 
-/** Copies export text to clipboard. */
-describe('copyToClipboard()', () => {
-  test('uses navigator clipboard when available', async () => {
-    const writeTextMock = jest.fn().mockResolvedValue()
-    await helpers.copyToClipboard('hello', {
-      clipboard: {
-        writeText: writeTextMock
-      }
-    })
-    expect(writeTextMock).toHaveBeenCalledWith('hello')
-  })
-  test('falls back to execCommand when clipboard fails', async () => {
-    const selectMock = jest.fn()
-    const execCommandMock = jest.fn()
-    await helpers.copyToClipboard('hello', {
-      clipboard: {
-        writeText: jest.fn().mockRejectedValue(new Error('fail'))
-      },
-      exportTextEl: {
-        select: selectMock
-      },
-      execCommand: execCommandMock
-    })
-    expect(selectMock).toHaveBeenCalledTimes(1)
-    expect(execCommandMock).toHaveBeenCalledWith('copy')
-  })
-})
-
-/** Create and trigger a download link for the exported data. */
-describe('triggerDownload()', () => {
-  test('creates and triggers download link', () => {
-    const clickMock = jest.fn()
-    const appendMock = jest.fn()
-    const removeMock = jest.fn()
-    const createObjectURLMock = jest.fn(() => 'blob:url')
-    const revokeObjectURLMock = jest.fn()
-    const setTimeoutMock = jest.fn(fn => fn())
-    const docMock = {
-      createElement: jest.fn(() => ({
-        href: '',
-        download: '',
-        click: clickMock
-      })),
-      body: {
-        appendChild: appendMock,
-        removeChild: removeMock
-      }
-    }
-    const urlMock = {
-      createObjectURL: createObjectURLMock,
-      revokeObjectURL: revokeObjectURLMock
-    }
-    helpers.triggerDownload('data', 'file.txt', {
-      document: docMock,
-      URL: urlMock,
-      setTimeoutFn: setTimeoutMock
-    })
-    expect(clickMock).toHaveBeenCalledTimes(1)
-    expect(createObjectURLMock).toHaveBeenCalledTimes(1)
-    expect(appendMock).toHaveBeenCalledTimes(1)
-    expect(removeMock).toHaveBeenCalledTimes(1)
-    expect(setTimeoutMock).toHaveBeenCalledTimes(1)
-    expect(revokeObjectURLMock).toHaveBeenCalledTimes(1)
-  })
-})
-
-/** Integration tests for ImportExportDialogHelpers. */
+/** Integration tests for ImportDialogHelpers. */
 describe('integration scenarios', () => {
   test('state flows correctly into payload and preview rendering', () => {
     // verifies UI state → backend payload transformation
-    const state = { text: 'ARG,1,3(2)', mode: 'update', includeFlags: false }
+    const state = { text: 'ARG,1,3(2)', mode: 'update' }
     const payload = helpers.getPayloadFromState(state)
 
-    expect(payload).toEqual({ text: 'ARG,1,3(2)', mode: 'update', includeFlags: false })
+    expect(payload).toEqual({ text: 'ARG,1,3(2)', mode: 'update' })
 
     // backend-style result → UI rendering
-    const preview = helpers.renderPreviewData({ countries: [{ code: 'ARG', stickers: [{ number: 1, count: 1 }, { number: 3, count: 2 }] }] })
+    const preview = helpers.renderPreviewData({
+      countries: [{
+        code: 'ARG',
+        stickers: [{ number: 1, count: 1 },
+          { number: 3, count: 2 }]
+      }]
+    })
 
     expect(preview).toBe('ARG -> 1:1, 3:2')
   })
 })
 
-/** Cross-layer integration tests for ImportExportDialogHelpers. */
+/** Cross-layer integration tests for ImportDialogHelpers. */
 describe('cross-layer integration scenarios', () => {
   test('service output is compatible with UI renderer', () => {
     // verifies backend format can be safely rendered by UI layer
-    const backendResult = { countries: [{ code: 'ARG', stickers: [{ number: 1, count: 1 }, { number: 3, count: 2 }, { number: 5, count: 1 }] }] }
+    const backendResult = {
+      countries: [{
+        code: 'ARG',
+        stickers: [{ number: 1, count: 1 }, { number: 3, count: 2 },
+          { number: 5, count: 1 }]
+      }]
+    }
     const preview = helpers.renderPreviewData(backendResult)
 
     expect(preview).toBe('ARG -> 1:1, 3:2, 5:1')
@@ -261,7 +156,11 @@ describe('true end-to-end scenarios', () => {
     // simulated backend normalized output (service layer contract)
     const parsedResult = {
       countries: [
-        { code: 'ARG', stickers: [{ number: 1, count: 1 }, { number: 3, count: 2 }, { number: 5, count: 1 }, { number: 6, count: 1 }] },
+        {
+          code: 'ARG',
+          stickers: [{ number: 1, count: 1 }, { number: 3, count: 2 },
+            { number: 5, count: 1 }, { number: 6, count: 1 }]
+        },
         { code: 'BRA', stickers: [{ number: 10, count: 2 }, { number: 11, count: 2 }, { number: 12, count: 2 }] },
         { code: 'FWC', stickers: [{ number: 0, count: 1 }, { number: 1, count: 1 }, { number: 20, count: 0 }] }
       ]

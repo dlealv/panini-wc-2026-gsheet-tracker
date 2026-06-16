@@ -235,8 +235,12 @@ All valid sticker values produced after parsing and validation are written to th
 
 All formats enforce the following syntax rules (for simplicity, all examples use Format 1, but the rules apply to both formats):
 
-- Accepted delimiters between tokens are `,` (comma) and `;` (semicolon), but internally semicolons are converted to commas as part of the normalization process.
-- All whitespace and non-ASCII characters are stripped from each line before parsing; flag emojis are removed as part of the normalization process.
+- **pre-normalization process**: standardization happens at a country line level and before spit by token: 
+  - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon) or whitespace, but internally all are converted to commas.
+  - Country codes accepted in lower/upper case, but internally converted to upper case.
+  - All non-ASCII characters are stripped from each line before parsing; flag emojis are removed.
+  - Empty tokens produced by consecutive delimiters (e.g. `FWC,,1,2`) are silently skipped.
+  - All possible repeat representations (`NxX`, `N(xX)`, `A-BxX`, `A-B(xX)`) are normalized to the canonical repeat forms: `N(X)`, `A-B(X)`.
 - One country per line.
 - *First country rule*: The first mandatory token in the country line must be a country code; all stickers belong to this country code.
 - Country codes must exist in the `COUNTRIES` named range. Invalid countries are skipped and a warning is reported.
@@ -266,7 +270,7 @@ In case you are not familiar with format notation:
   - Icon flag: `[flag]` is optional.
   - Repeats: `[,number(repeats)]` in parentheses are optional.
   - Ranges: `[,number-range]` are optional.
-- Use comma `,` as the delimiter. Note: `;` can be used, but it is converted to `,` as part of the normalization process on input.
+- Use comma `,` as the delimiter. Note: `;` or `:` can be used, but it is converted to `,` as part of the pre-normalization process on input.
 
 Example:
 
@@ -425,13 +429,17 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 ## Files
 
 - Under the `src` folder:
-  - `Code.gs`: spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
+  - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
   - `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
-  - `ImportExportService.gs`: import/export service logic, including preview generation, import execution, export generation, and input parsing.
+  - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
+  - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
 
 - Under the `src/html` folder:
-  - `ImportExportDialog.html`: HTML user interface for the combined import/export dialog shown inside Google Sheets.
+  - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
+  - `ImportDialogHelpers.html`: helper testable logic function used in `src/html/ImportDialog.html`.
+  - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
+  - `ExportDialogHelpers.html`: helper testable logic function used in `src/html/ExportDialog.html`.
   - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
   - `QuickEntryDialogHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
   - `QuickEntryDialogRender.html`: DOM/UI-specific functions used in `src/html/QuickEntryDialog.html`.
@@ -440,42 +448,43 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `QuickEntryDialogStyles.html`: Styles used by the Quick Sticker Entry dialog.
 
 - Under the `test/` folder:
-  - `Commons.unit.test.js`: test file for testing `src/Commons.gs`.
-  - `ImportExportService.unit.test.js`: test file for testing `src/ImportExportService.gs`.
-  - `ImportExportHelpers.unit.test.js`: test file for testing `src/html/ImportExportDialogHelpers.gs`.
-  - `QuickEntryService.unit.test.js`: test file for testing `src/QuickEntryService.gs`.
-  - `QuickEntryDialogHelpers.unit.test.js`: test file for testing `src/html/QuickEntryDialogHelpers.gs`.
-  - `QuickEntryDialogRender.unit.test.js`: test file for testing `src/html/QuickEntryDialogRender.gs`.
-  - `fixtures/createValidRanges.js`: creates valid default named-range configuration for repository tests.
-  - `utils/testKernel.js`: global test kernel for GAS unit tests.
-  - `test/jest.config.js`: `Jest` configuration file.
+  - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
+  - `ImportService.unit.test.js`: Test file for testing `src/ImportService.gs`.
+  - `ImportDialogHelpers.unit.test.js`: Test file for testing `src/html/ImportDialogHelpers.gs`.
+  - `ExportService.unit.test.js`: Test file for testing `src/ExportService.gs`.
+  - `ExportDialogHelpers.unit.test.js`: Test file for testing `src/html/ExportDialogHelpers.gs`.
+  - `QuickEntryService.unit.test.js`: Test file for testing `src/QuickEntryService.gs`.
+  - `QuickEntryDialogHelpers.unit.test.js`: Test file for testing `src/html/QuickEntryDialogHelpers.gs`.
+  - `QuickEntryDialogRender.unit.test.js`: Test file for testing `src/html/QuickEntryDialogRender.gs`.
+  - `utils/testKernel.js`: Global test kernel for GAS unit tests.
+  - `jest.config.js`: `Jest` configuration file.
 
 - Under the `scripts` folder:
-  - `build.js`: prepares the `src/*.gs` and `src/html/*Dialog[Helpers|Render].html` files to be tested with Jest.
+  - `build.js`: Prepares the `src/*.gs` and `src/html/*Dialog[Helpers|Render].html` files to be tested with Jest.
   - `clasp.zsh`: zsh script to handle `clasp` operations (`pull`/`push`) to synchronize the local VS Code environment with the GAS remote server repository. It creates a preventive backup zip file before updating the source code (local/server).
-  - `fix-jsdoc.js`: used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
+  - `fix-jsdoc.js`: Used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
 
 - Under the `images` folder: Images used in the `README.md` file.
 
 - Under the `examples`folder:
-  - `example_sticker_data.txt` Sample file of the export all stickers service output.
+  - `example_sticker_data.txt`: Sample file of the export all stickers service output.
 
 - Under the `docs` folder:
-  - `ImportExportServiceRequirements.md`: requirements document for the import/export service.
-  - `QuickEntryServiceRequirements.md`: requirements document for the Quick Entry service.
-  - `QuickEntryServiceMockDesign.md`: mock design document for Quick Entry.
-  - `GoogleAccessStepByStep.md`: step-by-step guide explaining how to create a copy of the template and authorize the Apps Script project.
-  - `TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structure, development lifecycle pipelines, and core engineering design constraints governing the project.
+  - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
+  - `QuickEntryServiceRequirements.md`: Requirements document for the Quick Entry service.
+  - `QuickEntryServiceMockDesign.md`: Mock design document for Quick Entry.
+  - `GoogleAccessStepByStep.md`: Step-by-step guide explaining how to create a copy of the template and authorize the Apps Script project.
+  - `TechnicalArchitecture.md`: Comprehensive technical overview of the system architecture, file structure, development lifecycle pipelines, and core engineering design constraints governing the project.
   - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
 - Under root:
-  - `clasp.json.template`: template file used for `clasp` operations (create, edit, and deploy locally to Apps Script).
-  - `.claspignore`: files and folders to ignore in `clasp` execution.
-  - `.eslintignore`: files and folders to ignore by `eslint`.
+  - `clasp.json.template`: Template file used for `clasp` operations (create, edit, and deploy locally to Apps Script).
+  - `.claspignore`: Files and folders to ignore in `clasp` execution.
+  - `.eslintignore`: Files and folders to ignore by `eslint`.
   - `.eslintrc.js`: `eslint` configuration (customizable rules).
-  - `.gitignore`: files and folders to ignore for `git`.
+  - `.gitignore`: Files and folders to ignore for `git`.
   - `jsconfig.json`: JavaScript project configuration file.
   - `package.json`: Node.js project configuration file (dependencies, scripts, automation tasks, etc.).
-  - `CHANGELOG.md`: chronological summary of notable project changes.
-  - `README.md`: main project overview for GitHub visitors, including features, screenshots, and usage guidance.
-  - `TODO.md`: features planned for future releases. A check mark indicates that a feature has already been implemented.
+  - `CHANGELOG.md`: Chronological summary of notable project changes.
+  - `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
+  - `TODO.md`: Features planned for future releases. A check mark indicates that a feature has already been implemented.

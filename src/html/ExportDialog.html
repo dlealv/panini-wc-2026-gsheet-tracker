@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  src/html/ExportDialog.html
+
+  Provides the dialog used to export sticker data from the tracker.
+
+  This HTML file is a thin adapter over ExportService.
+  Export generation and formatting live in the backend.
+  The UI is responsible only for collecting export options,
+  invoking GAS functions, and rendering results.
+
+  Supported export modes:
+  1. export_all    — exports all owned stickers
+  2. export_shared — exports repeated and missing stickers
+
+  Template variables injected from Code.gs:
+  - dialogMode: controls the export mode
+    ('export_all' | 'export_shared')
+
+  Helpers are loaded via include.
+-->
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('CommonDialogStyles') ?>
+  <?!= include('ImportExportDialogStyles') ?>
+</head>
+
+<body>
+  <div class="container">
+
+    <div>
+      <h2>Export result</h2>
+      <div class="hint">
+        <? if (dialogMode === 'export_all') { ?>
+        Export all sticker (<span class="inline-code">count&gt;0</span>) from the
+        <span class="inline-code">COUNTRIES</span> and
+        <span class="inline-code">COUNTS</span> named ranges.
+        <? } else if (dialogMode === 'export_shared') { ?>
+        Export repeated (<span class="inline-code">count&gt;1</span>) and missing
+        (<span class="inline-code">count=0</span>) stickers from the
+        <span class="inline-code">COUNTRIES</span> and
+        <span class="inline-code">COUNTS</span> named ranges.
+        <? } ?>
+      </div>
+    </div>
+
+    <!-- Export mode sections -->
+    <div id="exportModeWrapper"
+      class="<?= (dialogMode === 'export_all' || dialogMode === 'export_shared') ? '' : 'hidden' ?>">
+      <div class="section">
+        <!-- TOOLBAR (checkboxes + refresh in same row) -->
+        <div class="actions" style="margin-bottom:10px; flex-wrap:wrap; gap:14px; align-items:center;">
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="includeFlagsCheckbox">
+            Flags
+          </label>
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="isCompactCheckbox">
+            Compact (using ranges)
+          </label>
+          <? if (dialogMode === 'export_shared') { ?>
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="sortByDoneCheckbox">
+            Sort by Done (descending) missing stickers
+          </label>
+          <? } ?>
+          <button class="btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
+            Refresh
+          </button>
+        </div>
+        <!-- OUTPUT (expanded use of space comes later if you want further tuning) -->
+        <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+        <? if (dialogMode === 'export_all') { ?>
+        <div class="hint" style="margin-top:8px;">
+          The exported content uses the same Format 1 syntax accepted by the import process.
+          Only sticker counts greater than <span class="inline-code">0</span> are included.
+        </div>
+        <? } else if (dialogMode === 'export_shared') { ?>
+        <div class="hint" style="margin-top:8px;">
+          The exported content uses the same Format 1 syntax accepted by the import process.
+        </div>
+        <? } ?>
+      </div>
+      <div class="section">
+        <div class="section-title">Actions</div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
+          <button class="btn" onclick="copyExport()">Copy</button>
+          <button class="btn" onclick="google.script.host.close()">Close</button>
+        </div>
+      </div>
+    </div>
+    <!-- /exportModeWrapper -->
+
+    <div id="message" class="message info"></div>
+    <!-- reserved for future export validation warnings -->
+    <div id="warnings" class="warnings"></div>
+
+  </div><!-- /container -->
+
+  <?!= include('ExportDialogHelpers') ?>
+
+  <script>
+    const DIALOG_MODE = '<?= dialogMode ?>'
+    const exportText = document.getElementById('exportText')
+    const includeFlagsCheckbox = document.getElementById('includeFlagsCheckbox')
+    const sortByDoneCheckbox = document.getElementById('sortByDoneCheckbox')
+    const isCompactCheckbox = document.getElementById('isCompactCheckbox')
+    const warningsEl = document.getElementById('warnings')
+
+      ;[
+        includeFlagsCheckbox,
+        sortByDoneCheckbox,
+        isCompactCheckbox
+      ].forEach(cb => {
+        if (cb) {
+          cb.addEventListener('change', () => {
+            // only update internal state, DO NOT reload export
+            // export is now manual via Refresh button
+          })
+        }
+      })
+
+    /**
+     * Renders backend warnings below the status message in amber.
+     * Clears previous warnings first; hides the block when the list is empty.
+     */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) { // no warnings — keep the block hidden
+        warningsEl.style.display = 'none'
+        return
+      }
+      warningsEl.style.display = 'block'
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.style.margin = '2px 0'
+        p.textContent = `⚠ ${w}`
+        warningsEl.appendChild(p)
+      })
+    }
+
+    /**Loads exported sticker data into the export text area. */
+    function loadExportData() {
+      if (!exportText) {
+        setMessage('Export text area not found in dialog.', 'error')
+        return
+      }
+
+      exportText.value = 'Loading export data...'
+      exportText.placeholder = ''
+      setBusy(true)
+      setMessage('Exporting sticker data...', 'info')
+      exportText.disabled = true
+
+      const request = google.script.run
+        .withSuccessHandler((result) => {
+          setBusy(false)
+          exportText.disabled = false
+          if (!result) {
+            exportText.value = ''
+            setMessage('Export returned no result.', 'error')
+            return
+          }
+
+          if (!result.success) {
+            exportText.value = ''
+            setMessage('Export did not complete successfully.', 'error')
+            return
+          }
+          exportText.value = result.text || ''
+          renderWarnings(result.warnings)
+          setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success')
+        })
+        .withFailureHandler((error) => {
+          setBusy(false)
+          exportText.disabled = false
+          exportText.value = ''
+          setMessage(`Export failed: ${error && error.message ? error.message : String(error)}`, 'error')
+        })
+      const payload = getPayload()
+      if (DIALOG_MODE === 'export_shared') {
+        request.exportSharedStickerData(payload)
+      } else {
+        request.exportAllStickerData(payload)
+      }
+    }
+
+    /**Builds the payload object for export requests based on the current state of the export options. */
+    function refreshExportData() {
+      loadExportData()
+    }
+
+    /**Copies the exported sticker data to the clipboard. */
+    function copyExport() {
+      if (!exportText || !exportText.value) {
+        setMessage('There is no exported content to copy.', 'error')
+        return
+      }
+      copyToClipboard(exportText.value)
+        .then(() => setMessage('Export copied to clipboard.', 'success'))
+        .catch(() => setMessage('Failed to copy export.', 'error'))
+    }
+
+    /**Downloads the exported sticker data as a local file. */
+    function downloadExport() {
+      if (!exportText || !exportText.value) {
+        setMessage('There is no exported content to download.', 'error')
+        return
+      }
+      try {
+        const type = DIALOG_MODE === 'export_shared' ? 'shared' : 'all'
+        const fileName = buildExportFileName(type)
+        triggerDownload(exportText.value, fileName)
+        setMessage(`Download started: ${fileName}`, 'success')
+      } catch (error) {
+        setMessage(`Could not start download.\n${error.message || error}`, 'error')
+      }
+    }
+
+    /**Automatically loads export data when the dialog opens in export mode. */
+    window.addEventListener('load', () => {
+      if (DIALOG_MODE.startsWith('export')) {
+        loadExportData()
+      }
+    })
+  </script>
+</body>
+
+</html>
