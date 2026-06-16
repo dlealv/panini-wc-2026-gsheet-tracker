@@ -7,10 +7,10 @@ project structure, and documentation.
 
 ---
 
-## [1.0.5] 2026-06-XX
+## [1.0.5] 2026-06-16
 
 ### Overview
-No new functionality was added. Optimized the backend code. Split responsibilities across source files in both the front-end and back-end. Refactored the `StickerSheetRepository` class to implement lazy initialization through getters. The Import service now supports colon (`:`) as a delimiter and converts it to a comma (`,`) as part of the pre-normalization process.
+No new functionality was added. Optimized the backend code. Split responsibilities across source files in both the front-end and back-end. Refactored the `StickerSheetRepository` class to implement lazy initialization through getters. The Import service now supports colon (`:`) and whitespace as a delimiter and converts them to a comma (`,`) delimiter as part of the pre-normalization process.
 
 ### Added
 
@@ -19,10 +19,14 @@ No new functionality was added. Optimized the backend code. Split responsibiliti
   - Added the Team Completed information to the `Reports` tab.
 
 - Under the `src` folder:
+  - `ImportService.gs`: Backend of the Import service as part of `ImportExportService.gs` split.
+  - `ExportService.gs`: Backend of the Export service as part of `ImportExportService.gs` split.  
+ 
+- Under the `src/html` folder:
   - `ImportDialog.html`: Dialog for import services as part of `ImportExportDialog.html` split.
   - `ExportDialog.html`: Dialog for export services as part of `ImportExportDialog.html` split.
   - `ImportDialogHelpers.html`: Pure functions (testable) related to import dialog logic as part of `ImportExportDialogHelpers.html` split.
-  - `ExportDialogHelpers.html`: Pure functions (testable) related to export dialog logic as part of `ImportExportDialogHelpers.html` split.
+  - `ExportDialogHelpers.html`: Pure functions (testable) related to export dialog logic as part of `ImportExportDialogHelpers.html` split.  
 
 - Under the `test` folder:
   - `ImportDialogHelpers.unit.test.js`: test file for `ImportDialogHelpers.gs` as part of `ImportExportDialogHelpers.unit.test.js` split.
