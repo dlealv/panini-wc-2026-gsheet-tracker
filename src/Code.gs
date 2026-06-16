@@ -1,17 +1,17 @@
 /** @OnlyCurrentDoc */
 
-//src/Code.gs (pull final test)
+//src/Code.gs
 
 /**
- * Provides shared spreadsheet access, named range validation, and common lookup utilities.
- * This file centralizes reusable data access for import/export and Quick Entry flows.
+ * Entry points for spreadsheet menus, dialogs, and Apps Script
+ * callbacks used by the Import, Export, and Quick Entry services.
  */
 
 /** Builds the custom spreadsheet menu. */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Manage Panini')
-    .addItem('Open import dialog', 'showImportExportDialog')
+    .addItem('Open import dialog', 'showImportDialog')
     .addItem('Import data', 'showImportDialogCleanAll')
     .addItem('Update counts clearing country counts', 'showImportDialogReplaceCountries')
     .addItem('Update counts', 'showImportDialogUpdate')
@@ -23,83 +23,100 @@ function onOpen() {
     .addToUi()
 }
 
-/** Opens the import/export dialog in import mode clearing all counts first. */
+// #region Import
+//==============================================================================
+// Import Dialog
+//==============================================================================
+
+
+/** Opens the import dialog. */
+function showImportDialog() {
+  _showImportDialog('update')
+}
+
+/** Opens the import dialog in clean-all mode. */
 function showImportDialogCleanAll() {
-  showImportExportDialog_('import', 'clean_all')
+  _showImportDialog('clean_all')
 }
 
-/** Opens the import/export dialog in import mode clearing imported countries first. */
+/** Opens the import dialog in replace-countries mode. */
 function showImportDialogReplaceCountries() {
-  showImportExportDialog_('import', 'replace_countries')
+  _showImportDialog('replace_countries')
 }
 
-/** Opens the import/export dialog in import mode updating only provided stickers. */
+/** Opens the import dialog in update mode. */
 function showImportDialogUpdate() {
-  showImportExportDialog_('import', 'update')
-}
-
-/** Opens the import/export dialog in default import mode. */
-function showImportExportDialog() {
-  showImportExportDialog_('import', 'update')
-}
-
-/** Opens the export-all dialog. */
-function showExportAllDialog() {
-  showImportExportDialog_('export_all', 'update')
-}
-
-/** Opens the export-shared dialog. */
-function showExportSharedDialog() {
-  showImportExportDialog_('export_shared', 'update')
-}
-
-/** Opens the import/export dialog with the provided mode configuration. */
-function showImportExportDialog_(dialogMode, defaultMode) {
-  const template = HtmlService.createTemplateFromFile('ImportExportDialog')
-  template.dialogMode = dialogMode || 'import'
-  template.defaultMode = defaultMode || 'update'
-
-  const html = template
-    .evaluate()
-    .setWidth(760)
-    .setHeight(760)
-
-  const titles = {
-    import: 'Import sticker counts',
-    export_all: 'Export all stickers',
-    export_shared: 'Export shared stickers'
-  }
-
-  SpreadsheetApp.getUi().showModalDialog(
-    html,
-    titles[dialogMode] || 'Manage Panini'
-  )
+  _showImportDialog('update')
 }
 
 /** Returns a preview of import data without writing to the sheet. */
 function previewStickerData(payload) {
-  const app = new ImportExportService()
+  const app = new ImportService()
   return app.preview(payload && payload.text ? payload.text : '')
 }
 
 /** Imports sticker data into the sheet using the selected mode. */
 function importStickerData(payload) {
-  const app = new ImportExportService()
-  return app.import(
-    payload && payload.text ? payload.text : '',
-    payload && payload.mode ? payload.mode : 'update'
-  )
+  const app = new ImportService()
+  return app.import(payload && payload.text ? payload.text
+    : '', payload && payload.mode ? payload.mode : 'update')
+}
+
+/** Opens the import dialog with the provided mode configuration. */
+function _showImportDialog(defaultMode) {
+  const template = HtmlService.createTemplateFromFile('ImportDialog')
+  template.defaultMode = defaultMode || 'update'
+  const html = template.evaluate().setWidth(760).setHeight(760)
+  SpreadsheetApp.getUi().showModalDialog(html, 'Import sticker counts')
+}
+
+
+// #endregion Import
+
+// #region Export
+//==============================================================================
+// Export Dialog
+//==============================================================================
+
+/** Opens the export-all dialog. */
+function showExportAllDialog() {
+  _showExportDialog('export_all')
+}
+
+/** Opens the export-shared dialog. */
+function showExportSharedDialog() {
+  _showExportDialog('export_shared')
 }
 
 /** Exports all sticker data from the sheet. */
 function exportAllStickerData(payload) {
-  return ImportExportService.exportStickerData(payload)
+  const service = new ExportService()
+  return service.exportAllStickerData(payload)
 }
 
 /** Exports shared sticker data from the sheet. */
 function exportSharedStickerData(payload) {
-  return ImportExportService.exportSharedStickerData(payload)
+  const service = new ExportService()
+  return service.exportSharedStickerData(payload)
 }
+
+/** Opens the export dialog with the provided mode configuration. */
+function _showExportDialog(dialogMode) {
+  const template = HtmlService.createTemplateFromFile('ExportDialog')
+  template.dialogMode = dialogMode
+  const html = template.evaluate().setWidth(760).setHeight(760)
+
+  SpreadsheetApp.getUi().showModalDialog(html, dialogMode === 'export_shared'
+    ? 'Export shared stickers' : 'Export all stickers')
+}
+
+// #endregion Export
+
+// #region QuickEntry
+//==============================================================================
+// Quick Entry Dialog
+//==============================================================================
+
 
 /** Opens the Quick Sticker Entry dialog. */
 function showQuickStickerEntryDialog() {
@@ -123,6 +140,13 @@ function applyQuickEntryUpdates(payload) {
   const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
   return service.applyPendingUpdates(pendingUpdates)
 }
+
+// #endregion QuickEntry
+
+
+//==============================================================================
+// Helper
+//==============================================================================
 
 /**
  * Includes HTML partials inside templates.

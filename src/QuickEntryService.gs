@@ -20,15 +20,15 @@
 class QuickEntryService {
   /** Creates a service for Quick Sticker Entry. */
   constructor() {
-    this.repository = new StickerSheetRepository()
+    this.repo = new StickerSheetRepository()
     this.DEFAULT_STATUS_FILTER = 'all'
     this.DEFAULT_GROUP_FILTER = 'all'
   }
 
   /** Returns the initial dialog payload. */
   getInitialData() {
-    const countries = this.repository.getCountries()
-    const groupCodes = this.repository.getGroupCodes()
+    const countries = this.repo.getCountries()
+    const groupCodes = this.repo.getGroupCodes()
 
     return {
       countries: this._buildCountryViewModels(countries),
@@ -41,12 +41,12 @@ class QuickEntryService {
   /** Applies a batch of pending sticker updates and returns refreshed data. */
   applyPendingUpdates(pendingUpdates) {
     const normalizedUpdates = this._normalizePendingUpdates(pendingUpdates)
-    this.repository.updateStickerCounts(normalizedUpdates)
+    this.repo.updateStickerCounts(normalizedUpdates)
 
     return {
       success: true,
       message: `Updated ${normalizedUpdates.length} sticker value(s).`,
-      countries: this._buildCountryViewModels(this.repository.getCountries())
+      countries: this._buildCountryViewModels(this.repo.getCountries())
     }
   }
 

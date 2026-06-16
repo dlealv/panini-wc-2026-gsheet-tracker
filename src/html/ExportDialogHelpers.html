@@ -1,17 +1,28 @@
 <script>
-  // src/html/ImportExportDialogHelpers.html
-  /**
-   * Pure functions (testable) related to import/export dialog logic, separated from DOM manipulation.
-   * These functions can be unit tested without relying on the DOM, making them more robust and easier to maintain.
-   * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
-   * external use, so they should not be removed or altered without consideration of their role in the overall 
-   * application architecture.
-   */
+  // src/html/ExportDialogHelpers.html
 
-  /** Builds a deterministic export filename using timestamp.
+  /**
+   * Pure functions (testable) related to export dialog logic.
+   *
+   * This helper supports ExportDialog.html and contains:
+   * - export payload generation
+   * - UI state extraction
+   * - message handling
+   * - clipboard operations
+   * - file download helpers
+   * 
+   * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
+   * external use, so they should not be removed or altered without consideration of their role in the overall
+   * application architecture.
+ */
+
+  /** Builds a export filename using timestamp. The final name prefix is specific to the 
+   * export type (e.g. shared vs full) and is passed as an argument.
    * @export
    */
-  function buildExportFileName(now = new Date()) {
+  function buildExportFileName(type = 'all', now = new Date()) {
+    const prefixMap = { all: 'panini-stickers-all', shared: 'panini-stickers-shared' }
+    const prefix = prefixMap[type] || prefixMap.all
     const yyyy = now.getFullYear()
     const mm = String(now.getMonth() + 1).padStart(2, '0')
     const dd = String(now.getDate()).padStart(2, '0')
@@ -19,34 +30,9 @@
     const mi = String(now.getMinutes()).padStart(2, '0')
     const ss = String(now.getSeconds()).padStart(2, '0')
 
-    return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
+    return `${prefix}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
   }
 
-  /** Normalizes state into backend payload format.
-   * @export
-   */
-  function getPayloadFromState(state) {
-    return {
-      text: state.text || '',
-      mode: state.mode || 'update',
-      includeFlags: !!state.includeFlags
-    }
-  }
-
-  /** Converts backend export result into displayable text.
-   * @export
-   */
-  function renderPreviewData(result) {
-    if (!result || !result.countries || !result.countries.length) return ''
-
-    return result.countries.map(country => {
-      const stickerText = (country.stickers || [])
-        .map(item => `${item.number}:${item.count}`)
-        .join(', ')
-
-      return `${country.code} -> ${stickerText}`
-    }).join('\n')
-  }
 
   // =========================
   // DOM HELPERS (NOT TESTED YET)
@@ -56,8 +42,6 @@
    * @export
    */
   function getUIState(deps = {}) {
-    const textEl = deps.textInput || textInput
-    const modeEl = deps.modeInput || modeInput
     const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
     const sortDoneEl = deps.sortByDoneCheckbox ||
       (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
@@ -65,8 +49,6 @@
       (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
 
     return {
-      text: textEl ? textEl.value : '',
-      mode: modeEl ? modeEl.value : 'update',
       includeFlags: flagsEl ? flagsEl.checked : false,
       sortByDone: sortDoneEl ? sortDoneEl.checked : false,
       isCompact: compactEl ? compactEl.checked : false
@@ -84,33 +66,10 @@
    * @export
    */
   function setMessage(text, type, deps = {}) {
-    const el = deps.messageEl || messageEl
+    const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
+    if (!el) { return }
     el.className = `message ${type || 'info'}`
     el.textContent = text || ''
-  }
-
-  /** Clears preview output area.
-   * @export
-   */
-  function clearPreview(deps = {}) {
-    const el = deps.previewEl
-    if (!el) return
-    el.style.display = 'none'
-    el.textContent = ''
-  }
-
-  /** Renders preview content into UI.
-   * @export
-   */
-  function renderPreview(result, deps = {}) {
-    const el = deps.previewEl || previewEl
-    const text = renderPreviewData(result)
-    if (!text) {
-      clearPreview({ previewEl: el })
-      return
-    }
-    el.textContent = text
-    el.style.display = 'block'
   }
 
   /** Enables/disables UI during async operations. 
@@ -118,18 +77,15 @@
    */
   function setBusy(isBusy, deps = {}) {
     const doc = deps.document || document
-    const controls = deps.controls || [
-      fileInput,
-      modeInput,
-      textInput,
-      includeFlagsCheckbox
-    ]
-    doc.querySelectorAll('button').forEach(btn => {
-      btn.disabled = isBusy
-    })
-    controls.forEach(el => {
-      if (el) el.disabled = isBusy
-    })
+    const controls =
+      deps.controls ||
+      [
+        ...(typeof includeFlagsCheckbox !== 'undefined' ? [includeFlagsCheckbox] : []),
+        ...(typeof isCompactCheckbox !== 'undefined' ? [isCompactCheckbox] : []),
+        ...(typeof sortByDoneCheckbox !== 'undefined' ? [sortByDoneCheckbox] : [])
+      ]
+    doc.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+    controls.forEach(el => { if (el) el.disabled = isBusy })
   }
 
   /** Copies text to clipboard (with fallback). 

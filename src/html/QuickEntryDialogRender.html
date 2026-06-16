@@ -4,13 +4,15 @@
   /** Renders the entire dialog content based on current state and layout.
    * DOM/UI rendering is not covered by automated tests yet, but functions have been designed to
    * facilitate testing in the future.
+   * 
    * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
    * external use, so they should not be removed or altered without consideration of their role in the overall
    * application architecture.
    */
 
   /** Returns the CSS class for a sticker count.
-   * @export */
+   * @export
+   */
   function getStickerCountClass(count) {
     if (count >= 5) return 'count-5-plus'
     return `count-${count}`
@@ -58,7 +60,8 @@
   }
 
   /** Builds country header text.
-   * @export */
+   * @export
+   */
   function buildCountryHeaderText(country) {
     if (!country.group) {
       return country.code
@@ -66,7 +69,9 @@
     return `${country.code} · ${country.group}`
   }
 
-  /** Builds summary item. */
+  /** Builds summary item.
+   * @export
+   */
   function buildSummaryItem(label, value) {
     const item = document.createElement('div')
     const labelEl = document.createElement('span')
@@ -79,7 +84,9 @@
     return item
   }
 
-  /** Builds sticker grid. */
+  /** Builds sticker grid.
+   * @export
+   */
   function buildStickerGrid(country, state, layout, onStickerChange) {
     // Uses the passed-in state parameter instead of global state
     return usesCompactGrid(state)
@@ -87,12 +94,16 @@
       : buildAlbumStickerGrid(country, state, layout, onStickerChange)
   }
 
-  /** Compact layout used in filtered views. */
+  /** Compact layout used in filtered views. 
+   * @export
+  */
   function usesCompactGrid(state) {
     return state.selectedStatusFilter !== 'all'
   }
 
-  /** Standard album layout. */
+  /** Standard album layout. 
+   * @export
+  */
   function buildAlbumStickerGrid(country, state, layout, onStickerChange) {
     const grid = document.createElement('div')
     grid.className = 'sticker-grid'
@@ -122,8 +133,10 @@
     return grid
   }
 
-  /** Builds one sticker row. */
-  // FIX: Updated signature to receive layout, state and callback arguments
+  /** Builds one sticker row.
+   * @export
+   * FIX: Updated signature to receive layout, state and callback arguments
+   */
   function buildStickerRow(country, stickers, isLastRow, perRow, state, onStickerChange) {
     const row = document.createElement('div')
     row.className = 'sticker-row'
@@ -141,7 +154,8 @@
   }
 
   /** Splits stickers into rows.
-   * @export */
+   * @export
+   */
   function chunkStickers(stickers, size) {
     const rows = []
     for (let i = 0; i < stickers.length; i += size) {
@@ -150,7 +164,9 @@
     return rows
   }
 
-  /** Builds one sticker card. */
+  /** Builds one sticker card. 
+   * @export
+   */
   function buildStickerCard(country, sticker, state, onStickerChange) {
     const card = document.createElement('div')
     card.className = `sticker-card ${getStickerColorClass(sticker.count)}`
@@ -201,7 +217,9 @@
     return card
   }
 
-  /** Builds flag image. */
+  /** Builds flag image. 
+   * @export
+   */
   function buildCountryFlag(flagUrl) {
     const image = document.createElement('img')
     image.className = 'country-flag'
@@ -210,7 +228,9 @@
     return image
   }
 
-  /** Builds title text. */
+  /** Builds title text.
+   * @export
+   */
   function buildCountryTitleText(text) {
     const element = document.createElement('span')
     element.textContent = text
@@ -218,7 +238,8 @@
   }
 
   /** Returns sticker color class.
-   * @export */
+   * @export
+   */
   function getStickerColorClass(count) {
     if (count <= 0) return 'count-0'
     if (count === 1) return 'count-1'

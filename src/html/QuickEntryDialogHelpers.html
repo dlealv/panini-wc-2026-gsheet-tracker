@@ -5,6 +5,7 @@
      * Quick entry helpers (pure logic layer - Jest safe).
      * - contains core state management and UI helper functions.
      * - designed for testability and separation of concerns.
+     * 
      * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
      * external use, so they should not be removed or altered without consideration of their role in the overall 
      * application architecture.
@@ -38,7 +39,7 @@
         return { stickersPerRow }
     }
 
-    
+
     // UI HELPERS
 
     /**
@@ -92,15 +93,18 @@
      * - applies search filters
      * - applies group filters
      * - applies sticker visibility filters
+     * Include safety checks for missing or malformed state to prevent runtime errors in edge cases.
      * @export
      */
     function getVisibleCountries(state) {
+        if (!state || !Array.isArray(state.countries)) return []
+
         return state.countries
             .map(c => applyPendingCountryUpdates(c, state))
             .filter(c => matchesTeamSearch(c, state))
             .filter(c => matchesGroupFilter(c, state))
             .map(c => filterCountryStickers(c, state))
-            .filter(country => country && country.stickers && country.stickers.length > 0)
+            .filter(Boolean)
     }
 
     /**
@@ -132,7 +136,7 @@
      */
     function applyPendingStickerUpdate(countryCode, sticker, state) {
         const key = buildPendingKey(countryCode, sticker.number)
-        const pending = state.pendingUpdates[key]
+        const pending = state.pendingUpdates?.[key] // ADDED: make it safe for undefined pendingUpdates
 
         if (pending == null) {
             return { ...sticker, hasPendingChange: false }
@@ -302,6 +306,7 @@
     /**
      * Builds preview text for import/export operations.
      * - converts parsed countries into readable preview lines
+     * @export
      */
     function renderPreviewData(result) {
         if (!result || !Array.isArray(result.countries) || result.countries.length === 0) {
@@ -321,6 +326,7 @@
      * Converts UI state into import/export payload.
      * - normalizes export settings
      * - guarantees predictable payload structure
+     * @export
      */
     function getPayloadFromState(state = {}) {
         return {

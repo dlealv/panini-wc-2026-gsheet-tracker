@@ -2,6 +2,10 @@
 
 ## General Questions
 
+### Why use this tracker instead of an app on the market? 
+
+There are multiple apps on the market with a similar purpose, however, apps are applications with a specific scope and usually do not cover all the formats used by Panini sticker collectors. In some cases, it is necessary to convert the data into the desired format in order to enter it into the app. The advantage of using this Google Sheets tracker is that it makes it easier to adapt the data received for trading with another collector by performing the transformations right inside the tracker itself. Particularly with this tracker, the end users own the document and can easily make any changes or extensions they need. A similar advantage would apply to Excel, but it is not a free service, which is why this tracker represents a great advantage.
+
 ### I’m currently using an old version of the tracker. How can I upgrade to the new one?
 
 From the previous tracker, go to *Manage Panini* and select *Export Stickers*. Make a copy of the new template and import the stickers: *Manage Panini* → *Import Data*. Both processes have back compatibility, so you can start using the new version without losing your data.
@@ -30,6 +34,16 @@ Will be interpreted as import all stickers from Mexico, but actually this produc
 ```text
 MEX,1-20
 ```
+
+### Can I import stickers from a mobile phone?
+
+Not currently.
+
+The tracker is distributed as a Google Sheets template that each user copies into their own Google Drive. Import and export operations rely on Google Apps Script custom menus and dialogs, which are not supported by the Google Sheets mobile application.
+
+Alternative approaches such as Google Forms and standalone web applications were evaluated but were not adopted because they add complexity and cannot reliably interact with each user's private spreadsheet copy without additional configuration.
+
+For this reason, sticker import and export features are available only in the desktop version of Google Sheets.
 
 ---
 

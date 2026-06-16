@@ -7,6 +7,73 @@ project structure, and documentation.
 
 ---
 
+## [1.0.5] 2026-06-XX
+
+### Overview
+No new functionality was added. Optimized the backend code. Split responsibilities across source files in both the front-end and back-end. Refactored the `StickerSheetRepository` class to implement lazy initialization through getters. The Import service now supports colon (`:`) as a delimiter and converts it to a comma (`,`) as part of the pre-normalization process.
+
+### Added
+
+- Google sheet tracker: 
+  - Added sort criteria in `Swap Compact View` tab for needed stickers in a similar way the `Trade` tab has.
+  - Added the Team Completed information to the `Reports` tab.
+
+- Under the `src` folder:
+  - `ImportDialog.html`: Dialog for import services as part of `ImportExportDialog.html` split.
+  - `ExportDialog.html`: Dialog for export services as part of `ImportExportDialog.html` split.
+  - `ImportDialogHelpers.html`: Pure functions (testable) related to import dialog logic as part of `ImportExportDialogHelpers.html` split.
+  - `ExportDialogHelpers.html`: Pure functions (testable) related to export dialog logic as part of `ImportExportDialogHelpers.html` split.
+
+- Under the `test` folder:
+  - `ImportDialogHelpers.unit.test.js`: test file for `ImportDialogHelpers.gs` as part of `ImportExportDialogHelpers.unit.test.js` split.
+  - `ExportDialogHelpers.unit.test.js`: test file for `ExportDialogHelpers.gs` as part of `ImportExportDialogHelpers.unit.test.js` split.
+
+### Changed
+
+- Under the `src` folder:
+  - `ImportExportService.gs`: 
+    - Removed the file and split the service into `ImportService.gs` and `ExportService.gs`. 
+    - `ImportExportService` class renamed as `ImportService` and `ExportService` for each service.
+    - `ExportService` class was renamed as `ExportStickers` to be consistent with `ImportService/ImportStickers` classes.
+    - Renamed `exportStickerData` to `exportAllStickerData` in `ExportService` class.
+    - Renamed `InputLineNormalize` class to `LineNormalize` since all the classes in this file are related to Import service.
+    - In `LineNormalize` class, adjusted the method: `_normalizeDelimiters`, and `_stripNonAsciiAndUpperCase` to allow white and colon (`:`) as delimiters. All of them converted to comma (`,`) delimiters.
+  - `Code.gs`: 
+    - Refactored to separate the Import and Export dialogs and updated menu calls to use dedicated functions for each dialog.
+  - `QuickEntryService.gs`: Updated to use the getters defined in `StickerSheetRepository`.
+
+- Under the `src/html` folder:
+  - `ImportExportDialog.html`: Removed and split the logic into `ImportDialog.html` and `ExportDialog.html`, providing dedicated dialogs for each function. Export file prefixes are now specific to each export type.
+  - `ImportExportDialogHelpers.html`: Removed and split the logic into `ImportDialogHelpers.html` and `ExportDialogHelpers.html`, providing dedicated helpers for each dialog. Each helper file now handles a specific `payload` for its corresponding dialog. Updated the `buildExportFileName` method to generate export file prefixes specific to each export type.
+  - `ImportExportDialogStyles.html`: Updated the header comment.
+  - `QuickEntryDialogRender.html`: Added @export tag to include additional functions to be tested.
+  - `QuickEntryDialogHelpers.html`: Added @export tag to include additional functions to be tested. In `applyPendingStickerUpdate`, `getVisibleCountries` made the functions defensive against `null/undefined` value.
+
+- Under the `test` folder:
+  - `ImportExportService.unit.test.js`: Removed and split by back-end test service: `ImportService.unit.test.js` and `ExportService.unit.test.js`. Added specific tests for white space and colon (`:`) delimiters for `LineNormalize` class test cases.
+  - `ImportExportDialogHelpers.unit.test.js`: Removed the file and split the tests into `ImportDialogHelpers.unit.test.js` and `ExportDialogHelpers.unit.test.js`. Adjusted tests to consider specific payload for each service.
+  - `Commons.unit.test`: Redesigned the testing strategy to focus only on public methods and removed tests related to private methods. Added coverage for all public methods, including getters.
+  - `QuickEntryDialogRender.unit.test.js`: Added additional tests to increase coverage.
+  - `QuickEntryDialogHelpers.unit.test.js`: Added a mock DOM to increase coverage by adding tests for DOM specific functions. Removed the dependency with `utils/testKernel.js`, since it is not required.
+  - `utils/testKernel.gs`: Minor adjustments to mock data to accommodate the new tests.
+  - `fixtures` folder removed (including its contents), as it was no longer in use. All required mocks are now created in `utils/testKernel.js`.
+
+- Under the `doc` folder:
+  - `FAQ.md`: Questions added:
+    - Why use this tracker instead of an app on the market?
+    - I’m currently using an old version of the tracker. How can I upgrade to the new one?
+  - `ImportExportServiceRequirements.md`: Removed and split the requirements by service: `ImportServiceRequirements.md` and `ExportServiceRequirements.md`. Included colon (`:`) as a supported delimiter in the pre-normalization process as part of Import Service requirements.
+
+- Under the root folder:
+  - `package.json`: Added a new script, `test:file`, to simplify running a single test file. Usage: `npm run test:file -- Commons.unit.test.js`.
+  - `README.md`: 
+    - Updated the image of `Swap Compact View` to include sorting criteria for needed stickers.
+    - Updated **Common rules** section to include colon (`:`) as delimiter as part of pre-normalization process.
+    - Adjusted the list of files in **Files** section.
+  - `TODO.md`: Remove the item related to include Google form, since after analysis it is not possible due to the way the Gsheet tracker is distributed.
+
+---
+
 ## [1.0.4] 2026-06-11
 
 ### Overview

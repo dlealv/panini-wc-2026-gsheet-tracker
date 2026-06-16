@@ -1,0 +1,106 @@
+<script>
+  // src/html/ImportDialogHelpers.html
+  /**
+   * Pure functions (testable) related to import dialog logic, separated from DOM manipulation.
+   * These functions can be unit tested without relying on the DOM, making them more robust and easier to maintain.
+   * They should not have side effects or depend on external state.
+   * 
+   * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
+   * external use, so they should not be removed or altered without consideration of their role in the overall
+   * application architecture.
+   */
+
+  /** Normalizes state into backend payload format.
+   * @export
+   */
+  function getPayloadFromState(state) {
+    return {
+      text: state.text || '',
+      mode: state.mode || 'update'
+    }
+  }
+
+  /** Converts backend export result into displayable text.
+   * @export
+   */
+  function renderPreviewData(result) {
+    if (!result || !result.countries || !result.countries.length) return ''
+
+    return result.countries.map(country => {
+      const stickerText = (country.stickers || [])
+        .map(item => `${item.number}:${item.count}`)
+        .join(', ')
+
+      return `${country.code} -> ${stickerText}`
+    }).join('\n')
+  }
+
+  // =========================
+  // DOM HELPERS (NOT TESTED YET)
+  // =========================
+
+  /** Reads current UI state from DOM inputs.
+   * @export
+   */
+  function getUIState(deps = {}) {
+    const textEl = deps.textInput || (typeof textInput !== 'undefined' ? textInput : null)
+    const modeEl = deps.modeInput || (typeof modeInput !== 'undefined' ? modeInput : null)
+    return { text: textEl ? textEl.value : '', mode: modeEl ? modeEl.value : 'update' }
+  }
+
+  /** Backend payload wrapper (stable contract for services).
+   * @export
+   */
+  function getPayload(deps = {}) {
+    return getUIState(deps)
+  }
+
+  /** Clears preview output area.
+   * @export
+   */
+  function clearPreview(deps = {}) {
+    const el = deps.previewEl
+    if (!el) return
+    el.style.display = 'none'
+    el.textContent = ''
+  }
+
+  /** Renders preview content into UI.
+   * @export
+   */
+  function renderPreview(result, deps = {}) {
+    const el = deps.previewEl || previewEl
+    const text = renderPreviewData(result)
+    if (!text) {
+      clearPreview({ previewEl: el })
+      return
+    }
+    el.textContent = text
+    el.style.display = 'block'
+  }
+
+  /** Enables/disables UI during async operations. 
+   * @export
+   */
+  function setBusy(isBusy, deps = {}) {
+    const doc = deps.document || document
+    const controls = deps.controls || [
+      ...(typeof fileInput !== 'undefined' ? [fileInput] : []),
+      ...(typeof modeInput !== 'undefined' ? [modeInput] : []),
+      ...(typeof textInput !== 'undefined' ? [textInput] : [])
+    ]
+    doc.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+    controls.forEach(el => { if (el) el.disabled = isBusy })
+  }
+
+  /** Displays a message in the dialog UI.
+   * @export
+   */
+  function setMessage(text, type, deps = {}) {
+    const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
+    if (!el) { return }
+    el.className = `message ${type || 'info'}`
+    el.textContent = text || ''
+  }
+
+</script>

@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <!--
-  src/html/ImportExportDialog.html
+  src/html/ImportDialog.html
 
-  Provides the dialog used for both sticker import and export actions.
-  The same UI template is configured in import or export mode from Code.gs.
+  Provides the dialog used to import sticker counts into the tracker.
 
-  This HTML file is a thin adapter over ImportExportService. All parsing,
-  validation, and business logic live in the backend. The UI is responsible
-  only for wiring inputs to GAS calls and rendering results.
+  This HTML file is a thin adapter over ImportService. All parsing,
+  validation, preview generation, and import logic live in the backend.
+  The UI is responsible only for collecting user input, invoking GAS
+  functions, and rendering results.
 
-  Two dialog modes:
-  1. import  — file upload or paste, validate/preview, import
-  2. export  — auto-loads on open, copy or download
+  Supported actions:
+  1. Load data from a text/CSV file
+  2. Paste sticker data manually
+  3. Validate and preview the import
+  4. Import sticker counts into the spreadsheet
 
   Template variables injected from Code.gs:
-  - dialogMode:   controls which section is shown ('import' | 'export')
-  - defaultMode:  preselects the import loading mode
+  - defaultMode: preselects the import loading mode
+    ('clean_all' | 'replace_countries' | 'update')
 
   Helpers (setBusy, setMessage, renderPreview, etc.) are loaded via include.
 -->
@@ -30,30 +32,17 @@
 
 <body>
   <div class="container">
-
     <div>
-      <h2>
-        <?= dialogMode.startsWith('export') ? 'Export result' : 'Import sticker counts' ?>
-      </h2>
+      <h2>Import sticker counts</h2>
       <div class="hint">
-        <? if (dialogMode === 'export_all') { ?>
-        Export all sticker (<span class="inline-code">count&gt;0</span>) from the <span class="inline-code">COUNTRIES</span> and
-        <span class="inline-code">COUNTS</span> named ranges.
-        <? } else if (dialogMode === 'export_shared') { ?>
-        Export repeated (<span class="inline-code">count&gt;1</span>) and missing (<span class="inline-code">count=0</span>) 
-        stickers from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> 
-        named ranges.
-        <? } else { ?>
         Load a text/CSV file or paste its content. Data will be written to the
         <span class="inline-code">COUNTS</span> named range in the
         <span class="inline-code">Stickers</span> tab, preserving formatting.
-        <? } ?>
       </div>
     </div>
 
     <!-- Import mode section -->
-    <div id="importModeWrapper" class="<?= dialogMode === 'import' ? '' : 'hidden' ?>">
-
+    <div id="importModeWrapper">
       <div class="section">
         <div class="section-title">1) Upload file</div>
         <label for="fileInput">Select a .txt or .csv file</label>
@@ -79,8 +68,7 @@
         <!-- Input format section: 3-row summary card + ⓘ info icon -->
         <div class="section-title">
           Input format
-          <button class="help-btn" onclick="openHelpModal()"
-            title="Open full format guide">&#x24D8;</button>
+          <button class="help-btn" onclick="openHelpModal()" title="Open full format guide">&#x24D8;</button>
         </div>
         <table class="format-card hint">
           <thead>
@@ -159,54 +147,6 @@
 
     </div>
     <!-- /Import mode section -->
-
-    <!-- Export mode sections -->
-    <div id="exportModeWrapper"
-      class="<?= (dialogMode === 'export_all' || dialogMode === 'export_shared') ? '' : 'hidden' ?>">
-      <div class="section">
-        <!-- TOOLBAR (checkboxes + refresh in same row) -->
-        <div class="actions" style="margin-bottom:10px; flex-wrap:wrap; gap:14px; align-items:center;">
-          <label class="hint" style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="includeFlagsCheckbox">
-            Flags
-          </label>
-          <label class="hint" style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="isCompactCheckbox">
-            Compact (using ranges)
-          </label>
-          <? if (dialogMode === 'export_shared') { ?>
-          <label class="hint" style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="sortByDoneCheckbox">
-            Sort by Done (descending) missing stickers
-          </label>
-          <? } ?>
-          <button class="btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
-            Refresh
-          </button>
-        </div>
-        <!-- OUTPUT (expanded use of space comes later if you want further tuning) -->
-        <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
-        <? if (dialogMode === 'export_all') { ?>
-        <div class="hint" style="margin-top:8px;">
-          The exported content uses the same Format 1 syntax accepted by the import process.
-          Only sticker counts greater than <span class="inline-code">0</span> are included.
-        </div>
-        <? } else { ?>
-        <div class="hint" style="margin-top:8px;">
-          The exported content uses the same Format 1 syntax accepted by the import process.
-        </div>
-        <? } ?>
-      </div>
-      <div class="section">
-        <div class="section-title">Actions</div>
-        <div class="actions">
-          <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
-          <button class="btn" onclick="copyExport()">Copy</button>
-          <button class="btn" onclick="google.script.host.close()">Close</button>
-        </div>
-      </div>
-    </div>
-    <!-- /exportModeWrapper -->
 
     <div id="message" class="message info"></div>
     <!-- warnings shown below the status message in amber, populated after preview or import -->
@@ -290,17 +230,12 @@
     </div>
   </dialog>
 
-  <?!= include('ImportExportDialogHelpers') ?>
+  <?!= include('ImportDialogHelpers') ?>
 
   <script>
-    const DIALOG_MODE = '<?= dialogMode ?>'
     const fileInput = document.getElementById('fileInput')
     const textInput = document.getElementById('textInput')
     const modeInput = document.getElementById('mode')
-    const exportText = document.getElementById('exportText')
-    const includeFlagsCheckbox = document.getElementById('includeFlagsCheckbox')
-    const sortByDoneCheckbox = document.getElementById('sortByDoneCheckbox')
-    const isCompactCheckbox = document.getElementById('isCompactCheckbox')
     const messageEl = document.getElementById('message')
     const previewEl = document.getElementById('preview')
     const warningsEl = document.getElementById('warnings')
@@ -322,19 +257,6 @@
         }
       })
     }
-
-    ;[
-      includeFlagsCheckbox,
-      sortByDoneCheckbox,
-      isCompactCheckbox
-    ].forEach(cb => {
-      if (cb) {
-        cb.addEventListener('change', () => {
-          // only update internal state, DO NOT reload export
-          // export is now manual via Refresh button
-        })
-      }
-    })
 
     /**Opens the full format guide modal. */
     function openHelpModal() {
@@ -405,81 +327,6 @@
         .importStickerData(getPayload())
     }
 
-    /**Loads exported sticker data into the export text area. */
-    function loadExportData() {
-      if (!exportText) {
-        setMessage('Export text area not found in dialog.', 'error')
-        return
-      }
-      exportText.value = ''
-      setBusy(true)
-      setMessage('Exporting sticker data...', 'info')
-      const request = google.script.run
-        .withSuccessHandler((result) => {
-          setBusy(false)
-          if (!result) {
-            setMessage('Export returned no result.', 'error')
-            return
-          }
-          if (!result.success) {
-            setMessage('Export did not complete successfully.', 'error')
-            return
-          }
-          exportText.value = result.text || ''
-          exportText.placeholder = ''
-          renderWarnings(result.warnings)
-          setMessage(
-            `Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`,
-            'success'
-          )
-        })
-        .withFailureHandler((error) => {
-          setBusy(false)
-          setMessage(
-            `Export failed: ${error && error.message ? error.message : String(error)}`,
-            'error'
-          )
-        })
-      // 🔥 clean switch based on dialogMode (your existing architecture)
-      const payload = getPayload()
-      if (DIALOG_MODE === 'export_shared') {
-        request.exportSharedStickerData(getPayload())
-      } else {
-        request.exportAllStickerData(getPayload())
-      }
-    }
-
-    /**Builds the payload object for export requests based on the current state of the export options. */
-    function refreshExportData() {
-      loadExportData()
-    }
-
-    /**Copies the exported sticker data to the clipboard. */
-    function copyExport() {
-      if (!exportText || !exportText.value) {
-        setMessage('There is no exported content to copy.', 'error')
-        return
-      }
-      copyToClipboard(exportText.value)
-        .then(() => setMessage('Export copied to clipboard.', 'success'))
-        .catch(() => setMessage('Failed to copy export.', 'error'))
-    }
-
-    /**Downloads the exported sticker data as a local file. */
-    function downloadExport() {
-      if (!exportText || !exportText.value) {
-        setMessage('There is no exported content to download.', 'error')
-        return
-      }
-      try {
-        const fileName = buildExportFileName()
-        triggerDownload(exportText.value, fileName)
-        setMessage(`Download started: ${fileName}`, 'success')
-      } catch (error) {
-        setMessage(`Could not start download.\n${error.message || error}`, 'error')
-      }
-    }
-
     /**Resets the import form inputs, preview, and warnings areas. */
     function clearInput() {
       setBusy(false)
@@ -491,12 +338,6 @@
       setMessage('Input cleared.', 'info')
     }
 
-    /**Automatically loads export data when the dialog opens in export mode. */
-    window.addEventListener('load', () => {
-      if (DIALOG_MODE.startsWith('export')) {
-        loadExportData()
-      }
-    })
   </script>
 </body>
 

@@ -7,7 +7,7 @@
  * - mocks Google Apps Script environment
  * - provides deterministic shared dataset
  * - injects global service dependencies
- * - ensures services from ImportExportService run without SpreadsheetApp
+ * - ensures services from Import or Export services run without SpreadsheetApp
  */
 
 /** Mock for the write range, which is used to update counts in the sheet. */
@@ -39,14 +39,22 @@ class MockStickerSheetRepository {
     this.flagsUrlRange = this.ss.getRangeByName('FLAGS_URL')
     this.flagIconsRange = this.ss.getRangeByName('FLAG_ICONS')
     this.countryNamesRange = this.ss.getRangeByName('COUNTRY_NAMES')
+
     this.startCol = 1
     this.numStickerCols = 21
     this.STICKER_MIN = 0
     this.STICKER_MAX = 20
     this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
-    this.countryMap = Object.fromEntries(
-      TEST_DATA.countries.map((c, index) => [c.code.toUpperCase(), { row: 1 + index, index }])
-    )
+
+    const baseCountries = TEST_DATA.countries
+
+    this.countryMap =
+      Object.fromEntries(
+        baseCountries.map((c, index) => [
+          c.code.toUpperCase(),
+          { row: 1 + index, index }
+        ])
+      )
   }
 
   getCountriesRange () { return this.countriesRange }
@@ -56,6 +64,7 @@ class MockStickerSheetRepository {
   getFlagsUrlRange () { return this.flagsUrlRange }
   getCountryNamesRange () { return this.countryNamesRange }
   getCountries () { return TEST_DATA.countries }
+  getCountryMap () { return this.countryMap }
   getGroupCodes () { return TEST_DATA.groupCodes }
   getSheet () { return this.sheet }
   getStartCol () { return this.startCol }
@@ -75,10 +84,12 @@ function initTestKernel () {
 
 /** Initializes a mock for the SpreadsheetApp environment. */
 function initializeSpreadsheetAppMock () {
+  const MAX_ROWS = 49
   const fwcCounts = Array(21).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
   const mexCounts = Array(21).fill('')
-  const countriesValues = [['FWC'], ['MEX']]
-  const countsValues = [fwcCounts, mexCounts]
+  const countriesValues = [['FWC'], ['MEX'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])]
+  const countsValues = [fwcCounts,
+    mexCounts, ...Array.from({ length: MAX_ROWS - 2 }, () => Array(21).fill(''))]
 
   const getRangeMock = jest.fn((row, col, numRows, numCols) => {
     if (row == null || col == null || numRows == null || numCols == null) {
@@ -97,17 +108,22 @@ function initializeSpreadsheetAppMock () {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
-  const groupsRange = createNamedRangeMock([['A'], ['B']])
+  const groupsRange = createNamedRangeMock([['A'], ['B'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])])
   const flagsUrlRange = createNamedRangeMock([
     ['https://upload.wikimedia.org/wikipedia/commons/1/10/Flag_of_FIFA.svg'],
-    ['https://flagcdn.com/w160/mx.png']
+    ['https://flagcdn.com/w160/mx.png'],
+    ...Array.from({ length: MAX_ROWS - 2 }, () => [''])
   ])
-  const countryNamesRange = createNamedRangeMock([['World Cup'], ['Mexico']])
+  const countryNamesRange = createNamedRangeMock([
+    ['World Cup'], ['Mexico'],
+    ...Array.from({ length: MAX_ROWS - 2 }, () => [''])
+  ])
   const sheetMock = { getRange: getRangeMock }
+  const flagIconValues = [['🏆'], ['🇲🇽'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])]
   const flagIconsRange = {
-    getValues: jest.fn(() => [['🏆'], ['🇲🇽']]),
-    getDisplayValues: jest.fn(() => [['🏆'], ['🇲🇽']]),
-    getNumRows: jest.fn(() => 2),
+    getValues: jest.fn(() => flagIconValues),
+    getDisplayValues: jest.fn(() => flagIconValues),
+    getNumRows: jest.fn(() => flagIconValues.length),
     getNumColumns: jest.fn(() => 1),
     getRow: jest.fn(() => 1),
     getColumn: jest.fn(() => 1),
