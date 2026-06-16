@@ -1,5 +1,6 @@
 build/
 backup/
+coverage/
 node_modules/
 tmp_clasp/
 backup/
