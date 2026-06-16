@@ -399,10 +399,12 @@ If you prefer not to authorize the script, you can still use the spreadsheet man
 
 Service-specific documents are available in the `docs/` folder:
 
-- `ImportExportServiceRequirements.md`: functional requirements and business rules for the import/export service.
+- `ImportServiceRequirements.md`: functional requirements and business rules for the import service.
+- `ExportServiceRequirements.md`: functional requirements and business rules for the export service.
 - `QuickEntryServiceRequirements.md`: functional requirements and business rules for the Quick Sticker Entry service.
 - `QuickEntryServiceMockDesign.md`: mock design notes and UI behavior references for the Quick Sticker Entry service.
 - `TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+- `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
 ## Testing
 
