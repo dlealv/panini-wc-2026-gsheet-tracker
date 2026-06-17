@@ -8,7 +8,9 @@ There are multiple apps on the market with a similar purpose, however, apps are 
 
 ### I’m currently using an old version of the tracker. How can I upgrade to the new one?
 
-From the previous tracker, go to *Manage Panini* and select *Export Stickers*. Make a copy of the new template and import the stickers: *Manage Panini* → *Import Data*. Both processes have back compatibility, so you can start using the new version without losing your data.
+From the previous tracker, navigate to *Manage Panini* and select *Export all stickers*. Create a copy of the new template and import the stickers using the following: Go to *Manage Panini* and select *Import Data*. Both processes have back compatibility, so you can start using the new version without losing your data.
+
+Alternatively, you can copy the counts from the `Stickers` tab and paste them as values into the new copy of the template file without using the custom menu.
 
 ### Is there a way to import the data entering missing stickers instead?
 Yes, from version `1.0.3` it is possible via exclusion command (`<>`) you can also use `^` or `!=` for the same purpose. For example if you have all stickers for `MEX` except sticker, `20`, you can enter in the input data box:
