@@ -359,16 +359,27 @@ The operator prefix may be applied to any valid import line format:
 
 The format used for exporting data from the tracker is the same as Format 1 explained in the section **Format 1 (country code once)**. The user can customize the output format through checkbox options.
 
-## Named ranges used by the script
+## Named ranges
 
-- `COUNTRIES`: Country code column in the `Stickers` tab. 
-- `COUNTS`: Sticker counts for stickers `0-20`.
-- `COUNTRY_NAMES`: Country names used by Quick Sticker Entry for incremental search based on country name.
-- `GROUPS`: Team group for each country code. Used by Quick sticker entry service only,
-- `DONE`: Total count per country considering unique stickers completed. Used by Quick sticker entry and Export shared stickers.
-- `FLAGS`: Flag images for each country.
-- `FLAGS_URL`: Flag image source used by Quick sticker entry dialog and by `FLAGS` named range.
-- `FLAG_ICONS`: Country flag icons (emojis), used in export services.
+- `COUNTRIES`: A column containing country codes.
+- `COUNTS`: A column displaying the count (number of stickers owned) of stickers for stickers numbered from 0 to 20 in the `Stickers` tab.
+- `COUNTRY_NAMES`: A column containing the country names used by Quick sticker entry service for incremental search based on country names.
+- `GROUPS`: A column containing the team group for each country code. This column is only used by the Quick sticker entry service.
+- `DONE`: A column displaying the total count of unique stickers completed for each country. This column is used by Quick sticker entry and Export shared stickers services.
+- `FLAGS`: A column containing the flag images for each country.
+- `FLAGS_URL`: A column containing the source of the flag images used by Quick sticker entry dialog and by the `FLAGS` named range.
+- `FLAG_ICONS`: A column containing the country flag icons (emojis). This column is used in export services.
+
+Note: All named ranges must have `49` rows, which includes `48` country teams and the FWC.
+
+## Named functions
+The Gsheet tracker has defined some custom functions to simplify the calculation process:
+
+- `CLEAN_STICKER_LINE(txt)`: This function is used in the `GET_TRADES` named function, which is located in the `Trade` tab. It cleans the input data from another collector during the calculation of matches.
+
+- `GET_STICKERS(ctry,in,isRep)`: This function retrieves the list of repeated stickers (if `isRep` is `TRUE/1`) or the list of missing stickers (if `isRep` is `FALSE/0`) for a specified country. It is used in the `Compact Swap View` tab.
+
+- `GET_TRADES(octry,ovals,ctry,vals,isget)`: This function takes an array of countries (`octry`) and sticker values (`ovals`) from another collector and countries (`ctry`) and values (`vals`) from the collector (owner of the tracker). It returns the matches (country and stickers) between the collectors. If the input argument `isget` is `TRUE/1`, it returns the matches of the countries and stickers that the collector will receive from another collector. In this case, the values of `octry` and `ovals` represent repeated stickers from another collector. If `isget` is `FALSE/0`, it returns the matches of the countries and stickers that the collector will send to another collector. In this case, the values of `octry` and `ovals` represent missing stickers from another collector. This named function is used in the `Trade` tab, specifically in the **OUTPUT** section.
 
 ## Hidden tabs
 
@@ -435,7 +446,7 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 
 - Under the `src` folder:
   - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
-  - `Commons.gs`: shared spreadsheet access, named range validation, and common lookup utilities used across import/export and Quick Entry flows.
+  - `Commons.gs`: this shared spreadsheet provides access, named range validation, and common lookup utilities used throughout import/export and Quick Entry workflows. All these services are encapsulated within the `StickerSheetRepository` class.
   - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
   - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
