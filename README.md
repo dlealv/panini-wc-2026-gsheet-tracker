@@ -166,6 +166,13 @@ It is especially useful when sharing your collection status through messaging ap
 
 ![Compact Swap View tab](images/swapCompactView.jpg)
 
+The output of Need Stickers can be sorted, look for the drop-down value to the right of `SORT`:
+
+- **%-Done**: This sorting prioritizes stickers with the closest completion status. By sorting by `%-Done`, you can easily identify and collect stickers that are close to completion, helping you finish your team more efficiently. This sorting affects the stickers you are going to receive from another collector (Receive Stickers columns) only. However, for large exchanges, it can be challenging to find specific stickers since they aren't organized in the same way as album. Collectors often maintain a list of repeated stickers in the same order as the album.
+
+- **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
+
+
 > This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Sheets or Excel trackers, or simply for screen sharing in a more visual format.
 
 ### Review your progress
@@ -192,11 +199,7 @@ You can use it for trades where both collectors exchange the same number of stic
 
 A green background in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
 
-In the **OUTPUT** section, you can sort the Receive Sticker output by either `%-Done` or `Album`. This dropdown menu is located next to the **SORT** label.
-
-- **%-Done**: This sorting prioritizes stickers with the closest completion status. By sorting by `%-Done`, you can easily identify and collect stickers that are close to completion, helping you finish your team more efficiently. This sorting affects the stickers you are going to receive from another collector (Receive Stickers columns) only. However, for large exchanges, it can be challenging to find specific stickers since they aren't organized in the same way as album. Collectors often maintain a list of repeated stickers in the same order as the album.
-
-- **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
+In the **OUTPUT** section, the collector can sort the Receive Sticker output by either `%-Done` or `Album`. The drop-down values are located to the right of the `SORT` cell. These values have the same functionality and interpretation as in the **Share your swap status** section. For more information, please refer to the content of that section.
 
 In the provided example, the maximum swap occurs when the cumulative number of stickers is `4`, meaning both collectors receive an equal number of stickers. This number represents the minimum `TOTAL` in both directions of the trade. You can also negotiate with another collector to send additional stickers and receive compensation for the difference. Since sorting is set to `%-Done`, the Receive Stickers output is sorted by the `Done` column from the `Stickers` tab in descending order. This facilitates completion of your album. For example, Brazil is closer to completion than Mexico, so it is more beneficial for the user to obtain a missing sticker from Brazil than from Mexico.
 
@@ -235,7 +238,7 @@ All valid sticker values produced after parsing and validation are written to th
 
 All formats enforce the following syntax rules (for simplicity, all examples use Format 1, but the rules apply to both formats):
 
-- **pre-normalization process**: standardization happens at a country line level and before spit by token: 
+- **pre-normalization process**: standardization happens at a country line level and before split by token: 
   - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon) or whitespace, but internally all are converted to commas.
   - Country codes accepted in lower/upper case, but internally converted to upper case.
   - All non-ASCII characters are stripped from each line before parsing; flag emojis are removed.
@@ -361,10 +364,10 @@ The format used for exporting data from the tracker is the same as Format 1 expl
 - `COUNTRIES`: Country code column in the `Stickers` tab. 
 - `COUNTS`: Sticker counts for stickers `0-20`.
 - `COUNTRY_NAMES`: Country names used by Quick Sticker Entry for incremental search based on country name.
-- `GROUPS`: Team group for each country code.
-- `DONE`: Total count per country considering unique stickers completed.
-- `FLAGS`: Country flags.
-- `FLAGS_URL`: Flag image source used by Quick Sticker Entry dialog and by `FLAGS` named range.
+- `GROUPS`: Team group for each country code. Used by Quick sticker entry service only,
+- `DONE`: Total count per country considering unique stickers completed. Used by Quick sticker entry and Export shared stickers.
+- `FLAGS`: Flag images for each country.
+- `FLAGS_URL`: Flag image source used by Quick sticker entry dialog and by `FLAGS` named range.
 - `FLAG_ICONS`: Country flag icons (emojis), used in export services.
 
 ## Hidden tabs
@@ -408,7 +411,7 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please check `docs/TechnicalArchitecture.md`.
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. Starting from version `1.0.5` `312` tests passed, achieving an impressive `88.77%` coverage.
 
 ## Changelog
 
