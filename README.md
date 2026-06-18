@@ -6,8 +6,6 @@ This project was first published as a draft on Reddit, and GitHub is now the mai
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC`. This applies throughout the tracker.
-
 **Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick Sticker Entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning).
 
 ## Live tracker
@@ -47,6 +45,8 @@ The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, a
 One support column is hidden in the `Stickers` tab: `AD`, which stores the country group. This column is required for the Pivot Table in the `Reports` tab. Since a Pivot Table's range input requires a single range, it needs to be part of the `Stickers` tab range.
 
 ![Stickers tab](images/stickersView.jpg)
+
+**Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC`. This applies throughout the tracker.
 
 ### Update sticker counts quickly
 
