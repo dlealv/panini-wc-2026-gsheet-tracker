@@ -384,9 +384,9 @@ The Gsheet tracker has defined some custom functions to simplify the calculation
 
 This tracker includes Google Apps Script features such as:
 
-- the custom **Manage Panini** menu.
-- the **Import / Export** dialog.
-- the **Quick Sticker Entry** dialog.
+- The custom **Manage Panini** menu.
+- The **Import / Export** dialogs.
+- The **Quick sticker entry** dialog.
 
 When you make your own copy of the spreadsheet and run one of these features for the first time, Google may ask you to authorize the attached Apps Script project. Depending on your Google account type and Google's OAuth rules, you may also see an **unverified app** warning in the web browser authorization flow.
 
