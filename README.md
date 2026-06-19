@@ -75,13 +75,11 @@ Main capabilities:
 
 ![Quick Sticker Entry](images/quickStickerEntryView.jpg)
 
-### Import or Export collection data
+### Import collection data
 
-The tracker provides import and export tools so you can load collection data from external sources or create reusable backups of your current sticker counts.
+The tracker provides import tool so you can load collection data from external sources or create reusable backups of your current sticker counts.
 
-This service is enabled through the **Import / Export** dialog in the **Manage Panini** custom menu. The format is Comma-Separated Values (CSV) in both directions (it accepts `;` instead of `,`).
-
-#### Import collection data
+This service is enabled through the **Import** dialog in the **Manage Panini** custom menu. The import format is Comma-Separated Values (CSV). It also accepts `;` (semicolon) , `:` (colon), or whitespace as delimiters, but internally converts them into `.` delimiter.
 
 Import is useful when you already track your collection elsewhere and want to move it into this spreadsheet without manual re-entry. After the import is executed, **only** valid imported values are written to the `COUNTS` named range in the `Stickers` tab.
 
@@ -91,11 +89,11 @@ Available import modes:
 - **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
 - **Update counts**: only overwrites sticker positions explicitly provided in the input, while all other values remain unchanged.
 
-The formats supported are detailed in the input view:
+The **Open import dialog** allows the user to select the import mode via: **Choose how to apply the load** drop-down:
 
 ![Import dialog](images/importDialogView.jpg)
 
-If you click on the help icon (ⓘ), it shows more detailed information about the import formats and rules:
+After click on the help icon (ⓘ), it shows more detailed information about the import formats and rules:
 
 ![Import dialog-Format](images/inputFormatHelp.jpg)
 
@@ -103,13 +101,13 @@ Check the session **Input format** for more details.
 
 > Note: Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
 
-#### Export all stickers
+### Export all stickers
 
 Export is useful when you want to create a reusable backup, share your current counts, or generate data that can later be imported again. The user can get to this service via **Manage Panini** custom menu, by clicking on the service: **Export all stickers**.
 
 Export behavior:
 
-- Generates a text representation using the same syntax accepted by the import tool (Format 1)
+- Generates a text representation using the same syntax accepted by the import tool (Format 1, check the session **Input format** for more details)
 - Exports only valid sticker numbers:
   - `[0-19]` for `FWC` stickers.
   - `[1-20]` for team country stickers (non-`FWC`).
@@ -153,6 +151,8 @@ The user can customize the output via the following checkboxes:
 - `Sort by Done (descending) missing stickers`: Sorts the output of missing stickers by %-completion in descending order. This helps prioritize, during the trading process, teams that are close to completion.
 
 The change in the output will be reflected when the user clicks the `Refresh` button.
+
+The export format is Format 1 (refer to the session **Input format** for more details), excluding repeats. For instance, if a collector has the sticker `2` three times, it will be displayed as `2`, not `2(3)`. In the context of trading, the number of repeats a collector has is irrelevant in the Repeated sticker list.
 
 ![Export shared stickers](images/exportSharedStickersView.jpg)
 
@@ -216,9 +216,7 @@ The custom **Manage Panini** spreadsheet menu is added by the Apps Script projec
 
 ![Manage Panini menu](images/managePaniniMenuView.jpg)
 
-## Import / Export tools
-
-### Import format
+## Import format
 
 The input parser considers two formats: Format 1 and Format 2. Examples:
 
@@ -239,7 +237,7 @@ All valid sticker values produced after parsing and validation are written to th
 All formats enforce the following syntax rules (for simplicity, all examples use Format 1, but the rules apply to both formats):
 
 - **pre-normalization process**: standardization happens at a country line level and before split by token: 
-  - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon) or whitespace, but internally all are converted to commas.
+  - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon), or whitespace. However, internally, all these delimiters are converted to commas.
   - Country codes accepted in lower/upper case, but internally converted to upper case.
   - All non-ASCII characters are stripped from each line before parsing; flag emojis are removed.
   - Empty tokens produced by consecutive delimiters (e.g. `FWC,,1,2`) are silently skipped.
@@ -259,10 +257,10 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 
 ### Format 1 (country code once)
 
-Country line:
+Country line after pre-normalization:
 
 ```text
-Format: [flag] CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
+Format: CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
 ```
 
 Please check **Common syntax rules** for the validation rules that apply.
@@ -270,10 +268,9 @@ Please check **Common syntax rules** for the validation rules that apply.
 In case you are not familiar with format notation:
 
 - `[]` brackets mean optional; therefore:
-  - Icon flag: `[flag]` is optional.
   - Repeats: `[,number(repeats)]` in parentheses are optional.
   - Ranges: `[,number-range]` are optional.
-- Use comma `,` as the delimiter. Note: `;` or `:` can be used, but it is converted to `,` as part of the pre-normalization process on input.
+  - `CODE,number` is the only mandatory portion of the format, additional stickers, repeats, ranges are optional.
 
 Example:
 
@@ -290,8 +287,10 @@ In the previous example, the collector has two copies of sticker `5` for `FWC`. 
 
 Each sticker token includes the country code as a prefix. The dash between the code and the sticker number is **optional**. All current country codes in the Panini WC 2026 album are exactly three characters long on the back of the sticker card; the parser relies on this fixed length to identify the code prefix in Format 2 tokens.
 
+Country line after pre-normalization:
+
 ```text
-Format: [flag] CODE[-]N[,CODE[-]N(repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...
+Format: CODE[-]N[,CODE[-]N(repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...
 ```
 
 Where `CODE[-]` means the country code followed by an optional dash.
@@ -315,17 +314,17 @@ Same interpretation as in the example from the **Format 1** section.
 
 The exclusion operator allows a collector to import only the stickers they are **missing**, instead of listing all the stickers they own. It is convenient when the album is close to completion and it is easier to indicate only what is missing. When a collection is close to completion, collectors can import missing stickers first and then perform a second import for repeated stickers, simplifying data entry while still building a complete collection record.
 
-### Supported operator symbols
+#### Supported operator symbols
 
 The following operator symbols are equivalent and interchangeable:
 
 | Symbol | Background |
-| ---  | --- |
-| `<>` | Spreadsheet users (Google Sheets / Excel not-equal operator) |
-| `!=` | JavaScript / Java developers |
-| `^`  | Regex / set-complement notation |
+| ---    | --- |
+| `<>`   | Spreadsheet users (Google Sheets / Excel not-equal operator) |
+| `!=`   | JavaScript / Java developers |
+| `^`    | Regex / set-complement notation |
 
-### Exclusion operator syntax
+#### Exclusion operator syntax
 
 The operator prefix may be applied to any valid import line format:
 
@@ -334,7 +333,7 @@ The operator prefix may be applied to any valid import line format:
 <OPERATOR> CODE[-]N[,CODE[-]N(repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...  (Format 2)
 ```
 
-### Exclusion examples
+#### Exclusion examples
 
 | Input | Equivalent (stickers imported) |
 | --- | --- |
@@ -345,7 +344,7 @@ The operator prefix may be applied to any valid import line format:
 | `!=MEX,1,2,3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 | `^MEX1,MEX2,MEX3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 
-### Exclusion operator validation rules
+#### Exclusion operator validation rules
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of the line, only the first is recognized; the remainder are silently ignored.
@@ -354,10 +353,6 @@ The operator prefix may be applied to any valid import line format:
 - Repeat values, if present in an exclusion line, are ignored — the complement always assigns count `1` to each resulting sticker position, and no warning is issued.
 
 > Note: This operation is intended to facilitate user entry, but internally it is converted into Format 1.
-
-### Export format
-
-The format used for exporting data from the tracker is the same as Format 1 explained in the section **Format 1 (country code once)**. The user can customize the output format through checkbox options.
 
 ## Named ranges
 
@@ -375,7 +370,7 @@ Note: All named ranges must have `49` rows, which includes `48` country teams an
 ## Named functions
 The Gsheet tracker has defined some custom functions to simplify the calculation process:
 
-- `CLEAN_STICKER_LINE(txt)`: This function is used in the `GET_TRADES` named function, which is located in the `Trade` tab. It cleans the input data from another collector during the calculation of matches.
+- `CLEAN_STICKER_LINE(txt)`: This function is utilized in the `GET_TRADES` function, which is situated in the `Trade` tab. It cleans the input data from another collector during the process of calculating matches. The cleaning process aims to standardize the sticker list to Format 1.
 
 - `GET_STICKERS(ctry,in,isRep)`: This function retrieves the list of repeated stickers (if `isRep` is `TRUE/1`) or the list of missing stickers (if `isRep` is `FALSE/0`) for a specified country. It is used in the `Compact Swap View` tab.
 
