@@ -21,8 +21,15 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
+
+      # Debug step (temporaryy)
+      - name: Print environment info
+        run: |
+          node -v
+          npm -v
+          echo "PATH=$PATH"
 
       # Step 3: Installs a clean, locked set of your package.json node modules and dependencies
       - name: Install Project Dependencies
@@ -36,13 +43,25 @@ jobs:
       - name: Project build and Run Jest Testing Suites
         run: npm test
 
-      # Step 6: Decrypts your GitHub secret and writes your Google credentials file onto the runner
+      # Step 6: Installs zsh shell to ensure compatibility with any scripts that may rely on zsh features
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+
+      - name: Verify zsh installation
+        run: |
+          which zsh
+          zsh --version
+
+      # Step 7: Decrypts your GitHub secret and writes your Google credentials file onto the runner
       - name: Inject Clasp Authentication Tokens
-        run: echo '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
+        run: |
+          echo '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
+          chmod 600 ~/.clasprc.json
+      
       # Temporary step to verify that the credentials file is correctly created and contains the expected content. Remove this step after verification.
       - name: Verify clasp authentication
         run: npx clasp list
 
-      # Step 7: Swaps the scriptId with your production target variable and uploads the code to Google
+      # Step 8: Swaps the scriptId with your production target variable and uploads the code to Google
       - name: Deploy Flat Code Artifacts to GAS Production Server
-        run: npm run clasp:push ${{ secrets.PRODUCTION_SCRIPT_ID }}
+        run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
