@@ -6,70 +6,50 @@ permissions:
 on:
   push:
     branches:
-      - main  # Triggers the pipeline whenever code is pushed or merged into the main branch
+      - main  # Runs on merge or direct push to main
 
 jobs:
   validate-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Downloads a copy of your code repository onto the GitHub runner machine
+      # 1. Checkout repo
       - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      # Step 2: Installs the specific Node.js runtime version required for your project tooling
+      # 2. Setup Node.js
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
-      # Debug step (temporaryy)
-      - name: Print environment info
-        run: |
-          node -v
-          npm -v
-          echo "PATH=$PATH"
-
-      # Step 3: Installs a clean, locked set of your package.json node modules and dependencies
+      # 3. Install dependencies
       - name: Install Project Dependencies
         run: npm ci
 
-      # Step 4: Install clasp
+      # 4. Install clasp locally (NO global install)
       - name: Install clasp CLI
-        run: npm install -g @google/clasp
+        run: npm install @google/clasp
 
-      # Debug step (temporaryy)
-      - name: Verify clasp installation
-        run: clasp --version
-
-      # Step 5: Analyzes code structure to catch syntax issues or formatting errors using ESLint
+      # 5. Lint
       - name: Run ESLint Quality Check
         run: npm run lint
 
-      # Step 6: Project build compiler and Runs your automated unit testing suites with Jest to confirm no features are broken
+      # 6. Build + tests
       - name: Project build and Run Jest Testing Suites
         run: npm test
 
-      # Step 6: Installs zsh shell to ensure compatibility with any scripts that may rely on zsh features
+      # 7. Install zsh (only if your script requires it)
       - name: Install zsh
         run: sudo apt-get update && sudo apt-get install -y zsh
 
-      - name: Verify zsh installation
-        run: |
-          which zsh
-          zsh --version
-
-      # Step 7: Decrypts your GitHub secret and writes your Google credentials file onto the runner
+      # 8. Inject Google clasp credentials
       - name: Inject Clasp Authentication Tokens
         run: |
-          echo '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
+          printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
-      
-      # Temporary step to verify that the credentials file is correctly created and contains the expected content. Remove this step after verification.
-      - name: Verify clasp authentication
-        run: npx clasp list
 
-      # Step 8: Swaps the scriptId with your production target variable and uploads the code to Google
-      - name: Deploy Flat Code Artifacts to GAS Production Server
+      # 9. Deploy to Google Apps Script
+      - name: Deploy to GAS Production
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
