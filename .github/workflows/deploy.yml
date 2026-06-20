@@ -35,11 +35,19 @@ jobs:
       - name: Install Project Dependencies
         run: npm ci
 
-      # Step 4: Analyzes code structure to catch syntax issues or formatting errors using ESLint
+      # Step 4: Install clasp
+      - name: Install clasp CLI
+        run: npm install -g @google/clasp
+
+      # Debug step (temporaryy)
+      - name: Verify clasp installation
+        run: clasp --version
+
+      # Step 5: Analyzes code structure to catch syntax issues or formatting errors using ESLint
       - name: Run ESLint Quality Check
         run: npm run lint
 
-      # Step 5: Project build compiler and Runs your automated unit testing suites with Jest to confirm no features are broken
+      # Step 6: Project build compiler and Runs your automated unit testing suites with Jest to confirm no features are broken
       - name: Project build and Run Jest Testing Suites
         run: npm test
 
