@@ -23,19 +23,8 @@ class ExportService {
    * Initializes repository dependencies and export-related sheet references.
    */
   constructor() {
-    this.repo = new StickerSheetRepository()
-    this.STICKER_MIN = this.repo.STICKER_MIN
-    this.STICKER_MAX = this.repo.STICKER_MAX
-    this.EXPECTED_STICKER_COLUMNS = this.repo.EXPECTED_STICKER_COLUMNS
-
-    this.countriesRange = this.repo.getCountriesRange()
-    this.countsRange = this.repo.getCountsRange()
-    this.flagIconsRange = this.repo.getFlagIconsRange()
-    this.doneRange = this.repo.getDoneRange()
-    this.sheet = this.repo.getSheet()
-    this.startCol = this.repo.getStartCol()
-    this.numStickerCols = this.repo.getNumStickerCols()
-    this.rows = null // lazy computed array of row data for export operations
+    this.repo = null
+    this.rows = null
   }
 
   /** GAS entrypoint for 'Export all stickers' operation. 
@@ -63,6 +52,16 @@ class ExportService {
     return result
   }
 
+  // Getters
+
+  /** Gets the sticker sheet repository instance. Lazy initializes the repository on first access.*/
+  getRepo() {
+    if (!this.repo) {
+      this.repo = new StickerSheetRepository()
+    }
+    return this.repo
+  }
+
   /** Lazy getter for rows to avoid unnecessary computation during initialization. 
    * Only used for export operations.
    * @returns {Array<{code:string,icon:string,done:number,counts:number[]}>}
@@ -74,16 +73,19 @@ class ExportService {
     return this.rows
   }
 
+  // Private methods
+
   /**
    * Builds the canonical export row model consumed by ExportStickers.
    * Centralizes all sheet-to-domain mapping required for export operations.
    * @returns {Array<{code:string,icon:string,done:number,counts:number[]}>}
    */
   _buildRows() {
-    const countryValues = this.countriesRange.getValues()
-    const countValues = this.countsRange.getValues()
-    const doneValues = this.doneRange.getValues()
-    const flagValues = this.flagIconsRange ? this.flagIconsRange.getDisplayValues() : []
+    const repo = this.getRepo() // ensure repo is initialized for range access
+    const countryValues = repo.getCountriesRange().getValues()
+    const countValues = repo.getCountsRange().getValues()
+    const doneValues = repo.getDoneRange().getValues()
+    const flagValues = repo.getFlagIconsRange() ? repo.getFlagIconsRange().getDisplayValues() : []
     const rows = []
     for (let i = 0; i < countryValues.length; i++) {
       const code = String(countryValues[i][0] || '').trim().toUpperCase()
@@ -102,15 +104,14 @@ class ExportService {
    * No GAS dependent logic, purely data transformation. It ensures that the counts array has a 
    * consistent length and numeric values, filling missing entries with zeros.
    * @returns {number[]}
-  */
-  /**
-   * Normalizes a sticker count row into a fixed-size numeric array.
-   * Pure data transformation with no GAS dependencies.
-   * @returns {number[]}
    */
   _normalizeCountsRow(values) {
-    const normalized = new Array(this.EXPECTED_STICKER_COLUMNS).fill(0)
-    for (let s = this.STICKER_MIN; s <= this.STICKER_MAX; s++) {
+    const SMIN = this.getRepo().STICKER_MIN
+    const SMAX = this.getRepo().STICKER_MAX
+    const EXPECTED_LENGTH = this.getRepo().EXPECTED_STICKER_COLUMNS
+    const normalized = new Array(EXPECTED_LENGTH).fill(0)
+
+    for (let s = SMIN; s <= SMAX; s++) {
       normalized[s] = Number(values && values[s]) || 0
     }
     return normalized
@@ -124,6 +125,8 @@ class ExportService {
  * Notes:
  * - It assumes that the input row model has already been computed and normalized,
  *   so it does not perform any validation or normalization on the input data.
+ * - No GAS-dependent logic should be implemented in this class, it should purely 
+ *   focus on formatting the provided data into export text.
  * @export
  */
 class ExportStickers {
