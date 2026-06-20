@@ -31,6 +31,19 @@ describe('ImportService (unit)', () => {
     exportService = new ExportService()
   })
 
+  /** Test for getRepo() */
+  describe('getRepo()', () => {
+    test('getRepo() returns a StickerSheetRepository instance', () => {
+      const repo = service.getRepo()
+      expect(repo).toBeInstanceOf(StickerSheetRepository)
+    })
+    test('getRepo() returns the same instance on subsequent calls', () => {
+      const repo1 = service.getRepo()
+      const repo2 = service.getRepo()
+      expect(repo1).toBe(repo2)
+    })
+  })
+
   /**
    Tests for import() method covering successful parsing and import scenarios, including handling
   of multiple countries and different import modes, as well as validation of error handling for invalid modes.

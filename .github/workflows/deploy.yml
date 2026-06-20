@@ -1,0 +1,48 @@
+name: Panini WC 2026 GSheet Tracker - Production Deployment Pipeline
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main  # Triggers the pipeline whenever code is pushed or merged into the main branch
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Downloads a copy of your code repository onto the GitHub runner machine
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      # Step 2: Installs the specific Node.js runtime version required for your project tooling
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Installs a clean, locked set of your package.json node modules and dependencies
+      - name: Install Project Dependencies
+        run: npm ci
+
+      # Step 4: Analyzes code structure to catch syntax issues or formatting errors using ESLint
+      - name: Run ESLint Quality Check
+        run: npm run lint
+
+      # Step 5: Project build compiler and Runs your automated unit testing suites with Jest to confirm no features are broken
+      - name: Project build and Run Jest Testing Suites
+        run: npm test
+
+      # Step 6: Decrypts your GitHub secret and writes your Google credentials file onto the runner
+      - name: Inject Clasp Authentication Tokens
+        run: echo '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
+      # Temporary step to verify that the credentials file is correctly created and contains the expected content. Remove this step after verification.
+      - name: Verify clasp authentication
+        run: npx clasp list
+
+      # Step 7: Swaps the scriptId with your production target variable and uploads the code to Google
+      - name: Deploy Flat Code Artifacts to GAS Production Server
+        run: npm run clasp:push ${{ secrets.PRODUCTION_SCRIPT_ID }}

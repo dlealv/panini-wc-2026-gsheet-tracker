@@ -22,18 +22,7 @@ class ImportService {
    * Initializes all necessary properties and validates named ranges.
    */
   constructor() {
-    this.repo = new StickerSheetRepository()
-    this.STICKER_MIN = this.repo.STICKER_MIN
-    this.STICKER_MAX = this.repo.STICKER_MAX
-    this.EXPECTED_STICKER_COLUMNS = this.repo.EXPECTED_STICKER_COLUMNS
-
-    this.countriesRange = this.repo.getCountriesRange()
-    this.countsRange = this.repo.getCountsRange()
-    this.flagIconsRange = this.repo.getFlagIconsRange()
-    this.doneRange = this.repo.getDoneRange()
-    this.sheet = this.repo.getSheet()
-    this.startCol = this.repo.getStartCol()
-    this.numStickerCols = this.repo.getNumStickerCols()
+    this.repo = null
   }
 
   /** Static GAS entrypoint for preview operation. 
@@ -60,7 +49,7 @@ class ImportService {
    *  stickers: Array<{ number: number, count: number }> }> }
   */
   preview(text) {
-    const importStickers = new ImportStickers(this._getCountryMap())
+    const importStickers = new ImportStickers(this.getRepo().getCountryMap())
     const parsed = importStickers.parse(text)
     return {
       success: true,
@@ -82,7 +71,7 @@ class ImportService {
    */
   import(text, mode) {
     const normalizedMode = mode || 'update'
-    const importStickers = new ImportStickers(this._getCountryMap())
+    const importStickers = new ImportStickers(this.getRepo().getCountryMap())
     const parsed = importStickers.parse(text)
     const countries = parsed.countries
     if (normalizedMode === 'clean_all') { this._clearAllCounts() }
@@ -92,39 +81,51 @@ class ImportService {
     return { success: true, warnings: parsed.warnings, message: `Imported ${countries.length} country row(s) successfully.` }
   }
 
-  /** Lazy getter for country map to optimize performance during import operations.
-   * @returns {Object<string, { row: number, index: number }>}
-   */
-  _getCountryMap() {
-    return this.repo.getCountryMap()
+  // Getters
+
+  getRepo() {
+    if (!this.repo) {
+      this.repo = new StickerSheetRepository()
+    }
+    return this.repo
   }
+
+  // Private methods
 
   /** Clears all sticker count values in the counts range. */
   _clearAllCounts() {
-    this.countsRange.clearContent()
+    this.getRepo().getCountsRange().clearContent()
   }
 
   /** Clears sticker counts for countries present in the import payload. */
   _clearCountries(parsedRows) {
+    const repo = this.getRepo() // ensure repo is initialized for range access
+    const START_COL = repo.getStartCol()
+    const TOTAL_COLS = repo.getNumStickerCols()
+    const sheet = repo.getSheet()
     parsedRows.forEach(item => {
-      const entry = this._getCountryMap()[item.code]
+      const entry = repo.getCountryMap()[item.code]
       if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      this.sheet.getRange(entry.row, this.startCol, 1, this.numStickerCols).clearContent()
+      sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS).clearContent()
     })
   }
 
   /** Writes parsed sticker counts into the sheet preserving untouched cells. GAS dependent method. */
   _writeCountries(parsedRows) {
+    const repo = this.getRepo() // ensure repo is initialized for range access
+    const START_COL = repo.getStartCol()
+    const TOTAL_COLS = repo.getNumStickerCols()
+    const sheet = repo.getSheet()
     parsedRows.forEach(item => {
-      const entry = this._getCountryMap()[item.code]
+      const entry = repo.getCountryMap()[item.code]
       if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      const range = this.sheet.getRange(entry.row, this.startCol, 1, this.numStickerCols)
+      const range = sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS)
       const currentValues = range.getValues()[0]
       const outputValues = currentValues.slice()
       Object.keys(item.counts).forEach(key => {
         const stickerNumber = Number(key)
         const offset = stickerNumber
-        if (offset < 0 || offset >= this.numStickerCols) { throw new Error(`Sticker number out of range.`) }
+        if (offset < 0 || offset >= TOTAL_COLS) { throw new Error(`Sticker number out of range.`) }
         outputValues[offset] = item.counts[key]
       })
       const invalidOffset = item.code === 'FWC' ? 20 : 0

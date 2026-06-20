@@ -13,7 +13,7 @@
 const { ExportService, ExportStickers } = require('../build/ExportService.js')
 
 /** Helper method to be used in both parsers */
-function parseCodeAndIcon (first, includeFlags) {
+function parseCodeAndIcon(first, includeFlags) {
   if (!includeFlags || !first.includes(' ')) {
     return { code: first, icon: null }
   }
@@ -31,7 +31,7 @@ function parseCodeAndIcon (first, includeFlags) {
  *  missing: { items: Array<{code:string,icon:string,tokens:Array<string>}>, fallback: string|null } }}
  *  Parsed data structure with repeats and missing sections.
  */
-function parseExportSharedData (text, { includeFlags = false } = {}) {
+function parseExportSharedData(text, { includeFlags = false } = {}) {
   const lines = text.split('\n').filter(Boolean)
   const result = { repeats: { items: [], fallback: null }, missing: { items: [], fallback: null } }
   let mode = null
@@ -77,7 +77,7 @@ function parseExportSharedData (text, { includeFlags = false } = {}) {
  * @returns {Array<{code:string,icon:string|null,tokens:Array<string>}>} - Parsed lines with country code, optional icon,
  *  and sticker/count tokens.
  */
-function parseExportAllData (text, { includeFlags = false } = {}) {
+function parseExportAllData(text, { includeFlags = false } = {}) {
   const lines = text.split('\n').filter(Boolean)
   const result = []
   for (const line of lines) {
@@ -125,6 +125,7 @@ const computeDone = (pairs = []) => {
   return pairs.filter(pair => pair && pair.count >= 1).length
 }
 
+/** ExportService (unit) */
 describe('ExportService (unit)', () => {
   const { initTestKernel } = require('./utils/testKernel.js')
   let service
@@ -133,7 +134,41 @@ describe('ExportService (unit)', () => {
     service = new ExportService()
   })
 
-  describe('exportAllStickerData (static)', () => {
+  /* Test getRepo() */
+  describe('getRepo()', () => {
+    test('returns a StickerSheetRepository instance', () => {
+      const repo = service.getRepo()
+      expect(repo).toBeInstanceOf(StickerSheetRepository)
+    })
+    test('returns the same instance on multiple calls (singleton)', () => {
+      const repo1 = service.getRepo()
+      const repo2 = service.getRepo()
+      expect(repo1).toBe(repo2)
+    })
+  })
+
+  /** Test getRows() */
+  describe('getRows()', () => {
+    test('returns an array of row objects with correct structure', () => {
+      const rows = service.getRows()
+      expect(Array.isArray(rows)).toBe(true)
+      for (const row of rows) {
+        expect(row).toHaveProperty('code')
+        expect(row).toHaveProperty('icon')
+        expect(row).toHaveProperty('done')
+        expect(row).toHaveProperty('counts')
+        expect(Array.isArray(row.counts)).toBe(true)
+      }
+    })
+    test('returns consistent data on multiple calls (caching)', () => {
+      const rows1 = service.getRows()
+      const rows2 = service.getRows()
+      expect(rows1).toBe(rows2)
+    })
+  })
+
+  /* Test exportAllStickerData */
+  describe('exportAllStickerData', () => {
     test('returns valid export payload (default options)', () => {
       const result = service.exportAllStickerData({})
       expect(result).toEqual({ success: true, text: expect.any(String), lines: expect.any(Number) })
@@ -150,7 +185,8 @@ describe('ExportService (unit)', () => {
     })
   })
 
-  describe('exportSharedStickerData (static)', () => {
+  /* Test exportSharedStickerData */
+  describe('exportSharedStickerData', () => {
     test('returns valid shared export payload (default options)', () => {
       const result = service.exportSharedStickerData({})
       expect(result).toEqual({ success: true, text: expect.any(String), lines: expect.any(Number) })
@@ -170,7 +206,7 @@ describe('ExportService (unit)', () => {
   })
 })
 
-/** ExportStickers (unit) */
+/** Test ExportStickers (unit) */
 describe('ExportStickers (unit)', () => {
   let inputStickers, mexInputStickers
   let mexExportStickers, fwcExportStickers, exportStickers
@@ -285,10 +321,7 @@ describe('ExportStickers (unit)', () => {
     })
   })
 
-  /**
-   * Tests for exportSharedData() method, ensuring correct export behavior, including handling of edge
-   * cases such as no repeats or complete albums, as well as contract adherence.
-   */
+  /** Tests for exportSharedData() */
   describe('exportSharedData()', () => {
     test('exportSharedData fallback when no repeats exist', () => {
       const exportStickers = new ExportStickers([

@@ -10,5 +10,5 @@
 - [x] Write automated unit tests for testing Apps Script project.
 - [x] Reorganize the repository to have the source code in `src` folder. Separate `gs` from `html` or by services. Have a `test` folder for unit testing.
 - [x] Add a service in Manage Panini to generate swap info (repeats and missing) in text format including icons. In a way it can be sent in a friendly manner in a text message for example.
-- [ ] In the `Reports` tab, include repeats. Currently only unique repeats.
+- [x] In the `Reports` tab, include repeats. Currently only unique repeats.
 

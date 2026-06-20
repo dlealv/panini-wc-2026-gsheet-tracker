@@ -7,6 +7,42 @@ project structure, and documentation.
 
 ---
 
+## [1.0.6] 2026-XX-XX
+
+### Overview
+Minor corrections in the documentation (documents and source code). Added CI github integration.
+
+### Added
+- `ci.yml`: CI deployment file using Github secrets.
+
+### Changes
+- Google sheet tracker:
+  - `Reports` tab: 
+    - Reported repeated stickers and unique repeated stickers in the same cell. Unique in parenthesis.
+    - Now stickers bought the number of stickers and cost are reported in a single cell to make space for other variables.
+    - Adjusted conditional formatting for repeated stickers, to check for repeated stickers greater than zero (red) and equal to zero (green).
+    - Reordered the columns of the pivot table to mach the same order as in `Stickers` tab.
+
+- Under the `src` folder:
+  - `ImportService.gs`: Removed innecesary attributes, added `getRepo()` to lazy initialize `this.repo`. Removed `_getCountryMap()` the same can ahieve with `this.getRepo().getCountryMap()`.
+  - `ExportService.gs`: Removed innecesary attributes, added `getRepo()` to lazy initialize `this.repo`.
+
+- Under the `test` folder:
+  - `ImportService.unit.test.js`: Added suit tests for `getRepo`.
+  - `ExportService.unit.test.js`: Added suit tests for `getRepo` and `getRows()`.
+
+- under the `doc` folder:
+  - `FAQ.md`: minor corrections in I’m currently using an old version of the tracker. How can I upgrade to the new one? question.
+
+- under root:
+  - `.gitignore`: removed `package-lock.json`, since it is needed for CI github integration.
+  - `README.md`: 
+    - Added **Named functions** section. Minor corrections in **Named ranges** section.
+    - Moved the note about country code from the top to section **Track your collection**.
+    - Minor corrections in Import/Export services and in **Input format** section.
+  - `CHANGELOG.md`: Added the changes for version `1.0.6`.
+
+
 ## [1.0.5] 2026-06-16
 
 ### Overview
@@ -75,6 +111,9 @@ No new functionality was added. Optimized the backend code. Split responsibiliti
     - Updated **Common rules** section to include colon (`:`) as delimiter as part of pre-normalization process.
     - Adjusted the list of files in **Files** section.
   - `TODO.md`: Remove the item related to include Google form, since after analysis it is not possible due to the way the Gsheet tracker is distributed.
+
+### Fixed
+- No fixes addressed.
 
 ---
 

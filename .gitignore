@@ -4,7 +4,6 @@ coverage/
 node_modules/
 tmp_clasp/
 backup/
-package-lock.json
 *.zip
 .DS_Store
 .AppleDouble
