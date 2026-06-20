@@ -24,8 +24,8 @@ Minor corrections in the documentation (documents and source code). Added CI git
     - Reordered the columns of the pivot table to mach the same order as in `Stickers` tab.
 
 - Under the `src` folder:
-  - `ImportService.gs`: Removed innecesary attributes, added `getRepo()` to lazy initialize `this.repo`. Removed `_getCountryMap()` the same can ahieve with `this.getRepo().getCountryMap()`.
-  - `ExportService.gs`: Removed innecesary attributes, added `getRepo()` to lazy initialize `this.repo`.
+  - `ImportService.gs`: Removed unnecessary attributes, added `getRepo()` to lazy initialize `this.repo`. Removed `_getCountryMap()` the same can be achieved with `this.getRepo().getCountryMap()`.
+  - `ExportService.gs`: Removed unnecessary attributes, added `getRepo()` to lazy initialize `this.repo`.
 
 - Under the `test` folder:
   - `ImportService.unit.test.js`: Added suit tests for `getRepo`.
