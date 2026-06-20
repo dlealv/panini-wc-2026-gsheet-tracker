@@ -142,6 +142,25 @@ dry_run_validate_push_artifact() {
 # HELPER FUNCTIONS
 # ------------------------------------------------------------
 
+# Cross-platform sed in-place editing helper function to handle differences between GNU and BSD sed implementations.
+sed_safe() {
+    local expr="$1"
+    local file="$2"
+
+    case "$(uname -s)" in
+        Darwin)
+            sed -i '' "$expr" "$file"
+            ;;
+        Linux)
+            sed -i "$expr" "$file"
+            ;;
+        *)
+            echo "Unsupported OS: $(uname -s)"
+            exit 1
+            ;;
+    esac
+}
+
 # Logs the current state of the .clasp.json configuration file for debugging purposes.
 log_clasp_state() {
     local context=$1
@@ -180,9 +199,11 @@ update_script_id() {
     fi
     if [[ "$phase" == "start" ]]; then
         ORIGINAL_SCRIPT_ID=$(sed -n 's|.*"scriptId":[[:space:]]*"\([^"]*\)".*|\1|p' "$CLASP_CONFIG")
-        sed -i '' "s|\"scriptId\":.*|\"scriptId\": \"$CUSTOM_SCRIPT_ID\",|" "$CLASP_CONFIG"
+        sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$CUSTOM_SCRIPT_ID\",|" "$CLASP_CONFIG"
     elif [[ "$phase" == "rollback" ]]; then
-        sed -i '' "s|\"scriptId\":.*|\"scriptId\": \"$ORIGINAL_SCRIPT_ID\",|" "$CLASP_CONFIG"
+        if [[ -n "$ORIGINAL_SCRIPT_ID" ]]; then
+            sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$ORIGINAL_SCRIPT_ID\",|" "$CLASP_CONFIG"
+        fi
     fi
     log_clasp_state "after scriptId update ($phase)"
 }
@@ -235,7 +256,7 @@ call_clasp() {
     local cmd=$1
     local working_dir=$2
     log_clasp_state "[call_clasp $cmd] (working_dir: $working_dir) before rootDir update"
-    sed -i '' "s|\"rootDir\"[[:space:]]*:[[:space:]]*.*|\"rootDir\": \"$working_dir\"|" "$CLASP_CONFIG"
+    sed_safe "s|\"rootDir\"[[:space:]]*:[[:space:]]*.*|\"rootDir\": \"$working_dir\"|" "$CLASP_CONFIG"
     log_clasp_state "[call_clasp $cmd] (working_dir: $working_dir) after rootDir update"
     echo "Running clasp $cmd in isolated workspace"
     (
@@ -258,7 +279,7 @@ call_clasp() {
 # Restores rootDir
 restore_clasp_rootDir() {
     if [[ -f "$CLASP_CONFIG" ]]; then
-        sed -i '' "s|\"rootDir\":.*|\"rootDir\": \"$DEFAULT_ROOT\"|" "$CLASP_CONFIG"
+        sed_safe "s|\"rootDir\":.*|\"rootDir\": \"$DEFAULT_ROOT\"|" "$CLASP_CONFIG"
     fi
 }
 
