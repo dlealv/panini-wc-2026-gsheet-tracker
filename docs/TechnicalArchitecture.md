@@ -274,7 +274,13 @@ GitHub Actions will automatically run:
 - Click "Merge pull request".
 - Confirm merge into `main`.
 
-#### 10. Delete remote branch (GitHub UI or CLI)
+#### 10. Restore local repository
+```bash
+git checkout main
+git pull origin main
+```
+
+#### 11. Delete remote branch (GitHub UI or CLI)
 
 You can delete the merged branch from Github website or just:
 
@@ -282,7 +288,7 @@ You can delete the merged branch from Github website or just:
 git push origin --delete <branchName>
 ```
 
-#### 11. Delete local branch
+#### 12. Delete local branch
 
 ```bash
 git branch -d <branchName>
