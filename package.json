@@ -14,10 +14,12 @@
     "fix-jsdoc": "node scripts/fix-jsdoc.js --fix",
     "fix-jsdoc:dry-run": "node scripts/fix-jsdoc.js",
     "clasp:login": "clasp login",
-    "clasp:pull": "zsh scripts/clasp.zsh pull",
-    "clasp:push": "zsh scripts/clasp.zsh push",
+    "clasp:pull": "DRY_RUN=false zsh scripts/clasp.zsh pull",
+    "clasp:push": "DRY_RUN=false zsh scripts/clasp.zsh push",
+    "clasp:push:dry": "DRY_RUN=true zsh scripts/clasp.zsh push",
+    "clasp:pull:dry": "DRY_RUN=true zsh scripts/clasp.zsh pull",
     "clasp:open": "clasp open",
-    "deploy:prod": "npm run lint && npm run build && npm run test && npm run clasp:push",
+    "deploy:test": "npm run lint && npm run test && npm run clasp:push",
     "backup": "zip -rq panini-wc-2026-gsheet-tracker.zip . -x 'node_modules/*' -x 'images/*' -x 'build/*'"
   },
   "standard": {
@@ -34,12 +36,15 @@
     "@types/google-apps-script": "^1.0.84",
     "@types/jest": "^29.5.14",
     "eslint": "^8.57.1",
-    "eslint-plugin-jsdoc": "^63.0.0",
+    "eslint-plugin-jsdoc": "^48.11.0",
     "eslint-plugin-sort-class-members": "^1.22.1",
     "eslint-plugin-the-step-down-rule": "^1.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.4.1",
     "jest-transform-stub": "^2.0.0",
     "standard": "^17.1.2"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
