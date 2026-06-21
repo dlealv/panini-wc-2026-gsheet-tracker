@@ -8,6 +8,10 @@ on:
     branches:
       - main  # Runs on merge or direct push to main
 
+  pull_request:
+    branches:
+      - main  # Runs validation on PRs targeting main
+
 jobs:
   validate-and-deploy:
     runs-on: ubuntu-latest
@@ -28,11 +32,11 @@ jobs:
       - name: Install Project Dependencies
         run: npm ci
 
-      # 4. Install clasp locally (NO global install)
+      # 4. Install clasp globally so clasp.zsh can execute "clasp"
       - name: Install clasp CLI
-        run: npm install @google/clasp
+        run: npm install -g @google/clasp
 
-      # 5. Lint
+      # 5. Run ESLint
       - name: Run ESLint Quality Check
         run: npm run lint
 
@@ -40,7 +44,7 @@ jobs:
       - name: Project build and Run Jest Testing Suites
         run: npm test
 
-      # 7. Install zsh (only if your script requires it)
+      # 7. Install zsh (required by deployment script)
       - name: Install zsh
         run: sudo apt-get update && sudo apt-get install -y zsh
 
@@ -50,6 +54,6 @@ jobs:
           printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      # 9. Deploy to Google Apps Script
-      - name: Deploy to GAS Production
+      # 9. Deploy to Google Apps Script production
+      - name: Deploy Flat Code Artifacts to GAS Production Server
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
