@@ -7,13 +7,15 @@ project structure, and documentation.
 
 ---
 
-## [1.0.6] 2026-XX-XX
+## [1.0.6] 2026-06-21
 
 ### Overview
-Minor corrections in the documentation (documents and source code). Added CI github integration.
+Minor corrections in the documentation (documents and source code). Added CI github integration. Updated the documentation of `TechnicalArchitecture.md` to include CI github integration.
 
 ### Added
-- `ci.yml`: CI deployment file using Github secrets.
+- `.github` folder used to store workflow and deployment process
+- `.github/workflows` where to store the `*.yml` files.
+- `.github/workflows/deploy.yml`: CI deployment file using Github secrets.
 
 ### Changes
 - Google sheet tracker:
@@ -33,15 +35,24 @@ Minor corrections in the documentation (documents and source code). Added CI git
 
 - under the `doc` folder:
   - `FAQ.md`: minor corrections in I’m currently using an old version of the tracker. How can I upgrade to the new one? question.
+  - `ImportServiceRequirements`: Added the `.md` extension.
+  - `TechnicalArchitecture.md`: 
+    - Provided detail steps for Continuous Integration (CI) Deployment Blueprint.
+    - Added a FAQ section.
 
 - under root:
   - `.gitignore`: removed `package-lock.json`, since it is needed for CI github integration.
+  - `package.json`: 
+    - Adjusted the script task `deploy:prod` and renamed as `deploy:test`, since production deploy will be done via Github CI.
+    - Added engine setting to specify node version `18.x`.
+    - Added clasp push/pull dry-run option and adjusted the existing ones to include `DRY_RUN=false`.
   - `README.md`: 
     - Added **Named functions** section. Minor corrections in **Named ranges** section.
     - Moved the note about country code from the top to section **Track your collection**.
     - Minor corrections in Import/Export services and in **Input format** section.
   - `CHANGELOG.md`: Added the changes for version `1.0.6`.
 
+---
 
 ## [1.0.5] 2026-06-16
 
