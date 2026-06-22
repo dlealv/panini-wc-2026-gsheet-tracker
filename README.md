@@ -496,7 +496,6 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `.gitignore`: Files and folders to ignore for `git`.
   - `jsconfig.json`: JavaScript project configuration file.
   - `package.json`: Node.js project configuration file (dependencies, scripts, automation tasks, etc.).
-  - `.nvmrc`: Node version manager (NVM) configuration file.
   - `CHANGELOG.md`: Chronological summary of notable project changes.
   - `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
   - `TODO.md`: Features planned for future releases. A check mark indicates that a feature has already been implemented.
