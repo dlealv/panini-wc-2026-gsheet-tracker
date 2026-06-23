@@ -54,12 +54,7 @@ jobs:
           printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      # 9. Deploy to Google Apps Script test (PRs only)
-      - name: Deploy Flat Code Artifacts to GAS Test Server
-        if: github.event_name == 'pull_request'
-        run: zsh scripts/clasp.zsh push ${{ secrets.TEST_SCRIPT_ID }}
-
-      # 10. Deploy to Google Apps Script production (merges to main only)
+      # 9. Deploy to Google Apps Script production (push to main / merge only)
       - name: Deploy Flat Code Artifacts to GAS Production Server
         if: github.event_name == 'push'
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
