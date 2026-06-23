@@ -20,9 +20,13 @@
 class ImportService {
   /** Creates an import/export application service.
    * Initializes all necessary properties and validates named ranges.
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
+   *   Pass an explicit instance when operating from a web app context where
+   *   getActiveSpreadsheet() returns null. Omit for normal dialog context.
    */
-  constructor() {
+  constructor(ss) {
     this.repo = null
+    this.ss = ss || null
   }
 
   /** Static GAS entrypoint for preview operation. 
@@ -85,7 +89,7 @@ class ImportService {
 
   getRepo() {
     if (!this.repo) {
-      this.repo = new StickerSheetRepository()
+      this.repo = this.ss ? new StickerSheetRepository(this.ss) : new StickerSheetRepository()
     }
     return this.repo
   }

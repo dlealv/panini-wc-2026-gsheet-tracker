@@ -38,6 +38,22 @@ describe('ImportService (unit)', () => {
       const repo2 = service.getRepo()
       expect(repo1).toBe(repo2)
     })
+    test('getRepo() returns a StickerSheetRepository without explicit ss', () => {
+      expect(service.getRepo()).toBeDefined()
+    })
+  })
+
+  /** constructor — optional ss parameter */
+  describe('constructor(ss)', () => {
+    test('stores null as ss when no spreadsheet is provided', () => {
+      const svc = new ImportService()
+      expect(svc.ss).toBeNull()
+    })
+    test('stores provided ss instance', () => {
+      const fakeSs = global.SpreadsheetApp.getActiveSpreadsheet()
+      const svc = new ImportService(fakeSs)
+      expect(svc.ss).toBe(fakeSs)
+    })
   })
 
   /**
