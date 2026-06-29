@@ -162,21 +162,22 @@ function applyQuickEntryUpdates(payload) {
  * opened the spreadsheet and triggered onOpen), a self-contained error page is
  * returned with instructions for the user.
  */
-function doGet() {
+function doGet(e) {
   const ss = _getMobileSpreadsheet()
-  if (!ss) {
-    return HtmlService
-      .createHtmlOutput(
-        '<html><body style="font-family:Arial,sans-serif;padding:20px;">' +
-        '<p style="color:#c5221f;">Mobile web app is not configured yet. ' +
-        'Open your spreadsheet first — the Manage Panini menu will set it up automatically.' +
-        '</p></body></html>'
-      )
-      .setTitle('Panini Tracker — Setup Required')
+  const deploymentUrl = ScriptApp.getService().getUrl()
+  if (deploymentUrl && deploymentUrl.includes('/exec')) {
+    PropertiesService.getScriptProperties().setProperty('WEB_APP_URL', deploymentUrl)
   }
-  const template = HtmlService.createTemplateFromFile('MobileWebApp')
+  if (!ss) {
+    return HtmlService.createHtmlOutput(
+      '<html><body style="font-family:Arial,sans-serif;padding:20px;">' +
+      '<p style="color:#c5221f;">Mobile web app is not configured yet. Open spreadsheet first.</p>' +
+      '</body></html>'
+    )
+  }
+  const template = HtmlService.createTemplateFromFile('MobileHome')
   template.spreadsheetTitle = ss.getName()
-  return template.evaluate().setTitle('Panini Tracker — Mobile Import')
+  return template.evaluate()
 }
 
 /**
@@ -210,18 +211,12 @@ function importStickerDataMobile(payload) {
 
 /** Opens a dialog showing the mobile web app URL so the user can copy and bookmark it. */
 function showMobileLink() {
-  let webAppUrl = ''
-  try {
-    const scriptService = ScriptApp.getService()
-    webAppUrl = scriptService ? scriptService.getUrl() : ''
-  } catch (e) {
-    webAppUrl = ''
-  }
+  const webAppUrl = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL') || ''
   const template = HtmlService.createTemplateFromFile('MobileLinkDialog')
   template.webAppUrl = webAppUrl
   template.isDeployed = Boolean(webAppUrl)
-  const html = template.evaluate().setWidth(500).setHeight(240)
-  SpreadsheetApp.getUi().showModalDialog(html, 'Mobile Web App Link')
+  SpreadsheetApp.getUi().showModalDialog(template.evaluate().setWidth(500).setHeight(320),
+    'Mobile Web App Link')
 }
 
 /** Persists the active spreadsheet ID in script properties for use by the web app. */
@@ -244,7 +239,9 @@ function _getMobileSpreadsheet() {
   try {
     return SpreadsheetApp.openById(id)
   } catch (e) {
-    return null
+    //return null
+    Logger.log("OPEN by ID FAILED: " + e.message)
+    throw e  // 🔥 IMPORTANT: do NOT hide it
   }
 }
 
@@ -252,15 +249,15 @@ function _getMobileSpreadsheet() {
 
 
 //==============================================================================
-// Helper
+// Helpers
 //==============================================================================
 
 /**
- * Includes HTML partials inside templates.
- * Used by: <?!= include('FileName') ?>
+ * Includes an HTML partial and evaluates any template code it contains.
  */
 function include(filename) {
   return HtmlService
-    .createHtmlOutputFromFile(filename)
+    .createTemplateFromFile(filename)
+    .evaluate()
     .getContent();
 }

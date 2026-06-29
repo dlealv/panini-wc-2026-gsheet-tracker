@@ -255,4 +255,31 @@ describe('QuickEntryService (unit)', () => {
       expect(result.summary).toHaveProperty('missing')
     })
   })
+  /** Tests for applyPendingUpdates(). */
+  describe('applyPendingUpdates()', () => {
+    test('applies normalized updates and returns refreshed countries', () => {
+      const result = service.applyPendingUpdates([{ countryCode: 'mex', stickerNumber: 4, count: 0 }])
+      expect(service.repo.lastUpdates).toEqual([
+        { countryCode: 'MEX', stickerNumber: 4, count: 0 }
+      ])
+      expect(result).toEqual({
+        success: true,
+        message: 'Updated 1 sticker value(s).',
+        countries: expect.any(Array)
+      })
+    })
+    test('throws when no updates are provided', () => {
+      expect(() => service.applyPendingUpdates([])).toThrow('There are no pending updates to apply.')
+    })
+    test('rejects invalid sticker number', () => {
+      expect(() =>
+        service.applyPendingUpdates([{ countryCode: 'MEX', stickerNumber: 99, count: 1 }])
+      ).toThrow('Sticker 99 is not valid for country code "MEX".')
+    })
+    test('rejects negative counts', () => {
+      expect(() =>
+        service.applyPendingUpdates([{ countryCode: 'MEX', stickerNumber: 1, count: -1 }])
+      ).toThrow('Invalid count "-1" for MEX sticker 1.')
+    })
+  })
 })

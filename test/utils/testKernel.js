@@ -28,7 +28,7 @@ const TEST_DATA = {
 
 /** Mock repository used across services */
 class MockStickerSheetRepository {
-  constructor () {
+  constructor() {
     this.ss = global.SpreadsheetApp.getActiveSpreadsheet()
     this.sheet = this.ss.getRangeByName('COUNTS').getSheet()
 
@@ -57,24 +57,27 @@ class MockStickerSheetRepository {
       )
   }
 
-  getCountriesRange () { return this.countriesRange }
-  getCountsRange () { return this.countsRange }
-  getDoneRange () { return this.doneRange }
-  getFlagIconsRange () { return this.flagIconsRange }
-  getFlagsUrlRange () { return this.flagsUrlRange }
-  getCountryNamesRange () { return this.countryNamesRange }
-  getCountries () { return TEST_DATA.countries }
-  getCountryMap () { return this.countryMap }
-  getGroupCodes () { return TEST_DATA.groupCodes }
-  getSheet () { return this.sheet }
-  getStartCol () { return this.startCol }
-  getNumRows () { return this.numRows }
-  getNumStickerCols () { return this.numStickerCols }
-  updateStickerCounts () { return true }
+  getCountriesRange() { return this.countriesRange }
+  getCountsRange() { return this.countsRange }
+  getDoneRange() { return this.doneRange }
+  getFlagIconsRange() { return this.flagIconsRange }
+  getFlagsUrlRange() { return this.flagsUrlRange }
+  getCountryNamesRange() { return this.countryNamesRange }
+  getCountries() { return TEST_DATA.countries }
+  getCountryMap() { return this.countryMap }
+  getGroupCodes() { return TEST_DATA.groupCodes }
+  getSheet() { return this.sheet }
+  getStartCol() { return this.startCol }
+  getNumRows() { return this.numRows }
+  getNumStickerCols() { return this.numStickerCols }
+  updateStickerCounts(updates) { // extending it to record the last updates for testing purposes
+    this.lastUpdates = updates
+    return true
+  }
 }
 
 /** Initializes full test environment */
-function initTestKernel () {
+function initTestKernel() {
   jest.resetModules()
   initializeSpreadsheetAppMock()
 
@@ -83,7 +86,7 @@ function initTestKernel () {
 }
 
 /** Initializes a mock for the SpreadsheetApp environment. */
-function initializeSpreadsheetAppMock () {
+function initializeSpreadsheetAppMock() {
   const MAX_ROWS = 49
   const fwcCounts = Array(21).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
   const mexCounts = Array(21).fill('')
@@ -139,6 +142,10 @@ function initializeSpreadsheetAppMock () {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
   const spreadsheetMock = {
     getRangeByName: (name) => {
       if (name === 'COUNTRIES') return countriesRange
@@ -151,6 +158,10 @@ function initializeSpreadsheetAppMock () {
       throw new Error(`Unknown range ${name}`)
     }
   }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
   global.SpreadsheetApp = {
     getActiveSpreadsheet: () => spreadsheetMock
   }
@@ -168,7 +179,7 @@ function initializeSpreadsheetAppMock () {
   }
 
   /** SpreadsheetApp mock (GAS runtime) */
-  function createNamedRangeMock (values = [['FWC'], ['MEX']]) {
+  function createNamedRangeMock(values = [['FWC'], ['MEX']]) {
     const normalized = values.map(v => (Array.isArray(v) ? v : [v]))
     return {
       getValues: jest.fn(() => normalized),

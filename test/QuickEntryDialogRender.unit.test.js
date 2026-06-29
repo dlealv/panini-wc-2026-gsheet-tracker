@@ -10,9 +10,9 @@ global.document = {
     textContent: '',
     children: [],
     style: {},
-    appendChild (child) { this.children.push(child) },
-    removeChild (child) { this.children = this.children.filter(c => c !== child) },
-    classList: { add () { }, remove () { }, toggle () { } }
+    appendChild(child) { this.children.push(child) },
+    removeChild(child) { this.children = this.children.filter(c => c !== child) },
+    classList: { add() { }, remove() { }, toggle() { } }
   }),
 
   querySelector: () => null,
@@ -20,10 +20,10 @@ global.document = {
   documentElement: {
     style: {
       _store: {},
-      setProperty (key, value) {
+      setProperty(key, value) {
         this._store[key] = value
       },
-      getPropertyValue (key) {
+      getPropertyValue(key) {
         return this._store[key]
       }
     }

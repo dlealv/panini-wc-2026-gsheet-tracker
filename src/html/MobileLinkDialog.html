@@ -22,9 +22,16 @@
       padding: 16px;
     }
 
-    h3 { margin: 0 0 12px; font-size: 16px; }
+    h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
 
-    p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+    p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
 
     .url-input {
       width: 100%;
@@ -43,7 +50,10 @@
       margin-top: 8px;
     }
 
-    .error-msg { color: #c5221f; font-weight: 600; }
+    .error-msg {
+      color: #c5221f;
+      font-weight: 600;
+    }
 
     .deploy-steps {
       font-size: 12px;
@@ -52,7 +62,9 @@
       margin-top: 6px;
     }
 
-    .deploy-steps strong { color: #202124; }
+    .deploy-steps strong {
+      color: #202124;
+    }
 
     .footer {
       margin-top: 14px;
@@ -69,31 +81,61 @@
       font-size: 13px;
     }
 
-    button:hover { background: #f8f9fa; }
+    button:hover {
+      background: #f8f9fa;
+    }
   </style>
 </head>
+
+<script>
+  async function copyUrl() {
+    const input = document.getElementById('webAppUrl');
+    const url = input.value;
+
+    try {
+      await navigator.clipboard.writeText(url);
+
+      const btn = event.target;
+      const original = btn.textContent;
+
+      btn.textContent = 'Copied';
+      setTimeout(() => {
+        btn.textContent = original;
+      }, 1200);
+
+    } catch (err) {
+      input.select();
+      document.execCommand('copy');
+    }
+  }
+</script>
 
 <body>
   <h3>📱 Mobile Web App</h3>
 
   <? if (isDeployed) { ?>
-    <p>Copy this URL and open it in a mobile browser to use the Import service on your phone:</p>
-    <input type="text" class="url-input" value="<?= webAppUrl ?>" readonly onclick="this.select()">
-    <p class="hint">Tip: bookmark the URL on your phone for quick access at swap events.</p>
+  <p>Copy this URL and open it in a mobile browser to use the Import service on your phone:</p>
+  <input id="webAppUrl" type="text" class="url-input" value="<?= webAppUrl ?>" readonly onclick="this.select()">
+  <div style="margin-top:10px;">
+    <button onclick="copyUrl()">Copy URL</button>
+  </div>
+  <p class="hint">
+    Tip: bookmark the URL on your phone for quick access at swap events.
+  </p>
   <? } else { ?>
-    <p class="error-msg">The web app has not been deployed yet.</p>
-    <p class="deploy-steps">
-      To deploy:
-      <ol style="margin:6px 0 0 16px;padding:0;">
-        <li>Open <strong>Extensions → Apps Script</strong>.</li>
-        <li>Click <strong>Deploy → New deployment</strong>.</li>
-        <li>Select type: <strong>Web app</strong>.</li>
-        <li>Set <em>Execute as</em>: <strong>Me</strong>.</li>
-        <li>Set <em>Who has access</em>: <strong>Anyone</strong>.</li>
-        <li>Click <strong>Deploy</strong> and copy the URL.</li>
-        <li>Return here: the URL will appear automatically.</li>
-      </ol>
-    </p>
+  <p class="error-msg">The web app has not been deployed yet.</p>
+  <p class="deploy-steps">
+    To deploy:
+  <ol style="margin:6px 0 0 16px;padding:0;">
+    <li>Open <strong>Extensions → Apps Script</strong>.</li>
+    <li>Click <strong>Deploy → New deployment</strong>.</li>
+    <li>Select type: <strong>Web app</strong>.</li>
+    <li>Set <em>Execute as</em>: <strong>Me</strong>.</li>
+    <li>Set <em>Who has access</em>: <strong>Anyone</strong>.</li>
+    <li>Click <strong>Deploy</strong> and copy the URL.</li>
+    <li>Return here: the URL will appear automatically.</li>
+  </ol>
+  </p>
   <? } ?>
 
   <div class="footer">

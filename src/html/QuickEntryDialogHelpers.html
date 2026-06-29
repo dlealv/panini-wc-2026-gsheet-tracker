@@ -288,13 +288,29 @@
     }
 
     /**
+     * Commits pending sticker updates into the local country state.
+     * - synchronizes the UI model after a successful backend update
+     * @export
+     */
+    function commitPendingUpdates(state, updates) {
+        updates.forEach(update => {
+            const country = state.countries.find(c => c.code === update.countryCode)
+            if (!country) return
+            const sticker = country.stickers.find(s => s.number === update.stickerNumber)
+            if (!sticker) return
+            sticker.count = update.count
+            sticker.label = `${sticker.number} (${update.count})`
+            sticker.hasPendingChange = false
+        })
+    }
+
+    /**
      * - shows ready state when no changes exist
      * - shows pending change count otherwise
      * @export
      */
     function updatePendingChangesMessage(state, setMessageFn) {
         const count = getPendingUpdates(state.pendingUpdates).length
-
         setMessageFn(
             count ? `Pending changes: ${count}` : 'Ready.',
             count ? 'pending' : 'success'
@@ -312,7 +328,6 @@
         if (!result || !Array.isArray(result.countries) || result.countries.length === 0) {
             return ''
         }
-
         return result.countries.map(country => {
             const stickers = Array.isArray(country.stickers)
                 ? country.stickers.map(s => `${s.number}:${s.count}`).join(', ')
@@ -376,9 +391,9 @@
 
         const lines = input.countries.map(c => {
             const stickers = (c.stickers || [])
-                .map(s => `${s.number}:${s.count}`)
+                .map(s => `${s.number}:${s.count} `)
                 .join(', ')
-            return `${c.code} -> ${stickers}`
+            return `${c.code} -> ${stickers} `
         })
 
         global.previewEl.textContent = lines.join('\n')
@@ -411,7 +426,7 @@
         const min = pad(date.getMinutes())
         const ss = pad(date.getSeconds())
 
-        return `panini-stickers-export-${yyyy}${mm}${dd}-${hh}${min}${ss}.txt`
+        return `panini - stickers -export -${yyyy}${mm}${dd} -${hh}${min}${ss}.txt`
     }
 
 </script>

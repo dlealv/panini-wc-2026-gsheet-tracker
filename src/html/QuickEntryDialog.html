@@ -87,27 +87,14 @@
   <?!= include('QuickEntryDialogRender.html') ?>
 
   <script>
-    const FILTERS = Object.freeze({
-      ALL: 'all',
-      MISSING: 'missing',
-      REPEATED: 'repeated',
-      PENDING: 'pending'
-    })
-    const GROUP_FILTERS = Object.freeze({ALL: 'all'})
+    const FILTERS = Object.freeze({ ALL: 'all', MISSING: 'missing', REPEATED: 'repeated', PENDING: 'pending' })
+    const GROUP_FILTERS = Object.freeze({ ALL: 'all' })
     const state = {
-      countries: [],
-      groupCodes: [],
-      selectedStatusFilter: FILTERS.ALL,
-      selectedGroupFilter: GROUP_FILTERS.ALL,
-      teamSearchText: '',
-      pendingUpdates: {},
-      isBusy: false,
-      isLoaded: false
+      countries: [], groupCodes: [], selectedStatusFilter: FILTERS.ALL,
+      selectedGroupFilter: GROUP_FILTERS.ALL, teamSearchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
     }
 
-    const layout = {
-      stickersPerRow: 8
-    }
+    const layout = { stickersPerRow: 8 }
 
     const teamSearchInput = document.getElementById('teamSearchInput')
     const groupFilterSelect = document.getElementById('groupFilterSelect')
@@ -141,10 +128,7 @@
           }
         })
         .withFailureHandler(err => {
-          showMessage(
-            err && err.message ? err.message : 'Init failed',
-            'error'
-          )
+          showMessage(err && err.message ? err.message : 'Init failed', 'error')
         })
         .getQuickEntryInitialData()
     }
@@ -171,7 +155,7 @@
         renderApplyButton()
         renderCountryList()
       } catch (e) {
-        console.error('renderAll failed:', e)
+        //console.error('renderAll failed:', e)
         setMessage('Render error: ' + (e.message || e), 'error')
       }
     }
@@ -210,34 +194,21 @@
 
     /** Enables or disables the Update button. */
     function renderApplyButton() {
-      applyChangesButton.disabled =
-        state.isBusy ||
-        getPendingUpdates(state.pendingUpdates).length === 0
+      applyChangesButton.disabled = state.isBusy || getPendingUpdates(state.pendingUpdates).length === 0
     }
-
 
     /** Renders the visible country cards. */
     function renderCountryList() {
       const visibleCountries = getVisibleCountries(state, layout)
-
       countryListEl.innerHTML = ''
 
       if (!visibleCountries.length) {
-        countryListEl.appendChild(
-          buildEmptyState(getEmptyStateMessage())
-        )
+        countryListEl.appendChild(buildEmptyState(getEmptyStateMessage()))
         return
       }
 
       visibleCountries.forEach(country => {
-        countryListEl.appendChild(
-          buildCountrySection(
-            country,
-            state,
-            layout,
-            queueStickerChangeHandler
-          )
-        )
+        countryListEl.appendChild(buildCountrySection(country, state, layout, queueStickerChangeHandler))
       })
     }
 
@@ -249,41 +220,28 @@
 
     /** Queues a sticker count change locally. */
     function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
-      const result = queueStickerChange(
-        state,
-        countryCode,
-        stickerNumber,
-        nextCount
-      )
+      const result = queueStickerChange(state, countryCode, stickerNumber, nextCount)
       state.pendingUpdates = result.pendingUpdates
       updatePendingChangesMessage(state, showMessage)
       renderAll()
     }
 
-    /** Applies pending sticker updates to the backend. */
+    /** Applies pending sticker updates to the backend in the front-end just the local state is updated immediately. */
     function applyChanges() {
       const pending = getPendingUpdates(state.pendingUpdates)
       if (!pending.length) {
-        showMessage(
-          'There are no pending changes to update.',
-          'info'
-        )
+        showMessage('There are no pending changes to update.', 'info')
         return
       }
-
       showBusyState(true)
       showMessage('Updating sticker data...', 'info')
-
       google.script.run
         .withSuccessHandler(result => {
-          state.countries = result.countries || []
+          commitPendingUpdates(state, pending)
           state.pendingUpdates = {}
           showBusyState(false)
           renderAll()
-          showMessage(
-            result.message || 'Updated',
-            'success'
-          )
+          showMessage(result.message || 'Updated', 'success')
         })
         .withFailureHandler(handleFailure)
         .applyQuickEntryUpdates({ pendingUpdates: pending })
@@ -298,14 +256,9 @@
     function showBusyState(isBusy) {
       try {
         state.isBusy = Boolean(isBusy)
-
-        applyChangesButton.disabled =
-          state.isBusy ||
-          getPendingUpdates(state.pendingUpdates).length === 0
-
+        applyChangesButton.disabled = state.isBusy || getPendingUpdates(state.pendingUpdates).length === 0
         teamSearchInput.disabled = state.isBusy
         groupFilterSelect.disabled = state.isBusy
-
       } catch (error) {
         console.error('showBusyState failed:', error)
       }
@@ -314,13 +267,7 @@
     /** Handles backend request failures. */
     function handleFailure(error) {
       showBusyState(false)
-
-      showMessage(
-        error && error.message
-          ? error.message
-          : 'Unexpected error.',
-        'error'
-      )
+      showMessage(error && error.message ? error.message : 'Unexpected error.', 'error')
     }
 
     initialize()

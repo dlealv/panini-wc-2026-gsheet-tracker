@@ -7,6 +7,64 @@ project structure, and documentation.
 
 ---
 
+## [1.07] 2026-XX-XX
+
+### Overview
+Implemented a mobile services, including all services the desktop version provides: import/export and quick entry.
+
+### Added
+- Under the `src/html` folder:
+  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
+  - `MobileImportView.html`: Simplified view for mobile import service.
+  - `MobileStyles.html`: Mobile CCS specific styles.
+  - `MobileExportView.html`: View for both export services.
+  - `ExportView.html`: View for export services (both desktop and mobile).
+
+
+### Changes
+
+- Under the `src` folder:
+  - `appsscript.json` removed the authorization scope: `"https://www.googleapis.com/auth/spreadsheets.currentonly"` since `doGet` service used for mobile solution, can't work with `currentonly` scope. Instead using `"https://www.googleapis.com/auth/spreadsheets"`.
+  - `Code.gs`: Added mobile specific entry point and services related to mobile service.
+  - `Commons.gs`: 
+    - Added an optional input parameter to `StickerSheetRepository` constructor so it can be used for mobile services with
+  the input argument.
+    - Adjusted the method `_updateCountryCounts` to properly update zero count as empty cell in the cases it applies and zero value for edge cases (non-valid stickers) when the count is zero.
+
+- Under the `src/html` folder:
+  - `ExportDialog`: Moved the view portion of the file to `ExportView.html` (shared with mobile and desktop).
+  - `QuickEntryDialog.html`: Modified the method `applyChanges` to correctly applies apply pending changes to the UI view, no need to reload the data again, just to change the status of the pending stickers and update the count.
+  - `QuickEntryHelpers.html`: Added the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
+
+
+- Under the `unit/test folder:
+  - `Commons.unit.test.js`: 
+    - Added a test for constructor using the input argument.
+    - Added the tests to verify the issue that in quick sticker entry after pushing Update button, the changes where not reflected in the UI. The corresponding test added failed, then fixed the issue and after that the tests didn't fail. Adding also additional edge test cases for `updateStickerCounts` method, that is in charge of this update.
+  - `ExportService.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
+  - `QuickEntryDialogHelper.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
+  - `QuickEntryDialogRender.unit.test.js`: 
+    - Fix lint error related to `'space-before-function-paren'` rule.
+    - Added the tests for the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
+  - `QuickEntryService.unit.test.js`: added tests for `applyChanges` unit tests, trying to identify the issue that after click on Update button the view doesn't keep the changes.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`: 
+    - In `initializeSpreadsheetAppMock` function the mock `spreadsheetMock` is not recreated on every test, instead it use the same instance.
+    - Updated the mock for `updateStickerCounts` in `MockStickerSheetRepository` constructor with a more complex behavior.
+
+- Under the `scripts` folder:
+  - `build.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - `fix-jsdoc.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+
+- Under the `root` folder:
+  - `eslintrc.js`: Configured the rule: `'space-before-function-paren'`.
+
+### Fix
+- Under Quick sticker entry When sticker count is positive and then reduce the count to zero and update, then sticker is updated to zero value, instead it should be updated to empty cell value. After update in Quick Entry the sticker card shows the original value before update, instead is should show zero count.
+- Under Quick sticker entry the when changing the sticker count the change propagated to the `Stickers` tab, but after click on Update button, the sticker count restored the previous value.
+
+
 ## [1.0.6] 2026-06-21
 
 ### Overview
@@ -51,6 +109,9 @@ Minor corrections in the documentation (documents and source code). Added CI git
     - Moved the note about country code from the top to section **Track your collection**.
     - Minor corrections in Import/Export services and in **Input format** section.
   - `CHANGELOG.md`: Added the changes for version `1.0.6`.
+
+  ### Fixed
+- No fixes addressed.
 
 ---
 

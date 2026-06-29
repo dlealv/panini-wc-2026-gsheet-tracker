@@ -13,10 +13,10 @@ global.document = {
   documentElement: {
     style: {
       _store: {},
-      setProperty (key, value) {
+      setProperty(key, value) {
         this._store[key] = value
       },
-      getPropertyValue (key) {
+      getPropertyValue(key) {
         return this._store[key]
       }
     }
@@ -350,6 +350,83 @@ describe('QuickEntryDialogHelpers.html', () => {
         selectedStatusFilter: undefined,
         teamSearchText: undefined
       })).toEqual([])
+    })
+  })
+  /** Tests for commitPendingUpdates() */
+  describe('commitPendingUpdates()', () => {
+    test('updates sticker count and label', () => {
+      const state = {
+        countries: [{
+          code: 'MEX',
+          stickers: [{ number: 3, count: 3, label: '3 (3)', hasPendingChange: true }]
+        }]
+      }
+      helpers.commitPendingUpdates(state, [{ countryCode: 'MEX', stickerNumber: 3, count: 2 }])
+      const sticker = state.countries[0].stickers[0]
+      expect(sticker.count).toBe(2)
+      expect(sticker.label).toBe('3 (2)')
+      expect(sticker.hasPendingChange).toBe(false)
+    })
+    test('updates multiple stickers', () => {
+      const state = {
+        countries: [
+          {
+            code: 'ARG',
+            stickers:
+              [
+                {
+                  number: 1,
+                  count: 0,
+                  label: '1 (0)',
+                  hasPendingChange: true
+                }, { number: 2, count: 1, label: '2 (1)', hasPendingChange: true }
+              ]
+          }]
+      }
+      helpers.commitPendingUpdates(state, [
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
+        { countryCode: 'ARG', stickerNumber: 2, count: 0 }
+      ])
+      expect(state.countries[0].stickers[0].count).toBe(2)
+      expect(state.countries[0].stickers[1].count).toBe(0)
+      expect(state.countries[0].stickers[0].hasPendingChange).toBe(false)
+      expect(state.countries[0].stickers[1].hasPendingChange).toBe(false)
+    })
+    test('ignores unknown country', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+        }]
+      }
+      helpers.commitPendingUpdates(state, [{ countryCode: 'BRA', stickerNumber: 1, count: 5 }])
+      expect(state.countries[0].stickers[0].count).toBe(1)
+      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
+      expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
+    })
+    test('ignores unknown sticker', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+        }]
+      }
+      helpers.commitPendingUpdates(state, [{ countryCode: 'ARG', stickerNumber: 99, count: 4 }])
+      expect(state.countries[0].stickers[0].count).toBe(1)
+      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
+      expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
+    })
+    test('handles empty updates', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+        }]
+      }
+      helpers.commitPendingUpdates(state, [])
+      expect(state.countries[0].stickers[0].count).toBe(1)
+      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
+      expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
     })
   })
 })

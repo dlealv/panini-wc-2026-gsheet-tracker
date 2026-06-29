@@ -18,7 +18,7 @@ const EXPORT_BLOCK_START = '//EXPORT-MODULE-START (AUTO-GENERATED BLOCK)'
 const EXPORT_BLOCK_END = '//EXPORT-MODULE-END'
 
 /** Main build process */
-function build () {
+function build() {
   console.log('🔨 Building GAS files...\n')
   ensureCleanBuildDir()
   const files = getAllFiles(SRC_DIR)
@@ -46,7 +46,7 @@ function build () {
 }
 
 /** Builds HTML helper files */
-function buildHelperFile ({ relPath, fileName, content }) {
+function buildHelperFile({ relPath, fileName, content }) {
   const jsContent = extractHelperJs(content)
   const exported = extractExportsFromTags(jsContent)
   const functionNames = exported.length ? exported : extractExportsFromTags(jsContent)
@@ -60,12 +60,12 @@ function buildHelperFile ({ relPath, fileName, content }) {
 }
 
 /** Extracts JS from HTML safely. Strategy: - remove <script> wrappers only - preserve helper code exactly */
-function extractHelperJs (content) {
+function extractHelperJs(content) {
   return content.replace(/<script[^>]*>/gi, '').replace(/<\/script>/gi, '').trim()
 }
 
 /** Builds footer for HTML helper files */
-function buildHelpersFooter (exports) {
+function buildHelpersFooter(exports) {
   if (!exports || exports.length === 0) {
     return buildEmptyExportBlock()
   }
@@ -73,7 +73,7 @@ function buildHelpersFooter (exports) {
 }
 
 /** Builds helper export block Example: const helpers = { ... } module.exports = { helpers } */
-function buildHelpersExportBlock (exports) {
+function buildHelpersExportBlock(exports) {
   return `
 ${EXPORT_BLOCK_START}
 const helpers = {
@@ -88,7 +88,7 @@ ${EXPORT_BLOCK_END}
 }
 
 /** Builds .gs backend files */
-function buildGsFile ({ relPath, fileName, content }) {
+function buildGsFile({ relPath, fileName, content }) {
   const outputFileName = fileName.replace(/\.gs$/i, '.js')
   const outPath = path.join(BUILD_DIR, outputFileName)
   const header = buildHeader(relPath)
@@ -100,7 +100,7 @@ function buildGsFile ({ relPath, fileName, content }) {
 }
 
 /** Builds file header */
-function buildHeader (relPath) {
+function buildHeader(relPath) {
   const normalized = relPath.replace(/\\/g, '/').replace(/^src\//, '')
   return `// SOURCE: src/${normalized}
 // AUTO-GENERATED FILE (JEST ONLY) - DO NOT EDIT
@@ -109,7 +109,7 @@ function buildHeader (relPath) {
 }
 
 /** Recursively collects all files */
-function getAllFiles (dir, fileList = []) {
+function getAllFiles(dir, fileList = []) {
   const files = fs.readdirSync(dir)
 
   files.forEach(file => {
@@ -125,7 +125,7 @@ function getAllFiles (dir, fileList = []) {
 }
 
 /** Cleans build directory */
-function ensureCleanBuildDir () {
+function ensureCleanBuildDir() {
   if (fs.existsSync(BUILD_DIR)) {
     fs.rmSync(BUILD_DIR, { recursive: true, force: true })
   }
@@ -133,7 +133,7 @@ function ensureCleanBuildDir () {
 }
 
 /** Extracts @export tags from source */
-function extractExportsFromTags (content) {
+function extractExportsFromTags(content) {
   const exported = []
   const exportRegex =
     /\/\*\*[\s\S]*?@export[\s\S]*?\*\/\s*(?:(async\s+)?function\s+([a-zA-Z0-9_]+)|class\s+([a-zA-Z0-9_]+))/g
@@ -149,7 +149,7 @@ function extractExportsFromTags (content) {
 }
 
 /** Builds footer for GAS backend files */
-function buildGsFooter (exports) {
+function buildGsFooter(exports) {
   if (!exports || exports.length === 0) {
     return buildEmptyExportBlock()
   }
@@ -157,7 +157,7 @@ function buildGsFooter (exports) {
 }
 
 /** Builds empty export block */
-function buildEmptyExportBlock () {
+function buildEmptyExportBlock() {
   return `
 ${EXPORT_BLOCK_START}
 if (typeof module !== 'undefined') {
@@ -168,7 +168,7 @@ ${EXPORT_BLOCK_END}
 }
 
 /** Builds direct export block Example: module.exports = { StickerSheetRepository } */
-function buildDirectExportBlock (exports) {
+function buildDirectExportBlock(exports) {
   return `
 ${EXPORT_BLOCK_START}
 if (typeof module !== 'undefined') {
