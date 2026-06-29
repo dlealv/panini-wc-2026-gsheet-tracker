@@ -14,8 +14,13 @@
  * @export
  */
 class StickerSheetRepository {
-  /** Creates a repository for sticker data. */
-  constructor() {
+  /** Creates a repository for sticker data.
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
+   *   Defaults to SpreadsheetApp.getActiveSpreadsheet() for normal dialog context.
+   *   Pass an explicit instance when operating from a web app context where
+   *   getActiveSpreadsheet() returns null (e.g. doGet or google.script.run from a web app).
+   */
+  constructor(ss) {
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
     this.GROUPS_RANGE_NAME = 'GROUPS'
@@ -28,7 +33,7 @@ class StickerSheetRepository {
     this.MAX_ROWS = 49 // 48 teams plus FWC
     this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
 
-    this.ss = SpreadsheetApp.getActiveSpreadsheet()
+    this.ss = ss || SpreadsheetApp.getActiveSpreadsheet()
     this.countriesRange = null
     this.countsRange = null
     this.groupsRange = null

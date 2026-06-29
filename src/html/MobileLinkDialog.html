@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  src/html/MobileLinkDialog.html
+
+  Small dialog opened by showMobileLink() from the Manage Panini menu.
+  Shows the deployed web app URL so the user can copy it and bookmark it
+  on a mobile device.
+
+  Template variables injected from Code.gs showMobileLink():
+    webAppUrl  {string}  — The deployed web app URL, or empty string.
+    isDeployed {boolean} — Whether the web app has been deployed.
+-->
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #202124;
+      padding: 16px;
+    }
+
+    h3 { margin: 0 0 12px; font-size: 16px; }
+
+    p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+
+    .url-input {
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+      border: 1px solid #c6cacc;
+      border-radius: 6px;
+      background: #f8f9fa;
+      box-sizing: border-box;
+      cursor: text;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 8px;
+    }
+
+    .error-msg { color: #c5221f; font-weight: 600; }
+
+    .deploy-steps {
+      font-size: 12px;
+      color: #5f6368;
+      line-height: 1.6;
+      margin-top: 6px;
+    }
+
+    .deploy-steps strong { color: #202124; }
+
+    .footer {
+      margin-top: 14px;
+      text-align: right;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid #c6cacc;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+    }
+
+    button:hover { background: #f8f9fa; }
+  </style>
+</head>
+
+<body>
+  <h3>📱 Mobile Web App</h3>
+
+  <? if (isDeployed) { ?>
+    <p>Copy this URL and open it in a mobile browser to use the Import service on your phone:</p>
+    <input type="text" class="url-input" value="<?= webAppUrl ?>" readonly onclick="this.select()">
+    <p class="hint">Tip: bookmark the URL on your phone for quick access at swap events.</p>
+  <? } else { ?>
+    <p class="error-msg">The web app has not been deployed yet.</p>
+    <p class="deploy-steps">
+      To deploy:
+      <ol style="margin:6px 0 0 16px;padding:0;">
+        <li>Open <strong>Extensions → Apps Script</strong>.</li>
+        <li>Click <strong>Deploy → New deployment</strong>.</li>
+        <li>Select type: <strong>Web app</strong>.</li>
+        <li>Set <em>Execute as</em>: <strong>Me</strong>.</li>
+        <li>Set <em>Who has access</em>: <strong>Anyone</strong>.</li>
+        <li>Click <strong>Deploy</strong> and copy the URL.</li>
+        <li>Return here: the URL will appear automatically.</li>
+      </ol>
+    </p>
+  <? } ?>
+
+  <div class="footer">
+    <button onclick="google.script.host.close()">Close</button>
+  </div>
+</body>
+
+</html>

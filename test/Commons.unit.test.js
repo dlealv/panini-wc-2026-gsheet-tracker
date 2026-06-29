@@ -13,6 +13,19 @@ describe('StickerSheetRepository unit tests', () => {
     repo = new StickerSheetRepository()
   })
 
+  /** constructor — optional ss parameter */
+  describe('constructor(ss)', () => {
+    test('defaults to SpreadsheetApp.getActiveSpreadsheet() when ss is omitted', () => {
+      const r = new StickerSheetRepository()
+      expect(r.ss).toBe(global.SpreadsheetApp.getActiveSpreadsheet())
+    })
+    test('uses the provided ss instance when one is passed', () => {
+      const fakeSs = { getRangeByName: jest.fn() }
+      const r = new StickerSheetRepository(fakeSs)
+      expect(r.ss).toBe(fakeSs)
+    })
+  })
+
   /**
    * Helper to test range getters with common behaviors:
    * - returns valid range with expected number of rows

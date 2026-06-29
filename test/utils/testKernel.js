@@ -139,19 +139,20 @@ function initializeSpreadsheetAppMock () {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
+  const spreadsheetMock = {
+    getRangeByName: (name) => {
+      if (name === 'COUNTRIES') return countriesRange
+      if (name === 'COUNTS') return countsRange
+      if (name === 'GROUPS') return groupsRange
+      if (name === 'FLAGS_URL') return flagsUrlRange
+      if (name === 'COUNTRY_NAMES') return countryNamesRange
+      if (name === 'FLAG_ICONS') return flagIconsRange
+      if (name === 'DONE') return doneRange
+      throw new Error(`Unknown range ${name}`)
+    }
+  }
   global.SpreadsheetApp = {
-    getActiveSpreadsheet: () => ({
-      getRangeByName: (name) => {
-        if (name === 'COUNTRIES') return countriesRange
-        if (name === 'COUNTS') return countsRange
-        if (name === 'GROUPS') return groupsRange
-        if (name === 'FLAGS_URL') return flagsUrlRange
-        if (name === 'COUNTRY_NAMES') return countryNamesRange
-        if (name === 'FLAG_ICONS') return flagIconsRange
-        if (name === 'DONE') return doneRange
-        throw new Error(`Unknown range ${name}`)
-      }
-    })
+    getActiveSpreadsheet: () => spreadsheetMock
   }
 
   /** Computes the done from an array of count values. */
