@@ -20,11 +20,20 @@
  */
 class ExportService {
   /** Creates an export application service.
-   * Initializes repository dependencies and export-related sheet references.
-   */
-  constructor() {
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet=} spreadsheet Optional spreadsheet for mobile web app context.
+ */
+  constructor(spreadsheet) {
+    this.spreadsheet = spreadsheet || null
     this.repo = null
     this.rows = null
+  }
+
+  /** Gets the sticker sheet repository instance. Lazy initializes repository on first access.*/
+  getRepo() {
+    if (!this.repo) {
+      this.repo = new StickerSheetRepository(this.spreadsheet)
+    }
+    return this.repo
   }
 
   /** GAS entrypoint for 'Export all stickers' operation. 

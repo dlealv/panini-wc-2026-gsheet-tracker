@@ -19,7 +19,6 @@
   This file intentionally contains only the common application shell and
   navigation logic. Service-specific UI and behavior belong to the
   corresponding Mobile*View.html files.
-
 -->
 
 <html lang="en">
@@ -29,6 +28,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base target="_top">
   <?!= include('MobileStyles') ?>
+  <?!= include('MobileImportStyles') ?>
+  <?!= include('MobileExportStyles') ?>
 </head>
 
 <body>
@@ -48,10 +49,10 @@
       <div class="drawer-item" onclick="showView('import')">
         Import
       </div>
-      <div class="drawer-item" onclick="initMobileExport('export_all')">
+      <div class="drawer-item" onclick="showExportView('export_all')">
         Export all
       </div>
-      <div class="drawer-item" onclick="initMobileExport('export_shared')">
+      <div class="drawer-item" onclick="showExportView('export_shared')">
         Export shared
       </div>
     </div>
@@ -73,14 +74,15 @@
           views.forEach(v => v.classList.add('hidden'))
 
           const importView = document.getElementById('view-import')
-          if (importView) importView.classList.remove('hidden')
+          if (importView) {
+            importView.classList.remove('hidden')
+          }
         })
       </script>
     </main>
   </div>
 
   <script>
-
     /* ── Navigation ───────────────────────────────────────────────────────── */
 
     /** Toggles the visibility of the navigation drawer and its overlay. */
@@ -97,6 +99,13 @@
      * @param {string} view Service identifier (for example, "import").
      */
     function showView(view) {
+      const previousView = document.querySelector('.view:not(.hidden)')
+      if (previousView && previousView.id === 'view-import') {
+        clearImportViewState()
+      }
+      if (previousView && previousView.id === 'view-export') {
+        clearExportViewState()
+      }
       document.querySelectorAll('.view').forEach(v => {
         v.classList.add('hidden')
       })
@@ -112,15 +121,103 @@
      * @param {string} mode Either 'export_all' or 'export_shared'.
      */
     function showExportView(mode) {
-      window.EXPORT_MODE = mode
       showView('export')
-      if (typeof applyModeUI === 'function') {
-        applyModeUI(mode)
-      }
-      if (typeof loadExportData === 'function') {
-        loadExportData()
+      setExportTitle(mode)
+      setExportTopHint(mode)
+      if (typeof initializeExportView === 'function') {
+        initializeExportView(mode)
       }
     }
+
+    /**
+     * Sets the title of the mobile export view based on the selected mode.
+     * @param {string} mode Either 'export_all' or 'export_shared'.
+     */
+    function setExportTitle(mode) {
+      const titleEl = document.getElementById('exportTitle')
+      if (!titleEl) {
+        return
+      }
+      titleEl.textContent = mode === 'export_shared' ? 'Export Shared' : 'Export All'
+    }
+
+    /**Sets the mobile export top hint for the selected export mode.*/
+    function setExportTopHint(mode) {
+      const hintEl = document.getElementById('mobileExportTopHint')
+      if (!hintEl) {
+        return
+      }
+      if (mode === 'export_all') {
+        hintEl.innerHTML =
+          'Export all sticker (<span class="inline-code">count&gt;0</span>) from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges.'
+        return
+      }
+      if (mode === 'export_shared') {
+        hintEl.innerHTML =
+          'Export repeated (<span class="inline-code">count&gt;1</span>) and missing (<span class="inline-code">count=0</span>) stickers from the <span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges.'
+        return
+      }
+      hintEl.innerHTML = ''
+    }
+
+    /**
+     * Clears the state of the export view, including messages, warnings,
+     * preview, and checkboxes.
+     */
+    function clearExportViewState() {
+      const exportMessageEl = document.getElementById('message')
+      const exportWarningsEl = document.getElementById('warnings')
+      const exportPreviewEl = document.getElementById('preview')
+      const exportHintEl = document.getElementById('mobileExportTopHint')
+      const includeFlagsCheckboxEl = document.getElementById('includeFlagsCheckbox')
+      const isCompactCheckboxEl = document.getElementById('isCompactCheckbox')
+
+      if (exportMessageEl) {
+        exportMessageEl.textContent = ''
+        exportMessageEl.className = 'message info'
+      }
+      if (exportWarningsEl) {
+        exportWarningsEl.textContent = ''
+        exportWarningsEl.classList.add('hidden')
+      }
+      if (exportPreviewEl) {
+        exportPreviewEl.textContent = ''
+        exportPreviewEl.classList.add('hidden')
+      }
+      if (exportHintEl) {
+        exportHintEl.innerHTML = ''
+      }
+      if (includeFlagsCheckboxEl) {
+        includeFlagsCheckboxEl.checked = false
+      }
+      if (isCompactCheckboxEl) {
+        isCompactCheckboxEl.checked = false
+      }
+    }
+
+    /**
+ * Clears the state of the import view, including messages, warnings,
+ * and preview output.
+ */
+    function clearImportViewState() {
+      const importMessageEl = document.getElementById('message')
+      const importWarningsEl = document.getElementById('warnings')
+      const importPreviewEl = document.getElementById('preview')
+
+      if (importMessageEl) {
+        importMessageEl.textContent = ''
+        importMessageEl.className = 'message info'
+      }
+      if (importWarningsEl) {
+        importWarningsEl.textContent = ''
+        importWarningsEl.classList.add('hidden')
+      }
+      if (importPreviewEl) {
+        importPreviewEl.textContent = ''
+        importPreviewEl.classList.add('hidden')
+      }
+    }
+
   </script>
 </body>
 

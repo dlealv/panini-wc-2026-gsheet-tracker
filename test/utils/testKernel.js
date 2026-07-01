@@ -142,10 +142,6 @@ function initializeSpreadsheetAppMock() {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
   const spreadsheetMock = {
     getRangeByName: (name) => {
       if (name === 'COUNTRIES') return countriesRange
@@ -158,10 +154,6 @@ function initializeSpreadsheetAppMock() {
       throw new Error(`Unknown range ${name}`)
     }
   }
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
   global.SpreadsheetApp = {
     getActiveSpreadsheet: () => spreadsheetMock
   }

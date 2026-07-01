@@ -1,31 +1,7 @@
 <!-- src/html/MobileExportView.html -->
 
 <div id="view-export" class="view hidden">
+  <div class="section-title" id="exportTitle"></div>
+  <div id="mobileExportTopHint" class="export-top-hint"></div>
   <?!= include('ExportView') ?>
 </div>
-
-<script>
-  /**
-   * Mobile export controller (single instance only)
-   */
-  function initMobileExport(mode) {
-    const view = document.getElementById('view-export')
-    // 1. hide all views (mobile only)
-    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'))
-    // 2. show export view
-    view.classList.remove('hidden')
-    // 3. IMPORTANT: set global state FIRST (single source of truth)
-    window.currentExportMode = mode
-    // 4. initialize UI (NO DATA LOAD YET)
-    if (typeof initializeExportView === 'function') {
-      initializeExportView(mode)
-    }
-    // 5. FORCE deterministic load AFTER DOM + state sync
-    setTimeout(() => {
-      if (typeof loadExportData === 'function') {
-        loadExportData(mode)
-      }
-    }, 0)
-    toggleMenu()
-  }
-</script>

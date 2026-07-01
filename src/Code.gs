@@ -219,6 +219,26 @@ function showMobileLink() {
     'Mobile Web App Link')
 }
 
+/**
+ * Mobile-context wrapper for exporting all stickers.
+ * Uses spreadsheet resolved from script properties for web app context safety.
+ */
+function exportAllStickerDataMobile(payload) {
+  const ss = _getMobileSpreadsheet()
+  const service = new ExportService(ss)
+  return service.exportAllStickerData(payload)
+}
+
+/**
+ * Mobile-context wrapper for exporting shared stickers.
+ * Uses spreadsheet resolved from script properties for web app context safety.
+ */
+function exportSharedStickerDataMobile(payload) {
+  const ss = _getMobileSpreadsheet()
+  const service = new ExportService(ss)
+  return service.exportSharedStickerData(payload)
+}
+
 /** Persists the active spreadsheet ID in script properties for use by the web app. */
 function _saveMobileConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet()

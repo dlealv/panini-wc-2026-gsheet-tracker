@@ -1,0 +1,143 @@
+<style>
+  /* 
+   * src/html/MobileImportStyles.html
+   Mobile import-specific styles
+   * These rules only affect the import view inside the mobile web app.
+   * Shared shell styles remain in MobileStyles.html.
+   */
+  #view-import .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  #view-import .section-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  #view-import .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  #view-import label {
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  #view-import textarea,
+  #view-import select {
+    font-size: var(--text-lg);
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    background: #fff;
+  }
+
+  #view-import textarea {
+    resize: vertical;
+    min-height: 45vh;
+  }
+
+  #view-import .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #view-import .btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    font-size: var(--text-lg);
+    min-height: 60px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #view-import .btn:active {
+    opacity: 0.75;
+  }
+
+  #view-import .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  #view-import .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  #view-import .btn-primary:active {
+    background: var(--primary-hover);
+  }
+
+  #view-import .btn-secondary {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  #view-import .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  #view-import .btn-row .btn {
+    flex: 1;
+  }
+
+  #view-import .warnings {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: var(--text-sm);
+    color: var(--warning);
+  }
+
+  #view-import .warnings p {
+    margin: 3px 0;
+  }
+
+  #view-import .preview {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: var(--text-sm);
+    font-family: Consolas, 'Courier New', monospace;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  #view-import .format-hint {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  #view-import .ic {
+    font-family: Consolas, 'Courier New', monospace;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+</style>

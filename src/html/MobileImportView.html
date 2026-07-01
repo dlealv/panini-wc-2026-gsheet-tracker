@@ -59,7 +59,7 @@
 
     <!-- ── Feedback areas ──────────────────────────────────────────────── -->
     <div id="message" class="message info"></div>
-    <div id="warnings" class="warnings hidden"></div>
+    <div id="warnings" class="warnings hidden" style="display:none;"></div>
     <pre id="preview" class="preview hidden"></pre>
   </div>
 </div> <!-- mobile page -->
@@ -104,13 +104,17 @@
   }
 
   /** Renders the warnings list returned by the backend. */
+  /** Renders the warnings list returned by the backend. */
   function showWarnings(warnings) {
     warningsEl.textContent = ''
     if (!warnings || !warnings.length) {
       warningsEl.classList.add('hidden')
+      warningsEl.style.display = 'none'
       return
     }
     warningsEl.classList.remove('hidden')
+    warningsEl.style.display = 'block'
+    warningsEl.style.whiteSpace = 'pre-wrap'
     warnings.forEach(w => {
       const p = document.createElement('p')
       p.textContent = '⚠ ' + w

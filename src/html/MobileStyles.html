@@ -1,8 +1,8 @@
 <style>
-  /* src/html/MobileWebAppStyles.html
-   * Mobile-first styles for the standalone Panini Tracker mobile web app.
-   * Designed as a full-page layout (not a dialog) with large touch targets
-   * and readable font sizes optimized for phone screens.
+  /* src/html/MobileStyles.html
+   * Shared mobile shell styles for the standalone Panini Tracker web app.
+   * This file keeps only common layout, navigation, and utility styles used by
+   * both import and export views.
    */
   :root {
     --border: #c6cacc;
@@ -40,7 +40,6 @@
     font-size: var(--text-md);
     color: var(--text);
     background: #f0f4f8;
-
     margin: 0;
     padding: 0;
   }
@@ -50,7 +49,6 @@
     padding-bottom: 24px;
   }
 
-  /* ── Header ─────────────────────────────────────────────────────────── */
   .header {
     background: var(--primary);
     color: #fff;
@@ -71,122 +69,16 @@
     margin-top: 2px;
   }
 
-  /* ── Menu content ────────────────────────────────────────────────────── */
   .view {
     width: 100%;
   }
 
-  /* ── Main content ────────────────────────────────────────────────────── */
   main {
     padding: 12px;
     padding-bottom: 80px;
     display: flex;
     flex-direction: column;
     gap: 16px;
-  }
-
-  .card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .section-title {
-    font-size: var(--text-xl);
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  label {
-    font-size: var(--text-md);
-    font-weight: 600;
-  }
-
-  textarea,
-  select {
-    font-size: var(--text-lg);
-    padding: 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    width: 100%;
-    background: #fff;
-  }
-
-  textarea {
-    font-size: var(--text-lg);
-    resize: vertical;
-    min-height: 45vh;
-  }
-
-  /* ── Buttons ─────────────────────────────────────────────────────────── */
-  .actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .btn {
-    display: block;
-    width: 100%;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--text);
-    font-size: var(--text-lg);
-    min-height: 60px;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .btn:active {
-    opacity: 0.75;
-  }
-
-  .btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .btn-primary {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
-  }
-
-  .btn-primary:active {
-    background: var(--primary-hover);
-  }
-
-  /* row for secondary actions */
-  .btn-row {
-    display: flex;
-    gap: 10px;
-  }
-
-  /* equal width buttons inside row */
-  .btn-row .btn {
-    flex: 1;
-  }
-
-  /* optional secondary style */
-  .btn-secondary {
-    background: #fff;
-    border: 1px solid var(--border);
-    color: var(--muted);
   }
 
   .drawer {
@@ -245,7 +137,6 @@
     z-index: 999;
   }
 
-  /* ── Status / Feedback ───────────────────────────────────────────────── */
   .message {
     padding: 12px;
     border-radius: 8px;
@@ -279,47 +170,23 @@
     color: var(--warning);
   }
 
-  .warnings {
-    background: #fff8e1;
-    border: 1px solid #ffe082;
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: var(--text-sm);
-    color: var(--warning);
-  }
-
-  .warnings p {
-    margin: 3px 0;
-  }
-
-  .preview {
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    font-size: var(--text-sm);
-    font-family: Consolas, 'Courier New', monospace;
-    white-space: pre-wrap;
-    overflow-x: auto;
-  }
-
   .hidden {
     display: none !important;
   }
 
-  /* ── Format hint table ───────────────────────────────────────────────── */
-  .format-hint {
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-
-  .ic {
-    font-family: Consolas, 'Courier New', monospace;
+  .inline-code {
+    font-family: Consolas, "Courier New", monospace;
     background: var(--bg-soft);
     border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0 3px;
+    border-radius: 4px;
+    padding: 1px 4px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
   }
 
   @supports (-webkit-touch-callout: none) {
