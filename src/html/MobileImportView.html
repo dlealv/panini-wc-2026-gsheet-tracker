@@ -9,60 +9,55 @@
   Responsibilities:
     - Collect import input.
     - Invoke mobile import backend services.
-    - Display validation, warnings and import results.
+    - Display validation results, warnings, and import output.
 
   This view owns only the Import service.
   Shared navigation belongs to MobileHome.html.
 -->
 
-<div class="mobile-page"> <!-- mobile page -->
-  <!-- Import view -->
-  <div id="view-import" class="view">
-    <!-- ── Input card ──────────────────────────────────────────────────── -->
-    <section class="card">
-      <div class="section-title">Import Sticker Counts</div>
+<!-- Import view -->
+<section id="view-import" class="view card">
+  <div class="section-title">Import Sticker Counts</div>
 
-      <div class="field">
-        <label for="textInput">Sticker data</label>
-        <textarea id="textInput"
-          placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="mode">Import mode</label>
-        <select id="mode">
-          <option value="update">Update counts</option>
-          <option value="replace_countries">Update counts clearing country counts</option>
-          <option value="clean_all">Import data (clears all counts first)</option>
-        </select>
-      </div>
-
-      <!-- Compact format hint inline to avoid needing a separate modal on mobile -->
-      <div class="format-hint">
-        <strong>Format examples:</strong><br>
-        <span class="ic">MEX,1,3-7,10(2)</span> &mdash; country once, comma-separated stickers<br>
-        <span class="ic">MEX-1,MEX-5(2)</span> &mdash; country prefix per sticker<br>
-        <span class="ic">&lt;&gt;FWC,1-10</span> &mdash; exclusion: imports all stickers <em>except</em> those
-        listed
-      </div>
-    </section>
-
-    <!-- ── Action buttons ──────────────────────────────────────────────── -->
-    <div class="actions">
-      <div class="btn-row">
-        <button class="btn" onclick="previewData()">Validate / Preview</button>
-        <button class="btn" onclick="clearForm()">Clear</button>
-      </div>
-      <button class="btn btn-primary" onclick="importData()">Import</button>
-      <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
-    </div>
-
-    <!-- ── Feedback areas ──────────────────────────────────────────────── -->
-    <div id="message" class="message info"></div>
-    <div id="warnings" class="warnings hidden" style="display:none;"></div>
-    <pre id="preview" class="preview hidden"></pre>
+  <div class="field">
+    <label for="textInput">Sticker data</label>
+    <textarea id="textInput" placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
   </div>
-</div> <!-- mobile page -->
+
+  <div class="field">
+    <label for="mode">Import mode</label>
+    <select id="mode">
+      <option value="update">Update counts</option>
+      <option value="replace_countries">Update counts clearing country counts</option>
+      <option value="clean_all">Import data (clears all counts first)</option>
+    </select>
+  </div>
+
+  <!-- Compact format hint inline to avoid needing a separate modal on mobile -->
+  <div class="format-hint">
+    <strong>Format examples:</strong><br>
+    <span class="ic">MEX,1,3-7,10(2)</span> &mdash; country once, comma-separated stickers<br>
+    <span class="ic">MEX-1,MEX-5(2)</span> &mdash; country prefix per sticker<br>
+    <span class="ic">&lt;&gt;FWC,1-10</span> &mdash; exclusion: imports all stickers <em>except</em> those
+    listed
+  </div>
+
+  <!-- ── Action buttons ──────────────────────────────────────────────── -->
+  <div class="actions">
+    <div class="btn-row">
+      <button class="btn" onclick="previewData()">Validate / Preview</button>
+      <button class="btn" onclick="clearForm()">Clear</button>
+    </div>
+    <button class="btn btn-primary" onclick="importData()">Import</button>
+    <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+  </div>
+
+  <!-- ── Feedback areas ──────────────────────────────────────────────── -->
+  <div id="message" class="message info"></div>
+  <div id="warnings" class="warnings hidden" style="display:none;"></div>
+  <pre id="preview" class="preview hidden"></pre>
+</section>
+
 
 <script>
   /* ── Element references ──────────────────────────────────────────────── */
@@ -75,7 +70,7 @@
   /* ── View helpers ─────────────────────────── */
 
   /** Builds the backend payload from the current form state. */
-  function getImportPayLoad() {
+  function getImportPayload() {
     return {
       text: textInput ? textInput.value : '',
       mode: modeInput ? modeInput.value : 'update'
@@ -103,7 +98,6 @@
     if (modeInput) { modeInput.disabled = isBusy }
   }
 
-  /** Renders the warnings list returned by the backend. */
   /** Renders the warnings list returned by the backend. */
   function showWarnings(warnings) {
     warningsEl.textContent = ''
@@ -163,7 +157,7 @@
         clearPreview()
         setMessage(err && err.message ? err.message : String(err), 'error')
       })
-      .previewStickerDataMobile(getImportPayLoad())
+      .previewStickerDataMobile(getImportPayload())
   }
 
   /** Imports the current sticker data into the spreadsheet. */
@@ -182,7 +176,7 @@
         setBusy(false)
         setMessage(err && err.message ? err.message : String(err), 'error')
       })
-      .importStickerDataMobile(getImportPayLoad())
+      .importStickerDataMobile(getImportPayload())
   }
 
   /** Resets the form to its initial state. */
@@ -193,6 +187,34 @@
     clearPreview()
     showWarnings([])
     setMessage('Cleared.', 'info')
+  }
+
+  /**
+   * Clears the state of the import view, including messages, warnings,
+   * and preview output.
+   */
+  function clearImportViewState() {
+    const importMessageEl = document.getElementById('message')
+    const importWarningsEl = document.getElementById('warnings')
+    const importPreviewEl = document.getElementById('preview')
+    if (importMessageEl) {
+      importMessageEl.textContent = ''
+      importMessageEl.className = 'message info'
+    }
+    if (importWarningsEl) {
+      importWarningsEl.textContent = ''
+      importWarningsEl.classList.add('hidden')
+    }
+    if (importPreviewEl) {
+      importPreviewEl.textContent = ''
+      importPreviewEl.classList.add('hidden')
+    }
+    if (textInput) {
+      textInput.value = ''
+    }
+    if (modeInput) {
+      modeInput.value = 'update'
+    }
   }
 
 </script>

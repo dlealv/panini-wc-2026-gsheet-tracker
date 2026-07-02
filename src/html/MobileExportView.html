@@ -1,7 +1,72 @@
-<!-- src/html/MobileExportView.html -->
+<!--
+  src/html/MobileExportView.html
 
-<div id="view-export" class="view hidden">
-  <div class="section-title" id="exportTitle"></div>
-  <div id="mobileExportTopHint" class="export-top-hint"></div>
+  Mobile export view wrapper for the web application.
+
+  This template is injected into MobileHome.html and provides the mobile
+  export title, top hint, and shared export view content.
+
+  Responsibilities:
+    - Render the mobile export container.
+    - Display the export title and top hint.
+    - Include the shared export view.
+    - Own mobile export-specific view cleanup.
+
+  Shared export behavior belongs to ExportView.html.
+  Shared navigation belongs to MobileHome.html.
+-->
+
+<section id="view-export" class="view card hidden">
   <?!= include('ExportView') ?>
-</div>
+  <div id="mobileMessage" class="message info"></div>
+</section>
+
+<script>
+  /**
+   * Displays the shared export view using the requested export mode.
+   * @param {string} mode Either 'export_all' or 'export_shared'.
+   */
+  function showExportView(mode) {
+    showView('export')
+    setExportTitle(mode)
+    setExportTopHint(mode)
+    if (typeof initializeExportView === 'function') {
+      initializeExportView(mode)
+    }
+  }
+
+  /**
+   * Sets the title of the mobile export view based on the selected mode.
+   * @param {string} mode Either 'export_all' or 'export_shared'.
+   */
+  function setExportTitle(mode) {
+    const titleEl = document.getElementById('exportTitle')
+    if (!titleEl) {
+      return
+    }
+    titleEl.textContent = mode === 'export_shared' ? 'Export Shared' : 'Export All'
+  }
+
+  /**Sets the mobile export top hint for the selected export mode.*/
+  function setExportTopHint(mode) {
+    const hintEl = document.getElementById('mobileExportTopHint')
+    if (!hintEl) {
+      return
+    }
+    if (mode === 'export_all') {
+      hintEl.innerHTML =
+        'Export all sticker (<span class="inline-code">count&gt;0</span>) from the ' +
+        '<span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges.'
+      return
+    }
+    if (mode === 'export_shared') {
+      hintEl.innerHTML =
+        'Export repeated (<span class="inline-code">count&gt;1</span>) and missing ' +
+        '(<span class="inline-code">count=0</span>) stickers from the ' +
+        '<span class="inline-code">COUNTRIES</span> and <span class="inline-code">COUNTS</span> named ranges.'
+      return
+    }
+    hintEl.innerHTML = ''
+  }
+
+</script>

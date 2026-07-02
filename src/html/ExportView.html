@@ -1,51 +1,57 @@
 <!--
   src/html/ExportView.html
   Export view
+
   Shared export interface used by:
     - ExportDialog.html (desktop)
     - MobileHome.html (mobile web app)
+
   Purpose:
     - Render export options and output area.
     - Route export requests to backend based on selected mode.
-    - Keep mode handling deterministic across desktop and mobile containers.
+    - Keep export mode handling deterministic across desktop and mobile containers.
+
   Notes:
     - This file contains no Apps Script template branching by mode.
     - Parent containers provide mode and lifecycle orchestration.
     - The export toolbar uses shared dialog classes for consistent look and feel.
 -->
-<div id="exportView">
-  <div class="section">
-    <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
-    <div class="export-toolbar">
-      <label class="toolbar-item">
-        <input type="checkbox" id="includeFlagsCheckbox">
-        Flags
-      </label>
-      <label class="toolbar-item">
-        <input type="checkbox" id="isCompactCheckbox">
-        Compact (using ranges)
-      </label>
-      <label id="sortByDoneContainer" class="toolbar-item" style="display:none;">
-        <input type="checkbox" id="sortByDoneCheckbox">
-        Sort by Done (descending) missing stickers
-      </label>
-      <button class="btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
-        Refresh
-      </button>
-    </div>
-    <!-- Output text area for exported payload. -->
-    <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
-    <div id="exportHint" class="hint" style="margin-top:8px;"></div>
+
+
+<div class="section">
+  <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
+  <div class="section-title" id="exportTitle"></div>
+  <div id="mobileExportTopHint" class="export-top-hint"></div>
+  <div class="export-toolbar">
+    <label class="toolbar-item">
+      <input type="checkbox" id="includeFlagsCheckbox">
+      Flags
+    </label>
+    <label class="toolbar-item">
+      <input type="checkbox" id="isCompactCheckbox">
+      Compact (using ranges)
+    </label>
+    <label id="sortByDoneContainer" class="toolbar-item" style="display:none;">
+      <input type="checkbox" id="sortByDoneCheckbox">
+      Sort by Done (descending) missing stickers
+    </label>
+    <button class="btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
+      Refresh
+    </button>
   </div>
-  <div class="section">
-    <div class="section-title">Actions</div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
-      <button class="btn" onclick="copyExport()">Copy</button>
-      <button class="btn" onclick="google.script.host.close()">Close</button>
-    </div>
+  <!-- Output text area for exported payload. -->
+  <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+  <div id="exportHint" class="hint" style="margin-top:8px;"></div>
+</div>
+<div class="section">
+  <div class="section-title">Actions</div>
+  <div class="actions">
+    <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
+    <button class="btn" onclick="copyExport()">Copy</button>
+    <button class="btn" onclick="google.script.host.close()">Close</button>
   </div>
 </div>
+
 <div id="message" class="message info"></div>
 <!-- Reserved for backend warnings and validation notices. -->
 <div id="warnings" class="warnings" style="display:none;"></div>
@@ -61,7 +67,7 @@
   const exportHintEl = document.getElementById('exportHint')
   let currentExportMode = 'export_all'
 
-  /**Returns a valid export mode using explicit argument, window state, then local fallback.*/
+  /** Returns a valid export mode using explicit argument, window state, then local fallback. */
   function getEffectiveExportMode(mode) {
     if (mode === 'export_all' || mode === 'export_shared') {
       return mode
@@ -72,7 +78,7 @@
     return currentExportMode || 'export_all'
   }
 
-  /**Renders backend warnings below the export area and hides the block when empty.*/
+  /** Renders backend warnings below the export area and hides the block when empty. */
   function renderWarnings(warnings) {
     exportWarningsEl.textContent = ''
     if (!warnings || !warnings.length) {
@@ -88,8 +94,9 @@
     })
   }
 
-  /**Loads exported sticker data into the export text area.*/
+  /** Loads exported sticker data into the export text area.*/
   function loadExportData(mode = currentExportMode) {
+    clearExportMessage()
     currentExportMode = getEffectiveExportMode(mode)
     if (!exportTextEl) {
       setMessage('Export text area not found.', 'error')
@@ -119,7 +126,15 @@
         if (exportHintEl) {
           exportHintEl.innerHTML = getExportHintText(currentExportMode)
         }
-        setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success')
+        const messageEl = isDesktopDialogHost()
+          ? document.getElementById('message')
+          : document.getElementById('mobileMessage')
+        setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success', {
+          messageEl
+        })
+        if (messageEl) {
+          messageEl.scrollIntoView({ block: 'start', behavior: 'smooth' })
+        }
       })
       .withFailureHandler((error) => {
         setBusy(false)
@@ -213,6 +228,18 @@
       return 'The exported content uses the same Format 1 syntax accepted by the import process. Only sticker counts greater than <span class="inline-code">0</span> are included.'
     }
     return 'The exported content uses the same Format 1 syntax accepted by the import process.'
+  }
+
+  /** Clears the export feedback message before loading new data. */
+  function clearExportMessage() {
+    const messageEl = isDesktopDialogHost()
+      ? document.getElementById('message')
+      : document.getElementById('mobileMessage')
+    if (!messageEl) {
+      return
+    }
+    messageEl.textContent = ''
+    messageEl.className = 'message info'
   }
 
 </script>
