@@ -29,6 +29,7 @@
   <?!= include('MobileStyles') ?>
   <?!= include('MobileImportStyles') ?>
   <?!= include('MobileExportStyles') ?>
+  <?!= include('MobileQuickEntryStyles') ?>
 </head>
 
 <body>
@@ -54,6 +55,9 @@
       <div class="drawer-item" onclick="showExportView('export_shared')">
         Export shared
       </div>
+      <div class="drawer-item" onclick="showQuickEntryView()">
+        Quick Entry
+      </div>
     </div>
 
     <!-- Overlay shown while the navigation drawer is open. -->
@@ -65,6 +69,7 @@
     <main>
       <?!= include('MobileImportView') ?>
       <?!= include('MobileExportView') ?>
+      <?!= include('MobileQuickEntryView') ?>
 
       <script>
         // Force initial state: show only the import view on load
@@ -82,7 +87,7 @@
   </div>
 
   <script>
-    /* ── Navigation ───────────────────────────────────────────────────────── */
+    /* ── Navigation ─────────────────────────────────────────────────────────[...] */
 
     /**
      * Switches the visible service view in the main content area.
@@ -102,6 +107,9 @@
       }
       if (view === 'import' && typeof clearImportViewState === 'function') {
         clearImportViewState()
+      }
+      if (view === 'quickentry' && typeof initialize === 'function') {
+        initialize()
       }
       toggleMenu()
     }
