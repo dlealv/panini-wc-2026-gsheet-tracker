@@ -85,6 +85,7 @@
 <?!= include('QuickEntryDialogRender.html') ?>
 
 <script>
+  console.log('=== QuickEntryView.html script executing ===')
   const FILTERS = Object.freeze({ ALL: 'all', MISSING: 'missing', REPEATED: 'repeated', PENDING: 'pending' })
   const GROUP_FILTERS = Object.freeze({ ALL: 'all' })
   const state = {
@@ -97,6 +98,13 @@
   const messageEl = document.getElementById('qe-message')
   const countryListEl = document.getElementById('qe-countryList')
   const applyChangesButton = document.getElementById('qe-applyChangesButton')
+  
+  console.log('QuickEntry view elements:')
+  console.log('  teamSearchInput:', teamSearchInput ? 'FOUND' : 'NOT FOUND')
+  console.log('  groupFilterSelect:', groupFilterSelect ? 'FOUND' : 'NOT FOUND')
+  console.log('  messageEl:', messageEl ? 'FOUND (parent: ' + (messageEl.parentElement.id || messageEl.parentElement.className) + ')' : 'NOT FOUND')
+  console.log('  countryListEl:', countryListEl ? 'FOUND' : 'NOT FOUND')
+  console.log('  applyChangesButton:', applyChangesButton ? 'FOUND' : 'NOT FOUND')
 
   /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
   function isDesktopDialogHost() {
@@ -105,6 +113,7 @@
 
   /**Initializes the Quick Entry view and loads initial data.*/
   function initializeQuickEntry() {
+    console.log('=== initializeQuickEntry called ===')
     showBusyState(true)
     showMessage('Loading countries...', 'info')
     if (typeof applyLayout === 'function') {
@@ -113,8 +122,10 @@
     const backendMethod = isDesktopDialogHost()
       ? 'getQuickEntryInitialData'
       : 'getQuickEntryInitialDataMobile'
+    console.log('Calling backend method:', backendMethod)
     google.script.run
       .withSuccessHandler(result => {
+        console.log('initializeQuickEntry success:', result)
         try {
           state.countries = result.countries || []
           state.groupCodes = result.groupCodes || []
@@ -125,11 +136,13 @@
           renderAll()
           showMessage('Ready.', 'success')
         } catch (e) {
+          console.error('Render error:', e)
           showBusyState(false)
           showMessage('Render failed: ' + (e.message || e), 'error')
         }
       })
       .withFailureHandler(err => {
+        console.error('initializeQuickEntry failure:', err)
         showMessage(err && err.message ? err.message : 'Init failed', 'error')
       })
       [backendMethod]()

@@ -60,14 +60,22 @@
 
 
 <script>
+  console.log('=== MobileImportView.html script executing ===')
   /* ── Element references ──────────────────────────────────────────────── */
   const textInput = document.getElementById('textInput')
   const modeInput = document.getElementById('mode')
   const messageEl = document.getElementById('message')
   const warningsEl = document.getElementById('warnings')
   const previewEl = document.getElementById('preview')
+  
+  console.log('Import view elements:')
+  console.log('  textInput:', textInput ? 'FOUND' : 'NOT FOUND')
+  console.log('  modeInput:', modeInput ? 'FOUND' : 'NOT FOUND')
+  console.log('  messageEl:', messageEl ? 'FOUND (parent: ' + (messageEl.parentElement.id || messageEl.parentElement.className) + ')' : 'NOT FOUND')
+  console.log('  warningsEl:', warningsEl ? 'FOUND' : 'NOT FOUND')
+  console.log('  previewEl:', previewEl ? 'FOUND' : 'NOT FOUND')
 
-  /* ── View helpers ─────────────────────────── */
+  /* ── View helpers ─────────────────────── */
 
   /** Builds the backend payload from the current form state. */
   function getImportPayload() {
@@ -83,6 +91,8 @@
    * @param {string} type Message type (info, success, warning or error).
    */
   function setMessage(text, type) {
+    console.log('setMessage called:', text, type)
+    console.log('  messageEl:', messageEl ? 'EXISTS' : 'NULL')
     if (!messageEl) { return }
     messageEl.className = 'message ' + (type || 'info')
     messageEl.textContent = text || ''
@@ -140,6 +150,8 @@
 
   /** Validates the current import data and displays the preview. */
   function previewData() {
+    console.log('=== previewData called ===')
+    console.log('  messageEl at call time:', messageEl ? 'EXISTS' : 'NULL')
     clearPreview()
     showWarnings([])
     setBusy(true)
@@ -147,12 +159,14 @@
 
     google.script.run
       .withSuccessHandler(result => {
+        console.log('previewData success:', result)
         setBusy(false)
         setMessage('Validation successful.', 'success')
         showWarnings(result.warnings)
         showPreview(result)
       })
       .withFailureHandler(err => {
+        console.error('previewData failure:', err)
         setBusy(false)
         clearPreview()
         setMessage(err && err.message ? err.message : String(err), 'error')
@@ -162,17 +176,20 @@
 
   /** Imports the current sticker data into the spreadsheet. */
   function importData() {
+    console.log('=== importData called ===')
     clearPreview()
     showWarnings([])
     setBusy(true)
     setMessage('Importing...', 'info')
     google.script.run
       .withSuccessHandler(result => {
+        console.log('importData success:', result)
         setBusy(false)
         setMessage(result && result.message ? result.message : 'Import completed.', 'success')
         showWarnings(result.warnings)
       })
       .withFailureHandler(err => {
+        console.error('importData failure:', err)
         setBusy(false)
         setMessage(err && err.message ? err.message : String(err), 'error')
       })
@@ -181,6 +198,7 @@
 
   /** Resets the form to its initial state. */
   function clearForm() {
+    console.log('=== clearForm called ===')
     setBusy(false)
     if (textInput) { textInput.value = ''; textInput.focus() }
     if (modeInput) { modeInput.value = 'update' }
@@ -194,9 +212,13 @@
    * and preview output.
    */
   function clearImportViewState() {
+    console.log('=== clearImportViewState called ===')
     const importMessageEl = document.getElementById('message')
     const importWarningsEl = document.getElementById('warnings')
     const importPreviewEl = document.getElementById('preview')
+    console.log('  importMessageEl:', importMessageEl ? 'FOUND' : 'NOT FOUND')
+    console.log('  importWarningsEl:', importWarningsEl ? 'FOUND' : 'NOT FOUND')
+    console.log('  importPreviewEl:', importPreviewEl ? 'FOUND' : 'NOT FOUND')
     if (importMessageEl) {
       importMessageEl.textContent = ''
       importMessageEl.className = 'message info'
