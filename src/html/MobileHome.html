@@ -72,35 +72,13 @@
       <?!= include('MobileQuickEntryView') ?>
 
       <script>
-        // Force initial state: show only the import view on load
         window.addEventListener('load', () => {
-          console.log('=== MobileHome.html: Page loaded ===')
           const views = document.querySelectorAll('.view')
-          console.log('main children on load:', Array.from(document.querySelector('main').children).map(el => el.id + ' / ' + el.className))
-          console.log('Found views:', views.length)
-          views.forEach(v => {
-            console.log('  View:', v.id, 'classes:', v.className)
-            v.classList.add('hidden')
-          })
+          views.forEach(v => v.classList.add('hidden'))
           const importView = document.getElementById('view-import')
           if (importView) {
-            console.log('Showing import view')
             importView.classList.remove('hidden')
-          } else {
-            console.error('Import view not found!')
           }
-          console.log('=== Checking for duplicate IDs ===')
-          const messageElements = document.querySelectorAll('[id="message"]')
-          console.log('Elements with id="message":', messageElements.length)
-          messageElements.forEach((el, idx) => {
-            console.log(`  [${idx}] Parent:`, el.parentElement.id || el.parentElement.className)
-          })
-          const importMessageElements = document.querySelectorAll('[id="import-message"]')
-          console.log('Elements with id="import-message":', importMessageElements.length)
-          const exportMessageElements = document.querySelectorAll('[id="export-message"]')
-          console.log('Elements with id="export-message":', exportMessageElements.length)
-          const qeMessageElements = document.querySelectorAll('[id="qe-message"]')
-          console.log('Elements with id="qe-message":', qeMessageElements.length)
         })
       </script>
     </main>
@@ -115,7 +93,6 @@
      * @param {string} view Service identifier (for example, "import").
      */
     function showView(view) {
-      console.log('=== showView called with:', view)
       if (typeof clearViewMessages === 'function') {
         clearViewMessages()
       }
@@ -123,7 +100,6 @@
         v.classList.add('hidden')
       })
       const selected = document.getElementById('view-' + view)
-      console.log('Selected view:', selected ? selected.id : 'NOT FOUND')
       if (selected) {
         selected.classList.remove('hidden')
       }
@@ -143,11 +119,8 @@
 
     /** Clears all messages and warnings from the import and export views. */
     function clearViewMessages() {
-      console.log('=== clearViewMessages called ===')
       const importMessageEl = document.getElementById('import-message')
       const exportMessageEl = document.getElementById('mobileMessage')
-      console.log('Import message element:', importMessageEl ? 'FOUND' : 'NOT FOUND')
-      console.log('Export message element:', exportMessageEl ? 'FOUND' : 'NOT FOUND')
       if (importMessageEl) {
         importMessageEl.textContent = ''
         importMessageEl.className = 'message info'
