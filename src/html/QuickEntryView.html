@@ -22,13 +22,13 @@
   <div class="section">
     <div class="top-bar">
       <div class="top-actions">
-        <button id="applyChangesButton" class="btn btn-primary" onclick="applyChanges()">Update</button>
+        <button id="qe-applyChangesButton" class="btn btn-primary" onclick="applyChanges()">Update</button>
       </div>
 
       <div class="filters">
-        <input type="text" id="teamSearchInput" class="filter-input" placeholder="Search by team code or country name"
+        <input type="text" id="qe-teamSearchInput" class="filter-input" placeholder="Search by team code or country name"
           oninput="handleFiltersChange()">
-        <select id="groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
+        <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
           <option value="all">All groups</option>
         </select>
         <button class="btn btn-filter" data-filter="all" onclick="setStatusFilter('all')">All</button>
@@ -74,10 +74,10 @@
     </div>
   </div>
 
-  <div id="message" class="message info"></div>
+  <div id="qe-message" class="message info"></div>
 
   <div class="section country-list-wrapper">
-    <div id="countryList" class="country-list"></div>
+    <div id="qe-countryList" class="country-list"></div>
   </div>
 </div>
 
@@ -92,11 +92,11 @@
     selectedGroupFilter: GROUP_FILTERS.ALL, teamSearchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
   }
   const layout = { stickersPerRow: 8 }
-  const teamSearchInput = document.getElementById('teamSearchInput')
-  const groupFilterSelect = document.getElementById('groupFilterSelect')
-  const messageEl = document.getElementById('message')
-  const countryListEl = document.getElementById('countryList')
-  const applyChangesButton = document.getElementById('applyChangesButton')
+  const teamSearchInput = document.getElementById('qe-teamSearchInput')
+  const groupFilterSelect = document.getElementById('qe-groupFilterSelect')
+  const messageEl = document.getElementById('qe-message')
+  const countryListEl = document.getElementById('qe-countryList')
+  const applyChangesButton = document.getElementById('qe-applyChangesButton')
 
   /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
   function isDesktopDialogHost() {
