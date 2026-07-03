@@ -61,20 +61,12 @@
 
 <script>
 (function() {
-  console.log('=== MobileImportView.html script executing (IIFE) ===')
   /* ── Element references ──────────────────────────────────────────────── */
   const textInput = document.getElementById('textInput')
   const modeInput = document.getElementById('mode')
   const messageEl = document.getElementById('import-message')
   const warningsEl = document.getElementById('import-warnings')
   const previewEl = document.getElementById('import-preview')
-  
-  console.log('Import view elements:')
-  console.log('  textInput:', textInput ? 'FOUND' : 'NOT FOUND')
-  console.log('  modeInput:', modeInput ? 'FOUND' : 'NOT FOUND')
-  console.log('  messageEl:', messageEl ? 'FOUND (parent: ' + (messageEl.parentElement.id || messageEl.parentElement.className) + ')' : 'NOT FOUND')
-  console.log('  warningsEl:', warningsEl ? 'FOUND' : 'NOT FOUND')
-  console.log('  previewEl:', previewEl ? 'FOUND' : 'NOT FOUND')
 
   /* ── View helpers ───────────────────────────── */
 
@@ -92,8 +84,6 @@
    * @param {string} type Message type (info, success, warning or error).
    */
   function setMessage(text, type) {
-    console.log('setMessage called:', text, type)
-    console.log('  messageEl:', messageEl ? 'EXISTS' : 'NULL')
     if (!messageEl) { return }
     messageEl.className = 'message ' + (type || 'info')
     messageEl.textContent = text || ''
@@ -154,8 +144,6 @@
 
   /** Validates the current import data and displays the preview. */
   window.previewData = function() {
-    console.log('=== previewData called ===')
-    console.log('  messageEl at call time:', messageEl ? 'EXISTS' : 'NULL')
     clearPreview()
     showWarnings([])
     setBusy(true)
@@ -163,14 +151,12 @@
 
     google.script.run
       .withSuccessHandler(result => {
-        console.log('previewData success:', result)
         setBusy(false)
         setMessage('Validation successful.', 'success')
         showWarnings(result.warnings)
         showPreview(result)
       })
       .withFailureHandler(err => {
-        console.error('previewData failure:', err)
         setBusy(false)
         clearPreview()
         setMessage(err && err.message ? err.message : String(err), 'error')
@@ -180,20 +166,17 @@
 
   /** Imports the current sticker data into the spreadsheet. */
   window.importData = function() {
-    console.log('=== importData called ===')
     clearPreview()
     showWarnings([])
     setBusy(true)
     setMessage('Importing...', 'info')
     google.script.run
       .withSuccessHandler(result => {
-        console.log('importData success:', result)
         setBusy(false)
         setMessage(result && result.message ? result.message : 'Import completed.', 'success')
         showWarnings(result.warnings)
       })
       .withFailureHandler(err => {
-        console.error('importData failure:', err)
         setBusy(false)
         setMessage(err && err.message ? err.message : String(err), 'error')
       })
@@ -202,7 +185,6 @@
 
   /** Resets the form to its initial state. */
   window.clearForm = function() {
-    console.log('=== clearForm called ===')
     setBusy(false)
     if (textInput) { textInput.value = ''; textInput.focus() }
     if (modeInput) { modeInput.value = 'update' }
@@ -216,10 +198,6 @@
    * and preview output.
    */
   window.clearImportViewState = function() {
-    console.log('=== clearImportViewState called ===')
-    console.log('  messageEl:', messageEl ? 'FOUND' : 'NOT FOUND')
-    console.log('  warningsEl:', warningsEl ? 'FOUND' : 'NOT FOUND')
-    console.log('  previewEl:', previewEl ? 'FOUND' : 'NOT FOUND')
     if (messageEl) {
       messageEl.textContent = ''
       messageEl.className = 'message info'
@@ -230,7 +208,8 @@
     }
     if (previewEl) {
       previewEl.textContent = ''
-      previewEl.classList.add('hidden')
+      previewEl.classList.add('hidden'
+)
     }
     if (textInput) {
       textInput.value = ''
