@@ -239,6 +239,27 @@ function exportSharedStickerDataMobile(payload) {
   return service.exportSharedStickerData(payload)
 }
 
+/**
+ * Mobile-context wrapper for Quick Entry initial data.
+ * Uses spreadsheet resolved from script properties for web app context safety.
+ */
+function getQuickEntryInitialDataMobile() {
+  const ss = _getMobileSpreadsheet()
+  const service = new QuickEntryService(ss)
+  return service.getInitialData()
+}
+
+/**
+ * Mobile-context wrapper for Quick Entry updates.
+ * Uses spreadsheet resolved from script properties for web app context safety.
+ */
+function applyQuickEntryUpdatesMobile(payload) {
+  const ss = _getMobileSpreadsheet()
+  const service = new QuickEntryService(ss)
+  const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
+  return service.applyPendingUpdates(pendingUpdates)
+}
+
 /** Persists the active spreadsheet ID in script properties for use by the web app. */
 function _saveMobileConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet()
