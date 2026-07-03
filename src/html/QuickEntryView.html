@@ -32,13 +32,17 @@
           <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
             <option value="all">All groups</option>
           </select>
-          <select id="qe-statusFilterSelect" class="filter-select" onchange="handleStatusFilterChange()">
+          <select id="qe-statusFilterSelect" class="filter-select filter-select-mobile" onchange="handleStatusFilterChange()">
             <option value="all">All</option>
             <option value="missing">Missing</option>
             <option value="repeated">Repeated</option>
             <option value="pending">Pending</option>
           </select>
         </div>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="all" onclick="setStatusFilter('all')">All</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="missing" onclick="setStatusFilter('missing')">Missing</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="repeated" onclick="setStatusFilter('repeated')">Repeated</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="pending" onclick="setStatusFilter('pending')">Pending</button>
       </div>
 
       <div class="legend">
@@ -147,13 +151,13 @@
     renderCountryList()
   }
 
-  /**Updates the selected status filter from dropdown.*/
+  /**Updates the selected status filter from dropdown (mobile).*/
   function handleStatusFilterChange() {
     state.selectedStatusFilter = statusFilterSelect.value
     renderCountryList()
   }
 
-  /**Updates the selected status filter (for desktop button compatibility).*/
+  /**Updates the selected status filter (desktop buttons and mobile compatibility).*/
   function setStatusFilter(filterName) {
     state.selectedStatusFilter = filterName
     if (statusFilterSelect) {
