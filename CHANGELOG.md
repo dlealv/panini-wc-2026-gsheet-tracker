@@ -10,7 +10,7 @@ project structure, and documentation.
 ## [1.07] 2026-XX-XX
 
 ### Overview
-Implemented a mobile services, including all services the desktop version provides: import/export and quick entry.
+Implemented a mobile services, including all services the desktop version provides: import/export and quick entry. Fixed the issue in Quick Entry that after click on Update, the card change didn't persist.
 
 ### Added
 - Under the `src/html` folder:
@@ -36,6 +36,8 @@ Implemented a mobile services, including all services the desktop version provid
   - `QuickEntryDialog.html`: Modified the method `applyChanges` to correctly applies apply pending changes to the UI view, no need to reload the data again, just to change the status of the pending stickers and update the count.
   - `QuickEntryHelpers.html`: Added the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
 
+- Under the `scripts` folder:
+  - clasp.zsh`: Added a new action `deploy` to automate the Web App deployment update, creating a new version and using the same description as the existing deployment. It uses the same architecture are `push/pull` actions. If the scriptId is not present it takes the id from TEST gsheet and if `deploymentId` is not present it takes the deployment id from the TEST gsheet file.
 
 - Under the `unit/test folder:
   - `Commons.unit.test.js`: 
@@ -59,6 +61,14 @@ Implemented a mobile services, including all services the desktop version provid
 
 - Under the `root` folder:
   - `eslintrc.js`: Configured the rule: `'space-before-function-paren'`.
+  - `package.json`: 
+    - Added the script task: `clasp:deploy` to simplify the clasp deploy of the Web App. 
+    - Removed the dry script task variant, since it doesn't work in the way it is defined.
+    - Adjusted clasp script task without including environment varaibles, so they can be called directly from the command line. For example:
+      - `npm run clasp:push`              # default configuration parameters (`LOG_LEVEL`, and `DRY_RUN`).
+      - `LOG_LEVEL=1 npm run clasp:push`  # verbose mode.
+      - `DRY_RUN=true npm run clasp:push` # dry run.
+      - `LOG_LEVEL=1 DRY_RUN=true npm run clasp:push` # verbose and dry run.
 
 ### Fix
 - Under Quick sticker entry When sticker count is positive and then reduce the count to zero and update, then sticker is updated to zero value, instead it should be updated to empty cell value. After update in Quick Entry the sticker card shows the original value before update, instead is should show zero count.
