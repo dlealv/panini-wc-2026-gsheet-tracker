@@ -9,6 +9,7 @@
     - Provide desktop dialog structure
     - Include common dialog styles
     - Include shared quick entry view
+    - Initialize the view when dialog opens
 -->
 <html>
 
@@ -21,6 +22,12 @@
 
 <body>
   <?!= include('QuickEntryView') ?>
+  <script>
+    /**Initializes Quick Entry when desktop dialog opens.*/
+    if (typeof initialize === 'function') {
+      initialize()
+    }
+  </script>
 </body>
 
 </html>
