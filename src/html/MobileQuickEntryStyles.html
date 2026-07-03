@@ -1,0 +1,341 @@
+<style>
+  /*
+   * src/html/MobileQuickEntryStyles.html
+   * Mobile-specific styles for Quick Entry view.
+   * All rules scoped to #view-quickentry to avoid conflicts with desktop and other mobile views.
+   */
+  #view-quickentry .container {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+  #view-quickentry .section {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+  #view-quickentry .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  #view-quickentry .section-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+  }
+  #view-quickentry .btn-update {
+    min-height: 48px;
+    min-width: 100px;
+    padding: 10px 18px;
+    font-size: var(--text-md);
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  #view-quickentry .top-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #view-quickentry .top-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  #view-quickentry .filters {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #view-quickentry .filter-input,
+  #view-quickentry .filter-select {
+    width: 100%;
+    padding: 12px;
+    font-size: var(--text-md);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 48px;
+  }
+  #view-quickentry .filter-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  #view-quickentry .btn-filter {
+    padding: 12px;
+    font-size: var(--text-md);
+    min-height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #view-quickentry .btn-filter.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  #view-quickentry .btn-filter:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #view-quickentry .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  #view-quickentry .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #view-quickentry .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: #fff;
+    flex: 0 0 auto;
+  }
+  #view-quickentry .legend-swatch.count-0 {
+    background: var(--count-0-bg);
+  }
+  #view-quickentry .legend-swatch.count-1 {
+    background: var(--count-1-bg);
+  }
+  #view-quickentry .legend-swatch.count-2 {
+    background: var(--count-2-bg);
+  }
+  #view-quickentry .legend-swatch.count-3 {
+    background: var(--count-3-bg);
+  }
+  #view-quickentry .legend-swatch.count-4 {
+    background: var(--count-4-bg);
+  }
+  #view-quickentry .legend-swatch.count-5-plus {
+    background: var(--count-5-plus-bg);
+  }
+  #view-quickentry .legend-swatch.pending {
+    position: relative;
+    background: #fff;
+  }
+  #view-quickentry .legend-swatch.pending::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--pending);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.95);
+  }
+  #view-quickentry .legend-swatch.completed {
+    background: var(--completed-bg);
+    border-color: var(--completed-bg);
+  }
+  #view-quickentry .message {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  #view-quickentry .message:empty {
+    display: none;
+  }
+  #view-quickentry .message.success {
+    background: #e6f4ea;
+    color: var(--success);
+  }
+  #view-quickentry .message.error {
+    background: #fce8e6;
+    color: var(--error);
+  }
+  #view-quickentry .message.info {
+    background: var(--bg-soft);
+    color: var(--muted);
+  }
+  #view-quickentry .message.pending {
+    color: var(--pending-text);
+    font-weight: 700;
+  }
+  #view-quickentry .country-list-wrapper {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  #view-quickentry .country-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  #view-quickentry .country-section {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+  }
+  #view-quickentry .country-section.completed {
+    background: var(--completed-bg);
+    color: var(--completed-text);
+  }
+  #view-quickentry .country-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  #view-quickentry .country-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-lg);
+    font-weight: 700;
+  }
+  #view-quickentry .country-flag {
+    width: 40px;
+    height: 24px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: #fff;
+    display: block;
+    flex: 0 0 auto;
+  }
+  #view-quickentry .country-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+  }
+  #view-quickentry .summary-value {
+    font-weight: 700;
+  }
+  #view-quickentry .sticker-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  #view-quickentry .sticker-grid.compact {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  #view-quickentry .sticker-row {
+    display: grid;
+    grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+  #view-quickentry .sticker-row.last-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+  }
+  #view-quickentry .sticker-card {
+    position: relative;
+    min-height: 0;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: var(--text);
+    aspect-ratio: 1 / 1;
+  }
+  #view-quickentry .sticker-row.last-row .sticker-card,
+  #view-quickentry .sticker-grid.compact .sticker-card {
+    width: calc((100% - (7 * 6px)) / 8);
+  }
+  #view-quickentry .sticker-card.count-0 {
+    background: var(--count-0-bg);
+    color: var(--count-0-text);
+  }
+  #view-quickentry .sticker-card.count-1 {
+    background: var(--count-1-bg);
+    color: var(--count-1-text);
+  }
+  #view-quickentry .sticker-card.count-2 {
+    background: var(--count-2-bg);
+    color: var(--count-2-text);
+  }
+  #view-quickentry .sticker-card.count-3 {
+    background: var(--count-3-bg);
+    color: var(--count-3-text);
+  }
+  #view-quickentry .sticker-card.count-4 {
+    background: var(--count-4-bg);
+    color: var(--count-4-text);
+  }
+  #view-quickentry .sticker-card.count-5-plus {
+    background: var(--count-5-plus-bg);
+    color: var(--count-5-plus-text);
+  }
+  #view-quickentry .sticker-card.pending-change::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pending);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+  }
+  #view-quickentry .sticker-label {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+  }
+  #view-quickentry .sticker-actions {
+    display: flex;
+    gap: 4px;
+  }
+  #view-quickentry .btn-sticker {
+    padding: 0;
+    width: 32px;
+    height: 30px;
+    min-width: 32px;
+    min-height: 30px;
+    border-width: 2px;
+    border-radius: 6px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #view-quickentry .sticker-actions button:disabled {
+    opacity: 0.5;
+  }
+  #view-quickentry .sticker-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+  #view-quickentry .empty-state {
+    color: var(--muted);
+    font-size: var(--text-md);
+    text-align: center;
+    padding: 20px;
+  }
+</style>
