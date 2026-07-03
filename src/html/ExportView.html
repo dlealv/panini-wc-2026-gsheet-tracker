@@ -59,7 +59,6 @@
 
 <script>
 (function() {
-  console.log('=== ExportView.html script executing (IIFE) ===')
   const exportTextEl = document.getElementById('exportText')
   const includeFlagsCheckboxEl = document.getElementById('includeFlagsCheckbox')
   const sortByDoneCheckboxEl = document.getElementById('sortByDoneCheckbox')
@@ -68,11 +67,6 @@
   const sortByDoneContainerEl = document.getElementById('sortByDoneContainer')
   const exportHintEl = document.getElementById('exportHint')
   let currentExportMode = 'export_all'
-  
-  console.log('Export view elements:')
-  console.log('  exportTextEl:', exportTextEl ? 'FOUND' : 'NOT FOUND')
-  console.log('  includeFlagsCheckboxEl:', includeFlagsCheckboxEl ? 'FOUND' : 'NOT FOUND')
-  console.log('  exportWarningsEl:', exportWarningsEl ? 'FOUND' : 'NOT FOUND')
 
   /** Returns a valid export mode using explicit argument, window state, then local fallback. */
   function getEffectiveExportMode(mode) {
@@ -107,11 +101,9 @@
    * @param {string} type Message type (info, success, warning or error).
    */
   function setMessage(text, type, options = {}) {
-    console.log('Export setMessage called:', text, type)
     const messageEl = options.messageEl || isDesktopDialogHost()
       ? document.getElementById('export-message')
       : document.getElementById('mobileMessage')
-    console.log('  messageEl:', messageEl ? 'EXISTS' : 'NULL')
     if (!messageEl) { return }
     messageEl.className = 'message ' + (type || 'info')
     messageEl.textContent = text || ''
@@ -134,7 +126,6 @@
 
   /** Loads exported sticker data into the export text area.*/
   function loadExportData(mode = currentExportMode) {
-    console.log('=== loadExportData called with mode:', mode)
     clearExportMessage()
     currentExportMode = getEffectiveExportMode(mode)
     if (!exportTextEl) {
@@ -148,7 +139,6 @@
     exportTextEl.disabled = true
     const request = google.script.run
       .withSuccessHandler((result) => {
-        console.log('loadExportData success:', result)
         setBusy(false)
         exportTextEl.disabled = false
         if (!result) {
@@ -177,7 +167,6 @@
         }
       })
       .withFailureHandler((error) => {
-        console.error('loadExportData failure:', error)
         setBusy(false)
         exportTextEl.disabled = false
         exportTextEl.value = ''
@@ -193,13 +182,11 @@
 
   /**Reloads the export output for current mode and current checkbox options.*/
   window.refreshExportData = function() {
-    console.log('=== refreshExportData called ===')
     loadExportData(currentExportMode)
   }
 
   /**Copies the exported sticker data to the clipboard.*/
   window.copyExport = function() {
-    console.log('=== copyExport called ===')
     if (!exportTextEl || !exportTextEl.value) {
       setMessage('There is no exported content to copy.', 'error')
       return
@@ -211,7 +198,6 @@
 
   /**Downloads the exported sticker data as a local file.*/
   window.downloadExport = function() {
-    console.log('=== downloadExport called ===')
     if (!exportTextEl || !exportTextEl.value) {
       setMessage('There is no exported content to download.', 'error')
       return
@@ -242,7 +228,6 @@
    * Called by desktop and mobile containers.
    */
   window.initializeExportView = function(mode) {
-    console.log('=== initializeExportView called with mode:', mode)
     currentExportMode = getEffectiveExportMode(mode)
     if (includeFlagsCheckboxEl) {
       includeFlagsCheckboxEl.checked = false
