@@ -28,13 +28,17 @@
       <div class="filters">
         <input type="text" id="qe-teamSearchInput" class="filter-input" placeholder="Search by team code or country name"
           oninput="handleFiltersChange()">
-        <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
-          <option value="all">All groups</option>
-        </select>
-        <button class="btn btn-filter" data-filter="all" onclick="setStatusFilter('all')">All</button>
-        <button class="btn btn-filter" data-filter="missing" onclick="setStatusFilter('missing')">Missing</button>
-        <button class="btn btn-filter" data-filter="repeated" onclick="setStatusFilter('repeated')">Repeated</button>
-        <button class="btn btn-filter" data-filter="pending" onclick="setStatusFilter('pending')">Pending</button>
+        <div class="filter-row">
+          <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
+            <option value="all">All groups</option>
+          </select>
+          <select id="qe-statusFilterSelect" class="filter-select" onchange="handleStatusFilterChange()">
+            <option value="all">All</option>
+            <option value="missing">Missing</option>
+            <option value="repeated">Repeated</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
       </div>
 
       <div class="legend">
@@ -94,6 +98,7 @@
   const layout = { stickersPerRow: 8 }
   const teamSearchInput = document.getElementById('qe-teamSearchInput')
   const groupFilterSelect = document.getElementById('qe-groupFilterSelect')
+  const statusFilterSelect = document.getElementById('qe-statusFilterSelect')
   const messageEl = document.getElementById('qe-message')
   const countryListEl = document.getElementById('qe-countryList')
   const applyChangesButton = document.getElementById('qe-applyChangesButton')
@@ -142,9 +147,18 @@
     renderCountryList()
   }
 
-  /**Updates the selected status filter.*/
+  /**Updates the selected status filter from dropdown.*/
+  function handleStatusFilterChange() {
+    state.selectedStatusFilter = statusFilterSelect.value
+    renderCountryList()
+  }
+
+  /**Updates the selected status filter (for desktop button compatibility).*/
   function setStatusFilter(filterName) {
     state.selectedStatusFilter = filterName
+    if (statusFilterSelect) {
+      statusFilterSelect.value = filterName
+    }
     renderFilterButtons()
     renderCountryList()
   }
@@ -153,6 +167,7 @@
   function renderAll() {
     try {
       renderGroupFilterOptions()
+      renderStatusFilterSelect()
       renderFilterButtons()
       renderApplyButton()
       renderCountryList()
@@ -178,6 +193,14 @@
     groupFilterSelect.value = currentValue
   }
 
+  /**Syncs the status filter dropdown with current state.*/
+  function renderStatusFilterSelect() {
+    if (statusFilterSelect) {
+      statusFilterSelect.value = state.selectedStatusFilter
+      statusFilterSelect.disabled = state.isBusy
+    }
+  }
+
   /**Renders filter button states using helper logic.*/
   function renderFilterButtons() {
     document.querySelectorAll('[data-filter]').forEach(button => {
@@ -188,6 +211,9 @@
     })
     teamSearchInput.disabled = state.isBusy
     groupFilterSelect.disabled = state.isBusy
+    if (statusFilterSelect) {
+      statusFilterSelect.disabled = state.isBusy
+    }
   }
 
   /**Enables or disables the Update button.*/
@@ -258,6 +284,9 @@
       applyChangesButton.disabled = state.isBusy || getPendingUpdates(state.pendingUpdates).length === 0
       teamSearchInput.disabled = state.isBusy
       groupFilterSelect.disabled = state.isBusy
+      if (statusFilterSelect) {
+        statusFilterSelect.disabled = state.isBusy
+      }
     } catch (error) {
       console.error('showBusyState failed:', error)
     }
