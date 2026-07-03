@@ -20,7 +20,6 @@ Implemented a mobile services, including all services the desktop version provid
   - `MobileExportView.html`: View for both export services.
   - `ExportView.html`: View for export services (both desktop and mobile).
 
-
 ### Changes
 
 - Under the `src` folder:
@@ -64,7 +63,7 @@ Implemented a mobile services, including all services the desktop version provid
   - `package.json`: 
     - Added the script task: `clasp:deploy` to simplify the clasp deploy of the Web App. 
     - Removed the dry script task variant, since it doesn't work in the way it is defined.
-    - Adjusted clasp script task without including environment varaibles, so they can be called directly from the command line. For example:
+    - Adjusted clasp script task without including environment variables, so they can be called directly from the command line. For example:
       - `npm run clasp:push`              # default configuration parameters (`LOG_LEVEL`, and `DRY_RUN`).
       - `LOG_LEVEL=1 npm run clasp:push`  # verbose mode.
       - `DRY_RUN=true npm run clasp:push` # dry run.
