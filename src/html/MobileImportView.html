@@ -53,20 +53,21 @@
   </div>
 
   <!-- ── Feedback areas ──────────────────────────────────────────────── -->
-  <div id="message" class="message info"></div>
-  <div id="warnings" class="warnings hidden" style="display:none;"></div>
-  <pre id="preview" class="preview hidden"></pre>
+  <div id="import-message" class="message info"></div>
+  <div id="import-warnings" class="warnings hidden" style="display:none;"></div>
+  <pre id="import-preview" class="preview hidden"></pre>
 </section>
 
 
 <script>
-  console.log('=== MobileImportView.html script executing ===')
+(function() {
+  console.log('=== MobileImportView.html script executing (IIFE) ===')
   /* ── Element references ──────────────────────────────────────────────── */
   const textInput = document.getElementById('textInput')
   const modeInput = document.getElementById('mode')
-  const messageEl = document.getElementById('message')
-  const warningsEl = document.getElementById('warnings')
-  const previewEl = document.getElementById('preview')
+  const messageEl = document.getElementById('import-message')
+  const warningsEl = document.getElementById('import-warnings')
+  const previewEl = document.getElementById('import-preview')
   
   console.log('Import view elements:')
   console.log('  textInput:', textInput ? 'FOUND' : 'NOT FOUND')
@@ -75,7 +76,7 @@
   console.log('  warningsEl:', warningsEl ? 'FOUND' : 'NOT FOUND')
   console.log('  previewEl:', previewEl ? 'FOUND' : 'NOT FOUND')
 
-  /* ── View helpers ─────────────────────── */
+  /* ── View helpers ───────────────────────────── */
 
   /** Builds the backend payload from the current form state. */
   function getImportPayload() {
@@ -103,7 +104,10 @@
     * @param {boolean} isBusy Whether the view is busy.
     */
   function setBusy(isBusy) {
-    document.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+    const viewEl = document.getElementById('view-import')
+    if (viewEl) {
+      viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+    }
     if (textInput) { textInput.disabled = isBusy }
     if (modeInput) { modeInput.disabled = isBusy }
   }
@@ -146,10 +150,10 @@
     previewEl.classList.add('hidden')
   }
 
-  /* ── Service actions ─────────────────────── */
+  /* ── Service actions ───────────────────────── */
 
   /** Validates the current import data and displays the preview. */
-  function previewData() {
+  window.previewData = function() {
     console.log('=== previewData called ===')
     console.log('  messageEl at call time:', messageEl ? 'EXISTS' : 'NULL')
     clearPreview()
@@ -175,7 +179,7 @@
   }
 
   /** Imports the current sticker data into the spreadsheet. */
-  function importData() {
+  window.importData = function() {
     console.log('=== importData called ===')
     clearPreview()
     showWarnings([])
@@ -197,7 +201,7 @@
   }
 
   /** Resets the form to its initial state. */
-  function clearForm() {
+  window.clearForm = function() {
     console.log('=== clearForm called ===')
     setBusy(false)
     if (textInput) { textInput.value = ''; textInput.focus() }
@@ -211,25 +215,22 @@
    * Clears the state of the import view, including messages, warnings,
    * and preview output.
    */
-  function clearImportViewState() {
+  window.clearImportViewState = function() {
     console.log('=== clearImportViewState called ===')
-    const importMessageEl = document.getElementById('message')
-    const importWarningsEl = document.getElementById('warnings')
-    const importPreviewEl = document.getElementById('preview')
-    console.log('  importMessageEl:', importMessageEl ? 'FOUND' : 'NOT FOUND')
-    console.log('  importWarningsEl:', importWarningsEl ? 'FOUND' : 'NOT FOUND')
-    console.log('  importPreviewEl:', importPreviewEl ? 'FOUND' : 'NOT FOUND')
-    if (importMessageEl) {
-      importMessageEl.textContent = ''
-      importMessageEl.className = 'message info'
+    console.log('  messageEl:', messageEl ? 'FOUND' : 'NOT FOUND')
+    console.log('  warningsEl:', warningsEl ? 'FOUND' : 'NOT FOUND')
+    console.log('  previewEl:', previewEl ? 'FOUND' : 'NOT FOUND')
+    if (messageEl) {
+      messageEl.textContent = ''
+      messageEl.className = 'message info'
     }
-    if (importWarningsEl) {
-      importWarningsEl.textContent = ''
-      importWarningsEl.classList.add('hidden')
+    if (warningsEl) {
+      warningsEl.textContent = ''
+      warningsEl.classList.add('hidden')
     }
-    if (importPreviewEl) {
-      importPreviewEl.textContent = ''
-      importPreviewEl.classList.add('hidden')
+    if (previewEl) {
+      previewEl.textContent = ''
+      previewEl.classList.add('hidden')
     }
     if (textInput) {
       textInput.value = ''
@@ -238,5 +239,5 @@
       modeInput.value = 'update'
     }
   }
-
+})();
 </script>

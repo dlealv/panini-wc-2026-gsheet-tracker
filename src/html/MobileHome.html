@@ -95,11 +95,12 @@
           messageElements.forEach((el, idx) => {
             console.log(`  [${idx}] Parent:`, el.parentElement.id || el.parentElement.className)
           })
+          const importMessageElements = document.querySelectorAll('[id="import-message"]')
+          console.log('Elements with id="import-message":', importMessageElements.length)
+          const exportMessageElements = document.querySelectorAll('[id="export-message"]')
+          console.log('Elements with id="export-message":', exportMessageElements.length)
           const qeMessageElements = document.querySelectorAll('[id="qe-message"]')
           console.log('Elements with id="qe-message":', qeMessageElements.length)
-          qeMessageElements.forEach((el, idx) => {
-            console.log(`  [${idx}] Parent:`, el.parentElement.id || el.parentElement.className)
-          })
         })
       </script>
     </main>
@@ -143,7 +144,7 @@
     /** Clears all messages and warnings from the import and export views. */
     function clearViewMessages() {
       console.log('=== clearViewMessages called ===')
-      const importMessageEl = document.getElementById('message')
+      const importMessageEl = document.getElementById('import-message')
       const exportMessageEl = document.getElementById('mobileMessage')
       console.log('Import message element:', importMessageEl ? 'FOUND' : 'NOT FOUND')
       console.log('Export message element:', exportMessageEl ? 'FOUND' : 'NOT FOUND')
