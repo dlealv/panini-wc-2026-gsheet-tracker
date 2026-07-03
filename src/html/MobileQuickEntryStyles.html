@@ -45,15 +45,6 @@
     font-size: var(--text-xl);
     font-weight: 700;
   }
-  #view-quickentry .btn-update {
-    min-height: 48px;
-    min-width: 100px;
-    padding: 10px 18px;
-    font-size: var(--text-md);
-    font-weight: 700;
-    border-radius: 10px;
-    cursor: pointer;
-  }
   #view-quickentry .top-bar {
     display: flex;
     flex-direction: column;
@@ -63,9 +54,35 @@
     display: flex;
     justify-content: flex-end;
   }
+  #view-quickentry .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    min-height: 48px;
+    min-width: 100px;
+    padding: 12px 20px;
+    font-size: var(--text-md);
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    border-width: 1px;
+    border-style: solid;
+  }
+  #view-quickentry .btn-primary:active:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  #view-quickentry .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   #view-quickentry .filters {
     display: flex;
     flex-direction: column;
+    gap: 10px;
+  }
+  #view-quickentry .filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
   #view-quickentry .filter-input,
@@ -312,8 +329,8 @@
     position: absolute;
     top: 6px;
     right: 6px;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--pending);
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
@@ -325,14 +342,14 @@
   }
   #view-quickentry .sticker-actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
   }
   #view-quickentry .btn-sticker {
     padding: 0;
-    width: 32px;
-    height: 30px;
-    min-width: 32px;
-    min-height: 30px;
+    width: 34px;
+    height: 32px;
+    min-width: 34px;
+    min-height: 32px;
     border-width: 2px;
     border-radius: 6px;
     font-size: 18px;
