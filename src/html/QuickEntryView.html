@@ -103,8 +103,8 @@
     return Boolean(window.google && google.script && google.script.host && google.script.host.close)
   }
 
-  /**Initializes the Quick Entry dialog and loads initial data.*/
-  function initialize() {
+  /**Initializes the Quick Entry view and loads initial data.*/
+  function initializeQuickEntry() {
     showBusyState(true)
     showMessage('Loading countries...', 'info')
     if (typeof applyLayout === 'function') {
