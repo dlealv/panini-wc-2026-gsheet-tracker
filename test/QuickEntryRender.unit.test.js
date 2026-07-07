@@ -1,6 +1,6 @@
-// test/QuickEntryDialogRender.unit.test.js
+// test/QuickEntryRender.unit.test.js
 
-const { helpers } = require('../build/QuickEntryDialogRender.html.js')
+const { helpers } = require('../build/QuickEntryRender.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 global.document = {
@@ -30,8 +30,8 @@ global.document = {
   }
 }
 
-/** Tests for QuickEntryDialogRender.html. */
-describe('QuickEntryDialogRender.html', () => {
+/** Tests for QuickEntryRender.html. */
+describe('QuickEntryRender.html', () => {
   /** Tests for buildCountryHeaderText function. */
   describe('buildCountryHeaderText', () => {
     test('buildCountryHeaderText formats correctly', () => {

@@ -1,8 +1,8 @@
-// test/QuickEntryDialogHelpers.unit.test.js
+// test/QuickEntryHelpers.unit.test.js
 
-/** Unit tests for QuickEntryDialogHelpers. */
+/** Unit tests for QuickEntryHelpers. */
 
-const { helpers } = require('../build/QuickEntryDialogHelpers.html.js')
+const { helpers } = require('../build/QuickEntryHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 global.document = {
@@ -23,8 +23,8 @@ global.document = {
   }
 }
 
-/** Tests for QuickEntryDialogHelpers.html. */
-describe('QuickEntryDialogHelpers.html', () => {
+/** Tests for QuickEntryHelpers.html. */
+describe('QuickEntryHelpers.html', () => {
   /** Test for queueStickerChange function */
   describe('queueStickerChange()', () => {
     test('queueStickerChange stores pending sticker updates', () => {

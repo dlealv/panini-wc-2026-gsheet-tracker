@@ -1,11 +1,11 @@
-// test/ExportDialogHelpers.unit.test.js
+// test/ExportHelpers.unit.test.js
 
-/** Unit tests for ExportDialogHelpers. */
+/** Unit tests for ExportHelpers. */
 
-const { helpers } = require('../build/ExportDialogHelpers.html.js')
+const { helpers } = require('../build/ExportHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-describe('ExportDialogHelpers unit tests', () => {
+describe('ExportHelpers unit tests', () => {
   /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
   describe('buildExportFileName()', () => {
     test('formats date correctly type=all, now=2026-01-05T09:04:07', () => {

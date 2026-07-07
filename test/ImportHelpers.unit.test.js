@@ -1,11 +1,11 @@
-// test/ImportDialogHelpers.unit.test.js
+// test/ImportHelpers.unit.test.js
 
-/** Unit tests for ImportDialogHelpers. */
+/** Unit tests for ImportHelpers. */
 
-const { helpers } = require('../build/ImportDialogHelpers.html.js')
+const { helpers } = require('../build/ImportHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-describe('ImportDialogHelpers unit tests', () => {
+describe('ImportHelpers unit tests', () => {
   /** Get payload for import based on current UI state. */
   describe('getPayload()', () => {
     test('returns default structure when inputs are empty', () => {
