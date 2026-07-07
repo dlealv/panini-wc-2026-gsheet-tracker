@@ -11,7 +11,7 @@
      * application architecture.
      */
 
-    let stickersPerRow = 8
+    //let stickersPerRow = 8
 
     // CORE STATE
 
@@ -24,9 +24,7 @@
      */
     function applyLayout(value) {
         stickersPerRow = value
-
         if (typeof document === 'undefined') return
-
         document.documentElement.style.setProperty('--stickers-per-row', String(value))
     }
 
@@ -206,10 +204,7 @@
             return null
         }
 
-        return {
-            ...country,
-            stickers
-        }
+        return { ...country, stickers }
     }
 
     /**
@@ -272,11 +267,7 @@
     function queueStickerChange(state, c, n, next) {
         const key = buildPendingKey(c, n)
         const safe = Math.max(0, next)
-
-        const original =
-            state.countries
-                .find(x => x.code === c)
-                ?.stickers.find(s => s.number === n)?.count || 0
+        const original = state.countries.find(x => x.code === c)?.stickers.find(s => s.number === n)?.count || 0
 
         if (safe === original) {
             delete state.pendingUpdates[key]
@@ -362,11 +353,7 @@
             global.modeInput,
             global.includeFlagsCheckbox
         ].filter(Boolean)
-
-        elements.forEach(el => {
-            el.disabled = !!isBusy
-        })
-
+        elements.forEach(el => { el.disabled = !!isBusy })
         if (typeof document !== 'undefined' && document.querySelectorAll) {
             document.querySelectorAll('button, input, select, textarea')
                 .forEach(el => (el.disabled = !!isBusy))
@@ -386,9 +373,7 @@
             global.previewEl.textContent = ''
             return
         }
-
         global.previewEl.style.display = 'block'
-
         const lines = input.countries.map(c => {
             const stickers = (c.stickers || [])
                 .map(s => `${s.number}:${s.count} `)
@@ -418,7 +403,6 @@
      */
     function buildExportFileName(date = new Date()) {
         const pad = n => String(n).padStart(2, '0')
-
         const yyyy = date.getFullYear()
         const mm = pad(date.getMonth() + 1)
         const dd = pad(date.getDate())

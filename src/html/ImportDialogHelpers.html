@@ -59,12 +59,12 @@
    * @export
    */
   function clearPreview(deps = {}) {
-    const el = deps.previewEl
+    const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
     if (!el) return
     el.style.display = 'none'
     el.textContent = ''
   }
-
+  
   /** Renders preview content into UI.
    * @export
    */

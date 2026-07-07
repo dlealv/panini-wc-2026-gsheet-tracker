@@ -54,169 +54,165 @@
 
   <!-- ── Feedback areas ──────────────────────────────────────────────── -->
   <div id="import-message" class="message info"></div>
-  <div id="import-warnings" class="warnings hidden" style="display:none;"></div>
+  <div id="import-warnings" class="warnings hidden"></div>
   <pre id="import-preview" class="preview hidden"></pre>
 </section>
 
 
 <script>
-(function() {
-  /* ── Element references ──────────────────────────────────────────────── */
-  const textInput = document.getElementById('textInput')
-  const modeInput = document.getElementById('mode')
-  const messageEl = document.getElementById('import-message')
-  const warningsEl = document.getElementById('import-warnings')
-  const previewEl = document.getElementById('import-preview')
+  (function () {
+    /* ── Element references ──────────────────────────────────────────────── */
+    const textInput = document.getElementById('textInput')
+    const modeInput = document.getElementById('mode')
+    const messageEl = document.getElementById('import-message')
+    const warningsEl = document.getElementById('import-warnings')
+    const previewEl = document.getElementById('import-preview')
 
-  /* ── View helpers ───────────────────────────── */
+    /* ── View helpers ───────────────────────────── */
 
-  /** Builds the backend payload from the current form state. */
-  function getImportPayload() {
-    return {
-      text: textInput ? textInput.value : '',
-      mode: modeInput ? modeInput.value : 'update'
+    /** Builds the backend payload from the current form state. */
+    function getImportPayload() {
+      return {
+        text: textInput ? textInput.value : '',
+        mode: modeInput ? modeInput.value : 'update'
+      }
     }
-  }
 
-  /**
-   * Displays a status message to the user.
-   * @param {string} text Message to display.
-   * @param {string} type Message type (info, success, warning or error).
-   */
-  function setMessage(text, type) {
-    if (!messageEl) { return }
-    messageEl.className = 'message ' + (type || 'info')
-    messageEl.textContent = text || ''
-  }
-
-  /**
-    * Enables or disables all controls in the import view.
-    * @param {boolean} isBusy Whether the view is busy.
-    */
-  function setBusy(isBusy) {
-    const viewEl = document.getElementById('view-import')
-    if (viewEl) {
-      viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+    /**
+     * Displays a status message to the user.
+     * @param {string} text Message to display.
+     * @param {string} type Message type (info, success, warning or error).
+     */
+    function setMessage(text, type) {
+      if (!messageEl) { return }
+      messageEl.className = 'message ' + (type || 'info')
+      messageEl.textContent = text || ''
     }
-    if (textInput) { textInput.disabled = isBusy }
-    if (modeInput) { modeInput.disabled = isBusy }
-  }
 
-  /** Renders the warnings list returned by the backend. */
-  function showWarnings(warnings) {
-    warningsEl.textContent = ''
-    if (!warnings || !warnings.length) {
-      warningsEl.classList.add('hidden')
-      warningsEl.style.display = 'none'
-      return
+    /**
+      * Enables or disables all controls in the import view.
+      * @param {boolean} isBusy Whether the view is busy.
+      */
+    function setBusy(isBusy) {
+      const viewEl = document.getElementById('view-import')
+      if (viewEl) {
+        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+      }
+      if (textInput) { textInput.disabled = isBusy }
+      if (modeInput) { modeInput.disabled = isBusy }
     }
-    warningsEl.classList.remove('hidden')
-    warningsEl.style.display = 'block'
-    warningsEl.style.whiteSpace = 'pre-wrap'
-    warnings.forEach(w => {
-      const p = document.createElement('p')
-      p.textContent = '⚠ ' + w
-      warningsEl.appendChild(p)
-    })
-  }
 
-  /** Renders the import preview returned by the backend. */
-  function showPreview(result) {
-    if (!result || !result.countries || !result.countries.length) {
-      previewEl.classList.add('hidden')
-      return
-    }
-    const text = result.countries.map(c => {
-      const stickers = (c.stickers || []).map(s => s.number + ':' + s.count).join(', ')
-      return c.code + ' -> ' + stickers
-    }).join('\n')
-    previewEl.textContent = text
-    previewEl.classList.remove('hidden')
-  }
-
-  /** Clears the preview panel. */
-  function clearPreview() {
-    previewEl.textContent = ''
-    previewEl.classList.add('hidden')
-  }
-
-  /* ── Service actions ───────────────────────── */
-
-  /** Validates the current import data and displays the preview. */
-  window.previewData = function() {
-    clearPreview()
-    showWarnings([])
-    setBusy(true)
-    setMessage('Validating...', 'info')
-
-    google.script.run
-      .withSuccessHandler(result => {
-        setBusy(false)
-        setMessage('Validation successful.', 'success')
-        showWarnings(result.warnings)
-        showPreview(result)
-      })
-      .withFailureHandler(err => {
-        setBusy(false)
-        clearPreview()
-        setMessage(err && err.message ? err.message : String(err), 'error')
-      })
-      .previewStickerDataMobile(getImportPayload())
-  }
-
-  /** Imports the current sticker data into the spreadsheet. */
-  window.importData = function() {
-    clearPreview()
-    showWarnings([])
-    setBusy(true)
-    setMessage('Importing...', 'info')
-    google.script.run
-      .withSuccessHandler(result => {
-        setBusy(false)
-        setMessage(result && result.message ? result.message : 'Import completed.', 'success')
-        showWarnings(result.warnings)
-      })
-      .withFailureHandler(err => {
-        setBusy(false)
-        setMessage(err && err.message ? err.message : String(err), 'error')
-      })
-      .importStickerDataMobile(getImportPayload())
-  }
-
-  /** Resets the form to its initial state. */
-  window.clearForm = function() {
-    setBusy(false)
-    if (textInput) { textInput.value = ''; textInput.focus() }
-    if (modeInput) { modeInput.value = 'update' }
-    clearPreview()
-    showWarnings([])
-    setMessage('Cleared.', 'info')
-  }
-
-  /**
-   * Clears the state of the import view, including messages, warnings,
-   * and preview output.
-   */
-  window.clearImportViewState = function() {
-    if (messageEl) {
-      messageEl.textContent = ''
-      messageEl.className = 'message info'
-    }
-    if (warningsEl) {
+    /** Renders the warnings list returned by the backend. */
+    function showWarnings(warnings) {
       warningsEl.textContent = ''
-      warningsEl.classList.add('hidden')
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
+        return
+      }
+      warningsEl.classList.remove('hidden')
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.textContent = '⚠ ' + w
+        warningsEl.appendChild(p)
+      })
     }
-    if (previewEl) {
+
+    /** Renders the import preview returned by the backend. */
+    function showPreview(result) {
+      if (!result || !result.countries || !result.countries.length) {
+        previewEl.classList.add('hidden')
+        return
+      }
+      const text = result.countries.map(c => {
+        const stickers = (c.stickers || []).map(s => s.number + ':' + s.count).join(', ')
+        return c.code + ' -> ' + stickers
+      }).join('\n')
+      previewEl.textContent = text
+      previewEl.classList.remove('hidden')
+    }
+
+    /** Clears the preview panel. */
+    function clearPreview() {
       previewEl.textContent = ''
-      previewEl.classList.add('hidden'
-)
+      previewEl.classList.add('hidden')
     }
-    if (textInput) {
-      textInput.value = ''
+
+    /* ── Service actions ───────────────────────── */
+
+    /** Validates the current import data and displays the preview. */
+    window.previewData = function () {
+      clearPreview()
+      showWarnings([])
+      setBusy(true)
+      setMessage('Validating...', 'info')
+
+      google.script.run
+        .withSuccessHandler(result => {
+          setBusy(false)
+          setMessage('Validation successful.', 'success')
+          showWarnings(result.warnings)
+          showPreview(result)
+        })
+        .withFailureHandler(err => {
+          setBusy(false)
+          clearPreview()
+          setMessage(err && err.message ? err.message : String(err), 'error')
+        })
+        .previewStickerDataMobile(getImportPayload())
     }
-    if (modeInput) {
-      modeInput.value = 'update'
+
+    /** Imports the current sticker data into the spreadsheet. */
+    window.importData = function () {
+      clearPreview()
+      showWarnings([])
+      setBusy(true)
+      setMessage('Importing...', 'info')
+      google.script.run
+        .withSuccessHandler(result => {
+          setBusy(false)
+          setMessage(result && result.message ? result.message : 'Import completed.', 'success')
+          showWarnings(result.warnings)
+        })
+        .withFailureHandler(err => {
+          setBusy(false)
+          setMessage(err && err.message ? err.message : String(err), 'error')
+        })
+        .importStickerDataMobile(getImportPayload())
     }
-  }
-})();
+
+    /** Resets the form to its initial state. */
+    window.clearForm = function () {
+      setBusy(false)
+      if (textInput) { textInput.value = ''; textInput.focus() }
+      if (modeInput) { modeInput.value = 'update' }
+      clearPreview()
+      showWarnings([])
+      setMessage('Cleared.', 'info')
+    }
+
+    /**
+     * Clears the state of the import view, including messages, warnings,
+     * and preview output.
+     */
+    window.clearImportViewState = function () {
+      if (messageEl) {
+        messageEl.textContent = ''
+        messageEl.className = 'message info'
+      }
+      if (warningsEl) {
+        warningsEl.textContent = ''
+        warningsEl.classList.add('hidden')
+      }
+      if (previewEl) {
+        previewEl.textContent = ''
+        previewEl.classList.add('hidden')
+      }
+      if (textInput) {
+        textInput.value = ''
+      }
+      if (modeInput) {
+        modeInput.value = 'update'
+      }
+    }
+  })();
 </script>

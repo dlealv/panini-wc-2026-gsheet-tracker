@@ -3,7 +3,13 @@
    * src/html/MobileStyles.html
    * Shared mobile shell styles for the Panini WC 2026 web app.
    * This file keeps common layout, navigation, and utility styles used by
-   * both import and export views.
+   * both import and export views. It contains:
+   * - Theme variables
+   * - Typography
+   * - Layout primitives
+   * - Buttons
+   * - Messages
+   * - Form controls 
    */
   :root {
     --border: #c6cacc;
@@ -145,6 +151,7 @@
     min-height: 44px;
     display: flex;
     align-items: center;
+    white-space: pre-wrap;
   }
 
   .message:empty {

@@ -1,8 +1,16 @@
 <style>
   /* src/html/QuickEntryDialogStyles.html
-   * Styles specific to the Quick Entry Dialog. This file is included in QuickEntryDialog.html
+   * Styles specific to the Quick Entry Dialog. This file is included in QuickEntryDialog.html.
+   It contains:
+    - Theme variables
+    - Typography
+    - Layout primitives
+    - Buttons
+    - Messages
+    - Form controls
    */
   :root {
+    /* theme */
     --pending: #f29900;
     --pending-text: #c5221f;
     --count-0-bg: #ffffff;
@@ -19,6 +27,7 @@
     --count-5-plus-text: #202124;
     --completed-bg: #0b5394;
     --completed-text: #ffffff;
+    /* layout variables */
     --scrollbar-width: 12px;
     --stickers-per-row: 8;
   }
@@ -58,7 +67,7 @@
   }
 
   .filter-row {
-    display: none;
+    display: contents;
   }
 
   .filter-select-mobile {
@@ -277,14 +286,16 @@
     aspect-ratio: 1 / 1;
   }
 
-  /* For regular rows, we use a CSS grid with a fixed number of columns (defined by the --stickers-per-row variable) 
-  to ensure consistent sizing and spacing of sticker cards. For the last row, if it has fewer stickers than the 
-  defined columns, we switch to a flex layout that centers the remaining sticker cards and adjusts their width 
-  to fill the available space while maintaining the gap. The compact grid layout also uses flexbox to wrap sticker 
-  cards and adjust their width based on the number of stickers per row, ensuring a responsive design. */
+  /*
+   Sticker rows use CSS grid with the number of columns controlled by
+   --stickers-per-row.
+   The last row and compact layouts use flex sizing so incomplete rows
+   can keep the same card dimensions and spacing without leaving oversized
+   gaps.
+  */
   .sticker-row.last-row .sticker-card,
   .sticker-grid.compact .sticker-card {
-    width: calc((100% - (7 * 6px)) / 8);
+    width: calc((100% - (var(--stickers-per-row) - 1) * 6px) / var(--stickers-per-row));
   }
 
   .sticker-card.count-0 {
@@ -374,5 +385,15 @@
   .empty-state {
     color: var(--muted);
     font-size: 14px;
+  }
+
+  @media (max-width: 600px) {
+    .country-section {
+      padding: 8px;
+    }
+
+    .sticker-card {
+      padding: 4px 2px;
+    }
   }
 </style>

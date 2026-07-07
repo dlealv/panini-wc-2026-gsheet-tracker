@@ -14,13 +14,23 @@ Implemented a mobile services, including all services the desktop version provid
 
 ### Added
 - Under the `src/html` folder:
+  - `ExportView.html`: View for export services (both desktop and mobile). Extracted the view portion and functions from `ExportDialog.html`.
+  - `QuickEntryView.html`: View for quick sticker entry service, now being used for desktop and mobile versions. Extracted the view portion and functions from `QuickEntryDialog.html`.
   - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
   - `MobileImportView.html`: Simplified view for mobile import service.
-  - `MobileStyles.html`: Mobile CCS specific styles.
-  - `MobileExportView.html`: View for both export services.
-  - `ExportView.html`: View for export services (both desktop and mobile).
+  - `MobileExportView.html`: View for both export services. It acts as a wrapper.
+  - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper.
+  - `MobileImportStyles.html`: CCS specific styles for mobile import service.
+  - `MobileExportStyles.html`: CCS specific styles for mobile export service.
+  - `MobileQuickEntryStyles.html`: CCS specific styles for mobile Quick entry service.
 
 ### Changes
+
+- Under the `scripts` folder:
+  - `build.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - `fix-jsdoc.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - clasp.zsh`: Added a new action `deploy` to automate the Web App deployment update, creating a new version and using the same description as the existing deployment. It uses the same architecture are `push/pull` actions. If the scriptId is not present it takes the id from TEST gsheet and if `deploymentId` is not present it takes the deployment id from the TEST gsheet file.
 
 - Under the `src` folder:
   - `appsscript.json` removed the authorization scope: `"https://www.googleapis.com/auth/spreadsheets.currentonly"` since `doGet` service used for mobile solution, can't work with `currentonly` scope. Instead using `"https://www.googleapis.com/auth/spreadsheets"`.
@@ -34,11 +44,11 @@ Implemented a mobile services, including all services the desktop version provid
   - `ExportDialog`: Moved the view portion of the file to `ExportView.html` (shared with mobile and desktop).
   - `QuickEntryDialog.html`: Modified the method `applyChanges` to correctly applies apply pending changes to the UI view, no need to reload the data again, just to change the status of the pending stickers and update the count.
   - `QuickEntryHelpers.html`: Added the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
+  - `CommonDialogStyles.html`: Renamed to `CommonStyles.html` since the style is not used only in `*Dialog.html` i.e. desktop version.
+  - `ImportDialogHelpers.html` Adjusted the method `clearPreview` so it clears also the output result.
+  - `ImportDialog.html`: Removed `renderWarnings([])` calls in `previewData()` and in `importData()` since now it is controlled via UI state (CSS).
 
-- Under the `scripts` folder:
-  - clasp.zsh`: Added a new action `deploy` to automate the Web App deployment update, creating a new version and using the same description as the existing deployment. It uses the same architecture are `push/pull` actions. If the scriptId is not present it takes the id from TEST gsheet and if `deploymentId` is not present it takes the deployment id from the TEST gsheet file.
-
-- Under the `unit/test folder:
+- Under the `test` folder:
   - `Commons.unit.test.js`: 
     - Added a test for constructor using the input argument.
     - Added the tests to verify the issue that in quick sticker entry after pushing Update button, the changes where not reflected in the UI. The corresponding test added failed, then fixed the issue and after that the tests didn't fail. Adding also additional edge test cases for `updateStickerCounts` method, that is in charge of this update.
@@ -53,10 +63,6 @@ Implemented a mobile services, including all services the desktop version provid
   - `testKernel.js`: 
     - In `initializeSpreadsheetAppMock` function the mock `spreadsheetMock` is not recreated on every test, instead it use the same instance.
     - Updated the mock for `updateStickerCounts` in `MockStickerSheetRepository` constructor with a more complex behavior.
-
-- Under the `scripts` folder:
-  - `build.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
-  - `fix-jsdoc.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
 
 - Under the `root` folder:
   - `eslintrc.js`: Configured the rule: `'space-before-function-paren'`.

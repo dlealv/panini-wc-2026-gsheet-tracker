@@ -7,7 +7,7 @@
 
   Responsibilities:
     - Provide desktop dialog structure
-    - Include common dialog styles
+    - Include common styles
     - Include shared quick entry view
     - Initialize the view when dialog opens
 -->
@@ -16,13 +16,15 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <?!= include('CommonDialogStyles') ?>
+  <?!= include('CommonStyles') ?>
   <?!= include('QuickEntryDialogStyles') ?>
 </head>
 
 <body>
   <?!= include('QuickEntryView') ?>
   <script>
+    // Desktop-specific layout configuration for desktop dialog.
+    window.quickEntryLayout = { stickersPerRow: 8 }
     /**Initializes Quick Entry when desktop dialog opens.*/
     if (typeof initializeQuickEntry === 'function') {
       initializeQuickEntry()

@@ -26,23 +26,28 @@
       </div>
 
       <div class="filters">
-        <input type="text" id="qe-teamSearchInput" class="filter-input" placeholder="Search by team code or country name"
-          oninput="handleFiltersChange()">
+        <input type="text" id="qe-teamSearchInput" class="filter-input"
+          placeholder="Search by team code or country name" oninput="handleFiltersChange()">
         <div class="filter-row">
           <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
             <option value="all">All groups</option>
           </select>
-          <select id="qe-statusFilterSelect" class="filter-select filter-select-mobile" onchange="handleStatusFilterChange()">
+          <select id="qe-statusFilterSelect" class="filter-select filter-select-mobile"
+            onchange="handleStatusFilterChange()">
             <option value="all">All</option>
             <option value="missing">Missing</option>
             <option value="repeated">Repeated</option>
             <option value="pending">Pending</option>
           </select>
         </div>
-        <button class="btn btn-filter filter-btn-desktop" data-filter="all" onclick="setStatusFilter('all')">All</button>
-        <button class="btn btn-filter filter-btn-desktop" data-filter="missing" onclick="setStatusFilter('missing')">Missing</button>
-        <button class="btn btn-filter filter-btn-desktop" data-filter="repeated" onclick="setStatusFilter('repeated')">Repeated</button>
-        <button class="btn btn-filter filter-btn-desktop" data-filter="pending" onclick="setStatusFilter('pending')">Pending</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="all"
+          onclick="setStatusFilter('all')">All</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="missing"
+          onclick="setStatusFilter('missing')">Missing</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="repeated"
+          onclick="setStatusFilter('repeated')">Repeated</button>
+        <button class="btn btn-filter filter-btn-desktop" data-filter="pending"
+          onclick="setStatusFilter('pending')">Pending</button>
       </div>
 
       <div class="legend">
@@ -89,8 +94,8 @@
   </div>
 </div>
 
-<?!= include('QuickEntryDialogHelpers.html') ?>
-<?!= include('QuickEntryDialogRender.html') ?>
+<?!= include('QuickEntryDialogHelpers') ?>
+<?!= include('QuickEntryDialogRender') ?>
 
 <script>
   const FILTERS = Object.freeze({ ALL: 'all', MISSING: 'missing', REPEATED: 'repeated', PENDING: 'pending' })
@@ -99,13 +104,18 @@
     countries: [], groupCodes: [], selectedStatusFilter: FILTERS.ALL,
     selectedGroupFilter: GROUP_FILTERS.ALL, teamSearchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
   }
-  const layout = { stickersPerRow: 8 }
+
   const teamSearchInput = document.getElementById('qe-teamSearchInput')
   const groupFilterSelect = document.getElementById('qe-groupFilterSelect')
   const statusFilterSelect = document.getElementById('qe-statusFilterSelect')
   const messageEl = document.getElementById('qe-message')
   const countryListEl = document.getElementById('qe-countryList')
   const applyChangesButton = document.getElementById('qe-applyChangesButton')
+
+  /** Returns the current layout configuration. */
+  function getLayout() {
+    return window.quickEntryLayout || { stickersPerRow: 8 }
+  }
 
   /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
   function isDesktopDialogHost() {
@@ -114,6 +124,7 @@
 
   /**Initializes the Quick Entry view and loads initial data.*/
   function initializeQuickEntry() {
+    const layout = getLayout()
     showBusyState(true)
     showMessage('Loading countries...', 'info')
     if (typeof applyLayout === 'function') {
@@ -141,7 +152,7 @@
       .withFailureHandler(err => {
         showMessage(err && err.message ? err.message : 'Init failed', 'error')
       })
-      [backendMethod]()
+    [backendMethod]()
   }
 
   /**Updates filters and refreshes the country list.*/
@@ -227,6 +238,7 @@
 
   /**Renders the visible country cards.*/
   function renderCountryList() {
+    const layout = getLayout()
     const visibleCountries = getVisibleCountries(state, layout)
     countryListEl.innerHTML = ''
     if (!visibleCountries.length) {
@@ -273,7 +285,7 @@
         showMessage(result.message || 'Updated', 'success')
       })
       .withFailureHandler(handleFailure)
-      [backendMethod]({ pendingUpdates: pending })
+    [backendMethod]({ pendingUpdates: pending })
   }
 
   /**Displays a status message in the dialog.*/
