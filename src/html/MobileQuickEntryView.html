@@ -1,0 +1,36 @@
+<!--
+  src/html/MobileQuickEntryView.html
+
+  Mobile quick entry view wrapper for the web application.
+
+  This template is injected into MobileHome.html and provides the mobile
+  quick sticker entry interface.
+
+  Responsibilities:
+    - Render the mobile quick entry container.
+    - Include shared quick entry view.
+    - Initialize quick entry view when shown.
+
+  Shared quick entry logic belongs to QuickEntryView.html.
+  Shared navigation belongs to MobileHome.html.
+-->
+
+<section id="view-quickentry" class="view hidden">
+  <?!= include('QuickEntryView') ?>
+</section>
+
+<script>
+  // mobile-specific layout configuration.
+  window.quickEntryLayout = { stickersPerRow: 5 }
+
+  /**
+   * Displays the quick entry view and initializes it.
+   * Called by mobile navigation.
+   */
+  function showQuickEntryView() {
+    showView('quickentry')
+    if (typeof initializeQuickEntry === 'function') {
+      initializeQuickEntry()
+    }
+  }
+</script>

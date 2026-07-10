@@ -4,23 +4,25 @@
 # clasp.zsh — Google Apps Script deployment orchestrator
 # ------------------------------------------------------------------------------------
 # Purpose:
-#   Provides a controlled pull/push workflow for Google Apps Script projects
-#   using clasp, while preserving a modular local "src/" architecture.
+#   Provides controlled push, pull, and deployment workflows for Google Apps Script
+#   projects using clasp, while preserving a modular local "src/" architecture.
 #
 # Key responsibilities:
 #   - Converts between flat GAS structure and modular local structure
 #   - Creates automatic backups before destructive operations
+#   - Updates existing Apps Script deployments to the latest project version
 #   - Isolates all clasp execution in temporary workspaces
 #   - Prevents accidental state drift via controlled .clasp.json rewriting
 #
 # Safety guarantees:
-#   - All operations run in isolated /tmp workspace
+#   - All operations run in isolated /tmp workspaces
 #   - Remote state is always snapshotted before push
 #   - Local src/ is always backed up before pull overwrite
+#   - Deploy operations never modify local source files
 #   - Temporary artifacts are always cleaned up
 #
 # Dry-run mode:
-#   - No network calls (clasp pull/push is skipped)
+#   - No network calls (clasp pull/push/deploy is skipped)
 #   - No modifications to src/
 #   - Mock workspaces are generated for validation
 #   - Backup archives are still produced for pipeline verification
@@ -28,7 +30,9 @@
 # Usage:
 #   zsh scripts/clasp.zsh pull [scriptId]
 #   zsh scripts/clasp.zsh push [scriptId]
-# ------------------------------------------------------------------------------------
+#   zsh scripts/clasp.zsh deploy [scriptId] [deploymentId]
+# when optional input arguments are not provided it takes default values from TEST gsheet and deployment.
+# -------------------------------------------------------------------------------------
 
 set -e # Exit immediately if a command exits with a non-zero status
 setopt null_glob # Enable nullglob to avoid issues with empty file patterns
@@ -37,13 +41,26 @@ setopt null_glob # Enable nullglob to avoid issues with empty file patterns
 
 CMD=$1
 CUSTOM_SCRIPT_ID=$2
+CUSTOM_DEPLOYMENT_ID=$3
+
+# Default deployment for this environment
+# TEST_DEPLOYMENT_ID="AKfycbwbT1mHYqppChSPbDLVVChvdPgNpJC08lOqfnn_mYt3Hj9UA7IJVce3FO2pv8R-qfmjGg"
+TEST_DEPLOYMENT_ID="AKfycbxQBn4aaKt7eKkRSI7T0l5KiuR18V6FK3Q259fMsEH5Wz70M8AC7smm30MXccsPWFWeZg"
+TEST_DEPLOYMENT_NAME="TEST_panini_FWC 2026"
+PROD_DEPLOYMENT_NAME="panini_FWC 2026"
+# Effective deployment ID
+DEPLOYMENT_ID="${CUSTOM_DEPLOYMENT_ID:-$TEST_DEPLOYMENT_ID}"
+# Effective description name for deployment (used for logging and validation)
+DEPLOYMENT_NAME="$PROD_DEPLOYMENT_NAME"
+[[ "$DEPLOYMENT_ID" == "$TEST_DEPLOYMENT_ID" ]] && \
+    DEPLOYMENT_NAME="$TEST_DEPLOYMENT_NAME"
+
 CLASP_TEMPLATE=".clasp.json.template"
 SRC_DIR="src"
 BACKUP_DIR="backup"
 DEFAULT_ROOT="__ROOT_DIR__"
 ORIGINAL_SCRIPT_ID=""
-LOG_LEVEL=${LOG_LEVEL:0} # 0 = minimal, 1 = normal
-#DRY_RUN=${DRY_RUN:-true} # Toggle this to true to enable dry run mode (no actual file changes or network calls)
+LOG_LEVEL=${LOG_LEVEL:-0} # 0 = minimal, 1 = normal
 DRY_RUN=${DRY_RUN:-false} # Toggle this to true to enable dry run mode (no actual file changes or network calls)
 
 TMP_WORKDIR="/tmp/clasp_run_$$"
@@ -51,9 +68,51 @@ CLASP_CONFIG="$TMP_WORKDIR/.clasp.json"
 TMP_CLASP="$TMP_WORKDIR/tmp_clasp"
 TMP_DOWNLOAD="$TMP_WORKDIR/gas_download"
 
+# #region helpers
+
 # ------------------------------------------------------------
 # DRY RUN HELPER FUNCTIONS
 # ------------------------------------------------------------
+
+# Displays the help message for the script, including usage instructions, commands, options, arguments, environment 
+# variables, examples, and safety information.
+show_help() {
+cat <<EOF
+clasp.zsh — Google Apps Script deployment orchestrator
+
+USAGE
+    zsh scripts/clasp.zsh <command> [scriptId] [deploymentId]
+COMMANDS
+    pull        Pull Apps Script project into the local src/ structure.
+    push        Push the local src/ project to Apps Script.
+    deploy      Create a new Apps Script version and update a deployment.
+OPTIONS
+    -h, --help, -help, help  Show this help message and exit.
+ARGUMENTS
+    scriptId: Optional Apps Script project ID.
+                If omitted, the script uses the default configured project.
+
+    deploymentId: Optional deployment ID (deploy command only).
+                    If omitted, the default TEST deployment is used.
+ENVIRONMENT VARIABLES
+    LOG_LEVEL=0|1, 0 = minimal output (default), 1 = verbose logging
+    DRY_RUN=true|false. true  = simulate execution without network calls
+                        false = execute normally (default)
+EXAMPLES
+    zsh scripts/clasp.zsh pull
+    zsh scripts/clasp.zsh push
+    zsh scripts/clasp.zsh deploy
+    zsh scripts/clasp.zsh pull <scriptId>
+    DRY_RUN=true zsh scripts/clasp.zsh push
+    LOG_LEVEL=1 zsh scripts/clasp.zsh deploy <scriptId> <deploymentId>
+
+SAFETY
+    • All clasp operations run in isolated temporary workspaces.
+    • Remote projects are backed up before push.
+    • Local src/ is backed up before pull.
+    • Deploy never modifies local source files.
+EOF
+}
 
 # Helper: DRY_RUN check
 is_dry_run() {
@@ -75,27 +134,22 @@ dry_run_pull_execute() {
 dry_run_pull_after() {
     echo "[DRY RUN] Validating simulated remote payload. Files available in tmp_clasp before transformation:"
     find "$TMP_CLASP" -maxdepth 1 -type f -print
-
     echo "[DRY RUN] Simulated payload validation completed"
     echo "[DRY RUN] Simulating file moves from tmp_clasp dir to src..."
-
     # simulate .gs file moves
     find "$TMP_CLASP" -maxdepth 1 -name "*.gs" | while read f; do
         base=$(basename "$f" .gs)
         echo "[DRY RUN] would move $f -> src/${base}.gs"
     done
-
     # simulate html file moves
     find "$TMP_CLASP" -maxdepth 1 -name "*.html" | while read f; do
         base=$(basename "$f")
         echo "[DRY RUN] would move $f -> src/html/${base}"
     done
-
     # simulate appsscript.json
     if [[ -f "$TMP_CLASP/appsscript.json" ]]; then
         echo "[DRY RUN] would move $TMP_CLASP/appsscript.json -> src/appsscript.json"
     fi
-
     echo "[DRY RUN] Simulated transformation completed successfully"
     echo "Pull process completed successfully (DRY RUN)"
 }
@@ -146,7 +200,6 @@ dry_run_validate_push_artifact() {
 sed_safe() {
     local expr="$1"
     local file="$2"
-
     case "$(uname -s)" in
         Darwin)
             sed -i '' "$expr" "$file"
@@ -165,7 +218,6 @@ sed_safe() {
 log_clasp_state() {
     local context=$1
     if [[ "$LOG_LEVEL" -eq 0 ]]; then
-        echo "[CLASP CONFIG] Updated $CLASP_CONFIG $context"
         return
     fi
     if [[ -n "$context" ]]; then
@@ -178,17 +230,21 @@ log_clasp_state() {
 }
 
 # Initializes an isolated runtime clasp workspace and generates a temporary .clasp.json from template.
+# If copy_src is true, it also copies the local src/ directory into the temporary workspace for processing.
 init_clasp_config() {
+    local copy_src=${1:-true}
     if [[ "$TMP_WORKDIR" == "/" || -z "$TMP_WORKDIR" ]]; then
         echo "Unsafe TMP_WORKDIR"
         exit 1
     fi
-
     rm -rf "$TMP_WORKDIR"
     mkdir -p "$TMP_WORKDIR"
     cp "$CLASP_TEMPLATE" "$TMP_WORKDIR/.clasp.json.template"
     cp "$CLASP_TEMPLATE" "$TMP_WORKDIR/.clasp.json"
-    cp -R "$SRC_DIR" "$TMP_WORKDIR/"
+
+    if [[ "$copy_src" == "true" ]]; then
+        cp -R "$SRC_DIR" "$TMP_WORKDIR/"
+    fi
 }
 
 # Reads, tracks, and handles dynamic structural scriptId value swaps inside the active clasp configuration module.
@@ -266,9 +322,17 @@ call_clasp() {
             trap 'restore_clasp_rootDir' EXIT INT TERM
             cd "$TMP_WORKDIR"
             if [[ "$cmd" == "push" ]]; then
-                CI=true clasp push --force </dev/null
+                if [[ "$LOG_LEVEL" -eq 0 ]]; then
+                    CI=true clasp push --force </dev/null >/dev/null
+                else
+                    CI=true clasp push --force </dev/null
+                fi
             else
-                CI=true clasp pull </dev/null
+                if [[ "$LOG_LEVEL" -eq 0 ]]; then
+                    CI=true clasp pull </dev/null >/dev/null
+                else
+                    CI=true clasp pull </dev/null
+                fi
             fi
         fi
     )
@@ -347,6 +411,9 @@ fetch_remote_snapshot() {
     rm -rf "$TMP_DOWNLOAD"
 }
 
+# #endregion helpers
+
+# #region pull
 # ------------------------------------------------------------
 # PULL PIPELINE FUNCTIONS
 # ------------------------------------------------------------
@@ -397,6 +464,10 @@ pull_after() {
     echo "Pull process completed successfully."
 }
 
+# #endregion pull
+
+# #region push
+
 # ------------------------------------------------------------
 # PUSH PIPELINE FUNCTIONS
 # ------------------------------------------------------------
@@ -431,12 +502,87 @@ push_after() {
     fi
 }
 
+# #endregion push
+
+# #region deploy
+
+# ------------------------------------------------------------
+# DEPLOYMENT EXECUTION LOGIC
+# ------------------------------------------------------------
+
+# Executes pre-deployment tasks, including environment preparation and validation.
+deploy_before() {
+    echo "Preparing workspace environment for deployment..."
+}
+
+# Executes clasp command to create a new version and update the deployment with the new version number.
+deploy_execute() {
+    echo "Creating new Apps Script version..."
+    if is_dry_run; then
+        echo "[DRY RUN] Would create version and update deployment: $DEPLOYMENT_ID"
+        return
+    fi
+    (
+        trap 'restore_clasp_rootDir' EXIT INT TERM
+        cd "$TMP_WORKDIR"
+        VERSION_OUTPUT=$(CI=true clasp version)
+        echo "$VERSION_OUTPUT"
+        VERSION=$(echo "$VERSION_OUTPUT" | grep -oE '[0-9]+' | tail -1)
+
+        if [[ -z "$VERSION" ]]; then
+            echo "ERROR: Failed to extract version number"
+            exit 1
+        fi
+        echo "[DEPLOY] Updating deployment '$DEPLOYMENT_NAME' to version $VERSION"
+        CI=true clasp update-deployment "$DEPLOYMENT_ID" \
+            --versionNumber "$VERSION" \
+            --description "$DEPLOYMENT_NAME"
+        echo "Deployment updated successfully."
+    )
+}
+
+# post deployment task, so far no task is identified.
+deploy_after() {
+    cleanup_workspace
+    if is_dry_run; then
+        echo "Deploy process completed (DRY RUN)"
+    else
+        echo "Deploy process completed successfully."
+    fi
+}
+
+# #endregion deploy
+
+# #region main
+
 # ------------------------------------------------------------
 # MAIN EXECUTION LOGIC
 # ------------------------------------------------------------
 
 # Sequential routine blocks managing target processing based on input commands and environment parameter tokens.
 # Capture original state ONCE.
+
+# Show help message if requested
+case "$CMD" in
+    "")
+        show_help
+        exit 0
+        ;;
+    pull|push|deploy)
+        ;;
+    -h|--help|-help|help)
+        show_help
+        exit 0
+        ;;
+    *)
+        echo "Error: Unknown command '$CMD'"
+        echo
+        show_help
+        exit 1
+        ;;
+esac
+
+echo "[BOOT] CONFIGURATION: LOG_LEVEL=$LOG_LEVEL DRY_RUN=$DRY_RUN CMD=$CMD"
 
 if is_dry_run; then
     echo "==================== DRY RUN MODE ENABLED ========================="
@@ -456,8 +602,14 @@ on_exit() {
     cleanup_workspace
 }
 
-init_clasp_config
+if [[ "$CMD" == "deploy" ]]; then
+    init_clasp_config false
+else
+    init_clasp_config
+fi
+
 update_script_id "start"
+# Set up a trap to ensure cleanup and rollback on exit, interrupt (Ctrl+C), or termination signals (kill).
 trap on_exit EXIT INT TERM
 
 if [[ "$CMD" == "pull" ]]; then
@@ -468,9 +620,10 @@ elif [[ "$CMD" == "push" ]]; then
     push_before
     push_execute
     push_after
-else
-    echo "Usage: zsh scripts/clasp.zsh [pull|push] [optional_script_id]"
-    update_script_id "rollback"
-    trap - EXIT INT TERM
-    exit 1
+elif [[ "$CMD" == "deploy" ]]; then
+    deploy_before
+    deploy_execute
+    deploy_after
 fi
+
+# #endregion main

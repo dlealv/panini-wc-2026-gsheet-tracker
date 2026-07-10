@@ -7,6 +7,298 @@ project structure, and documentation.
 
 ---
 
+## [1.1.0] 2026-07-XX
+
+### Overview
+Implemented mobile services, including all services available in the desktop version: import/export and quick entry. Fixed an issue in Quick Entry where, after clicking Update, the card changes were not persisted. Fixed an issue in Quick Entry where reducing a count to zero was saving a zero value instead of an empty cell in `Stickers` tab.
+
+### Added
+
+- Under the `image` folder:
+  - `mobileQuickentryView.jpg`: Mobile view of the Quick Entry service.
+  - `mobileWepAppLinkDeployView.jpg`: Dialog informing the user how to deploy a Web app so it can be run from a mobile device.
+  - `mobileWebAppLinkURLView.jpg`: Dialog informing the user after the Web app has been deployed, providing the associated URL to access it from a mobile device.
+  - `manageDeploymentsView.jpg`: Google Apps Script window for managing deployments.
+
+- Under the `src/html` folder:
+  - `ExportView.html`: View for export services (both desktop and mobile). Extracted the view portion and functions from `ExportDialog.html`.
+  - `QuickEntryView.html`: View for the quick sticker entry service, now used by both desktop and mobile versions. Moved the view portion and functions from `QuickEntryDialog.html`.
+    - Added a shared `getLayout()` helper to retrieve the active layout configuration.
+    - Updated initialization to apply the configured layout before rendering the sticker grid.
+    - Replaced hardcoded layout assumptions with the shared layout configuration.
+    - Updated rendering logic to use the configured number of stickers per row for both desktop and mobile.
+  - `MobileHome.html`: Mobile entry point including the navigation drawer, view switching system, and injected views through includes.
+  - `MobileImportView.html`: Simplified view for the mobile import service.
+  - `MobileExportView.html`: View for both export services. Acts as a wrapper.
+  - `MobileStyles.html`: Mobile-specific CSS styles common to all mobile services.
+  - `MobileQuickEntryView.html`: Specific view for the mobile Quick Entry service. It acts as a wrapper.
+    - Added mobile-specific Quick Entry layout configuration using `window.quickEntryLayout`.
+    - Configured the mobile album view to display 5 stickers per row.
+    - Simplified layout initialization by defining the mobile layout in the mobile entry point instead of relying on runtime device detection.
+  - `MobileLinkDialog.html`: New service providing user instructions on how to deploy the GAS project as a Web app.
+  - `MobileImportStyles.html`: CSS-specific styles for the mobile import service.
+  - `MobileExportStyles.html`: CSS-specific styles for the mobile export service.
+  - `MobileQuickEntryStyles.html`: CSS-specific styles for the mobile Quick Entry service. Changes compared with the desktop styles:
+    - Removed the hardcoded `--stickers-per-row` CSS variable so the layout is controlled dynamically.
+    - Updated last-row and compact-grid width calculations to use the shared `--stickers-per-row` variable.
+    - Increased sticker number/count font size for improved readability.
+    - Increased country summary font size and spacing.
+    - Increased spacing between increment and decrement buttons.
+    - Increased button font size for easier touch interaction.
+    - Reduced sticker card padding and internal spacing to better utilize the available screen width.
+    - Increased the pending-change indicator size.
+    - Increased legend font size while preserving the responsive layout.
+    - Added documentation describing the shared sticker grid sizing behavior.
+
+### Changes
+
+- Under the `.github/workflows` folder:
+  - `deploy.yml`: Updated to include deployment of the Web app to enable mobile services.
+
+- Under the `doc` folder:
+  - `FAQ.md`: Updated the answer to the question: "Can I import stickers from a mobile phone?" since mobile support is now provided in this release.
+  - `TechnicalArchitecture.md`:
+    - Included the mobile architecture as part of the technical architecture documentation.
+    - Provided more details about the `clasp.zsh` script, including the new `deploy` action required to deploy the mobile solution.
+
+- Under the `image` folder: Adjusted some images to remove borders and updated the `inputFormatHelp.jpg` view.
+
+- Under the `scripts` folder:
+  - `build.js`: Adjusted some function definitions to fix lint errors after changing the lint configuration.
+  - `fix-jsdoc.js`: Adjusted some function definitions to fix lint errors after changing the lint configuration.
+  - `clasp.zsh`:
+    - Added a new action, `deploy`, to automate Web app deployment updates by creating a new version and using the same description as the existing deployment. It uses the same architecture as the `push`/`pull` actions. If `scriptId` is not present, it takes the ID from the TEST gsheet (the default value from `.clasp.json.template`). If `deploymentId` is not present, it takes the deployment ID from the TEST gsheet file, hardcoded in the script file.
+    - Added help input options, allowing the command `zsh scripts/clasp.zsh -h` to print the help information. It accepts other variations such as `--help`, `-help`, and `help`.
+
+- Under the `src` folder:
+  - `appsscript.json`: Removed the authorization scope `"https://www.googleapis.com/auth/spreadsheets.currentonly"` because the `doGet` service used by the mobile solution cannot work with the `currentonly` scope. It now uses `"https://www.googleapis.com/auth/spreadsheets"` instead.
+  - `Code.gs`: Added the mobile-specific entry point and services related to mobile functionality.
+  - `Commons.gs`:
+    - Added an optional input parameter to the `StickerSheetRepository` constructor so it can be used by mobile services with the provided input argument.
+    - Adjusted the `_updateCountryCounts` method to properly update zero counts as empty cells in applicable cases, while preserving zero values for edge cases (non-valid stickers) when the count is zero.
+
+- Under the `src/html` folder:
+  - Removed `Dialog` from file names except for files that are specifically dialog-related. `*Helpers.html` and `*Renders.html` files are no longer specific to dialogs, as they are also used by the mobile solution. Removed `Dialog` from style file names since mobile-specific styles are now identified with the `Mobile` prefix, making it unnecessary to keep `Dialog` in those names.
+
+  - `CommonDialogStyles.html`:
+    - Renamed to `CommonStyles.html`. It is now common to all desktop solutions.
+    - As part of the overall style review, removed duplicated definitions and moved additional common definitions into this file.
+
+  - `ImportDialog.html`: Removed `renderWarnings([])` calls from `previewData()` and `importData()` since warnings are now controlled through the UI state (CSS).
+  - `ImportDialogHelpers.html`:
+    - Renamed to `ImportHelpers.html`.
+    - Adjusted the `clearPreview` method so it also clears the output result.
+
+  - `ExportDialog`:
+    - Moved the view and JavaScript portion of the file to `ExportView.html` (shared by mobile and desktop).
+  - `ExportDialogHelpers.html`: Renamed to `ExportHelpers.html`.
+  - `ImportExportDialogStyles.html`: Renamed to `ImportExportStyles.html`.
+
+  - `QuickEntryDialog.html`:
+    - Modified the `applyChanges` method to correctly apply pending changes to the UI view. Reloading the data is no longer required; only the pending sticker status and count need to be updated.
+    - Added desktop-specific Quick Entry layout configuration using `window.quickEntryLayout`.
+    - Configured the desktop album view to display 8 stickers per row.
+    - Moved the view and JavaScript portion to `QuickEntryView.html` since this portion is shared by both desktop and mobile versions.
+
+  - `QuickEntryDialogHelpers.html`:
+    - Renamed to `QuickEntryHelpers.html`.
+    - Added the `commitPendingUpdates` method, responsible for updating pending changes in the UI view.
+    - Removed the declaration `let stickersPerRow = 8` to avoid variable conflicts with mobile services.
+    - Refactored rendering helpers to receive the layout configuration explicitly instead of relying on global state.
+    - Updated album grid rendering to use `layout.stickersPerRow`.
+    - Removed remaining dependencies on the previous global sticker layout implementation.
+
+  - `QuickEntryDialogRenders.html`: Renamed to `QuickEntryRenders.html`.
+  - `QuickEntryDialogStyes.html`:
+    - Renamed to `QuickEntryStyles.html`.
+    - Consolidated some styles and removed duplicated definitions.
+    - Updated the documentation for sticker grid sizing to reflect the current CSS Grid/Flexbox implementation.
+    - Kept desktop styling unchanged while documenting the shared layout behavior.
+    - The `--stickers-per-row` variable is no longer configured through the CSS file. Instead, it is determined by JavaScript code.
+
+- Under the `test` folder:
+  - `Commons.unit.test.js`:
+    - Added a test for the `StickerSheetRepository` constructor using the input argument.
+    - Added tests to verify the issue where, in Quick Sticker Entry, changes were not reflected in the UI after clicking the Update button. The corresponding test initially failed, then the issue was fixed and the test passed afterward.
+    - Added additional edge test cases for the `updateStickerCounts` method, which is responsible for this update.
+
+  - `ExportService.unit.test.js`: Fixed lint errors related to the `'space-before-function-paren'` rule.
+  - `QuickEntryDialogHelper.unit.test.js`: Fixed lint errors related to the `'space-before-function-paren'` rule.
+  - `QuickEntryDialogRender.unit.test.js`:
+    - Fixed lint errors related to the `'space-before-function-paren'` rule.
+    - Added tests for the `commitPendingUpdates` method, responsible for updating pending changes in the UI view.
+  - `QuickEntryService.unit.test.js`: Added unit tests for `applyChanges` to help identify the issue where the view did not preserve changes after clicking the Update button.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`:
+    - In the `initializeSpreadsheetAppMock` function, the `spreadsheetMock` object is no longer recreated for every test. Instead, the same instance is reused.
+    - Updated the `updateStickerCounts` mock in the `MockStickerSheetRepository` constructor with more complex behavior.
+
+- Under the `root` folder:
+  - `eslintrc.js`: Configured the `'space-before-function-paren'` rule.
+
+  - `package.json`:
+    - Added the `clasp:deploy` script task to simplify Web app deployment through clasp.
+    - Removed the dry script task variant since it does not work as originally defined.
+    - Adjusted clasp script tasks to avoid including environment variables, allowing them to be provided directly from the command line.
+
+  - `README.md`:
+    - Updated the file list to include specific mobile files and updated file names where `Dialog` was removed.
+    - Added a new section, **Mobile services**, covering the mobile services.
+    - Sorted file sections alphabetically.
+
+### Fix
+
+- Under Quick Sticker Entry, when a sticker count was positive and then reduced to zero before updating, the sticker was saved with a zero value instead of an empty cell value. This issue was fixed.
+
+- Under Quick Sticker Entry, when changing a sticker count, the change was correctly propagated to the `Stickers` tab, but after clicking the Update button, the sticker count reverted to the previous value. The count is now correctly preserved after updating.
+
+---
+
+## [1.0.6] 2026-06-21
+
+### Overview
+Implemented a mobile services, including all services the desktop version provides: import/export and quick entry. Fixed the issue in Quick Entry that after click on Update, the card change didn't persist. Fixed in Quick entry service when the count is reduced to zero to save empty cell instead of zero value.
+
+### Added
+
+- Under the `image` folder:
+  - `mobileQuickentryView.jpg`: Mobile view of the quick entry service.
+  - `mobileWepAppLinkDeployView.jpg`: Dialog to inform the user how to deploy a Web app so it can be ran from a mobile device.
+  - `mobileWebAppLinkURLView.jpg`: Dialog to inform the user after Web app being deployed with the associated URL to use the URL from a mobile device.
+  - `manageDeploymentsView.jpg`: Google Appscript window for managing the deployments.
+
+- Under the `src/html` folder:
+  - `ExportView.html`: View for export services (both desktop and mobile). Extracted the view portion and functions from `ExportDialog.html`.
+  - `QuickEntryView.html`: View for quick sticker entry service, now being used for desktop and mobile versions. Moved the view portion and functions from `QuickEntryDialog.html`.
+    - Added a shared `getLayout()` helper to retrieve the active layout configuration.
+    - Updated initialization to apply the configured layout before rendering the sticker grid.
+    - Replaced hardcoded layout assumptions with the shared layout configuration.
+    - Updated rendering logic to use the configured number of stickers per row for both desktop and mobile.
+
+  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
+  - `MobileImportView.html`: Simplified view for mobile import service.
+  - `MobileExportView.html`: View for both export services. It acts as a wrapper.
+  - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper.
+    - Added mobile-specific Quick Entry layout configuration using `window.quickEntryLayout`.
+    - Configured the mobile album view to display 5 stickers per row.
+    - Simplified layout initialization by defining the mobile layout in the mobile entry point instead of relying on runtime device detection.
+  - `MobileLinkDialog.html`: New service to provide user's instructions on how to deploy as Web App the GAS project.
+  - `MobileImportStyles.html`: CCS specific styles for mobile import service.
+  - `MobileExportStyles.html`: CCS specific styles for mobile export service.
+  - `MobileQuickEntryStyles.html`: CCS specific styles for mobile Quick entry service. Changes with respect the desktop styles:
+    - Removed the hardcoded `--stickers-per-row` CSS variable so the layout is controlled dynamically.
+    - Updated last-row and compact-grid width calculations to use the shared `--stickers-per-row` variable.
+    - Increased sticker number/count font size for improved readability.
+    - Increased country summary font size and spacing.
+    - Increased spacing between increment and decrement buttons.
+    - Increased button font size for easier touch interaction.
+    - Reduced sticker card padding and internal spacing to better utilize the available screen width.
+    - Increased the pending-change indicator size.
+    - Increased legend font size while preserving the responsive layout.
+    - Added documentation describing the shared sticker grid sizing behavior.
+
+### Changes
+
+- Under the `.github/workflows` folder:
+  - `deploy.yml`: Updated to include the deploy of the Web app to enable mobile services.
+
+- Under the `doc` folder:
+  - `FAQ.md`: Update the answer of the question: Can I import stickers from a mobile phone?, since now from this release a mobile support is provided.
+  - `TechnicalArchitecture.md`:
+    - Included the mobile architecture as part of the technical architecture documentation.
+    - Provide more details about `clasp.zsh` script. Including the new action: `deploy` required to deploy the mobile solution.
+
+- Under the `image` folder: Adjusted some of the images to remove the borders and updated `inputFormatHelp.jpg` view.
+
+- Under the `scripts` folder:
+  - `build.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - `fix-jsdoc.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - `clasp.zsh`: 
+    - Added a new action `deploy` to automate the Web App deployment update, creating a new version and using the same description as the existing deployment. It uses the same architecture as `push/pull` actions. If the scriptId is not present it takes the id from TEST gsheet (default value from `.clasp.json.template`) and if `deploymentId` is not present it takes the deployment id from the TEST gsheet file, hardcoded in the script file.
+    - Added the help input options, so you can call `zsh scripts/clasp.zsh -h` to print out the help. It accepts other variations such as `--help|-help|help`
+
+- Under the `src` folder:
+  - `appsscript.json` removed the authorization scope: `"https://www.googleapis.com/auth/spreadsheets.currentonly"` since `doGet` service used for mobile solution, can't work with `currentonly` scope. Instead using `"https://www.googleapis.com/auth/spreadsheets"`.
+  - `Code.gs`: Added mobile specific entry point and services related to mobile service.
+  - `Commons.gs`: 
+    - Added an optional input parameter to `StickerSheetRepository` constructor so it can be used for mobile services with
+  the input argument.
+    - Adjusted the method `_updateCountryCounts` to properly update zero count as empty cell in the cases it applies and zero value for edge cases (non-valid stickers) when the count is zero.
+
+- Under the `src/html` folder:
+  - Removed `Dialog` in files names except for the dialog file. `*Helpers.html`, `*Renders.html` are not specific of the dialog any more, they are also used for the mobile solution. Removed from the style file names, since we have specific styles files for mobile service identified by `Mobile` prefix, there is no need to keep `Dialog` in the names for such cases.
+
+  - `CommonDialogStyles.html`: 
+    - Renamed to `CommonStyles.html`. It is common to all desktop solutions.
+    - As part of the overall style review, removed duplicated, moved to this file additional common definitions.
+
+  - `ImportDialog.html`: Removed `renderWarnings([])` calls in `previewData()` and in `importData()` since now it is controlled via UI state (CSS).
+  - `ImportDialogHelpers.html`: 
+    - Renamed to `ImportHelpers.html`.
+    - Adjusted the method `clearPreview` so it clears also the output result.
+
+  - `ExportDialog`: 
+    - Moved the view and javascript portion of the file to `ExportView.html` (shared with mobile and desktop).
+  - `ExportDialogHelpers.html`: Renamed as `ExportHelpers.html`.
+  - `ImportExportDialogStyles.html`: Renamed to `ImportExportStyles.html`.
+ 
+  - `QuickEntryDialog.html`: 
+    - Modified the method `applyChanges` to correctly apply pending changes to the UI view, no need to reload the data again, just to change the status of the pending stickers and update the count.
+    - Added desktop-specific Quick Entry layout configuration using `window.quickEntryLayout`.
+    - Configured the desktop album view to display 8 stickers per row.
+    - The view and javascript portion was moved to `QuickEntryView.html` since this portion is common to both desktop and mobile version.
+
+  - `QuickEntryDialogHelpers.html`: 
+    - Renamed as `QuickEntryHelpers.html`.
+    - Added the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
+    - Removed the declaration `let stickersPerRow = 8` to avoid any variable conflict resolution with mobile services.
+    - Refactored rendering helpers to receive the layout configuration explicitly instead of relying on global state.
+    - Updated album grid rendering to use `layout.stickersPerRow`.
+    - Removed remaining dependencies on the previous global sticker layout implementation.
+  - `QuickEntryDialogRenders.html`: Renamed as `QuickEntryRenders.html`.
+  - `QuickEntryDialogStyes.html`: 
+    - Renamed as `QuickEntryStyles.html`.
+    - Consolidated some styles and remove duplicated
+    - Updated the documentation for sticker grid sizing to reflect the current CSS Grid/Flexbox implementation.
+    - Kept desktop styling unchanged while documenting the shared layout behavior.
+    - Now the variable `--stickers-per-row` is not configured via CCS file. Instead it is determined by javascript code.
+
+- Under the `test` folder:
+  - `Commons.unit.test.js`: 
+    - Added a test for constructor of `StickerSheetRepository` using the input argument.
+    - Added the tests to verify the issue that in quick sticker entry after pushing Update button, the changes where not reflected in the UI. The corresponding test added failed, then fixed the issue and after that the tests didn't fail. Adding also additional edge test cases for `updateStickerCounts` method, that is in charge of this update.
+  - `ExportService.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
+  - `QuickEntryDialogHelper.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
+  - `QuickEntryDialogRender.unit.test.js`: 
+    - Fix lint error related to `'space-before-function-paren'` rule.
+    - Added the tests for the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
+  - `QuickEntryService.unit.test.js`: added tests for `applyChanges` unit tests, trying to identify the issue that after click on Update button the view doesn't keep the changes.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`: 
+    - In `initializeSpreadsheetAppMock` function the mock `spreadsheetMock` is not recreated on every test, instead it use the same instance.
+    - Updated the mock for `updateStickerCounts` in `MockStickerSheetRepository` constructor with a more complex behavior.
+
+- Under the `root` folder:
+  - `eslintrc.js`: Configured the rule: `'space-before-function-paren'`.
+
+  - `package.json`: 
+    - Added the script task: `clasp:deploy` to simplify the clasp deploy of the Web App. 
+    - Removed the dry script task variant, since it doesn't work in the way it is defined.
+    - Adjusted clasp script task without including environment variables, so they can be called directly from the command line.
+
+  - `README.md`: 
+    - Updated the list of files to include specific mobile files and updated the file name where the `Dialog` was removed.
+    - Added a new section **Mobile services** to cover mobile services.
+    - Sorted file section in alphabetical order
+
+### Fix
+- Under Quick sticker entry When sticker count is positive and then reduce the count to zero and update, then sticker is updated to zero value, instead it should be updated to empty cell value. It was fixed.
+- Under Quick sticker entry the when changing the sticker count the change propagated to the `Stickers` tab, but after click on Update button, the sticker count restored the previous value. Now the count is correct after update.
+
+
 ## [1.0.6] 2026-06-21
 
 ### Overview
@@ -51,6 +343,9 @@ Minor corrections in the documentation (documents and source code). Added CI git
     - Moved the note about country code from the top to section **Track your collection**.
     - Minor corrections in Import/Export services and in **Input format** section.
   - `CHANGELOG.md`: Added the changes for version `1.0.6`.
+
+  ### Fixed
+- No fixes addressed.
 
 ---
 

@@ -1,5 +1,15 @@
 <style>
-  /* CSS variables for consistent theming and easy maintenance. Only the style for Import/Export Dialogs */
+  /* 
+  src/html/ImportExportStyles.html
+  CSS variables for consistent theming and easy maintenance. Only the style for Import/Export Dialogs 
+  It contains: 
+  - Theme variables
+  - Typography
+  - Layout primitives
+  - Buttons
+  - Messages
+  - Form controls
+  */
 
   h2 {
     margin: 0 0 12px 0;
@@ -15,6 +25,10 @@
     gap: 6px;
   }
 
+  .section-title:empty {
+    display: none;
+  }
+
   /* label row: label text on the left, inline action button on the right */
   .label-row {
     display: flex;
@@ -27,23 +41,17 @@
     margin-bottom: 0;
   }
 
-  input[type="file"],
-  select,
-  textarea {
+  input[type="file"] {
     width: 100%;
-    font: inherit;
-  }
-
-  input[type="file"],
-  select {
     padding: 8px;
   }
 
   textarea {
+    width: 100%;
     min-height: 220px;
     padding: 10px;
     resize: vertical;
-    font-family: Consolas, "Courier New", monospace;
+    font-family: var(--font-mono);
     font-size: 13px;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -64,12 +72,6 @@
   input[type="file"]:disabled {
     background: #f1f3f4;
     color: #5f6368;
-  }
-
-  .hint {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.5;
   }
 
   .actions-help {
@@ -102,7 +104,7 @@
   .export-toolbar {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 10px;
   }
@@ -110,9 +112,9 @@
   .toolbar-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--muted);
   }
 
@@ -126,24 +128,6 @@
   .btn-inline {
     padding: 3px 10px;
     font-size: 12px;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--text);
-    border-radius: 6px;
-    cursor: pointer;
-  }
-
-  .btn-inline:hover:not(:disabled) {
-    background: var(--bg-soft);
-  }
-
-  .warnings {
-    display: none;
-    font-size: 12px;
-    color: var(--warning);
-    white-space: pre-wrap;
-    margin-top: 4px;
   }
 
   .preview {
@@ -154,7 +138,7 @@
     padding: 10px;
     max-height: 260px;
     overflow: auto;
-    font-family: Consolas, "Courier New", monospace;
+    font-family: var(--font-mono);
     font-size: 12px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -175,7 +159,7 @@
 
   .help-btn:hover {
     color: var(--primary-hover);
-    background: none;
+    transform: scale(1.08);
   }
 
   /* Format summary card — 3-row table, always visible */
@@ -206,6 +190,11 @@
     color: var(--muted);
   }
 
+  /* Adds top spacing to standalone hint blocks. */
+  .hint-spaced {
+    margin-top: 8px;
+  }
+
   /* header row inside the help modal, with title and (+info) link */
   .help-header {
     display: flex;
@@ -228,7 +217,6 @@
     padding: 20px;
     max-width: 480px;
     width: 95%;
-    font-family: Arial, sans-serif;
     font-size: 13px;
     color: var(--text);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -281,15 +269,6 @@
     padding: 8px 0 4px 14px;
     line-height: 1.7;
     color: var(--muted);
-  }
-
-  dialog .modal-body .inline-code {
-    font-family: Consolas, "Courier New", monospace;
-    background: var(--bg-soft);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 4px;
-    color: var(--text);
   }
 
   dialog .modal-footer {

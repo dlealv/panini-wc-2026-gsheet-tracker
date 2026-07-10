@@ -15,6 +15,7 @@ module.exports = {
       order: ['[properties]', 'constructor', '[getters]',
         '[setters]', '[methods]', '[conventional-private-methods]']
     }],
+    'space-before-function-paren': ['error', { anonymous: 'always', named: 'never', asyncArrow: 'always' }],
     'the-step-down-rule/the-step-down-rule': 'error',
     'no-unused-vars': 'warn',
     'no-undef': 'error',

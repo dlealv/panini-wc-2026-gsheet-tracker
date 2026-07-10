@@ -13,7 +13,7 @@ The application is built on a hybrid architecture combining a production **Googl
 
 ---
 
-## 2. System Architecture & Component Communication Flow
+## 2. Component Communication Flow
 
 The application isolates execution states between the cloud-based Google Sheets environment, local source code editing layouts, and the automated local verification build caches.
 
@@ -31,16 +31,16 @@ The application isolates execution states between the cloud-based Google Sheets 
    │                              6. Deletes 'tmp_clasp' folder when empty
    ▼
  src/ (MUTABLE LOCAL SOURCE OF TRUTH)
-   ├── *.gs (Code.gs, Commons.gs, *.Service.gs)
-   └── html/ (*Dialog.html, *DialogHelpers.html, *DialogRender.html, *Styles.html)
+   ├── *.gs (Code.gs, Commons.gs, *Service.gs)
+   └── html/ (*Dialog.html, *Helpers.html, *Render.html, *Styles.html, Mobile*.html)
    │
    ├── [ npm run build ] ──>  Triggers 'node scripts/build.js' bridge:
    │                          - Translates '.gs' files to Jest-safe JS
-   │                          - Extracts script tags out of HTML layouts
+   │                          - Extracts script tags out of HTML layouts from *Helpers.html and *Render.html
    │                          - Appends CommonJS-compatible exports via @export annotations (used for Jest execution layer)
    ▼
  build/ (AUTO-GENERATED TESTING WORKSPACE — DO NOT EDIT MANUALLY)
-   ├── (Code.js, Commons.js, *Service.js, *DialogHelpers.html.js, *DialogRender.js)
+   ├── (Code.js, Commons.js, *Service.js, *Helpers.html.js, *Render.html.js)
    │
    ├── [ npm run test ] ──>  Triggers 'jest' runner engine:
    │                         - Loads 'test/utils/testKernel.js' Google Spreadsheet mocks
@@ -57,6 +57,18 @@ The application isolates execution states between the cloud-based Google Sheets 
    │                              5. Executes clasp push to Google Apps Script
    ▼
  Google Apps Script Staging/Production Instance
+   │
+   │── [ npm run clasp:deploy ] ──> Deploy a new version of the Web App via 'scripts/clasp.zsh deploy':
+   │                              1. Creates a new version of the Web App deployment, keeping the same URL link
+   │                              2. Preserves the description of the deploy (deployment name)
+   |                              Notes: 
+   |                              1. It assumes a deployment already exists and the deployment id is known.
+   |                              2. It creates a new version of the deployment of the GAS cloud project,
+   |                                 so before deploy you need to execute push first.
+   |
+   ▼
+ Google Web App deployment updated (new version of the mobile application deployed)  
+
 ```
 
 ### 📥 The Pull Sync Sequence (Remote Cloud $\rightarrow$ Local Repository)
@@ -69,15 +81,16 @@ The application isolates execution states between the cloud-based Google Sheets 
 *   **Trigger**: Executed locally via `npm run build` (currently executed as part of `test` script task).
 *   **Compilation Bridge (`scripts/build.js`)**: Prepares the `build/` folder content into testable scripts.
     1. Translates cloud `.gs` backend files into standard Node-compatible JS modules. Converts `.gs` → `.js`
-    2. Extracts encapsulated browser script blocks (`*Dialog[Helpers|Render].html`) out of specialized template views in `src/html/`. Converts `.html` → `html.js`
+    2. Extracts encapsulated browser script blocks (`*[Helpers|Render].html`) out of specialized template views in `src/html/`. Converts `.html` → `html.js`
     3. Appends explicit modular common JS exports via dynamic `@export` code flags.
     4. Preserves source traceability via `SOURCE` header of the files in `build/` folder. 
-*   **Staging Output (`build/`)**: Caches the transformed scripts (e.g., `build/*.gs`, `build/*Dialog[Helpers|Render].html`) as ready test elements. It is an optimized practice to execute this compilation step *only* when the underling `src/` environment shifts. 
+*   **Staging Output (`build/`)**: Caches the transformed scripts (e.g., `build/*.gs`, `build/*[Helpers|Render].html`) as ready test elements. It is an optimized practice to execute this compilation step *only* when the underlying `src/` sources change.
 
 ### 🧪 The Isolated Unit Testing Suite (Build Cache $\rightarrow$ Test Execution)
 *   **Trigger**: Executed locally via `npm run test`.
 *   **Isolated Kernel Evaluation**: Jest processes your test suites (`test/*.unit.test.js`) against the pre-compiled staging assets inside `build/`. It uses an environment simulator (`test/utils/testKernel.js`) that completely stubs global cloud targets (`SpreadsheetApp`, `HtmlService`, `Logger`) and initializes your `global.state = {}` array data.
->To ensure `test` task is executes the tests for the last version of the `src` folder in `build` folder. Now the `test` script task always executes before `build` script task. It is defined as follows: `"test": "npm run build && jest"` in `package.json` file.
+
+>To ensure the tests always execute against the latest version of the `src/` folder, the `test` script first runs the `build` script. It is defined as `"test": "npm run build && jest"` in `package.json`.
 
 ### 📤 The Push Deployment Pipeline (Local Repository $\rightarrow$ Remote Cloud)
 *   **Trigger**: Executed locally via `npm run clasp:push`.
@@ -85,10 +98,58 @@ The application isolates execution states between the cloud-based Google Sheets 
 *   **Flattening Compilation (`scripts/clasp.zsh`)**: Drops code files from `src/` root and flattens templates out of `src/html/` directly into a temporary flat staging directory (`tmp_clasp/`).
 *   **Token Optimization**: Rewrites `.clasp.json` to point to the staging build folder, injects target script credentials if an optional argument is present, uploads the flat assets cleanly to the cloud via `clasp push`, and triggers a native terminal trap to safely restore original tracking records.
 
-> The script `clasp.zsh` accepts two input arguments: the first one is the action (`pull` or `push`), and the second (optional) is `scriptId`. By default, the clasp configuration template file `clasp.json.template` points to the staging file. During the synchronization process between GAS and a local repository or vice versa, you can use the second input argument to specify the `scriptId` of the production Google Sheet file. 
-> The script also allows to run in dry-run mode, it simulates the entire process without doing a real `clasp` `pull/push` action or modifying any source/destination file. The `package.json` file has convenient script tasks for dry-run: `clasp:push:dry` or `clasp:pull:dry`.
+### 📲 Web App Deployment (Remote Cloud → Web App Deployment)
 
----
+The Web App deployment process publishes a new version of an existing Google Apps Script Web App while preserving the current deployment. It assumes that the latest source code has already been uploaded to the remote Apps Script project using `clasp push`.
+
+- **Trigger:** Executed locally using `npm run clasp:deploy`.
+- **Pre-deployment:** Prepares the workspace by generating a temporary `.clasp.json` configuration file from the project template.
+- **Deployment:** Creates a new version of an existing Web App deployment, preserving the deployment description and using the source code currently stored in the remote Google Apps Script project.
+- **Post-deployment:** Cleans up the temporary workspace by removing the generated configuration file.
+
+### `clasp.zsh`
+
+The `clasp.zsh` script automates the synchronization and deployment workflow. It accepts the following arguments:
+
+1. **Action** (`pull`, `push`, or `deploy`) *(required)*.
+2. **`scriptId`** *(optional)*. By default, the generated `.clasp.json` file references the staging Apps Script project defined in `.clasp.json.template`. When synchronizing with another project (for example, the production Google Sheet), you can provide its `scriptId` as the second argument.
+3. **`deploymentId`** *(optional, `deploy` only)*. If omitted, the script uses the staging deployment ID configured within the script.
+4. It accepts also as input argument `-h|--help|-help|help` to print out in the terminal the script usage. In such case no other action is carried except to print the help of the script.
+
+#### Dry-run Mode
+
+The script supports a dry-run mode that simulates the entire workflow without executing any `clasp pull`, `clasp push`, or `clasp deploy` commands and without modifying local or remote files.
+
+```bash
+DRY_RUN=true npm run clasp:push
+```
+
+#### Verbose Logging
+
+To enable verbose logging during execution:
+
+```bash
+LOG_LEVEL=1 npm run clasp:push
+```
+
+Dry-run mode and verbose logging can be combined:
+
+```bash
+LOG_LEVEL=1 DRY_RUN=true npm run clasp:push
+```
+
+#### Default Configuration
+
+If no environment variables are specified, the script uses the following defaults:
+
+- `LOG_LEVEL=0`
+- `DRY_RUN=false`
+
+At startup, the script prints the active configuration, for example:
+
+```bash
+[BOOT] CONFIGURATION: LOG_LEVEL=0 DRY_RUN=false CMD=deploy
+```
 
 ## 3. Directory Layout Specification
 
@@ -115,13 +176,16 @@ panini-wc-2026-gsheet-tracker/
 │   ├── Commons.gs               # General runtime utilities and global system declarations.
 │   ├── *Service.gs              # Modular system business data service providers.
 │   └── html/                    # User Interface markup layouts and layer scripts.
-│       ├── *Dialog.html         # Main view frameworks handling events and cloud calls.
-│       ├── *DialogHelpers.html  # Extracted browser-independent pure processing logic.
-│       └── *DialogRender.html   # Dedicated UI factory components building visual DOM structures.
+│       ├── *Dialog.html         # Desktop dialog containers handling events and cloud calls.
+|       |── *View.html           # View services used by *Dialog.html and Mobile*.html services.
+│       ├── *Helpers.html        # Extracted browser-independent pure processing logic.
+│       └── *Render.html         # Dedicated UI factory components building visual DOM structures.
+│       └── MobileHome.html      # Mobile entry point (navigation drawer, view switching system, injected view via include).
+│       └── Mobile*View.html     # Wrapper views for mobile services or simplified implementation of the service.
 │       └── *Styles.html         # Styles files, i.e. CSS configuration.
 ├── build/                       # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS).
 │   ├── *.js                     # Code blocks compiled into common JS specifications.
-│   └── *.html.js                # Extracted helper end render algorithms wrapped for mock evaluation.
+│   └── *.html.js                # Extracted helpers and render algorithms wrapped for mock evaluation.
 ├── test/                        # ISOLATED JEST UNIT TESTING GRID.
 │   ├── *.unit.test.js           # Target test cases checking functional service compliance.
 │   ├── jest.config.js           # Jest configuration file.
@@ -136,30 +200,238 @@ panini-wc-2026-gsheet-tracker/
 
 ## 4. UI Layer Engineering Rules
 
-To ensure local testability while maintaining cross-platform synchronization safety, user interface layouts are split into three strict layers:
+To ensure local testability while maintaining cross-platform consistency and synchronization safety, the user interface is organized into three distinct layers:
 
 ### Layer 1: Dialog Orchestration Framework (`*Dialog.html`)
-*   **Responsibility**: Defines structural layout markup frameworks, initializes global visual lifecycles, connects view events, and executes asynchronous cloud transactions via `google.script.run`.
-*   **Test Status**: Untested locally; must be kept lightweight to minimize execution risks.
+* **Responsibility**: Defines the desktop dialog structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`. When the UI is shared with the mobile application, this file becomes a thin desktop wrapper around the shared `*View.html`, retaining only desktop-specific initialization and services.
+* **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
-### Layer 2: Functional Logic Helpers (`*DialogHelpers.html`)
-*   **Responsibility**: Manages data-filtering mechanics, pending structural calculations, update state array logic, summary calculations, and data translation transformations.
-*   **Constraints**:
-    *   ✔ Must remain pure and deterministic; must not depend on DOM APIs or browser runtime state.  
-    *   ❌ Strictly prohibited from referencing browser objects like `document`, `window`, or UI elements.
-    *   ❌ Strictly prohibited from executing `google.script.run` parameters.
-*   **Test Status**: Heavily tested locally through Jest using extracted artifacts inside `build/` for functions with `@export` tag.
+#### Layer 1.1: Shared View (`*View.html`)
+* **Responsibility**: When the UI is shared between the desktop and mobile applications, the common implementation is moved from `*Dialog.html` into `*View.html`. This layer defines the shared UI structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`.
+* **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
-### Layer 3: Visual Render Factories (`*DialogRender.html`)
-*   **Responsibility**: Directs explicit DOM document object element assembly, handles visual component layout assignments, and manages layout construction mechanics (e.g., `buildCountrySection`, `buildStickerCard`).
-*   **Constraints**:
-    *   ✔ Handles all native UI component generation and DOM mutations.
-    *   ❌ Strictly prohibited from containing underlying core business calculations or service definitions.
-*   **Test Status**: Partially tested or mocked DOM locally for functions with `@export` tag.
+#### Layer 1.2: Mobile Home (`MobileHome.html`)
+* **Responsibility**: Entry point for the mobile web application. It provides the navigation drawer, view switching mechanism, and loads feature views using HTML includes.
+* **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
+
+#### Layer 1.3: Mobile-Specific View (`Mobile*View.html`)
+* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization or configuration when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated implementation. For example, `MobileImportView.html` provides a simplified import interface optimized for mobile devices.
+* **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
+
+### Layer 2: Functional Logic Helpers (`*Helpers.html`)
+* **Responsibility**: Manages data filtering, pending update calculations, state management, summary calculations, and data transformation logic.
+* **Constraints**:
+    * ✔ Must remain pure and deterministic; should not depend on DOM APIs or browser runtime state.
+    * ❌ Must not reference browser objects such as `document`, `window`, or UI elements.
+    * ❌ Must not execute `google.script.run` calls.
+* **Test Status**: Extensively tested locally with Jest using extracted artifacts from the `build/` directory for functions marked with the `@export` tag.
+
+### Layer 3: Visual Render Factories (`*Render.html`)
+* **Responsibility**: Handles DOM construction, visual component creation, and layout assembly (e.g., `buildCountrySection`, `buildStickerCard`).
+* **Constraints**:
+    * ✔ Responsible for generating UI components and performing DOM updates.
+    * ❌ Must not contain business logic, calculations, or backend service definitions.
+* **Test Status**: Partially tested locally using mocked DOM environments for functions marked with the `@export` tag.
 
 ---
 
-## 5. Automated Lifecycles & Developer Workflow Pipeline
+## 5. System Architecture
+
+### Overview
+
+The Google Apps Script spreadsheet application provides two user interfaces:
+- Desktop UI through Google Sheets dialogs.
+- Mobile UI through a Web App (`doGet()`).
+
+The mobile implementation is built on top of the same backend services used by the desktop application. Both platforms share the same business logic and repository layer, while providing platform-specific views and styling where necessary.
+
+### Backend
+- `Code.gs`
+- `Commons.gs`
+- `ImportService.gs`
+- `ExportService.gs`
+- `QuickEntryService.gs`
+
+Responsibilities:
+- Read and update spreadsheet data.
+- Generate import and export payloads.
+- Process sticker count updates.
+- Expose desktop dialog and mobile Web App entry points.
+- Serve shared HTML templates.
+- Provide a common backend for both desktop and mobile UIs.
+
+#### Shared repository layer
+
+`Commons.gs` contains the shared spreadsheet repository layer. The `StickerSheetRepository` constructor accepts an optional spreadsheet instance. Desktop services use the active spreadsheet by default, while mobile services explicitly pass the target spreadsheet.
+
+This constructor parameter is a key part of the mobile architecture because:
+- Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
+- Mobile Web Apps cannot rely on `getActiveSpreadsheet()`.
+- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and pass it to the repository.
+
+This design allows the same repository implementation to operate correctly in both execution environments without duplicating business logic.
+
+##### `StickerSheetRepository` responsibilities
+- Locate named ranges.
+- Validate the spreadsheet structure.
+- Read country and sticker data.
+- Update sticker counts in batches.
+- Provide reusable lookup helpers for the import, export, and Quick Entry services.
+- Lazily initialize internal attributes through getters to reduce execution time.
+
+### UI
+
+The application provides two user interfaces:
+- Desktop UI
+- Mobile UI
+
+### Desktop UI
+
+- `ImportDialog.html`: Desktop dialog for importing sticker data into Google Sheets.
+  - Load data from text or CSV files.
+  - Paste sticker data manually.
+  - Validate and preview imported data.
+  - Import sticker counts into the spreadsheet.
+
+- `ExportDialog.html`: Desktop dialog used by both export services.
+  - Provides the desktop dialog shell.
+  - Injects `dialogMode`.
+  - Loads `ExportView.html`.
+  - Initializes the shared view.
+  - Supports both `export_all` and `export_shared` modes.
+
+- `QuickEntryDialog.html`: Desktop dialog for Quick Entry.
+  - Provides the desktop dialog shell.
+  - Includes desktop styles.
+  - Loads `QuickEntryView.html`.
+  - Initializes the shared Quick Entry view.
+
+Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper then become thin containers responsible only for platform-specific initialization.
+
+Examples:
+
+- `ExportView.html`
+  - Single export implementation shared by `ExportDialog.html` and `MobileExportView.html`.
+  - Owns:
+    - Export toolbar.
+    - Export text area.
+    - Refresh, copy, and download actions.
+    - Export hints and warnings.
+    - Mode-driven export routing.
+  - The active export mode is supplied by the parent wrapper instead of relying on duplicated global state.
+
+- `QuickEntryView.html`
+  - Displays the toolbar, filters, legend, message area, and country list.
+  - Includes the shared helpers and rendering modules.
+  - Manages view state and user interactions.
+  - Calls the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web App.
+
+> `ImportDialog.html` is the only desktop dialog that does not share its view with the mobile application. The mobile import workflow is intentionally simplified to better fit smaller screens.
+
+### Mobile UI
+
+- `MobileHome.html`: Mobile application shell.
+  - Provides the application header.
+  - Implements the navigation drawer.
+  - Handles view switching.
+  - Clears messages when navigating between services.
+
+- Mobile views:
+  - `MobileImportView.html`: Simplified mobile implementation of the import service.
+  - `MobileExportView.html`: Mobile wrapper around `ExportView.html`.
+    - Provides the mobile layout.
+    - Sets the page title and export hint.
+    - Loads the shared export view.
+    - Initializes the selected export mode.
+  - `MobileQuickEntryView.html`: Mobile wrapper around `QuickEntryView.html`.
+    - Configures the mobile layout.
+    - Sets the number of stickers displayed per row.
+    - Reuses the shared Quick Entry implementation.
+
+### Mobile import flow
+
+1. The user opens the navigation drawer.
+2. Selects **Import**.
+3. `MobileHome.html` switches to the import view.
+4. `MobileImportView.html` collects the import payload.
+5. Wrapper functions in `Code.gs` invoke `ImportService.gs`.
+6. Results are rendered in the mobile view.
+
+### Mobile export flow
+
+1. The user opens the navigation drawer.
+2. Selects **Export All** or **Export Shared**.
+3. `MobileHome.html` calls `showExportView(mode)`.
+4. `MobileExportView.html` configures the page title and export hint.
+5. `ExportView.html` initializes the shared export interface.
+6. Export data is generated using the selected mode.
+
+### Mobile quick entry flow
+
+1. The user opens the navigation drawer.
+2. Selects **Quick Entry**.
+3. `MobileHome.html` calls `showQuickEntryView()`.
+4. `MobileQuickEntryView.html` configures the mobile layout (five stickers per row).
+5. `QuickEntryView.html` loads the shared interface and initializes the data.
+6. Backend wrapper functions invoke the mobile Quick Entry service to retrieve and update sticker data.
+
+### Styles
+
+- `CommonStyles.html`: Common styles shared by all desktop dialogs.
+  - Theme variables.
+  - Typography.
+  - Layout primitives.
+  - Buttons.
+  - Messages.
+  - Form controls.
+
+- `ImportExportDialogStyles.html`: Desktop styles shared by the Import and Export dialogs.
+  - Shared layouts.
+  - Forms.
+  - Buttons.
+  - Message components.
+
+- `QuickEntryDialogStyles.html`: Desktop-specific styles for the Quick Entry dialog.
+  - Sticker grid layout.
+  - Country sections.
+  - Sticker cards.
+  - Filters.
+  - Desktop dialog layout.
+
+- `MobileStyles.html`: Common styles shared by all mobile services.
+  - Theme variables.
+  - Typography.
+  - Layout primitives.
+  - Buttons.
+  - Messages.
+  - Form controls.
+
+- `MobileImportStyles.html`: Mobile-specific styles for the import service.
+  - Import card layout.
+  - Buttons.
+  - Preview panel.
+  - Warning panel.
+  - Format hints.
+
+- `MobileExportStyles.html`: Mobile-specific styles for the export service.
+  - Export card layout.
+  - Toolbar alignment.
+  - Button sizing.
+  - Text area sizing.
+  - Warning and message styling.
+
+- `MobileQuickEntryStyles.html`: Mobile-specific styles for the Quick Entry service.
+  - Responsive five-column sticker grid.
+  - Mobile-optimized sticker cards.
+  - Country summary layout.
+  - Mobile typography.
+  - Larger touch targets.
+  - Responsive handling of incomplete sticker rows.
+  - Pending-change indicators.
+
+---
+
+## 6. Automated Lifecycles & Developer Workflow Pipeline
 
 The shell script located at `scripts/clasp.zsh` controls all remote synchronizations. It handles configuration states transactionally to protect workspaces from configuration drift.
 
@@ -172,6 +444,7 @@ This single gatekeeper script sequentially commands the local workspace to:
 1. Run ESLint structural syntax checks and minor corrections (`npm run lint:fix`).
 2. Recompile testing artifacts (`build/`) and verify feature compliance across all test suites via Jest (`npm run test`).
 3. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass.
+4. Execute `clasp.zsh deploy` to deploy a new version of the Web app for testing mobile services.
 
 ### Transactional Configuration Swaps & Safety Cleanups
 Because Google's `clasp` utility does not accept directory path parameters via command-line arguments, the script uses the localized configuration file (`.clasp.json.template`) dynamically at runtime. 
@@ -189,7 +462,7 @@ The script defines `sed_safe` function to ensure `sed` command works for both ma
 
 ---
 
-## 6. Continuous Integration (CI) Deployment Blueprint
+## 7. Continuous Integration (CI) Deployment Blueprint
 
 The continuous integration architecture leverages GitHub Actions to enforce automated testing quality-gates before promoting and publishing validated artifacts directly to the staging/production Google Apps Script instance.
 
@@ -198,6 +471,7 @@ Production environment variables are securely decoupled from the git history by 
 
 1.  `PRODUCTION_SCRIPT_ID`: The unique target Google Apps Script production environment credential token.
 2.  `CLASPRC_JSON_SECRET`: The entire content string copied out of your private global home computer authentication configuration file (`~/.clasprc.json`).
+3. `PRODUCTION_DEPLOYMENT_ID`: The unique target Web app deployment id for production Google sheet tracker. This id is the URL used by the user to get access to services defined in custom menu **Manage Panini** from a mobile device.
 
 ### 🔁 Standard Production Deployment Workflow (GitHub CI via `main` branch)
 
@@ -305,6 +579,7 @@ git branch --merged main
 ```
 
 ---
+
 
 ## FAQ
 

@@ -1,0 +1,277 @@
+<!--
+  src/html/ExportView.html
+  Export view
+
+  Shared export interface used by:
+    - ExportDialog.html (desktop)
+    - MobileHome.html (mobile web app)
+
+  Purpose:
+    - Render export options and output area.
+    - Route export requests to backend based on selected mode.
+    - Keep export mode handling deterministic across desktop and mobile containers.
+
+  Notes:
+    - This file contains no Apps Script template branching by mode.
+    - Parent containers provide mode and lifecycle orchestration.
+    - The export toolbar uses shared dialog classes for consistent look and feel.
+-->
+
+
+<div class="section">
+  <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
+  <div class="section-title" id="exportTitle"></div>
+  <div id="mobileExportTopHint" class="export-top-hint"></div>
+  <div class="export-toolbar">
+    <label class="toolbar-item">
+      <input type="checkbox" id="includeFlagsCheckbox">
+      Flags
+    </label>
+    <label class="toolbar-item">
+      <input type="checkbox" id="isCompactCheckbox">
+      Compact (using ranges)
+    </label>
+    <label id="sortByDoneContainer" class="toolbar-item" style="display:none;">
+      <input type="checkbox" id="sortByDoneCheckbox">
+      Sort by Done (descending) missing stickers
+    </label>
+    <button class="btn btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
+      Refresh
+    </button>
+  </div>
+  <!-- Output text area for exported payload. -->
+  <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+  <div id="exportHint" class="hint hint-spaced"></div>
+</div>
+<div class="section">
+  <div class="section-title">Actions</div>
+  <div class="actions">
+    <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
+    <button class="btn" onclick="copyExport()">Copy</button>
+    <button class="btn" onclick="google.script.host.close()">Close</button>
+  </div>
+</div>
+
+<div id="export-message" class="message info"></div>
+<!-- Reserved for backend warnings and validation notices. -->
+<div id="export-warnings" class="message warning hidden"></div>
+<?!= include('ExportHelpers') ?>
+
+<script>
+  (function () {
+    const exportTextEl = document.getElementById('exportText')
+    const includeFlagsCheckboxEl = document.getElementById('includeFlagsCheckbox')
+    const sortByDoneCheckboxEl = document.getElementById('sortByDoneCheckbox')
+    const isCompactCheckboxEl = document.getElementById('isCompactCheckbox')
+    const exportWarningsEl = document.getElementById('export-warnings')
+    const sortByDoneContainerEl = document.getElementById('sortByDoneContainer')
+    const exportHintEl = document.getElementById('exportHint')
+    let currentExportMode = 'export_all'
+
+    /** Returns a valid export mode using explicit argument, window state, then local fallback. */
+    function getEffectiveExportMode(mode) {
+      if (mode === 'export_all' || mode === 'export_shared') {
+        return mode
+      }
+      if (window.EXPORT_MODE === 'export_all' || window.EXPORT_MODE === 'export_shared') {
+        return window.EXPORT_MODE
+      }
+      return currentExportMode || 'export_all'
+    }
+
+    /** Renders backend warnings below the export area and hides the block when empty. */
+    function renderWarnings(warnings) {
+      exportWarningsEl.textContent = ''
+      if (!warnings || !warnings.length) {
+        exportWarningsEl.style.display = 'none'
+        return
+      }
+      exportWarningsEl.style.display = 'block'
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.style.margin = '2px 0'
+        p.textContent = `⚠ ${w}`
+        exportWarningsEl.appendChild(p)
+      })
+    }
+
+    /**
+     * Displays a status message to the user.
+     * @param {string} text Message to display.
+     * @param {string} type Message type (info, success, warning or error).
+     */
+    function setMessage(text, type, options = {}) {
+      const messageEl = options.messageEl || (
+        isDesktopDialogHost()
+          ? document.getElementById('export-message')
+          : document.getElementById('mobileMessage')
+      )
+      if (!messageEl) { return }
+      messageEl.className = 'message ' + (type || 'info')
+      messageEl.textContent = text || ''
+    }
+
+    /**
+      * Enables or disables all controls in the export view.
+      * @param {boolean} isBusy Whether the view is busy.
+      */
+    function setBusy(isBusy) {
+      const viewEl = document.getElementById('view-export')
+      if (viewEl) {
+        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+      }
+      if (exportTextEl) { exportTextEl.disabled = isBusy }
+      if (includeFlagsCheckboxEl) { includeFlagsCheckboxEl.disabled = isBusy }
+      if (isCompactCheckboxEl) { isCompactCheckboxEl.disabled = isBusy }
+      if (sortByDoneCheckboxEl) { sortByDoneCheckboxEl.disabled = isBusy }
+    }
+
+    /** Loads exported sticker data into the export text area.*/
+    function loadExportData(mode = currentExportMode) {
+      clearExportMessage()
+      currentExportMode = getEffectiveExportMode(mode)
+      if (!exportTextEl) {
+        setMessage('Export text area not found.', 'error')
+        return
+      }
+      exportTextEl.value = 'Loading export data...'
+      exportTextEl.placeholder = ''
+      setBusy(true)
+      setMessage('Exporting sticker data...', 'info')
+      exportTextEl.disabled = true
+      const request = google.script.run
+        .withSuccessHandler((result) => {
+          setBusy(false)
+          exportTextEl.disabled = false
+          if (!result) {
+            exportTextEl.value = ''
+            setMessage('Export returned no result.', 'error')
+            return
+          }
+          if (!result.success) {
+            exportTextEl.value = ''
+            setMessage('Export did not complete successfully.', 'error')
+            return
+          }
+          exportTextEl.value = result.text || ''
+          renderWarnings(result.warnings)
+          if (exportHintEl) {
+            exportHintEl.innerHTML = getExportHintText(currentExportMode)
+          }
+          const messageEl = isDesktopDialogHost()
+            ? document.getElementById('export-message')
+            : document.getElementById('mobileMessage')
+          setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success', {
+            messageEl
+          })
+          if (messageEl) {
+            messageEl.scrollIntoView({ block: 'start', behavior: 'smooth' })
+          }
+        })
+        .withFailureHandler((error) => {
+          setBusy(false)
+          exportTextEl.disabled = false
+          exportTextEl.value = ''
+          setMessage(`Export failed: ${error && error.message ? error.message : String(error)}`, 'error')
+        })
+      const payload = getPayload()
+      if (currentExportMode === 'export_shared') {
+        request.exportSharedStickerData(payload)
+      } else {
+        request.exportAllStickerData(payload)
+      }
+    }
+
+    /**Reloads the export output for current mode and current checkbox options.*/
+    window.refreshExportData = function () {
+      loadExportData(currentExportMode)
+    }
+
+    /**Copies the exported sticker data to the clipboard.*/
+    window.copyExport = function () {
+      if (!exportTextEl || !exportTextEl.value) {
+        setMessage('There is no exported content to copy.', 'error')
+        return
+      }
+      copyToClipboard(exportTextEl.value)
+        .then(() => setMessage('Export copied to clipboard.', 'success'))
+        .catch(() => setMessage('Failed to copy export.', 'error'))
+    }
+
+    /**Downloads the exported sticker data as a local file.*/
+    window.downloadExport = function () {
+      if (!exportTextEl || !exportTextEl.value) {
+        setMessage('There is no exported content to download.', 'error')
+        return
+      }
+      try {
+        const type = currentExportMode === 'export_shared' ? 'shared' : 'all'
+        const fileName = buildExportFileName(type)
+        triggerDownload(exportTextEl.value, fileName)
+        setMessage(`Download started: ${fileName}`, 'success')
+      } catch (error) {
+        setMessage(`Could not start download.\n${error.message || error}`, 'error')
+      }
+    }
+
+    /**
+     * Applies mode-specific UI behavior.
+     * Shared mode exposes sort control and mode hint; all mode hides sort control.
+     */
+    function applyModeUI(mode) {
+      const effectiveMode = getEffectiveExportMode(mode)
+      if (sortByDoneContainerEl) {
+        sortByDoneContainerEl.style.display = effectiveMode === 'export_shared' ? 'flex' : 'none'
+      }
+    }
+
+    /**
+     * Initializes the export view for the selected mode.
+     * Called by desktop and mobile containers.
+     */
+    window.initializeExportView = function (mode) {
+      currentExportMode = getEffectiveExportMode(mode)
+      if (includeFlagsCheckboxEl) {
+        includeFlagsCheckboxEl.checked = false
+      }
+      if (isCompactCheckboxEl) {
+        isCompactCheckboxEl.checked = false
+      }
+      if (sortByDoneCheckboxEl) {
+        sortByDoneCheckboxEl.checked = false
+      }
+      if (sortByDoneContainerEl) {
+        sortByDoneContainerEl.style.display = currentExportMode === 'export_shared' ? 'flex' : 'none'
+      }
+      if (exportHintEl) {
+        exportHintEl.innerHTML = getExportHintText(currentExportMode)
+      }
+      loadExportData(currentExportMode)
+    }
+
+    /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
+    function isDesktopDialogHost() {
+      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
+    }
+
+    /**Returns the mode-specific export hint shown below the exported data.*/
+    function getExportHintText(mode) {
+      if (mode === 'export_all') {
+        return 'The exported content uses the same Format 1 syntax accepted by the import process. Only sticker counts greater than <span class="inline-code">0</span> are included.'
+      }
+      return 'The exported content uses the same Format 1 syntax accepted by the import process.'
+    }
+
+    /** Clears the export feedback message before loading new data. */
+    function clearExportMessage() {
+      const messageEl = isDesktopDialogHost()
+        ? document.getElementById('export-message')
+        : document.getElementById('mobileMessage')
+      if (!messageEl) {
+        return
+      }
+      messageEl.textContent = ''
+      messageEl.className = 'message info'
+    }
+  })();
+</script>

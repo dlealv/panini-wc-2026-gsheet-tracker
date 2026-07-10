@@ -16,8 +16,9 @@ describe('StickerSheetRepository unit tests', () => {
   /** constructor — optional ss parameter */
   describe('constructor(ss)', () => {
     test('defaults to SpreadsheetApp.getActiveSpreadsheet() when ss is omitted', () => {
+      const ss = global.SpreadsheetApp.getActiveSpreadsheet()
       const r = new StickerSheetRepository()
-      expect(r.ss).toBe(global.SpreadsheetApp.getActiveSpreadsheet())
+      expect(r.ss).toBe(ss)
     })
     test('uses the provided ss instance when one is passed', () => {
       const fakeSs = { getRangeByName: jest.fn() }
@@ -32,7 +33,7 @@ describe('StickerSheetRepository unit tests', () => {
    * - caches value on subsequent calls
    * - throws if range has invalid shape
    */
-  function testRangeGetter (methodName) {
+  function testRangeGetter(methodName) {
     test('returns valid range', () => {
       const range = repo[methodName]()
       expect(range.getValues().length).toBe(49)
@@ -57,7 +58,7 @@ describe('StickerSheetRepository unit tests', () => {
    * - returns valid number greater than or equal to min
    * - caches value on subsequent calls
    */
-  function testCachedNumberGetter (methodName, min = 0) {
+  function testCachedNumberGetter(methodName, min = 0) {
     test(`${methodName} returns valid number`, () => {
       const v = repo[methodName]()
       expect(typeof v).toBe('number')
@@ -276,6 +277,54 @@ describe('StickerSheetRepository unit tests', () => {
       expected[1] = 2
       expected[5] = 4
       expect(setValues).toHaveBeenCalledWith([expected])
+    })
+    test('stores zero as empty cell when reducing MEX sticker 20 from 2 to 0', () => {
+      const setValues = jest.fn()
+      repo.sheet = {
+        getRange: jest.fn(() => ({
+          getValues: () => {
+            const row = Array(21).fill('')
+            row[17] = 1
+            row[20] = 2
+            return [row]
+          },
+          setValues
+        }))
+      }
+      repo.updateStickerCounts([
+        { countryCode: 'MEX', stickerNumber: 20, count: 0 }
+      ])
+      expect(setValues).toHaveBeenCalled()
+      const written = setValues.mock.calls[0][0]
+      expect(written[0][17]).toBe(1)
+      expect(written[0][20]).toBe('')
+    })
+    test('stores 0 as 0 for FWC sticker 20 (special slot)', () => {
+      const setValues = jest.fn()
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
+      repo.updateStickerCounts([{ countryCode: 'FWC', stickerNumber: 20, count: 0 }])
+      expect(setValues).toHaveBeenCalled()
+      const written = setValues.mock.calls[0][0][0]
+      expect(written[20]).toBe(0)
+    })
+    test('FWC sticker 20 (invalid slot) writes 0 when count is 0', () => {
+      const setValues = jest.fn()
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
+      repo.updateStickerCounts([
+        { countryCode: 'FWC', stickerNumber: 20, count: 0 }
+      ])
+      expect(setValues).toHaveBeenCalled()
+      const written = setValues.mock.calls[0][0][0]
+      expect(written[20]).toBe(0)
+    })
+    test('MEX sticker 0 (invalid slot) writes 0 when count is 0', () => {
+      const setValues = jest.fn()
+      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
+      repo.updateStickerCounts([
+        { countryCode: 'MEX', stickerNumber: 0, count: 0 }])
+      expect(setValues).toHaveBeenCalled()
+      const written = setValues.mock.calls[0][0][0]
+      expect(written[0]).toBe(0)
     })
     test('does nothing for empty updates', () => {
       repo._updateCountryCounts = jest.fn()

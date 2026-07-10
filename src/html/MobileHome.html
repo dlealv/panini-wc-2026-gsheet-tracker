@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+  src/html/MobileHome.html
+
+  Mobile web application shell served by doGet() from the Apps Script project
+  bound to each user's copy of the tracker spreadsheet.
+
+  Purpose:
+    Provides the shared mobile shell, layout, and navigation for the app.
+    Individual service views (Import, Export, Quick Entry, etc.) are injected
+    into the main content area using include() directives.
+
+  Responsibilities:
+    - Defines the common application layout.
+    - Displays the navigation drawer.
+    - Switches between service views.
+
+  This file intentionally contains only the common application shell and
+  navigation logic. Service-specific UI and behavior belong to the
+  corresponding Mobile*View.html files.
+-->
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_top">
+  <?!= include('MobileStyles') ?>
+  <?!= include('MobileImportStyles') ?>
+  <?!= include('MobileExportStyles') ?>
+  <?!= include('MobileQuickEntryStyles') ?>
+</head>
+
+<body>
+  <div class="mobile-page">
+    <!-- Application header ─────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-title">🎴 Panini WC 2026</div>
+      <button class="menu-btn" onclick="toggleMenu()">&#9776;</button>
+      <!-- Spreadsheet title injected by doGet(). -->
+      <div class="header-sub">
+        <?= spreadsheetTitle ?>
+      </div>
+    </header>
+
+    <!-- Navigation drawer ─────────────────────────────────────────────── -->
+    <div id="drawer" class="drawer hidden">
+      <div class="drawer-item" onclick="showView('import')">
+        Import
+      </div>
+      <div class="drawer-item" onclick="showExportView('export_all')">
+        Export all
+      </div>
+      <div class="drawer-item" onclick="showExportView('export_shared')">
+        Export shared
+      </div>
+      <div class="drawer-item" onclick="showQuickEntryView()">
+        Quick Entry
+      </div>
+    </div>
+
+    <!-- Overlay shown while the navigation drawer is open. -->
+    <div id="overlay" class="overlay hidden" onclick="toggleMenu()"></div>
+    <!--
+      Service views are injected at template-render time.
+      Only one view is visible at a time.
+    -->
+    <main>
+      <?!= include('MobileImportView') ?>
+      <?!= include('MobileExportView') ?>
+      <?!= include('MobileQuickEntryView') ?>
+
+      <script>
+        window.addEventListener('load', () => {
+          const views = document.querySelectorAll('.view')
+          views.forEach(v => v.classList.add('hidden'))
+          const importView = document.getElementById('view-import')
+          if (importView) {
+            importView.classList.remove('hidden')
+          }
+        })
+      </script>
+    </main>
+  </div>
+
+  <script>
+    /* ── Navigation ─────────────────────────────────────────────────────────[...] */
+
+    /**
+     * Switches the visible service view in the main content area.
+     * Hides all other service views.
+     * @param {string} view Service identifier (for example, "import").
+     */
+    function showView(view) {
+      if (typeof clearViewMessages === 'function') {
+        clearViewMessages()
+      }
+      document.querySelectorAll('.view').forEach(v => {
+        v.classList.add('hidden')
+      })
+      const selected = document.getElementById('view-' + view)
+      if (selected) {
+        selected.classList.remove('hidden')
+      }
+      if (view === 'import' && typeof clearImportViewState === 'function') {
+        clearImportViewState()
+      }
+      toggleMenu()
+    }
+
+    /** Toggles the visibility of the navigation drawer and its overlay. */
+    function toggleMenu() {
+      const drawer = document.getElementById('drawer')
+      const overlay = document.getElementById('overlay')
+      drawer.classList.toggle('hidden')
+      overlay.classList.toggle('hidden')
+    }
+
+    /** Clears all messages and warnings from the import and export views. */
+    function clearViewMessages() {
+      const importMessageEl = document.getElementById('import-message')
+      const exportMessageEl = document.getElementById('mobileMessage')
+      if (importMessageEl) {
+        importMessageEl.textContent = ''
+        importMessageEl.className = 'message info'
+      }
+      if (exportMessageEl) {
+        exportMessageEl.textContent = ''
+        exportMessageEl.className = 'message info'
+      }
+    }
+
+  </script>
+</body>
+
+</html>

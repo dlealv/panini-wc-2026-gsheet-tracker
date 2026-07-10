@@ -1,5 +1,5 @@
 <script>
-  // src/html/ImportDialogHelpers.html
+  // src/html/ImportHelpers.html
   /**
    * Pure functions (testable) related to import dialog logic, separated from DOM manipulation.
    * These functions can be unit tested without relying on the DOM, making them more robust and easier to maintain.
@@ -59,12 +59,12 @@
    * @export
    */
   function clearPreview(deps = {}) {
-    const el = deps.previewEl
+    const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
     if (!el) return
     el.style.display = 'none'
     el.textContent = ''
   }
-
+  
   /** Renders preview content into UI.
    * @export
    */

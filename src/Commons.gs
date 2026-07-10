@@ -411,17 +411,38 @@ class StickerSheetRepository {
     }, {})
   }
 
-  /** Applies all sticker updates for one country. */
+  /** Applies all sticker updates for one country. 
+   * @param {string} countryCode - The country code to update counts for.
+   * @param {Array} updates - An array of update objects, each containing a stickerNumber and count.
+   * This method first normalizes and validates the provided country code against the country map built from the COUNTRIES named range. It then retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index. The method applies all relevant updates to the in-memory array of counts, ensuring that any empty or invalid values are treated as zero. Finally, it writes the updated counts back to the sheet in a single operation, optimizing performance by minimizing interactions with the spreadsheet.
+   * Example of updates parameter:
+   * [
+   *   { stickerNumber: 1, count: 2 },
+   *   { stickerNumber: 3, count: 1 },
+   *   { stickerNumber: 5, count: 4 }
+   * ]
+   * In this example, all updates for the specified country will be applied in one write operation.
+  */
   _updateCountryCounts(countryCode, updates) {
     const normalizedCountryCode = this._normalizeCountryCode(countryCode)
     const row = this.getCountryMap()[normalizedCountryCode].row
-    const range = this.getSheet().getRange(row, this.getStartCol(), 1, this.getNumStickerCols())
+    const range = this.getSheet().getRange( row, this.getStartCol(), 1, this.getNumStickerCols() )
     const currentValues = range.getValues()[0]
     const updatedValues = currentValues.slice()
-
+    
+    const isValidSlot = (code, stickerNumber) => {
+      if (code === 'FWC') {
+        return stickerNumber >= 0 && stickerNumber <= 19
+      }
+      return stickerNumber >= 1 && stickerNumber <= 20
+    }
     updates.forEach(update => {
       const stickerNumber = this._validateStickerNumber(update.stickerNumber)
-      updatedValues[stickerNumber] = update.count
+      if (!isValidSlot(normalizedCountryCode, stickerNumber)) {
+        updatedValues[stickerNumber] = 0
+        return
+      }
+      updatedValues[stickerNumber] = update.count === 0 ? '' : update.count
     })
     range.setValues([updatedValues])
   }

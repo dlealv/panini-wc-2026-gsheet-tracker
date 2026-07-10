@@ -1,6 +1,6 @@
-// test/QuickEntryDialogRender.unit.test.js
+// test/QuickEntryRender.unit.test.js
 
-const { helpers } = require('../build/QuickEntryDialogRender.html.js')
+const { helpers } = require('../build/QuickEntryRender.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 global.document = {
@@ -10,9 +10,9 @@ global.document = {
     textContent: '',
     children: [],
     style: {},
-    appendChild (child) { this.children.push(child) },
-    removeChild (child) { this.children = this.children.filter(c => c !== child) },
-    classList: { add () { }, remove () { }, toggle () { } }
+    appendChild(child) { this.children.push(child) },
+    removeChild(child) { this.children = this.children.filter(c => c !== child) },
+    classList: { add() { }, remove() { }, toggle() { } }
   }),
 
   querySelector: () => null,
@@ -20,18 +20,18 @@ global.document = {
   documentElement: {
     style: {
       _store: {},
-      setProperty (key, value) {
+      setProperty(key, value) {
         this._store[key] = value
       },
-      getPropertyValue (key) {
+      getPropertyValue(key) {
         return this._store[key]
       }
     }
   }
 }
 
-/** Tests for QuickEntryDialogRender.html. */
-describe('QuickEntryDialogRender.html', () => {
+/** Tests for QuickEntryRender.html. */
+describe('QuickEntryRender.html', () => {
   /** Tests for buildCountryHeaderText function. */
   describe('buildCountryHeaderText', () => {
     test('buildCountryHeaderText formats correctly', () => {

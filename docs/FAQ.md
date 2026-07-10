@@ -39,13 +39,22 @@ MEX,1-20
 
 ### Can I import stickers from a mobile phone?
 
-Not currently.
+Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
 
-The tracker is distributed as a Google Sheets template that each user copies into their own Google Drive. Import and export operations rely on Google Apps Script custom menus and dialogs, which are not supported by the Google Sheets mobile application.
+Because Google Apps Script does not provide native support for mobile add-ons, a one-time setup is required after making a copy of the tracker template.
 
-Alternative approaches such as Google Forms and standalone web applications were evaluated but were not adopted because they add complexity and cannot reliably interact with each user's private spreadsheet copy without additional configuration.
+To enable the mobile web application:
 
-For this reason, sticker import and export features are available only in the desktop version of Google Sheets.
+1. Open the Google Sheet tracker.
+2. Select **Manage Panini** → **Mobile web app link**.
+3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web app**.
+4. Follow the deployment steps. The web application is deployed within your own Google account, ensuring that only you can access your album data.
+5. After the initial deployment, select **Manage Panini** → **Mobile web app link** again. The dialog will now display the URL of your deployed web application.
+6. Open the URL from any mobile browser or save it to your device's home screen for quick access.
+
+The deployment process only needs to be completed once. After that, the same web application URL can be used whenever you want to access the tracker from your mobile device.
+
+Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web app provides a practical and secure solution for accessing the Google Sheet tracker from smartphones and tablets.
 
 ---
 
@@ -53,13 +62,17 @@ For this reason, sticker import and export features are available only in the de
 
 ### Why this warning can appear
 
+![Unverified Message](../images/google%20access/unverifiedGoogleMessage.jpg)
+
 Google explains that Apps Script requires user authorization to access private data from Google services. Authorization scopes are determined automatically by scanning the script code, and users can see an authorization dialog when the script is first run. Google also warns that web apps and other scripts that use sensitive scopes are subject to review, and users attempting to authorize them may see a warning screen saying the app is unverified by Google.
 
 This does **not automatically mean the spreadsheet is unsafe or malicious**. It means the script project has not been formally verified by Google through its OAuth app verification flow. Google’s Apps Script verification documentation also explains that projects used only within the same Google Workspace domain or customer are generally exempt, but users outside that domain can see the unverified app screen if the OAuth client has not been verified.
 
 ### What this script is used for
 
-The scope of the script is limited by the manifesto file of the project [appsscript.json](appsscript.json) this file clearly specifies it makes changes to the **current template only**. This is guarantee that the actions in the **Manage Panini** menu won't affect other resources from your google account.
+The scope of the script is limited by the manifesto file of the project [appsscript.json](appsscript.json) this file clearly specifies it makes changes to the **spreadsheets only** (`"https://www.googleapis.com/auth/spreadsheets"`). This is guarantee that the actions in the **Manage Panini** menu won't affect other resources from your google account. 
+
+> Note: Before version `1.1.0` the scope was more restricted: **this spreadsheet only** (`https://www.googleapis.com/auth/spreadsheets.currentonly`) but for mobile service the app needs to use `doGet()` service which requires a broader scope, i.e.  **spreadsheets only**.
 
 The source code is published in this repository so users can review what the script does before authorizing it.
 

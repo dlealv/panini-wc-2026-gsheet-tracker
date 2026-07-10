@@ -26,14 +26,14 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <?!= include('CommonDialogStyles') ?>
-  <?!= include('ImportExportDialogStyles') ?>
+  <?!= include('CommonStyles') ?>
+  <?!= include('ImportExportStyles') ?>
 </head>
 
 <body>
   <div class="container">
     <div>
-      <h2>Import sticker counts</h2>
+      <h2>Sticker data</h2>
       <div class="hint">
         Load a text/CSV file or paste its content. Data will be written to the
         <span class="inline-code">COUNTS</span> named range in the
@@ -57,7 +57,7 @@
         <!-- Clear button sits inline with the label for immediate discoverability -->
         <div class="label-row">
           <label for="textInput">Input data</label>
-          <button class="btn-inline" onclick="clearInput()">Clear</button>
+          <button class="btn btn-inline" onclick="clearInput()">Clear</button>
         </div>
         <!-- placeholder shows one example per format for an immediate hint -->
         <textarea id="textInput"
@@ -148,9 +148,9 @@
     </div>
     <!-- /Import mode section -->
 
-    <div id="message" class="message info"></div>
+    <div id="import-message" class="message info"></div>
     <!-- warnings shown below the status message in amber, populated after preview or import -->
-    <div id="warnings" class="warnings"></div>
+    <div id="import-warnings" class="message warning hidden"></div>
     <div id="preview" class="preview"></div>
 
   </div><!-- /container -->
@@ -167,7 +167,7 @@
     <h4>Common rules</h4>
     <!-- general rule applying to all formats, shown before the per-format sections -->
     <div class="modal-note">
-      &bull; Comma <span class="inline-code">,</span> or semicolon <span class="inline-code">;</span>.<br>
+      &bull; Comma <span class="inline-code">,</span>, semicolon <span class="inline-code">;</span> or space.<br>
       &bull; Repeats: <span class="inline-code">N(X)</span> or <span class="inline-code">N(xX)</span> or
       <span class="inline-code">NxX</span>; sticker <span class="inline-code">N</span> owned <span
         class="inline-code">X</span>
@@ -230,15 +230,15 @@
     </div>
   </dialog>
 
-  <?!= include('ImportDialogHelpers') ?>
+  <?!= include('ImportHelpers') ?>
 
   <script>
     const fileInput = document.getElementById('fileInput')
     const textInput = document.getElementById('textInput')
     const modeInput = document.getElementById('mode')
-    const messageEl = document.getElementById('message')
+    const messageEl = document.getElementById('import-message')
     const previewEl = document.getElementById('preview')
-    const warningsEl = document.getElementById('warnings')
+    const warningsEl = document.getElementById('import-warnings')
 
     if (fileInput) {
       fileInput.addEventListener('change', async (event) => {
@@ -274,11 +274,11 @@
      */
     function renderWarnings(warnings) {
       warningsEl.textContent = ''
-      if (!warnings || !warnings.length) { // no warnings — keep the block hidden
-        warningsEl.style.display = 'none'
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
         return
       }
-      warningsEl.style.display = 'block'
+      warningsEl.classList.remove('hidden')
       warnings.forEach(w => {
         const p = document.createElement('p')
         p.style.margin = '2px 0'
@@ -290,7 +290,6 @@
     /**Validates the current import input and renders a preview without writing data. */
     function previewData() {
       clearPreview()
-      renderWarnings([]) // clear stale warnings from previous action
       setBusy(true)
       setMessage('Validating input...', 'info')
       google.script.run
@@ -311,7 +310,6 @@
     /**Imports the current sticker payload into the spreadsheet. */
     function importData() {
       clearPreview()
-      renderWarnings([]) // clear stale warnings from previous action
       setBusy(true)
       setMessage('Importing data...', 'info')
       google.script.run
