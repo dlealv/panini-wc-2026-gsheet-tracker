@@ -60,6 +60,6 @@ jobs:
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
 
       # 10. Deploy Web App for Mobile services
-      - name: Deploy Web App for Mobile services
+      - name: Deploy Web App for Mobile Services
         if: github.event_name == 'push'
-        run: zsh scripts/clasp.zsh deploy ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
+        run: zsh scripts/clasp.zsh deploy ${{ secrets.PRODUCTION_SCRIPT_ID }} ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
