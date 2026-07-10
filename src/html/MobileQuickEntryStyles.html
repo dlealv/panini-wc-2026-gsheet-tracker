@@ -397,15 +397,20 @@
     height: 34px;
     min-width: 36px;
     min-height: 34px;
-    border-width: 2px;
+    border: 2px solid var(--border);
     border-radius: 6px;
     font-size: 22px;
     line-height: 1;
     cursor: pointer;
+    background: #fff;
+    color: var(--text);
   }
 
   #view-quickentry .sticker-actions button:disabled {
-    opacity: 0.5;
+    opacity: 1;
+    background: #f1f3f4;
+    color: #9aa0a6;
+    border-color: var(--border);
   }
 
   #view-quickentry .sticker-badge {

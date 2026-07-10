@@ -207,6 +207,48 @@ In the provided example, the maximum swap occurs when the cumulative number of s
 
 📌 This entire process is significantly simplified by the information provided in this tab.
 
+### Mobile services
+
+Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
+
+Because Google Apps Script does not provide native support for mobile add-ons, a one-time setup is required after making a copy of the tracker template.
+
+To enable the mobile web application:
+
+1. Open the Google Sheet tracker from a desktop.
+2. Select **Manage Panini** → **Mobile web app link**.
+3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web app**.
+
+![Mobile Service: WebApp Link Dialog: Deploy](images/mobileWebAppLinkDeployView.jpg)
+
+4. Follow the deployment steps. When you click on **New deployment** it is automatically configured with the parameters indicated in the previous window, you just need to click on the **Deploy** button:
+
+![Mobile Service: New Deployment](images/newDeploymentView.jpg)
+
+The web application is deployed within your own Google account, ensuring that only you can access your album data.
+
+5. After the initial deployment, select **Manage Panini** → **Mobile web app link** again. The dialog will now display the URL of your deployed web application.
+
+![Mobile Service: WebApp Link Dialog: URL](images/mobileWebAppLinkURLView.jpg)
+
+> If you don't see the above window with the URL, you can do: 1) wait about a minute and try it again, sometimes the deploy needs some time to get updated, 2) Refresh the Appsscript and the Google Sheet template, 3) You can also try to copy manually the URL once the deploy is finished and open it in a desktop browser. Usually after that **Manage Panini** → **Mobile web app link** shows the correct information. The sole purpose of this is to simply provide the user the URL, but you can copy it directly after the deploy process is finished, it shows a window similar to the following one, where you can copy the URL:
+
+![Mobile Service: Manage Deployments](images/manageDeploymentsView.jpg)
+
+6. Open the URL from any mobile browser or save it to your device's home screen for quick access.
+
+Here is a view of Quick sticker entry for mobile version:
+
+![Mobile Service](images/mobileQuickEntryView.jpg)
+
+> On top it will show the name of the Google sheet panini tracker. As you can see for Quick Entry service, the view has been adjusted to a maximum of `5` columns for a better visualization.
+
+On the left there is a hamburger icon (&#9776;) representing the access to the menu, click on it and select the service you would like to use. Desktop services and mobile service are the same, just simplified or adapted for mobile browser only.
+
+**The deployment process only needs to be completed once**. After that, the same web application URL can be used whenever you want to access the tracker from your mobile device.
+
+Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web app provides a practical and secure solution for accessing the Google Sheet tracker from smartphones and tablets.
+
 ## Manage Panini menu
 
 The custom **Manage Panini** spreadsheet menu is added by the Apps Script project and provides access to the main supported workflows:
@@ -439,46 +481,8 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 
 ## Files
 
-- Under the `src` folder:
-  - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
-  - `Commons.gs`: this shared spreadsheet provides access, named range validation, and common lookup utilities used throughout import/export and Quick Entry workflows. All these services are encapsulated within the `StickerSheetRepository` class.
-  - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
-  - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
-  - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
-
-- Under the `src/html` folder:
-  - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
-  - `ImportDialogHelpers.html`: helper testable logic function used in `src/html/ImportDialog.html`.
-  - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
-  - `ExportDialogHelpers.html`: helper testable logic function used in `src/html/ExportDialog.html`.
-  - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
-  - `QuickEntryDialogHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
-  - `QuickEntryDialogRender.html`: DOM/UI-specific functions used in `src/html/QuickEntryDialog.html`.
-  - `CommonsDialogStyles.html`: Common style definitions to ensure consistency across all dialog services.
-  - `ImportExportDialogStyles.html`: Styles to be used in the Import Export dialog.
-  - `QuickEntryDialogStyles.html`: Styles used by the Quick Sticker Entry dialog.
-
-- Under the `test/` folder:
-  - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
-  - `ImportService.unit.test.js`: Test file for testing `src/ImportService.gs`.
-  - `ImportDialogHelpers.unit.test.js`: Test file for testing `src/html/ImportDialogHelpers.gs`.
-  - `ExportService.unit.test.js`: Test file for testing `src/ExportService.gs`.
-  - `ExportDialogHelpers.unit.test.js`: Test file for testing `src/html/ExportDialogHelpers.gs`.
-  - `QuickEntryService.unit.test.js`: Test file for testing `src/QuickEntryService.gs`.
-  - `QuickEntryDialogHelpers.unit.test.js`: Test file for testing `src/html/QuickEntryDialogHelpers.gs`.
-  - `QuickEntryDialogRender.unit.test.js`: Test file for testing `src/html/QuickEntryDialogRender.gs`.
-  - `utils/testKernel.js`: Global test kernel for GAS unit tests.
-  - `jest.config.js`: `Jest` configuration file.
-
-- Under the `scripts` folder:
-  - `build.js`: Prepares the `src/*.gs` and `src/html/*Dialog[Helpers|Render].html` files to be tested with Jest.
-  - `clasp.zsh`: zsh script to handle `clasp` operations (`pull`/`push`) to synchronize the local VS Code environment with the GAS remote server repository. It creates a preventive backup zip file before updating the source code (local/server).
-  - `fix-jsdoc.js`: Used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
-
-- Under the `images` folder: Images used in the `README.md` file.
-
-- Under the `examples`folder:
-  - `example_sticker_data.txt`: Sample file of the export all stickers service output.
+- Under the `.github/workflows` folder:
+  - `deploy.yml`: CI deployment file using Github secrets.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
@@ -487,6 +491,60 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `GoogleAccessStepByStep.md`: Step-by-step guide explaining how to create a copy of the template and authorize the Apps Script project.
   - `TechnicalArchitecture.md`: Comprehensive technical overview of the system architecture, file structure, development lifecycle pipelines, and core engineering design constraints governing the project.
   - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
+
+- Under the `examples`folder:
+  - `example_sticker_data.txt`: Sample file of the export all stickers service output.
+
+- Under the `images` folder: Images used in the `README.md` file and `doc` folder documents.
+
+- Under the `scripts` folder:
+  - `build.js`: Prepares the `src/*.gs` and `src/html/*[Helpers|Render].html` files to be tested with Jest.
+  - `clasp.zsh`: zsh script to handle `clasp` operations (`pull`/`push`/`deploy`) to synchronize the local VS Code environment with the GAS remote server repository and deploy a Web app for mobile services. It creates a preventive backup zip file before updating the source code (local/server).
+  - `fix-jsdoc.js`: Used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
+
+- Under the `src` folder:
+  - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
+  - `Commons.gs`: this shared spreadsheet provides access, named range validation, and common lookup utilities used throughout import/export and Quick Entry workflows. All these services are encapsulated within the `StickerSheetRepository` class.
+  - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
+  - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
+  - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
+
+- Under the `src/html` folder:
+  - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
+  - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
+  - `ImportHelpers.html`: helper testable logic function used in `src/html/ImportDialog.html`.
+  - `ImportExportDialogStyles.html`: Styles to be used in the Import Export dialog for desktop version.
+  - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
+  - `ExportView.html`: View and javascript functions used by export service (desktop and mobile).
+  - `ExportHelpers.html`: helper testable logic function used in `src/html/ExportDialog.html`.
+  
+  - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
+  - `QuickEntryView.html`: View and javascript functions used by Quick entry service (desktop and mobile).
+  - `QuickEntryHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
+  - `QuickEntryRender.html`: DOM/UI-specific functions used in `src/html/QuickEntryDialog.html`.
+  - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
+
+  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
+  - `MobileImportView.html`: Simplified view for mobile import service.
+  - `MobileExportView.html`: View for both export services. It acts as a wrapper.
+  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper.
+  - `MobileLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project.
+  - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `MobileImportStyles.html`: CCS specific styles for mobile import service.
+  - `MobileExportStyles.html`: CCS specific styles for mobile export service.
+
+
+- Under the `test/` folder:
+  - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
+  - `ImportService.unit.test.js`: Test file for testing `src/ImportService.gs`.
+  - `ImportHelpers.unit.test.js`: Test file for testing `src/html/ImportHelpers.gs`.
+  - `ExportService.unit.test.js`: Test file for testing `src/ExportService.gs`.
+  - `ExportHelpers.unit.test.js`: Test file for testing `src/html/ExportHelpers.gs`.
+  - `QuickEntryService.unit.test.js`: Test file for testing `src/QuickEntryService.gs`.
+  - `QuickEntryHelpers.unit.test.js`: Test file for testing `src/html/QuickEntryHelpers.gs`.
+  - `QuickEntryRender.unit.test.js`: Test file for testing `src/html/QuickEntryRender.gs`.
+  - `utils/testKernel.js`: Global test kernel for GAS unit tests.
+  - `jest.config.js`: `Jest` configuration file.
 
 - Under root:
   - `clasp.json.template`: Template file used for `clasp` operations (create, edit, and deploy locally to Apps Script).

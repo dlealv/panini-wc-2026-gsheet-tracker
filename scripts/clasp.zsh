@@ -74,6 +74,46 @@ TMP_DOWNLOAD="$TMP_WORKDIR/gas_download"
 # DRY RUN HELPER FUNCTIONS
 # ------------------------------------------------------------
 
+# Displays the help message for the script, including usage instructions, commands, options, arguments, environment 
+# variables, examples, and safety information.
+show_help() {
+cat <<EOF
+clasp.zsh — Google Apps Script deployment orchestrator
+
+USAGE
+    zsh scripts/clasp.zsh <command> [scriptId] [deploymentId]
+COMMANDS
+    pull        Pull Apps Script project into the local src/ structure.
+    push        Push the local src/ project to Apps Script.
+    deploy      Create a new Apps Script version and update a deployment.
+OPTIONS
+    -h, --help, -help, help  Show this help message and exit.
+ARGUMENTS
+    scriptId: Optional Apps Script project ID.
+                If omitted, the script uses the default configured project.
+
+    deploymentId: Optional deployment ID (deploy command only).
+                    If omitted, the default TEST deployment is used.
+ENVIRONMENT VARIABLES
+    LOG_LEVEL=0|1, 0 = minimal output (default), 1 = verbose logging
+    DRY_RUN=true|false. true  = simulate execution without network calls
+                        false = execute normally (default)
+EXAMPLES
+    zsh scripts/clasp.zsh pull
+    zsh scripts/clasp.zsh push
+    zsh scripts/clasp.zsh deploy
+    zsh scripts/clasp.zsh pull <scriptId>
+    DRY_RUN=true zsh scripts/clasp.zsh push
+    LOG_LEVEL=1 zsh scripts/clasp.zsh deploy <scriptId> <deploymentId>
+
+SAFETY
+    • All clasp operations run in isolated temporary workspaces.
+    • Remote projects are backed up before push.
+    • Local src/ is backed up before pull.
+    • Deploy never modifies local source files.
+EOF
+}
+
 # Helper: DRY_RUN check
 is_dry_run() {
     [[ "$DRY_RUN" == "true" ]]
@@ -522,6 +562,26 @@ deploy_after() {
 # Sequential routine blocks managing target processing based on input commands and environment parameter tokens.
 # Capture original state ONCE.
 
+# Show help message if requested
+case "$CMD" in
+    "")
+        show_help
+        exit 0
+        ;;
+    pull|push|deploy)
+        ;;
+    -h|--help|-help|help)
+        show_help
+        exit 0
+        ;;
+    *)
+        echo "Error: Unknown command '$CMD'"
+        echo
+        show_help
+        exit 1
+        ;;
+esac
+
 echo "[BOOT] CONFIGURATION: LOG_LEVEL=$LOG_LEVEL DRY_RUN=$DRY_RUN CMD=$CMD"
 
 if is_dry_run; then
@@ -564,11 +624,6 @@ elif [[ "$CMD" == "deploy" ]]; then
     deploy_before
     deploy_execute
     deploy_after
-else
-    echo "Usage: zsh scripts/clasp.zsh [pull|push|deploy] [optional_scriptId] [optional_deploymentId]"
-    update_script_id "rollback"
-    trap - EXIT INT TERM
-    exit 1
 fi
 
 # #endregion main
