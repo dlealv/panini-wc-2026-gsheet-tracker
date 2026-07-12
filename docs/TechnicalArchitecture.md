@@ -58,8 +58,8 @@ The application isolates execution states between the cloud-based Google Sheets 
    ▼
  Google Apps Script Staging/Production Instance
    │
-   │── [ npm run clasp:deploy ] ──> Deploy a new version of the Web App via 'scripts/clasp.zsh deploy':
-   │                              1. Creates a new version of the Web App deployment, keeping the same URL link
+   │── [ npm run clasp:deploy ] ──> Deploy a new version of the Web app via 'scripts/clasp.zsh deploy':
+   │                              1. Creates a new version of the Web app deployment, keeping the same URL link
    │                              2. Preserves the description of the deploy (deployment name)
    |                              Notes: 
    |                              1. It assumes a deployment already exists and the deployment id is known.
@@ -67,7 +67,7 @@ The application isolates execution states between the cloud-based Google Sheets 
    |                                 so before deploy you need to execute push first.
    |
    ▼
- Google Web App deployment updated (new version of the mobile application deployed)  
+ Google Web app deployment updated (new version of the mobile application deployed)  
 
 ```
 
@@ -98,13 +98,13 @@ The application isolates execution states between the cloud-based Google Sheets 
 *   **Flattening Compilation (`scripts/clasp.zsh`)**: Drops code files from `src/` root and flattens templates out of `src/html/` directly into a temporary flat staging directory (`tmp_clasp/`).
 *   **Token Optimization**: Rewrites `.clasp.json` to point to the staging build folder, injects target script credentials if an optional argument is present, uploads the flat assets cleanly to the cloud via `clasp push`, and triggers a native terminal trap to safely restore original tracking records.
 
-### 📲 Web App Deployment (Remote Cloud → Web App Deployment)
+### 📲 Web app Deployment (Remote Cloud → Web app Deployment)
 
-The Web App deployment process publishes a new version of an existing Google Apps Script Web App while preserving the current deployment. It assumes that the latest source code has already been uploaded to the remote Apps Script project using `clasp push`.
+The Web app deployment process publishes a new version of an existing Google Apps Script Web app while preserving the current deployment. It assumes that the latest source code has already been uploaded to the remote Apps Script project using `clasp push`.
 
 - **Trigger:** Executed locally using `npm run clasp:deploy`.
 - **Pre-deployment:** Prepares the workspace by generating a temporary `.clasp.json` configuration file from the project template.
-- **Deployment:** Creates a new version of an existing Web App deployment, preserving the deployment description and using the source code currently stored in the remote Google Apps Script project.
+- **Deployment:** Creates a new version of an existing Web app deployment, preserving the deployment description and using the source code currently stored in the remote Google Apps Script project.
 - **Post-deployment:** Cleans up the temporary workspace by removing the generated configuration file.
 
 ### `clasp.zsh`
@@ -233,6 +233,8 @@ To ensure local testability while maintaining cross-platform consistency and syn
     * ❌ Must not contain business logic, calculations, or backend service definitions.
 * **Test Status**: Partially tested locally using mocked DOM environments for functions marked with the `@export` tag.
 
+> Functions defined `*[Helpers|Render].html` files are encapsulated in namespaces to avoid browser's global scope pollution.
+
 ---
 
 ## 5. System Architecture
@@ -241,7 +243,7 @@ To ensure local testability while maintaining cross-platform consistency and syn
 
 The Google Apps Script spreadsheet application provides two user interfaces:
 - Desktop UI through Google Sheets dialogs.
-- Mobile UI through a Web App (`doGet()`).
+- Mobile UI through a Web app (`doGet()`).
 
 The mobile implementation is built on top of the same backend services used by the desktop application. Both platforms share the same business logic and repository layer, while providing platform-specific views and styling where necessary.
 
@@ -256,7 +258,7 @@ Responsibilities:
 - Read and update spreadsheet data.
 - Generate import and export payloads.
 - Process sticker count updates.
-- Expose desktop dialog and mobile Web App entry points.
+- Expose desktop dialog and mobile Web app entry points.
 - Serve shared HTML templates.
 - Provide a common backend for both desktop and mobile UIs.
 
@@ -266,7 +268,7 @@ Responsibilities:
 
 This constructor parameter is a key part of the mobile architecture because:
 - Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
-- Mobile Web Apps cannot rely on `getActiveSpreadsheet()`.
+- Mobile Web app cannot rely on `getActiveSpreadsheet()`.
 - Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and pass it to the repository.
 
 This design allows the same repository implementation to operate correctly in both execution environments without duplicating business logic.
@@ -288,22 +290,26 @@ The application provides two user interfaces:
 ### Desktop UI
 
 - `ImportDialog.html`: Desktop dialog for importing sticker data into Google Sheets.
+  - Load styles: `CommonStyles.html` and `ImportExportStyles.html`.
+  - Load `ImportHelper.html`.
   - Load data from text or CSV files.
   - Paste sticker data manually.
   - Validate and preview imported data.
   - Import sticker counts into the spreadsheet.
 
 - `ExportDialog.html`: Desktop dialog used by both export services.
+  - Load styles: `CommonStyles.html` and `ImportExportStyles.html`.
   - Provides the desktop dialog shell.
   - Injects `dialogMode`.
-  - Loads `ExportView.html`.
+  - Loads `ExportView.html` (the view file loads the `ExportHelpers.html`)
   - Initializes the shared view.
   - Supports both `export_all` and `export_shared` modes.
 
 - `QuickEntryDialog.html`: Desktop dialog for Quick Entry.
+  - Load styles: `CommonStyles.html` and `QuickEntryStyles.html`.
   - Provides the desktop dialog shell.
   - Includes desktop styles.
-  - Loads `QuickEntryView.html`.
+  - Loads `QuickEntryView.html` (The view file, loads the `QuickEntryHelpers.html` and `QuickEntryRender.html`)
   - Initializes the shared Quick Entry view.
 
 Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper then become thin containers responsible only for platform-specific initialization.
@@ -319,12 +325,14 @@ Examples:
     - Export hints and warnings.
     - Mode-driven export routing.
   - The active export mode is supplied by the parent wrapper instead of relying on duplicated global state.
+  - Loads `ExportViewHelpers.html`
 
 - `QuickEntryView.html`
   - Displays the toolbar, filters, legend, message area, and country list.
   - Includes the shared helpers and rendering modules.
   - Manages view state and user interactions.
-  - Calls the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web App.
+  - Calls the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web app.
+  - Loads `QuickEntryHelpers.html` and `QuickEntryViewRender.html` files.
 
 > `ImportDialog.html` is the only desktop dialog that does not share its view with the mobile application. The mobile import workflow is intentionally simplified to better fit smaller screens.
 
@@ -335,6 +343,8 @@ Examples:
   - Implements the navigation drawer.
   - Handles view switching.
   - Clears messages when navigating between services.
+  - Loads the mobile styles: `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html` and `MobileQuickEntryStyles.html`.
+  - Loads the views: `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntry.html`.
 
 - Mobile views:
   - `MobileImportView.html`: Simplified mobile implementation of the import service.
@@ -444,7 +454,15 @@ This single gatekeeper script sequentially commands the local workspace to:
 1. Run ESLint structural syntax checks and minor corrections (`npm run lint:fix`).
 2. Recompile testing artifacts (`build/`) and verify feature compliance across all test suites via Jest (`npm run test`).
 3. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass.
-4. Execute `clasp.zsh deploy` to deploy a new version of the Web app for testing mobile services.
+
+If you want also to deploy the Web app for testing mobile services, you can use instead:
+
+```bash
+npm run deploy:all
+```
+It runs the same steps as in `deploy:test` plus Web app deploy to generate a new deployment version, keeping the same description, i.e. `clasp.zsh deploy`.
+
+> Keep in mind that Google Apps Script has a limit of 200 versions and in some Apps Script versions it doesn't offer a bulk process to delete old versions. That is why we have this separated script task, so the user just deploy the Web app when it is really needed.
 
 ### Transactional Configuration Swaps & Safety Cleanups
 Because Google's `clasp` utility does not accept directory path parameters via command-line arguments, the script uses the localized configuration file (`.clasp.json.template`) dynamically at runtime. 
@@ -501,6 +519,7 @@ git checkout -b add-country-filter              # short branch name
 Make changes in the project files.
 
 #### 4. Run full local validation
+
 ```bash
 npm run deploy:test
 ```
@@ -510,6 +529,12 @@ This ensures:
 - build succeeds.
 - tests pass.
 - GAS repository updated via `clasp:push` (staging environment, not production).
+
+If you want to deploy also the Web app, then run instead:
+
+```bash
+npm run deploy:all
+```
 
 #### 5. Commit changes
 

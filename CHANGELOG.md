@@ -7,10 +7,10 @@ project structure, and documentation.
 
 ---
 
-## [1.1.0] 2026-07-XX
+## [1.1.0] 2026-07-12
 
 ### Overview
-Implemented mobile services, including all services available in the desktop version: import/export and quick entry. Fixed an issue in Quick Entry where, after clicking Update, the card changes were not persisted. Fixed an issue in Quick Entry where reducing a count to zero was saving a zero value instead of an empty cell in `Stickers` tab.
+Mayor version. Implemented mobile services, including all services available in the desktop version: import/export and quick entry. Fixed an issue in Quick Entry where, after clicking Update, the card changes were not persisted. Fixed an issue in Quick Entry where reducing a count to zero was saving a zero value instead of an empty cell in `Stickers` tab.
 
 ### Added
 
@@ -19,16 +19,25 @@ Implemented mobile services, including all services available in the desktop ver
   - `mobileWepAppLinkDeployView.jpg`: Dialog informing the user how to deploy a Web app so it can be run from a mobile device.
   - `mobileWebAppLinkURLView.jpg`: Dialog informing the user after the Web app has been deployed, providing the associated URL to access it from a mobile device.
   - `manageDeploymentsView.jpg`: Google Apps Script window for managing deployments.
+  - `newDeploymentView.jpg`: Google Apps Script window to create a new deployment.
 
 - Under the `src/html` folder:
-  - `ExportView.html`: View for export services (both desktop and mobile). Extracted the view portion and functions from `ExportDialog.html`.
-  - `QuickEntryView.html`: View for the quick sticker entry service, now used by both desktop and mobile versions. Moved the view portion and functions from `QuickEntryDialog.html`.
+  - `ExportView.html`: 
+    - View for export services (both desktop and mobile). Extracted the view portion and functions from `ExportDialog.html`.
+    - Added `Export` namespace to called functions from `ExportHelpers.html` file.
+  - `QuickEntryView.html`: 
+    - View for the quick sticker entry service, now used by both desktop and mobile versions. Moved the view portion and functions from `QuickEntryDialog.html`.
+    - Added `QuickEntry` namespace to called functions from `QuickEntryHelpers.html` file.
+    - Added `QuickEntryRender` namespace to called functions from `QuickEntryHelpers.html` file.
+
     - Added a shared `getLayout()` helper to retrieve the active layout configuration.
     - Updated initialization to apply the configured layout before rendering the sticker grid.
     - Replaced hardcoded layout assumptions with the shared layout configuration.
     - Updated rendering logic to use the configured number of stickers per row for both desktop and mobile.
+
   - `MobileHome.html`: Mobile entry point including the navigation drawer, view switching system, and injected views through includes.
   - `MobileImportView.html`: Simplified view for the mobile import service.
+
   - `MobileExportView.html`: View for both export services. Acts as a wrapper.
   - `MobileStyles.html`: Mobile-specific CSS styles common to all mobile services.
   - `MobileQuickEntryView.html`: Specific view for the mobile Quick Entry service. It acts as a wrapper.
@@ -53,26 +62,37 @@ Implemented mobile services, including all services available in the desktop ver
 ### Changes
 
 - Under the `.github/workflows` folder:
-  - `deploy.yml`: Updated to include deployment of the Web app to enable mobile services.
+  - `deploy.yml`: 
+    - Updated to include deployment of the Web app to enable mobile services.
+    - Included `paths`, to restrict the CI just for source code changes.
+    - Improved inline documentation of the file.
 
 - Under the `doc` folder:
-  - `FAQ.md`: Updated the answer to the question: "Can I import stickers from a mobile phone?" since mobile support is now provided in this release.
+  - `FAQ.md`: 
+    - Updated the answer to the question: "Can I import stickers from a mobile phone?" since mobile support is now provided in this release.
+    - Added additional questions related possible issues the user may encounter when copy the Google Sheet template or deploying the Web app for using mobile services.
+
   - `TechnicalArchitecture.md`:
     - Included the mobile architecture as part of the technical architecture documentation.
     - Provided more details about the `clasp.zsh` script, including the new `deploy` action required to deploy the mobile solution.
+    - Indicated when to use `deploy:test` and `deploy:all` script tasks.
+    
+  - `GoogleAccessStepByStep.md`: Spelling and minor corrections.
 
 - Under the `image` folder: Adjusted some images to remove borders and updated the `inputFormatHelp.jpg` view.
 
 - Under the `scripts` folder:
-  - `build.js`: Adjusted some function definitions to fix lint errors after changing the lint configuration.
-  - `fix-jsdoc.js`: Adjusted some function definitions to fix lint errors after changing the lint configuration.
+  - `build.js`: 
+    - Adjusted some function definitions to fix `lint` errors after changing the `lint` configuration.
+    - Added the logic to remove namespace declaration and namespace return.
+  - `fix-jsdoc.js`: Adjusted some function definitions to fix `lint` errors after changing the `lint` configuration.
   - `clasp.zsh`:
     - Added a new action, `deploy`, to automate Web app deployment updates by creating a new version and using the same description as the existing deployment. It uses the same architecture as the `push`/`pull` actions. If `scriptId` is not present, it takes the ID from the TEST gsheet (the default value from `.clasp.json.template`). If `deploymentId` is not present, it takes the deployment ID from the TEST gsheet file, hardcoded in the script file.
-    - Added help input options, allowing the command `zsh scripts/clasp.zsh -h` to print the help information. It accepts other variations such as `--help`, `-help`, and `help`.
+    - Added help input options, allowing the command `zsh scripts/clasp.zsh -h` to print the help information only. It accepts other variations such as `--help`, `-help`, and `help`.
 
 - Under the `src` folder:
   - `appsscript.json`: Removed the authorization scope `"https://www.googleapis.com/auth/spreadsheets.currentonly"` because the `doGet` service used by the mobile solution cannot work with the `currentonly` scope. It now uses `"https://www.googleapis.com/auth/spreadsheets"` instead.
-  - `Code.gs`: Added the mobile-specific entry point and services related to mobile functionality.
+  - `Code.gs`: Added the mobile-specific entry point and services related to mobile functionality and `doGet` function.
   - `Commons.gs`:
     - Added an optional input parameter to the `StickerSheetRepository` constructor so it can be used by mobile services with the provided input argument.
     - Adjusted the `_updateCountryCounts` method to properly update zero counts as empty cells in applicable cases, while preserving zero values for edge cases (non-valid stickers) when the count is zero.
@@ -84,14 +104,20 @@ Implemented mobile services, including all services available in the desktop ver
     - Renamed to `CommonStyles.html`. It is now common to all desktop solutions.
     - As part of the overall style review, removed duplicated definitions and moved additional common definitions into this file.
 
-  - `ImportDialog.html`: Removed `renderWarnings([])` calls from `previewData()` and `importData()` since warnings are now controlled through the UI state (CSS).
+  - `ImportDialog.html`: 
+    - Removed `renderWarnings([])` calls from `previewData()` and `importData()` since warnings are now controlled through the UI state (CSS).
+    - Added `Import` namespace to called functions from `ImportHelpers.html` file.
+
   - `ImportDialogHelpers.html`:
     - Renamed to `ImportHelpers.html`.
     - Adjusted the `clearPreview` method so it also clears the output result.
+    - Added `Import` namespace to avoid browser scope pollution.
 
   - `ExportDialog`:
     - Moved the view and JavaScript portion of the file to `ExportView.html` (shared by mobile and desktop).
-  - `ExportDialogHelpers.html`: Renamed to `ExportHelpers.html`.
+  - `ExportDialogHelpers.html`: 
+    - Renamed to `ExportHelpers.html`.
+    - Added `Export` namespace to avoid browser scope pollution.
   - `ImportExportDialogStyles.html`: Renamed to `ImportExportStyles.html`.
 
   - `QuickEntryDialog.html`:
@@ -107,8 +133,12 @@ Implemented mobile services, including all services available in the desktop ver
     - Refactored rendering helpers to receive the layout configuration explicitly instead of relying on global state.
     - Updated album grid rendering to use `layout.stickersPerRow`.
     - Removed remaining dependencies on the previous global sticker layout implementation.
+    - Added `QuickEntry` namespace to avoid browser scope pollution.
 
-  - `QuickEntryDialogRenders.html`: Renamed to `QuickEntryRenders.html`.
+  - `QuickEntryDialogRender.html`: 
+    - Renamed to `QuickEntryRender.html`.
+    - Added `QuickEntryRender` namespace to avoid browser scope pollution.
+
   - `QuickEntryDialogStyes.html`:
     - Renamed to `QuickEntryStyles.html`.
     - Consolidated some styles and removed duplicated definitions.
@@ -122,10 +152,13 @@ Implemented mobile services, including all services available in the desktop ver
     - Added tests to verify the issue where, in Quick Sticker Entry, changes were not reflected in the UI after clicking the Update button. The corresponding test initially failed, then the issue was fixed and the test passed afterward.
     - Added additional edge test cases for the `updateStickerCounts` method, which is responsible for this update.
 
-  - `ExportService.unit.test.js`: Fixed lint errors related to the `'space-before-function-paren'` rule.
-  - `QuickEntryDialogHelper.unit.test.js`: Fixed lint errors related to the `'space-before-function-paren'` rule.
+  - `ExportService.unit.test.js`: Fixed `lint` errors related to the `'space-before-function-paren'` rule.
+  - `QuickEntryDialogHelpers.unit.test.js`: 
+    - Renamed to `QuickEntryHelpers.unit.test.js`.
+    - Fixed `lint` errors related to the `'space-before-function-paren'` rule.
   - `QuickEntryDialogRender.unit.test.js`:
-    - Fixed lint errors related to the `'space-before-function-paren'` rule.
+    - Renamed to `QuickEntryRender.unit.test.js`.
+    - Fixed `lint` errors related to the `'space-before-function-paren'` rule.
     - Added tests for the `commitPendingUpdates` method, responsible for updating pending changes in the UI view.
   - `QuickEntryService.unit.test.js`: Added unit tests for `applyChanges` to help identify the issue where the view did not preserve changes after clicking the Update button.
 
@@ -138,8 +171,10 @@ Implemented mobile services, including all services available in the desktop ver
   - `eslintrc.js`: Configured the `'space-before-function-paren'` rule.
 
   - `package.json`:
-    - Added the `clasp:deploy` script task to simplify Web app deployment through clasp.
-    - Removed the dry script task variant since it does not work as originally defined.
+    - Added the `clasp:deploy` script task to simplify Web app deployment through `clasp`.
+    - Adjusted the `deploy:test` script task to only push into GAS cloud, but not deploying the Web app.
+    - Added the `deploy:all` script task to do `deploy:test` and `clasp:deploy`.
+    - Removed the dry script task variant since it does not work as originally defined. Documented in `TechnicalArchitecture.md` how to call such script tasks activating dry-run and changing the verbose output level.
     - Adjusted clasp script tasks to avoid including environment variables, allowing them to be provided directly from the command line.
 
   - `README.md`:
@@ -147,9 +182,13 @@ Implemented mobile services, including all services available in the desktop ver
     - Added a new section, **Mobile services**, covering the mobile services.
     - Sorted file sections alphabetically.
 
+  - `TODO.md`: 
+    - Added Coca-Cola stickers to the roadmap.
+    - Added refactor `MobileImportView.html` to use `ImportHelpers.html` functions.
+
 ### Fix
 
-- Under Quick Sticker Entry, when a sticker count was positive and then reduced to zero before updating, the sticker was saved with a zero value instead of an empty cell value. This issue was fixed.
+- Under Quick sticker entry service, when a sticker count was positive and then reduced to zero before updating, the sticker was saved with a zero value instead of an empty cell value. This issue was fixed.
 
 - Under Quick Sticker Entry, when changing a sticker count, the change was correctly propagated to the `Stickers` tab, but after clicking the Update button, the sticker count reverted to the previous value. The count is now correctly preserved after updating.
 
@@ -213,8 +252,8 @@ Implemented a mobile services, including all services the desktop version provid
 - Under the `image` folder: Adjusted some of the images to remove the borders and updated `inputFormatHelp.jpg` view.
 
 - Under the `scripts` folder:
-  - `build.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
-  - `fix-jsdoc.js`: Adjusted some functions definition to fix the lint errors after changing lint configuration.
+  - `build.js`: Adjusted some functions definition to fix the `lint` errors after changing `lint` configuration.
+  - `fix-jsdoc.js`: Adjusted some functions definition to fix the `lint` errors after changing `lint` configuration.
   - `clasp.zsh`: 
     - Added a new action `deploy` to automate the Web App deployment update, creating a new version and using the same description as the existing deployment. It uses the same architecture as `push/pull` actions. If the scriptId is not present it takes the id from TEST gsheet (default value from `.clasp.json.template`) and if `deploymentId` is not present it takes the deployment id from the TEST gsheet file, hardcoded in the script file.
     - Added the help input options, so you can call `zsh scripts/clasp.zsh -h` to print out the help. It accepts other variations such as `--help|-help|help`
@@ -269,10 +308,10 @@ Implemented a mobile services, including all services the desktop version provid
   - `Commons.unit.test.js`: 
     - Added a test for constructor of `StickerSheetRepository` using the input argument.
     - Added the tests to verify the issue that in quick sticker entry after pushing Update button, the changes where not reflected in the UI. The corresponding test added failed, then fixed the issue and after that the tests didn't fail. Adding also additional edge test cases for `updateStickerCounts` method, that is in charge of this update.
-  - `ExportService.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
-  - `QuickEntryDialogHelper.unit.test.js`: Fix lint error related to `'space-before-function-paren'` rule.
+  - `ExportService.unit.test.js`: Fix `lint` error related to `'space-before-function-paren'` rule.
+  - `QuickEntryDialogHelper.unit.test.js`: Fix `lint` error related to `'space-before-function-paren'` rule.
   - `QuickEntryDialogRender.unit.test.js`: 
-    - Fix lint error related to `'space-before-function-paren'` rule.
+    - Fix `lint` error related to `'space-before-function-paren'` rule.
     - Added the tests for the method `commitPendingUpdates` in charge of updating the pending changes in the UI view.
   - `QuickEntryService.unit.test.js`: added tests for `applyChanges` unit tests, trying to identify the issue that after click on Update button the view doesn't keep the changes.
 

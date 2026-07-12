@@ -6,7 +6,7 @@ This project was first published as a draft on Reddit, and GitHub is now the mai
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick Sticker Entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning).
+**Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick sticker entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning).
 
 ## Live tracker
 
@@ -20,19 +20,25 @@ Since the URL ends with `/copy`, clicking it creates your own copy of the templa
 
 **Apps Script note:** Some scripted features (**Manage Panini** custom menu) may trigger Google's authorization flow and, for some users, an unverified app warning. See [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning) below for details, safety guidance, and review steps.
 
+---
+
 ## Main features
 
 - Track owned stickers (national teams and special `FWC` stickers) in the `Stickers` tab.
-- Update sticker counts quickly through the **Quick Sticker Entry** dialog inside the **Manage Panini** custom menu.
+- Update sticker counts quickly through the **Quick sticker entry** dialog inside the **Manage Panini** custom menu.
 - Import and export sticker data via the **Manage Panini** custom menu.
 - Export a shared list of stickers for trading in text format to easily share with other collectors via the **Manage Panini** custom menu.
 - See progress summaries in the `Reports` tab.
 - Share a compact swap view with other collectors in the `Compact Swap View` tab.
 - Trade with another collector in the `Trade` tab.
 
+---
+
 ## Out of scope
 
 - Coca-Cola stickers.
+
+---
 
 ## Services
 
@@ -50,9 +56,9 @@ One support column is hidden in the `Stickers` tab: `AD`, which stores the count
 
 ### Update sticker counts quickly
 
-The **Quick Sticker Entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, or multiple visible teams after filtering, and increment or decrement counts with dedicated buttons.
+The **Quick sticker entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, or multiple visible teams after filtering, and increment or decrement counts with dedicated buttons.
 
-This service is enabled through the **Quick Sticker Entry** dialog in the **Manage Panini** menu. The dialog reads from the same data used by the `Stickers` tab and writes updates back to the `COUNTS` named range only when **Update** is pressed.
+This service is enabled through the **Quick sticker entry** dialog in the **Manage Panini** menu. The dialog reads from the same data used by the `Stickers` tab and writes updates back to the `COUNTS` named range only when **Update** is pressed.
 
 It is especially useful for day-to-day collection tracking because it combines team progress, missing stickers, repeated stickers, and pending changes in one place.
 
@@ -71,7 +77,7 @@ Main capabilities:
 - Highlight pending changes before writing them to the sheet
 - Use a color convention for missing and repeated stickers based on count. The colors are the same as those used in the `Stickers` tab and specified in the **Legend** section of the Description in the same tab.
 - Easily identify special cards such as crest and team stickers
-- Mark fully completed teams visually
+- Mark fully completed teams visually with blue background.
 
 ![Quick Sticker Entry](images/quickStickerEntryView.jpg)
 
@@ -79,7 +85,7 @@ Main capabilities:
 
 The tracker provides import tool so you can load collection data from external sources or create reusable backups of your current sticker counts.
 
-This service is enabled through the **Import** dialog in the **Manage Panini** custom menu. The import format is Comma-Separated Values (CSV). It also accepts `;` (semicolon) , `:` (colon), or whitespace as delimiters, but internally converts them into `.` delimiter.
+This service is enabled through the **Import** dialog in the **Manage Panini** custom menu. The import format is Comma-Separated Values (CSV). It also accepts `;` (semicolon) , `:` (colon), or whitespace as delimiters, but internally converts them into `,` delimiter.
 
 Import is useful when you already track your collection elsewhere and want to move it into this spreadsheet without manual re-entry. After the import is executed, **only** valid imported values are written to the `COUNTS` named range in the `Stickers` tab.
 
@@ -207,47 +213,49 @@ In the provided example, the maximum swap occurs when the cumulative number of s
 
 📌 This entire process is significantly simplified by the information provided in this tab.
 
-### Mobile services
+### Mobile Services
 
 Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
 
-Because Google Apps Script does not provide native support for mobile add-ons, a one-time setup is required after making a copy of the tracker template.
+Because Google Apps Script does not provide native support for mobile add-ons, a **one-time setup is required** after making a copy of the tracker template.
 
 To enable the mobile web application:
 
-1. Open the Google Sheet tracker from a desktop.
-2. Select **Manage Panini** → **Mobile web app link**.
-3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web app**.
+1. Open the Google Sheet tracker from a desktop browser.
+2. Select **Manage Panini** → **Mobile Web App Link**.
+3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web App**.
 
-![Mobile Service: WebApp Link Dialog: Deploy](images/mobileWebAppLinkDeployView.jpg)
+![Mobile Service: Web App Link Dialog - Deployment Instructions](images/mobileWebAppLinkDeployView.jpg)
 
-4. Follow the deployment steps. When you click on **New deployment** it is automatically configured with the parameters indicated in the previous window, you just need to click on the **Deploy** button:
+4. Follow the deployment steps shown in the dialog. When you click **New deployment**, the required deployment settings are automatically preconfigured. Simply click **Deploy**.
 
 ![Mobile Service: New Deployment](images/newDeploymentView.jpg)
 
-The web application is deployed within your own Google account, ensuring that only you can access your album data.
+The Web App is deployed under your own Google account, ensuring that only you can access your album data.
 
-5. After the initial deployment, select **Manage Panini** → **Mobile web app link** again. The dialog will now display the URL of your deployed web application.
+5. After the initial deployment, select **Manage Panini** → **Mobile Web App Link** again. The dialog will now display the URL of your deployed Web App. Click on **Copy URL**.
 
-![Mobile Service: WebApp Link Dialog: URL](images/mobileWebAppLinkURLView.jpg)
+![Mobile Service: Web App Link Dialog - URL](images/mobileWebAppLinkURLView.jpg)
 
-> If you don't see the above window with the URL, you can do: 1) wait about a minute and try it again, sometimes the deploy needs some time to get updated, 2) Refresh the Appsscript and the Google Sheet template, 3) You can also try to copy manually the URL once the deploy is finished and open it in a desktop browser. Usually after that **Manage Panini** → **Mobile web app link** shows the correct information. The sole purpose of this is to simply provide the user the URL, but you can copy it directly after the deploy process is finished, it shows a window similar to the following one, where you can copy the URL:
+> If the URL is not displayed immediately, wait about a minute and open the **Mobile Web App Link** menu option again. This dialog is intended to make it easy to retrieve the Web App URL. Alternatively, once the deployment is complete, you can copy the URL directly from the **Manage Deployments** dialog, as shown below.
 
 ![Mobile Service: Manage Deployments](images/manageDeploymentsView.jpg)
 
-6. Open the URL from any mobile browser or save it to your device's home screen for quick access.
+6. Open the URL from any mobile browser, or save it to your device's home screen for quick and convenient access.
 
-Here is a view of Quick sticker entry for mobile version:
+The following image shows the **Quick Sticker Entry** service on a mobile device:
 
-![Mobile Service](images/mobileQuickEntryView.jpg)
+![Mobile Service: Quick Sticker Entry](images/mobileQuickEntryView.jpg)
 
-> On top it will show the name of the Google sheet panini tracker. As you can see for Quick Entry service, the view has been adjusted to a maximum of `5` columns for a better visualization.
+At the top, the application displays the name of your Google Sheet tracker. The **Quick Sticker Entry** view has been optimized for mobile devices by displaying a maximum of **5 sticker columns**, providing a better viewing and touch experience.
 
-On the left there is a hamburger icon (&#9776;) representing the access to the menu, click on it and select the service you would like to use. Desktop services and mobile service are the same, just simplified or adapted for mobile browser only.
+Tap the hamburger menu (&#9776;) in the upper-left corner to access the available services. The mobile application provides the same functionality as the desktop version, with interfaces simplified and optimized for mobile browsers.
 
-**The deployment process only needs to be completed once**. After that, the same web application URL can be used whenever you want to access the tracker from your mobile device.
+**The deployment process only needs to be completed once.** After that, you can use the same Web App URL whenever you want to access the tracker from your mobile device.
 
-Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web app provides a practical and secure solution for accessing the Google Sheet tracker from smartphones and tablets.
+Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web App provides a practical and secure solution for accessing the Google Sheet Tracker from smartphones and tablets.
+
+---
 
 ## Manage Panini menu
 
@@ -257,6 +265,8 @@ The custom **Manage Panini** spreadsheet menu is added by the Apps Script projec
 - Open the Quick Sticker Entry dialog
 
 ![Manage Panini menu](images/managePaniniMenuView.jpg)
+
+---
 
 ## Import format
 
@@ -396,6 +406,8 @@ The operator prefix may be applied to any valid import line format:
 
 > Note: This operation is intended to facilitate user entry, but internally it is converted into Format 1.
 
+---
+
 ## Named ranges
 
 - `COUNTRIES`: A column containing country codes.
@@ -409,6 +421,8 @@ The operator prefix may be applied to any valid import line format:
 
 Note: All named ranges must have `49` rows, which includes `48` country teams and the FWC.
 
+---
+
 ## Named functions
 The Gsheet tracker has defined some custom functions to simplify the calculation process:
 
@@ -418,9 +432,13 @@ The Gsheet tracker has defined some custom functions to simplify the calculation
 
 - `GET_TRADES(octry,ovals,ctry,vals,isget)`: This function takes an array of countries (`octry`) and sticker values (`ovals`) from another collector and countries (`ctry`) and values (`vals`) from the collector (owner of the tracker). It returns the matches (country and stickers) between the collectors. If the input argument `isget` is `TRUE/1`, it returns the matches of the countries and stickers that the collector will receive from another collector. In this case, the values of `octry` and `ovals` represent repeated stickers from another collector. If `isget` is `FALSE/0`, it returns the matches of the countries and stickers that the collector will send to another collector. In this case, the values of `octry` and `ovals` represent missing stickers from another collector. This named function is used in the `Trade` tab, specifically in the **OUTPUT** section.
 
+---
+
 ## Hidden tabs
 
 - `Conf`: Country-specific information such as flag, ISO country code, icon, name, etc.
+
+---
 
 ## Apps Script authorization and Google unverified app warning
 
@@ -446,6 +464,8 @@ If you are unsure, you can take these steps before approving access:
 
 If you prefer not to authorize the script, you can still use the spreadsheet manually without scripted features.
 
+---
+
 ## Documentation
 
 Service-specific documents are available in the `docs/` folder:
@@ -457,15 +477,21 @@ Service-specific documents are available in the `docs/` folder:
 - `TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
 - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
+---
+
 ## Testing
 
 Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. Starting from version `1.0.5` `312` tests passed, achieving an impressive `88.77%` coverage.
+
+---
 
 ## Changelog
 
 Project history and notable updates are documented in:
 
 - `CHANGELOG.md`
+
+---
 
 ## Repository purpose
 
@@ -478,6 +504,8 @@ This repository is the main place for:
 - Improvement history.
 
 The project was initially announced on Reddit, but GitHub is now the primary location for ongoing development, documentation, and updates.
+
+---
 
 ## Files
 
@@ -557,3 +585,5 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `CHANGELOG.md`: Chronological summary of notable project changes.
   - `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
   - `TODO.md`: Features planned for future releases. A check mark indicates that a feature has already been implemented.
+
+---

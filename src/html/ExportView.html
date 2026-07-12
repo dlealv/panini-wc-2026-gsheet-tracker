@@ -174,7 +174,7 @@
           exportTextEl.value = ''
           setMessage(`Export failed: ${error && error.message ? error.message : String(error)}`, 'error')
         })
-      const payload = getPayload()
+      const payload = Export.getPayload()
       if (currentExportMode === 'export_shared') {
         request.exportSharedStickerData(payload)
       } else {
@@ -193,7 +193,7 @@
         setMessage('There is no exported content to copy.', 'error')
         return
       }
-      copyToClipboard(exportTextEl.value)
+      Export.copyToClipboard(exportTextEl.value)
         .then(() => setMessage('Export copied to clipboard.', 'success'))
         .catch(() => setMessage('Failed to copy export.', 'error'))
     }
@@ -206,8 +206,8 @@
       }
       try {
         const type = currentExportMode === 'export_shared' ? 'shared' : 'all'
-        const fileName = buildExportFileName(type)
-        triggerDownload(exportTextEl.value, fileName)
+        const fileName = Export.buildExportFileName(type)
+        Export.triggerDownload(exportTextEl.value, fileName)
         setMessage(`Download started: ${fileName}`, 'success')
       } catch (error) {
         setMessage(`Could not start download.\n${error.message || error}`, 'error')

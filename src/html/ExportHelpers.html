@@ -16,117 +16,138 @@
    * application architecture.
  */
 
-  /** Builds a export filename using timestamp. The final name prefix is specific to the 
-   * export type (e.g. shared vs full) and is passed as an argument.
-   * @export
+  /** 
+   * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global 
+   * scope and to provide a clear structure for export-related functions.
+   * Functions exported from the namespace are tagged with @public to easy identification and documentation.
    */
-  function buildExportFileName(type = 'all', now = new Date()) {
-    const prefixMap = { all: 'panini-stickers-all', shared: 'panini-stickers-shared' }
-    const prefix = prefixMap[type] || prefixMap.all
-    const yyyy = now.getFullYear()
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const dd = String(now.getDate()).padStart(2, '0')
-    const hh = String(now.getHours()).padStart(2, '0')
-    const mi = String(now.getMinutes()).padStart(2, '0')
-    const ss = String(now.getSeconds()).padStart(2, '0')
+  window.Export = (function () {
 
-    return `${prefix}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
-  }
+    /** Builds a export filename using timestamp. The final name prefix is specific to the 
+     * export type (e.g. shared vs full) and is passed as an argument.
+     * @export
+     * @public
+     */
+    function buildExportFileName(type = 'all', now = new Date()) {
+      const prefixMap = { all: 'panini-stickers-all', shared: 'panini-stickers-shared' }
+      const prefix = prefixMap[type] || prefixMap.all
+      const yyyy = now.getFullYear()
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const dd = String(now.getDate()).padStart(2, '0')
+      const hh = String(now.getHours()).padStart(2, '0')
+      const mi = String(now.getMinutes()).padStart(2, '0')
+      const ss = String(now.getSeconds()).padStart(2, '0')
 
-
-  // =========================
-  // DOM HELPERS (NOT TESTED YET)
-  // =========================
-
-  /** Reads current UI state from DOM inputs.
-   * @export
-   */
-  function getUIState(deps = {}) {
-    const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
-    const sortDoneEl = deps.sortByDoneCheckbox ||
-      (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
-    const compactEl = deps.isCompactCheckbox ||
-      (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
-
-    return {
-      includeFlags: flagsEl ? flagsEl.checked : false,
-      sortByDone: sortDoneEl ? sortDoneEl.checked : false,
-      isCompact: compactEl ? compactEl.checked : false
+      return `${prefix}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
     }
-  }
 
-  /** Backend payload wrapper (stable contract for services).
-   * @export
-   */
-  function getPayload(deps = {}) {
-    return getUIState(deps)
-  }
 
-  /** Displays a message in the dialog UI.
-   * @export
-   */
-  function setMessage(text, type, deps = {}) {
-    const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
-    if (!el) { return }
-    el.className = `message ${type || 'info'}`
-    el.textContent = text || ''
-  }
+    // =========================
+    // DOM HELPERS (NOT TESTED YET)
+    // =========================
 
-  /** Enables/disables UI during async operations. 
-   * @export
-   */
-  function setBusy(isBusy, deps = {}) {
-    const doc = deps.document || document
-    const controls =
-      deps.controls ||
-      [
-        ...(typeof includeFlagsCheckbox !== 'undefined' ? [includeFlagsCheckbox] : []),
-        ...(typeof isCompactCheckbox !== 'undefined' ? [isCompactCheckbox] : []),
-        ...(typeof sortByDoneCheckbox !== 'undefined' ? [sortByDoneCheckbox] : [])
-      ]
-    doc.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
-    controls.forEach(el => { if (el) el.disabled = isBusy })
-  }
+    /** Reads current UI state from DOM inputs.
+     * @export
+     */
+    function getUIState(deps = {}) {
+      const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
+      const sortDoneEl = deps.sortByDoneCheckbox ||
+        (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
+      const compactEl = deps.isCompactCheckbox ||
+        (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
 
-  /** Copies text to clipboard (with fallback). 
-   * @export
-   */
-  async function copyToClipboard(text, deps = {}) {
-    const clipboard = deps.clipboard || navigator.clipboard
-    try {
-      await clipboard.writeText(text)
-    } catch (error) {
-      const exportTextEl = deps.exportTextEl || exportText
-      const execCommand = deps.execCommand || document.execCommand
-      exportTextEl.select()
-      execCommand('copy')
+      return {
+        includeFlags: flagsEl ? flagsEl.checked : false,
+        sortByDone: sortDoneEl ? sortDoneEl.checked : false,
+        isCompact: compactEl ? compactEl.checked : false
+      }
     }
-  }
 
-  /** Triggers download of a text file in browser. 
-   * @export
-   */
-  function triggerDownload(content, fileName, deps = {}) {
-    const doc = deps.document || document
-    const urlApi = deps.URL || URL
-    const setTimeoutFn = deps.setTimeoutFn || setTimeout
+    /** Backend payload wrapper (stable contract for services).
+     * @export
+     * @public
+     */
+    function getPayload(deps = {}) {
+      return getUIState(deps)
+    }
 
-    const blob = new Blob([content], {
-      type: 'text/plain;charset=utf-8'
-    })
+    /** Displays a message in the dialog UI.
+     * @export
+     */
+    function setMessage(text, type, deps = {}) {
+      const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
+      if (!el) { return }
+      el.className = `message ${type || 'info'}`
+      el.textContent = text || ''
+    }
 
-    const url = urlApi.createObjectURL(blob)
+    /** Enables/disables UI during async operations. 
+     * @export
+     */
+    function setBusy(isBusy, deps = {}) {
+      const doc = deps.document || document
+      const controls =
+        deps.controls ||
+        [
+          ...(typeof includeFlagsCheckbox !== 'undefined' ? [includeFlagsCheckbox] : []),
+          ...(typeof isCompactCheckbox !== 'undefined' ? [isCompactCheckbox] : []),
+          ...(typeof sortByDoneCheckbox !== 'undefined' ? [sortByDoneCheckbox] : [])
+        ]
+      doc.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+      controls.forEach(el => { if (el) el.disabled = isBusy })
+    }
 
-    const a = doc.createElement('a')
-    a.href = url
-    a.download = fileName
+    /** Copies text to clipboard (with fallback). 
+     * @export
+     * @public
+     */
+    async function copyToClipboard(text, deps = {}) {
+      const clipboard = deps.clipboard || navigator.clipboard
+      try {
+        await clipboard.writeText(text)
+      } catch (error) {
+        const exportTextEl = deps.exportTextEl || exportText
+        const execCommand = deps.execCommand || document.execCommand
+        exportTextEl.select()
+        execCommand('copy')
+      }
+    }
 
-    doc.body.appendChild(a)
-    a.click()
-    doc.body.removeChild(a)
+    /** Triggers download of a text file in browser. 
+     * @export
+     * @public
+     */
+    function triggerDownload(content, fileName, deps = {}) {
+      const doc = deps.document || document
+      const urlApi = deps.URL || URL
+      const setTimeoutFn = deps.setTimeoutFn || setTimeout
 
-    setTimeoutFn(() => {
-      urlApi.revokeObjectURL(url)
-    }, 1000)
-  }
+      const blob = new Blob([content], {
+        type: 'text/plain;charset=utf-8'
+      })
+
+      const url = urlApi.createObjectURL(blob)
+
+      const a = doc.createElement('a')
+      a.href = url
+      a.download = fileName
+
+      doc.body.appendChild(a)
+      a.click()
+      doc.body.removeChild(a)
+
+      setTimeoutFn(() => {
+        urlApi.revokeObjectURL(url)
+      }, 1000)
+    }
+
+    return { // namespace export
+      buildExportFileName,
+      getPayload,
+      copyToClipboard,
+      triggerDownload
+    }
+
+  })()
+
 </script>

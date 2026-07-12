@@ -1,16 +1,23 @@
 name: Panini WC 2026 GSheet Tracker - Production Deployment Pipeline
 
 permissions:
-  contents: read
+  contents: read # runner can only read repo contents
 
 on:
-  push:
+  
+  push:         # Triggers immediately when code lands on 'main' (all steps will run)
     branches:
-      - main  # Runs on merge or direct push to main
+      - main    # Runs on merge or direct push to main
+    paths:      # Only run workflow if these files are changed
+      - 'src/**'
+      - '.github/workflows/deploy.yml'
 
-  pull_request:
+  pull_request: # Triggers when someone tries to merge code INTO 'main' (Steps 1-8)
     branches:
-      - main  # Runs validation on PRs targeting main
+      - main    # Runs validation on PRs targeting main
+    paths:      # Only run workflow if these files are changed
+      - 'src/**'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   validate-and-deploy:
@@ -54,12 +61,12 @@ jobs:
           printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      # 9. Deploy to Google Apps Script production (push to main / merge only)
+      # 9. Push to Google Apps Script production (push to main / merge only)
       - name: Push Code Artifacts to GAS Production Server
         if: github.event_name == 'push'
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
 
-      # 10. Deploy Web App for Mobile services
+      # 10. Deploy Web App for Mobile services from GAS production server (step 9)
       - name: Deploy Web App for Mobile Services
         if: github.event_name == 'push'
         run: zsh scripts/clasp.zsh deploy ${{ secrets.PRODUCTION_SCRIPT_ID }} ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}

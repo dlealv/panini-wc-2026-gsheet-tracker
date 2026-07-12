@@ -4,9 +4,17 @@
  *
  * Responsibilities:
  * - converts .gs → .js for Jest execution
- * - extracts HTML helpers into .html.js
+ * - extracts HTML helpers (*Helpers.html or *Render.html) into .html.js
+ * - Remove namespace IIFE wrappers from HTML helpers to allow direct access to functions in Jest tests.
+ * - Remove return statements from namespace IIFE wrappers to allow direct access to functions in Jest tests.
  * - injects deterministic test export blocks
  * - preserves source traceability via SOURCE header
+ * - Assumptions for namespace IIFE wrappers:
+ *  - The namespace IIFE wrapper is the last statement in the file and occupies the entire file.
+ *  - The closing IIFE token must be the final code element (no trailing comments or code after the IIFE).
+ *
+ * Note: This build process is intended for Jest testing purposes only. It does not modify the original source files.
+ * The generated files are placed in the build/ directory and are not intended for production use.
  */
 
 const fs = require('fs')
@@ -47,7 +55,7 @@ function build() {
 
 /** Builds HTML helper files */
 function buildHelperFile({ relPath, fileName, content }) {
-  const jsContent = extractHelperJs(content)
+  const jsContent = unwrapNamespace(extractHelperJs(content))
   const exported = extractExportsFromTags(jsContent)
   const functionNames = exported.length ? exported : extractExportsFromTags(jsContent)
   const outputFileName = fileName.replace(/\.html$/i, '.html.js')
@@ -178,6 +186,46 @@ if (typeof module !== 'undefined') {
 }
 ${EXPORT_BLOCK_END}
 `
+}
+
+/**
+ * Removes a namespace IIFE wrapper from helper files.
+ * Assumptions:
+ *  - The namespace occupied the entire file.
+ *  - The IIFE is the last statement in the file.
+ *  - The namespace return block is the last "return {" in the IIFE body.
+ *  - The closing IIFE token must be the final code element (no trailing comments or code after the IIFE).
+ * Supports patterns such as:
+ *   window.Export = (function () { ... })();
+ *   globalThis.Export = (function () { ... })();
+ *   MyApp.Helpers = (function () { ... })();
+ *
+ * Extracts the IIFE body, removes the namespace public return block,
+ * and normalizes indentation by removing one namespace indentation level.
+ *
+ * If no namespace wrapper is found, the original content is returned.
+ */
+function unwrapNamespace(content) {
+  /** Removes one indentation level from the extracted body */
+  function normalizeIndentation(text) {
+    const lines = text.split('\n')
+    const normalizedLines = lines.map(line => line.replace(/^ {4}/, ''))
+    return normalizedLines.join('\n').trim()
+  }
+  // Detect namespace IIFE wrapper and capture only its body.
+  const namespaceRegex = /=\s*\(\s*function\s*\(\)\s*\{\s*([\s\S]*?)\s*\}\s*\)\s*\(\s*\)\s*;?\s*$/
+  const match = content.match(namespaceRegex)
+  if (!match) {
+    return content
+  }
+  let body = match[1]
+  // Remove the namespace public API return block.
+  // The namespace return is expected to be the last "return {" in the IIFE body.
+  const namespaceReturnIndex = body.lastIndexOf('return {')
+  if (namespaceReturnIndex !== -1) {
+    body = body.substring(0, namespaceReturnIndex)
+  }
+  return normalizeIndentation(body)
 }
 
 // Main execution
