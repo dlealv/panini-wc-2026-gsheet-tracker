@@ -22,14 +22,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Setup common project environment
+      # 1. Checkout repository
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      # 2. Setup common project environment
       - name: Setup Project Environment
         uses: ./.github/actions/setup-project
 
-      # 2. Run ESLint
+      # 3. Run ESLint
       - name: Run ESLint Quality Check
         run: npm run lint
 
-      # 3. Build project and execute unit tests
+      # 4. Build project and execute unit tests
       - name: Project Build and Run Jest Testing Suites
         run: npm test

@@ -586,8 +586,8 @@ Its purpose is to validate the project without performing any deployment.
 
 The workflow performs the following actions:
 
-1. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
-   - Checkout the repository.
+1. Checkout the repository
+2. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
    - Setup the Node.js environment.
    - Install project dependencies (`npm ci`).
 2. Run ESLint.
@@ -618,8 +618,8 @@ This workflow is executed only after a push to the `main` branch **and** only wh
 
 The workflow performs the following actions:
 
-1. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
-   - Checkout the repository.
+1. Checkout the repository
+2. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
    - Setup the Node.js environment.
    - Install project dependencies (`npm ci`).
 2. Install `zsh` (required to execute the `clasp.zsh` helper script).
@@ -654,9 +654,8 @@ Both workflows reuse a common Composite Action located at:
 
 This action centralizes the common CI setup steps:
 
-1. Checkout the repository.
-2. Setup the `Node.js` environment.
-3. Install project dependencies (`npm ci`).
+1. Setup the `Node.js` environment.
+2. Install project dependencies (`npm ci`).
 
 Using a Composite Action eliminates duplicated workflow steps and ensures both workflows execute in a consistent environment.
 
