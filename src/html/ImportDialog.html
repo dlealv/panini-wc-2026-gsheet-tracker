@@ -245,15 +245,15 @@
         const file = event.target.files && event.target.files[0]
         if (!file) return
         try {
-          setBusy(true)
-          setMessage(`Reading file: ${file.name}...`, 'info')
+          Import.setBusy(true)
+          Import.setMessage(`Reading file: ${file.name}...`, 'info')
           const text = await file.text()
           textInput.value = text
-          setMessage(`Loaded file: ${file.name}`, 'success')
+          Import.setMessage(`Loaded file: ${file.name}`, 'success')
         } catch (error) {
-          setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
+          Import.setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
         } finally {
-          setBusy(false)
+          Import.setBusy(false)
         }
       })
     }
@@ -289,51 +289,51 @@
 
     /**Validates the current import input and renders a preview without writing data. */
     function previewData() {
-      clearPreview()
-      setBusy(true)
-      setMessage('Validating input...', 'info')
+      Import.clearPreview()
+      Import.setBusy(true)
+      Import.setMessage('Validating input...', 'info')
       google.script.run
         .withSuccessHandler((result) => {
-          setBusy(false)
-          setMessage('Validation successful.', 'success')
+          Import.setBusy(false)
+          Import.setMessage('Validation successful.', 'success')
           renderWarnings(result.warnings)
-          renderPreview(result)
+          Import.renderPreview(result)
         })
         .withFailureHandler((error) => {
-          setBusy(false)
-          clearPreview()
-          setMessage(error && error.message ? error.message : String(error), 'error')
+          Import.setBusy(false)
+          Import.clearPreview()
+          Import.setMessage(error && error.message ? error.message : String(error), 'error')
         })
-        .previewStickerData(getPayload())
+        .previewStickerData(Import.getPayload())
     }
 
     /**Imports the current sticker payload into the spreadsheet. */
     function importData() {
-      clearPreview()
-      setBusy(true)
-      setMessage('Importing data...', 'info')
+      Import.clearPreview()
+      Import.setBusy(true)
+      Import.setMessage('Importing data...', 'info')
       google.script.run
         .withSuccessHandler((result) => {
-          setBusy(false)
-          setMessage(result && result.message ? result.message : 'Import completed.', 'success')
+          Import.setBusy(false)
+          Import.setMessage(result && result.message ? result.message : 'Import completed.', 'success')
           renderWarnings(result.warnings)
         })
         .withFailureHandler((error) => {
-          setBusy(false)
-          setMessage(error && error.message ? error.message : String(error), 'error')
+          Import.setBusy(false)
+          Import.setMessage(error && error.message ? error.message : String(error), 'error')
         })
-        .importStickerData(getPayload())
+        .importStickerData(Import.getPayload())
     }
 
     /**Resets the import form inputs, preview, and warnings areas. */
     function clearInput() {
-      setBusy(false)
+      Import.setBusy(false)
       if (fileInput) fileInput.value = ''
       if (textInput) { textInput.value = ''; textInput.focus() }
       if (modeInput) modeInput.value = 'update'
-      clearPreview()
+      Import.clearPreview()
       renderWarnings([])
-      setMessage('Input cleared.', 'info')
+      Import.setMessage('Input cleared.', 'info')
     }
 
   </script>

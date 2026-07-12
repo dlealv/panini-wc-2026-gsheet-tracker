@@ -187,7 +187,7 @@
       renderApplyButton()
       renderCountryList()
     } catch (e) {
-      setMessage('Render error: ' + (e.message || e), 'error')
+      QuickEntry.setMessage('Render error: ' + (e.message || e), 'error')
     }
   }
 
@@ -233,20 +233,20 @@
 
   /**Enables or disables the Update button.*/
   function renderApplyButton() {
-    applyChangesButton.disabled = state.isBusy || getPendingUpdates(state.pendingUpdates).length === 0
+    applyChangesButton.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
   }
 
   /**Renders the visible country cards.*/
   function renderCountryList() {
     const layout = getLayout()
-    const visibleCountries = getVisibleCountries(state, layout)
+    const visibleCountries = QuickEntry.getVisibleCountries(state, layout)
     countryListEl.innerHTML = ''
     if (!visibleCountries.length) {
-      countryListEl.appendChild(buildEmptyState(getEmptyStateMessage()))
+      countryListEl.appendChild(QuickEntry.buildEmptyState(getEmptyStateMessage()))
       return
     }
     visibleCountries.forEach(country => {
-      countryListEl.appendChild(buildCountrySection(country, state, layout, queueStickerChangeHandler))
+      countryListEl.appendChild(QuickEntryRender.buildCountrySection(country, state, layout, queueStickerChangeHandler))
     })
   }
 
@@ -258,15 +258,15 @@
 
   /**Queues a sticker count change locally.*/
   function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
-    const result = queueStickerChange(state, countryCode, stickerNumber, nextCount)
+    const result = QuickEntry.queueStickerChange(state, countryCode, stickerNumber, nextCount)
     state.pendingUpdates = result.pendingUpdates
-    updatePendingChangesMessage(state, showMessage)
+    QuickEntry.updatePendingChangesMessage(state, showMessage)
     renderAll()
   }
 
   /**Applies pending sticker updates to the backend in the front-end just the local state is updated immediately.*/
   function applyChanges() {
-    const pending = getPendingUpdates(state.pendingUpdates)
+    const pending = QuickEntry.getPendingUpdates(state.pendingUpdates)
     if (!pending.length) {
       showMessage('There are no pending changes to update.', 'info')
       return
@@ -278,7 +278,7 @@
       : 'applyQuickEntryUpdatesMobile'
     google.script.run
       .withSuccessHandler(result => {
-        commitPendingUpdates(state, pending)
+        QuickEntry.commitPendingUpdates(state, pending)
         state.pendingUpdates = {}
         showBusyState(false)
         renderAll()
@@ -290,14 +290,14 @@
 
   /**Displays a status message in the dialog.*/
   function showMessage(text, type) {
-    setMessage(messageEl, text, type)
+    QuickEntry.setMessage(messageEl, text, type)
   }
 
   /**Updates the busy state safely without helper dependencies.*/
   function showBusyState(isBusy) {
     try {
       state.isBusy = Boolean(isBusy)
-      applyChangesButton.disabled = state.isBusy || getPendingUpdates(state.pendingUpdates).length === 0
+      applyChangesButton.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
       teamSearchInput.disabled = state.isBusy
       groupFilterSelect.disabled = state.isBusy
       if (statusFilterSelect) {

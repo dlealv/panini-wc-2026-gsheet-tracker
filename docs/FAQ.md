@@ -25,39 +25,38 @@ instead of:
 <>MEX,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 ```
 
-### Can I use the exclusion operator to import all stickers?
-You may think that entering: 
+### Can I use this tracker from a mobile device?
 
-```text
-<>MEX
-```
-Will be interpreted as import all stickers from Mexico, but actually this produce a warning, since the exclusion operator after a country code expects the list of stickers. The correct way to achieve it is not using the exclusion operator and instead:
+Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device. Because Google Apps Script does not provide native support for mobile add-ons, **a one-time setup is required** after making a copy of the tracker template. For setup instructions, see the **Mobile Services** section in the [README](../README.md).
 
-```text
-MEX,1-20
-```
+### After copying the Panini template, I don't see the **Manage Panini** menu?
 
-### Can I import stickers from a mobile phone?
+This is usually a timing issue. It may take a few moments for the menu to appear. Simply refresh the page, and the **Manage Panini** menu should become available.
 
-Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
+### After copying the Panini template and granting access, I don't see the `appsscript.json` file?
 
-Because Google Apps Script does not provide native support for mobile add-ons, a one-time setup is required after making a copy of the tracker template.
+When you copy the Apps Script project, a new local Apps Script project is created. By default, the manifest file from the template project is hidden.
 
-To enable the mobile web application:
+To display it:
 
-1. Open the Google Sheet tracker.
-2. Select **Manage Panini** → **Mobile web app link**.
-3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web app**.
-4. Follow the deployment steps. The web application is deployed within your own Google account, ensuring that only you can access your album data.
-5. After the initial deployment, select **Manage Panini** → **Mobile web app link** again. The dialog will now display the URL of your deployed web application.
-6. Open the URL from any mobile browser or save it to your device's home screen for quick access.
+1. In Google Sheets, open the **Extensions** menu and select **Apps Script**.
+2. In the Apps Script editor, click **Project Settings** (gear icon).
+3. Enable the option **Show "appsscript.json" manifest file in editor**.
+4. Return to the **Editor** view.
 
-The deployment process only needs to be completed once. After that, the same web application URL can be used whenever you want to access the tracker from your mobile device.
+You will now see the [`appsscript.json`](../src/appsscript.json) file. It contains the same settings as the template project, although the fields may appear in a different order.
 
-Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web app provides a practical and secure solution for accessing the Google Sheet tracker from smartphones and tablets.
+### After following the instructions in the Mobile Web App link, I don't see the URL?
 
----
+This is usually a timing issue. It may take a minute or so for Google Apps Script to complete the deployment and generate the Web App URL.
 
+The purpose of this step is simply to provide you with the Web App URL. Alternatively, once the deployment is complete, you can copy the URL directly from the deployment dialog, as shown below:
+
+![Mobile Service: Manage Deployments](../images/manageDeploymentsView.jpg)
+
+### After deploying the Web App, I don't see the application listed?
+
+This is usually a timing issue. Refresh the Apps Script page, then open the **Deploy** drop-down menu in the upper-right corner and select **Manage deployments**. The newly deployed Web App should appear in the list.
 ## Google Access/Security Questions
 
 ### Why this warning can appear

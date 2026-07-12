@@ -11,4 +11,6 @@
 - [x] Reorganize the repository to have the source code in `src` folder. Separate `gs` from `html` or by services. Have a `test` folder for unit testing.
 - [x] Add a service in Manage Panini to generate swap info (repeats and missing) in text format including icons. In a way it can be sent in a friendly manner in a text message for example.
 - [x] In the `Reports` tab, include repeats. Currently only unique repeats.
+- [ ] Include Coca-Cola stickers
+- [ ] Reuse functions in `ImportHelper.html` in `MobileImportView.html` since some of the services are the same. Do it with caution since how it is it working as expected.
 

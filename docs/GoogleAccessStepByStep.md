@@ -15,13 +15,13 @@ you will be prompted to view the content with permission to comment. Since the t
 You may also see a banner message like this:
 ![Allow access banner](../images/google%20access/allowAccessBanner.jpg)
 
-Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flagpedia.net](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on "Allow access" to avoid any error in the template while getting access to the country flags.
+Click on the “Learn more” link to get more information, but the primary purpose of the template is to use the `IMAGE` function to access country flags. The template utilizes flags from [Flags API & CDN](https://flagcdn.com/). Note that this is an external link, but it serves as a legal resource for obtaining country flags. Click on "Allow access" to avoid any error in the template while getting access to the country flags.
 
 After you make a copy of the file, you are ready to go. 
 
 ## Provide Access to the Apps Script Project
 
-If you want to use one of the services of the **Manage Panini** menu then you need to provide access to the Apps Script project. Select any of the service under the manu and you will get the following message:
+If you want to use one of the services of the **Manage Panini** menu then you need to provide access to the Apps Script project. Select any of the service under the menu and you will get the following message:
 
 ![Access request](../images/google%20access/authorizationRequiredMessage.jpg)
 
