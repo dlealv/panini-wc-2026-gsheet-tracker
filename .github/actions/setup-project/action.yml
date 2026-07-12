@@ -1,0 +1,20 @@
+name: Setup Panini WC 2026 GSheet Tracker Project
+# .github/actions/setup-project/action.yml
+
+description: Sets up the common project environment for all CI workflows
+
+runs:
+  using: composite
+
+  steps:
+    # 1. Setup Node.js
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+
+    # 2. Install project dependencies
+    - name: Install Project Dependencies
+      shell: bash
+      run: npm ci
