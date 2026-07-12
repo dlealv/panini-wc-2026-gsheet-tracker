@@ -482,31 +482,34 @@ The script defines `sed_safe` function to ensure `sed` command works for both ma
 
 ## 7. Continuous Integration (CI) Deployment Blueprint
 
-The continuous integration architecture leverages GitHub Actions to enforce automated testing quality-gates before promoting and publishing validated artifacts directly to the staging/production Google Apps Script instance.
+The Continuous Integration (CI) architecture leverages GitHub Actions to enforce automated quality gates before publishing validated artifacts to the production Google Apps Script environment.
 
 ### Secure Credentials Management
-Production environment variables are securely decoupled from the git history by using repository-level **GitHub Actions Secrets**. Two keys must be added inside your repository's **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions** dashboard:
 
-1.  `PRODUCTION_SCRIPT_ID`: The unique target Google Apps Script production environment credential token.
-2.  `CLASPRC_JSON_SECRET`: The entire content string copied out of your private global home computer authentication configuration file (`~/.clasprc.json`).
-3. `PRODUCTION_DEPLOYMENT_ID`: The unique target Web app deployment id for production Google sheet tracker. This id is the URL used by the user to get access to services defined in custom menu **Manage Panini** from a mobile device.
+Production credentials are securely decoupled from the Git history by using repository-level **GitHub Actions Secrets**. The following secrets must be configured under **Settings → Secrets and variables → Actions** in your GitHub repository:
 
-### 🔁 Standard Production Deployment Workflow (GitHub CI via `main` branch)
+1. `CLASPRC_JSON_SECRET`: The complete contents of your local Google Apps Script authentication file (`~/.clasprc.json`).
+2. `PRODUCTION_SCRIPT_ID`: The Script ID of the production Google Apps Script project.
+3. `PRODUCTION_DEPLOYMENT_ID`: The Deployment ID of the production Web App. This deployment corresponds to the URL used by end users to access the services exposed through the **Manage Panini** custom menu from a mobile device.
 
-This is the **REQUIRED** workflow for any production change.
+### 🔁 Standard Production Deployment Workflow (GitHub CI via `main` Branch)
 
-#### 1. Start from latest main
+This is the **required** workflow for every production change.
+
+#### 1. Start from the latest `main`
+
 ```bash
-git checkout main       # switches your current working directory to the "main" branch
-git pull origin main    # downloads the latest changes from the main branch of your remote repository
-                        # and immediately merges them into your current local branch
+git checkout main       # Switches your working directory to the "main" branch
+git pull origin main    # Downloads and merges the latest changes from the remote "main" branch
 ```
 
-#### 2. Create a new feature branch
+#### 2. Create a feature branch
+
 ```bash
 git checkout -b <branchName>
 ```
-> A common practice is to use a structured naming convention such as `feature/<branchName>`, although this is not enforced by CI.
+
+> A common practice is to use a structured naming convention such as `feature/<branchName>`, although this is not enforced by the CI pipeline.
 
 Example:
 
@@ -516,95 +519,192 @@ git checkout -b add-country-filter              # short branch name
 ```
 
 #### 3. Make changes locally
-Make changes in the project files.
 
-#### 4. Run full local validation
+Implement the required changes in the project.
+
+#### 4. Run local validation
 
 ```bash
 npm run deploy:test
 ```
 
-This ensures:
-- lint passes.
-- build succeeds.
-- tests pass.
-- GAS repository updated via `clasp:push` (staging environment, not production).
+This command performs the following actions:
 
-If you want to deploy also the Web app, then run instead:
+- Runs ESLint.
+- Executes the test suite.
+- Pushes the project to the staging Google Apps Script project (`clasp:push`).
+
+If you also want to deploy the staging Web App, run instead:
 
 ```bash
 npm run deploy:all
 ```
 
-#### 5. Commit changes
+#### 5. Commit the changes
 
 ```bash
-git add .  # stages all new, modified, and deleted files in the current directory to prepare them for the next commit
-git commit -m "<summary of changes>" # commits all staged files
+git add .                                        # Stage all modified, added, and deleted files
+git commit -m "<summary of changes>"             # Commit the staged changes
 ```
 
-#### 6. Push branch to GitHub
+#### 6. Push the feature branch
 
 ```bash
-git push origin <branchName> # upload local code changes (commits) to a specific branch on your remote server
+git push origin <branchName>                     # Push the local branch to GitHub
 ```
 
-#### 7. Create Pull Request (GitHub UI)
+#### 7. Create a Pull Request
 
-- Open GitHub repository.
-- Click "Compare & pull request" (a banner pops up on the main page).
-- Target branch: `main`.
-- Source branch: `<branchName>`.
+From the GitHub web interface:
 
-Github will trigger a CI pipeline executing the workflow defined here: `.github/workflows/deploy.yml`.
+- Open the repository.
+- Click **Compare & pull request**.
+- Set:
+  - **Base branch:** `main`
+  - **Compare branch:** `<branchName>`
 
-#### 8. Wait for CI pipeline (GitHub Actions)
+#### 8. Wait for the GitHub Actions workflow
 
-GitHub Actions will automatically run:
+Once the Pull Request is created (or updated), GitHub Actions automatically executes the appropriate workflow.
 
-- `npm ci`.
-- `npm run lint`.
-- `npm test` (includes npm run build as prerequisite).
-- Inject `CLASPRC_JSON_SECRET` into CI runtime as `~/.clasprc.json`.
-- Execute deployment via `scripts/clasp.zsh push` (production scriptId injected via GitHub Secrets).
+Two independent workflows are defined:
 
-#### 9. If CI is green $\rightarrow$ merge PR
+##### Validation Workflow
 
-- Click "Merge pull request".
-- Confirm merge into `main`.
+**Workflow file**
 
-#### 10. Restore local repository
+```text
+.github/workflows/validate.yml
+```
+
+This workflow is executed for:
+
+- Every push to the `main` branch.
+- Every Pull Request targeting the `main` branch.
+
+Its purpose is to validate the project without performing any deployment.
+
+The workflow performs the following actions:
+
+1. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
+   - Checkout the repository.
+   - Setup the Node.js environment.
+   - Install project dependencies (`npm ci`).
+2. Run ESLint.
+
+   ```bash
+   npm run lint
+   ```
+
+3. Execute the test suite.
+
+   ```bash
+   npm test
+   ```
+
+##### Production Deployment Workflow
+
+**Workflow file**
+
+```text
+.github/workflows/deploy.yml
+```
+
+This workflow is executed only after a push to the `main` branch **and** only when one or more of the following paths are modified:
+
+- `src/**`
+- `.github/workflows/deploy.yml`
+- `.github/actions/setup-project/**`
+
+The workflow performs the following actions:
+
+1. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
+   - Checkout the repository.
+   - Setup the Node.js environment.
+   - Install project dependencies (`npm ci`).
+2. Install `zsh` (required to execute the `clasp.zsh` helper script).
+3. Install the Google Apps Script CLI.
+
+   ```bash
+   npm install -g @google/clasp
+   ```
+
+4. Inject the Google Apps Script authentication credentials by creating the runtime file `~/.clasprc.json` from the `CLASPRC_JSON_SECRET` repository secret.
+5. Push the project source to the production Google Apps Script project.
+
+   ```bash
+   zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
+   ```
+
+6. Create a new version of the production Web App while preserving the existing deployment description.
+
+   ```bash
+   zsh scripts/clasp.zsh deploy \
+     ${{ secrets.PRODUCTION_SCRIPT_ID }} \
+     ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
+   ```
+
+##### Shared Composite Action
+
+Both workflows reuse a common Composite Action located at:
+
+```text
+.github/actions/setup-project/action.yml
+```
+
+This action centralizes the common CI setup steps:
+
+1. Checkout the repository.
+2. Setup the `Node.js` environment.
+3. Install project dependencies (`npm ci`).
+
+Using a Composite Action eliminates duplicated workflow steps and ensures both workflows execute in a consistent environment.
+
+#### 9. Merge the Pull Request
+
+Once all required GitHub Actions checks complete successfully:
+
+- Click **Merge pull request**.
+- Confirm the merge into `main`.
+
+The production deployment workflow will automatically execute after the merge if the merged changes satisfy its configured path filters.
+
+#### 10. Synchronize the local repository
+
 ```bash
 git checkout main
 git pull origin main
 ```
 
-#### 11. Delete remote branch (GitHub UI or CLI)
+#### 11. Delete the remote feature branch
 
-You can delete the merged branch from Github website or just:
+The merged branch can be deleted from the GitHub web interface or from the command line:
 
 ```bash
 git push origin --delete <branchName>
 ```
 
-#### 12. Delete local branch
+#### 12. Delete the local feature branch
 
 ```bash
 git branch -d <branchName>
 ```
-You can remove more than one branch adding branch name delimited by space:
+
+Multiple merged branches can be deleted simultaneously:
 
 ```bash
-git branch -d <branchName1> <branchName2> <branchName3> ...
+git branch -d <branchName1> <branchName2> <branchName3>
 ```
-You can identify all branches already merged to main (candidate for deletion) as follows:
+
+To list all branches that have already been merged into `main`:
 
 ```bash
 git branch --merged main
 ```
 
----
+These branches are candidates for deletion.
 
+---
 
 ## FAQ
 

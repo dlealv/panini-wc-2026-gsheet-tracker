@@ -14,6 +14,18 @@ Mayor version. Implemented mobile services, including all services available in 
 
 ### Added
 
+- Under the `.github` folder:
+  - `actions` folder added
+
+- Under the `.github/action` folder:
+  - `setup-project` folder added
+
+- Under the `.github/actions/setup-project`:
+  - `action.yml`: It includes the common setup for both `deploy.yml` and `validate.yml` workflows files.
+
+- Under the `.github/workflows` folder:
+  - `validate.yml`: Separated the validation process from `deploy.yml` into a validation workflow.
+
 - Under the `image` folder:
   - `mobileQuickentryView.jpg`: Mobile view of the Quick Entry service.
   - `mobileWepAppLinkDeployView.jpg`: Dialog informing the user how to deploy a Web app so it can be run from a mobile device.
@@ -76,6 +88,7 @@ Mayor version. Implemented mobile services, including all services available in 
     - Included the mobile architecture as part of the technical architecture documentation.
     - Provided more details about the `clasp.zsh` script, including the new `deploy` action required to deploy the mobile solution.
     - Indicated when to use `deploy:test` and `deploy:all` script tasks.
+    - Detailed CI pipeline with the new setup using composition via `action.yml` and having two workflows: `deploy.yml` and `validate.yml`.
     
   - `GoogleAccessStepByStep.md`: Spelling and minor corrections.
 

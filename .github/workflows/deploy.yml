@@ -1,72 +1,51 @@
-name: Panini WC 2026 GSheet Tracker - Production Deployment Pipeline
+name: Panini WC 2026 GSheet Tracker - Production Deployment
+# .github/workflows/deploy.yml
+
+# Deploys the production Google Apps Script project.
+# Runs only for pushes to main that modify deployable source files.
 
 permissions:
-  contents: read # runner can only read repo contents
+  contents: read # runner can only read repository contents
 
 on:
-  
-  push:         # Triggers immediately when code lands on 'main' (all steps will run)
+  push: # Triggers immediately when code lands on 'main'
     branches:
-      - main    # Runs on merge or direct push to main
-    paths:      # Only run workflow if these files are changed
+      - main # Runs on merge or direct push to 'main'
+    paths: # Only run this deployment workflow when these paths change
       - 'src/**'
       - '.github/workflows/deploy.yml'
-
-  pull_request: # Triggers when someone tries to merge code INTO 'main' (Steps 1-8)
-    branches:
-      - main    # Runs validation on PRs targeting main
-    paths:      # Only run workflow if these files are changed
-      - 'src/**'
-      - '.github/workflows/deploy.yml'
+      - '.github/actions/setup-project/**'
 
 jobs:
-  validate-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
-      - name: Checkout Repository Code
-        uses: actions/checkout@v4
+      # 1. Setup common project environment
+      - name: Setup Project Environment
+        uses: ./.github/actions/setup-project
 
-      # 2. Setup Node.js
-      - name: Setup Node.js Environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      # 3. Install dependencies
-      - name: Install Project Dependencies
-        run: npm ci
-
-      # 4. Install clasp globally so clasp.zsh can execute "clasp"
-      - name: Install clasp CLI
-        run: npm install -g @google/clasp
-
-      # 5. Run ESLint
-      - name: Run ESLint Quality Check
-        run: npm run lint
-
-      # 6. Build + tests
-      - name: Project build and Run Jest Testing Suites
-        run: npm test
-
-      # 7. Install zsh (required by deployment script)
+      # 2. Install zsh
       - name: Install zsh
         run: sudo apt-get update && sudo apt-get install -y zsh
 
-      # 8. Inject Google clasp credentials
+      # 3. Install clasp CLI
+      - name: Install clasp CLI
+        run: npm install -g @google/clasp
+
+      # 4. Inject clasp credentials
       - name: Inject Clasp Authentication Tokens
         run: |
           printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      # 9. Push to Google Apps Script production (push to main / merge only)
+      # 5. Push project source to the Google Apps Script project
       - name: Push Code Artifacts to GAS Production Server
-        if: github.event_name == 'push'
         run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
 
-      # 10. Deploy Web App for Mobile services from GAS production server (step 9)
+      # 6. Create a new deployment version of the Apps Script Web App
       - name: Deploy Web App for Mobile Services
-        if: github.event_name == 'push'
-        run: zsh scripts/clasp.zsh deploy ${{ secrets.PRODUCTION_SCRIPT_ID }} ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
+        run: |
+          zsh scripts/clasp.zsh deploy \
+            ${{ secrets.PRODUCTION_SCRIPT_ID }} \
+            ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
