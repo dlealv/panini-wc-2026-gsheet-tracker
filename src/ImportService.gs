@@ -78,9 +78,13 @@ class ImportService {
     const importStickers = new ImportStickers(this.getRepo().getCountryMap())
     const parsed = importStickers.parse(text)
     const countries = parsed.countries
-    if (normalizedMode === 'clean_all') { this._clearAllCounts() }
-    else if (normalizedMode === 'replace_countries') { this._clearCountries(countries) }
-    else if (normalizedMode !== 'update') { throw new Error(`Invalid import mode "${normalizedMode}".`) }
+    if (normalizedMode === 'clean_all') {
+      this._clearAllCounts()
+    } else if (normalizedMode === 'replace_countries') {
+      this._clearCountries(countries)
+    } else if (normalizedMode !== 'update') {
+      throw new Error(`Invalid import mode "${normalizedMode}".`)
+    }
     this._writeCountries(countries)
     return { success: true, warnings: parsed.warnings, message: `Imported ${countries.length} country row(s) successfully.` }
   }
@@ -132,8 +136,14 @@ class ImportService {
         if (offset < 0 || offset >= TOTAL_COLS) { throw new Error(`Sticker number out of range.`) }
         outputValues[offset] = item.counts[key]
       })
-      const invalidOffset = item.code === 'FWC' ? 20 : 0
-      outputValues[invalidOffset] = 0
+      // Apply country-specific bounds to ensure only valid stickers are written, setting out-of-bounds stickers to 0.
+      const bounds = StickerSheetRepository.getCountryBounds()
+      const [minSticker, maxSticker] = bounds.get(item.code) || bounds.get('TEAM')
+      for (let sticker = 0; sticker < TOTAL_COLS; sticker++) {
+        if (sticker < minSticker || sticker > maxSticker) {
+          outputValues[sticker] = 0
+        }
+      }
       range.setValues([outputValues])
     })
   }
@@ -220,8 +230,9 @@ class ImportStickers {
 
   /** Validates one country code. Returns false and collects a warning when invalid or unknown. */
   _validateCountryCode(code, warnings) {
-    if (!/^[A-Z]{3}$/.test(code) || !this.countryMap[code]) {
-      warnings.push(`Country "${code}": not valid, line skipped.`)
+    const COUNTRY_CODE_PATTERN = new RegExp(this.COUNTRY_CODE_PATTERN)
+    if (!COUNTRY_CODE_PATTERN.test(code) || !this.countryMap[code]) {
+      warnings.push(`Country1 "${code}": not valid, line skipped.`)
       return false
     }
     return true
@@ -244,16 +255,25 @@ class ImportStickers {
   }
 
   /**
-   * Validates one sticker number against the absolute range 0-20.
-   * Returns false and collects a warning using the country-specific allowed range in the message.
-   * FWC valid range is 0-19; all other countries valid range is 1-20.
+   * Validates one sticker number against the global sticker domain.
+   * Returns false and collects a warning only for INVALID_STICKER
+   * (outside the global numeric domain).
+   *
+   * OUT_OF_ALBUM_STICKER values (e.g. CC,13 or MEX,0, FWC,20) are considered
+   * valid by the parser and are handled later during import.
    */
   _validateStickerNumber(stickerNumber, code, warnings) {
-    if (!Number.isInteger(stickerNumber) || stickerNumber < 0 || stickerNumber > 20) {
-      const range = code === 'FWC' ? '0-19' : '1-20'
+    const min = StickerSheetRepository.getStickerMin()
+    const max = StickerSheetRepository.getStickerMax()
 
-      warnings.push(`Country "${code}": sticker number ${stickerNumber} is \
-        outside allowed range ${range}. Sticker skipped.`)
+    if (!Number.isInteger(stickerNumber) || stickerNumber < min || stickerNumber > max) {
+      const bounds = StickerSheetRepository.getCountryBounds()
+      const [countryMin, countryMax] = bounds.get(code) || bounds.get('TEAM')
+      warnings.push(
+        `Country "${code}": sticker number ${stickerNumber} ` +
+        `is outside allowed range ${countryMin}-${countryMax}. ` +
+        `Sticker skipped.`
+      )
       return false
     }
     return true
@@ -266,16 +286,19 @@ class ImportStickers {
     }
   }
 
-  /** Maps a parsed sticker token to the final count written into the sheet. */
+  /** Maps a parsed sticker token to the final count written into the sheet. 
+   * @param {string} code - The country code.
+   * @param {number} stickerNumber - The sticker number.
+   * @param {number|null} explicitCount - The explicit repeat count, or null if not specified. 
+   *  For example N(X) or A-B(X) would have explicitCount = X, while N or A-B would have explicitCount = null.
+   */
   _mapTokenToCount(code, stickerNumber, explicitCount) {
-    // special boundary rules: sticker 0 valid only for FWC; sticker 20 valid only for non-FWC
-    if (stickerNumber === 0) {
-      if (code === 'FWC') { return explicitCount !== null ? explicitCount : 1 }
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [minSticker, maxSticker] = bounds.get(code) || bounds.get('TEAM')
+
+    // OUT_OF_ALBUM_STICKER: accepted by the parser but mapped to 0.
+    if (stickerNumber < minSticker || stickerNumber > maxSticker) {
       return 0
-    }
-    if (stickerNumber === 20) {
-      if (code === 'FWC') { return 0 }
-      return explicitCount !== null ? explicitCount : 1
     }
     return explicitCount !== null ? explicitCount : 1
   }
@@ -294,6 +317,12 @@ class LineNormalize {
    * countryMap must be keyed by uppercase 3-letter country code.
    */
   constructor(countryMap) {
+    /* Country code pattern for Format 2, including the special case of CC. */
+    this.COUNTRY_CODE_PATTERN = '[A-Z]{3}|CC'
+
+    /* Format 2 token pattern: COUNTRY-STICKER or COUNTRYSTICKER. */
+    this.FORMAT2_COUNTRY_REGEX = new RegExp(`^(${this.COUNTRY_CODE_PATTERN})-?(\\d.*)$`)
+
     this.countryMap = Object.fromEntries(
       Object.entries(countryMap).map(([code, value]) => [code.toUpperCase(), value])
     )
@@ -313,6 +342,7 @@ class LineNormalize {
    */
   normalizeLine(rawLine) {
     const warnings = []
+    // Processing steps at line level
     const stripped = this._stripNonAsciiAndUpperCase(rawLine)
     if (!stripped) { return { line: null, warnings } }
     const normalizedDels = this._normalizeDelimiters(stripped)
@@ -320,6 +350,7 @@ class LineNormalize {
     const normalizedRepeats = this._normalizeRepeats(normalizedDels)
     if (!normalizedRepeats) { return { line: null, warnings } }
     const { isExclusion, rest } = this._detectExclusionOperator(normalizedRepeats)
+    // Processing steps at token level
     const tokens = rest.split(',').filter(Boolean)
     if (tokens.length === 0) { return { line: null, warnings } }
     const { code, firstStickerToken } = this._extractCountryCode(tokens[0], warnings)
@@ -349,7 +380,7 @@ class LineNormalize {
       replace(/[^\x00-\x7F]/g, '').toUpperCase()
   }
 
-  /** Normalizes delimiters to comma and removes repeated or leading/trailing commas. */
+  /** Normalizes delimiters (';', ':', whitespace) to comma and removes repeated or leading/trailing commas.*/
   _normalizeDelimiters(line) {
     return line.
       replace(/;/g, ',').replace(/:+/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',').replace(/^,|,$/g, '')
@@ -384,21 +415,30 @@ class LineNormalize {
 
   /**
    * Extracts country code from the first token.
-   * Supports Format 1 (MEX) and Format 2 (MEX-1 / MEX1).
+   * Supports Format 1 (MEX / CC) and Format 2 (MEX-1 / MEX1 / CC-1 / CC1).
    * Also extracts the first sticker token in Format 2 lines.
-   * Example: "MEX-5(2)" would produce code "MEX" and firstStickerToken "5(2)", 
-   * while "MEX" would produce code "MEX" and null firstStickerToken.
-   */
+   * Example: "MEX-5(2)" would produce code "MEX" and firstStickerToken "5(2)",
+   * "CC-5(2)" would produce code "CC" and firstStickerToken "5(2)",
+   * while "MEX" or "CC" would produce the country code and null firstStickerToken.
+   * @returns { code: string|null, firstStickerToken: string|null } For format 1 the firstStickerToken is null, 
+   * for format 2 it is the first sticker token.
+ */
   _extractCountryCode(firstToken, warnings) {
-    if (/^[A-Z]{3}$/.test(firstToken) && this.countryCodes.has(firstToken)) {
+    const COUNTRY_CODE_PATTERN = this.COUNTRY_CODE_PATTERN
+    const FORMAT2_COUNTRY_REGEX = this.FORMAT2_COUNTRY_REGEX
+    const format1Regex = new RegExp(`^${COUNTRY_CODE_PATTERN}$`)
+    if (format1Regex.test(firstToken) && this.countryCodes.has(firstToken)) { // Format 1 detected
       return { code: firstToken, firstStickerToken: null }
     }
-    const f2Match = firstToken.match(/^([A-Z]{3})-?(\d.*)$/)
-    if (f2Match && this.countryCodes.has(f2Match[1])) {
+
+    const f2Match = firstToken.match(FORMAT2_COUNTRY_REGEX)
+    if (f2Match && this.countryCodes.has(f2Match[1])) { // Format 2 detected, returns the first sticker token too
       return { code: f2Match[1], firstStickerToken: f2Match[2] }
     }
-    // best candidate for a meaningful warning: first 3 letters if available, else raw token
-    const codeCandidate = /^[A-Z]{3}/i.test(firstToken) ? firstToken.slice(0, 3) : firstToken
+
+    // best candidate for a meaningful warning: country code pattern if available, else raw token
+    const codeCandidateMatch = firstToken.match(new RegExp(`^(${COUNTRY_CODE_PATTERN})`, 'i'))
+    const codeCandidate = codeCandidateMatch ? codeCandidateMatch[1] : firstToken
 
     warnings.push(`Country "${codeCandidate}": not valid, line skipped.`)
     return { code: null, firstStickerToken: null }
@@ -468,13 +508,13 @@ class LineNormalize {
    * Example: with country code "MEX", token "MEX-5(2)" would produce "5(2)", while token "ARG-3"  
    * would be skipped with a warning since it doesn't match the country code.
    * For token "5(2)" returns the same token since it doesn't match the Format 2 pattern, allowing 
-   * mixed formats in the same line would be skipped with a warning.
+   * mixed formats in the same line would be skipped with a warning. It handles, non-team countries such as FWC and CC, as well.
    */
   _normalizeToken(token, countryCode, warnings) {
-    const f2Match = token.match(/^([A-Z]{3})-?(\d+.*)$/)
-    if (!f2Match) return token
-    const tokenCode = f2Match[1]
-    const stickerPart = f2Match[2]
+    const F2_MATCH = token.match(this.FORMAT2_COUNTRY_REGEX)
+    if (!F2_MATCH) return token
+    const tokenCode = F2_MATCH[1]
+    const stickerPart = F2_MATCH[2]
     if (tokenCode !== countryCode) {
       warnings.push(
         `Country "${countryCode}": "${token}" skipped. All stickers in the line should belong to the same country.`
@@ -559,14 +599,13 @@ class LineNormalize {
   }
 
   /**
-   * Returns the array of valid sticker positions for a country code.
-   * FWC: positions 0 through 19. All other codes: positions 1 through 20.
+   * Returns the array of valid sticker positions for a country code. It consider special cases for non-team countries such as
+   * FWC and CC. The valid positions are determined by the country bounds defined in the StickerSheetRepository.
    */
   _getAlbumPositions(countryCode) {
-    if (countryCode === 'FWC') {
-      return Array.from({ length: 20 }, (_, i) => i) // 0..19
-    }
-    return Array.from({ length: 20 }, (_, i) => i + 1) // 1..20
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [start, end] = bounds.get(countryCode) || bounds.get('TEAM')
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
   }
 
   /**

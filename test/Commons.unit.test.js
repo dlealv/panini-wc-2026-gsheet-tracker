@@ -5,6 +5,8 @@
 const { StickerSheetRepository } = require('../build/Commons.js')
 const { initTestKernel } = require('./utils/testKernel.js')
 
+const MAX_ROWS = StickerSheetRepository.getMaxRows()
+
 /** Unit tests for StickerSheetRepository. */
 describe('StickerSheetRepository unit tests', () => {
   let repo
@@ -36,7 +38,7 @@ describe('StickerSheetRepository unit tests', () => {
   function testRangeGetter(methodName) {
     test('returns valid range', () => {
       const range = repo[methodName]()
-      expect(range.getValues().length).toBe(49)
+      expect(range.getValues().length).toBe(MAX_ROWS)
     })
     test('caches value', () => {
       const first = repo[methodName]()
@@ -345,7 +347,7 @@ describe('StickerSheetRepository unit tests', () => {
   describe('getCountries()', () => {
     test('returns full country dataset from kernel', () => {
       const countries = repo.getCountries()
-      expect(countries).toHaveLength(2)
+      expect(countries).toHaveLength(3)
       expect(countries[0]).toMatchObject({
         code: 'FWC',
         countryName: 'World Cup',
@@ -359,11 +361,15 @@ describe('StickerSheetRepository unit tests', () => {
       const res = repo.getCountries()
       expect(res[0].code).toBe('FWC')
     })
-    test('handles missing row data safely', () => {
-      repo.groupsRange = { getValues: () => [['A'], []] }
+    test('handles missing optional metadata safely', () => {
+      repo.countriesRange = { getValues: () => [['FWC'], ['CC']] }
+      repo.groupsRange = { getValues: () => [['A']] }
+      repo.flagsUrlRange = { getDisplayValues: () => [['flag']] }
+      repo.countryNamesRange = { getDisplayValues: () => [['World Cup'], ['Club Cup']] }
       const res = repo.getCountries()
       expect(res[0].group).toBe('A')
       expect(res[1].group).toBe('')
+      expect(res[1].flag).toBe('')
     })
     test('normalizes country fields (trim + uppercase)', () => {
       repo.countriesRange = { getValues: () => [[' arg ']] }

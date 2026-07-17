@@ -99,9 +99,11 @@ describe('QuickEntryService (unit)', () => {
 
   /** Tests for functions that generate icon labels for stickers. */
   describe('_getStickerIconLabel()', () => {
-    test('FWC never returns labels', () => {
+    test('FWC/CC never returns labels', () => {
       expect(service._getStickerIconLabel('FWC', 1)).toBe('')
       expect(service._getStickerIconLabel('FWC', 13)).toBe('')
+      expect(service._getStickerIconLabel('CC', 1)).toBe('')
+      expect(service._getStickerIconLabel('CC', 13)).toBe('')
     })
     test('sticker 1 returns CREST', () => {
       expect(service._getStickerIconLabel('ARG', 1)).
@@ -178,24 +180,11 @@ describe('QuickEntryService (unit)', () => {
         { count: 1 },
         { count: 2 }
       ])
-
-      expect(summary).toEqual({
-        owned: 2,
-        missing: 1,
-        repeated: 1,
-        total: 3,
-        completionPercent: 67
-      })
+      expect(summary).toEqual({ owned: 2, missing: 1, repeated: 1, total: 3, completionPercent: 67 })
     })
     test('handles empty stickers safely', () => {
       const summary = service._buildSummary([])
-      expect(summary).toEqual({
-        owned: 0,
-        missing: 0,
-        repeated: 0,
-        total: 0,
-        completionPercent: 0
-      })
+      expect(summary).toEqual({ owned: 0, missing: 0, repeated: 0, total: 0, completionPercent: 0 })
     })
   })
 
@@ -225,6 +214,12 @@ describe('QuickEntryService (unit)', () => {
       expect(result[0]).toBe(0)
       expect(result[result.length - 1]).toBe(19)
       expect(result).toHaveLength(20)
+    })
+    test('CC returns 1-12 range', () => {
+      const result = service._getVisibleStickerNumbers('CC')
+      expect(result[0]).toBe(1)
+      expect(result[result.length - 1]).toBe(12)
+      expect(result).toHaveLength(12)
     })
     test('normal country returns 1-20 range', () => {
       const result = service._getVisibleStickerNumbers('ARG')

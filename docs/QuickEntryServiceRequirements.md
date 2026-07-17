@@ -13,38 +13,46 @@ The service is intended for day-to-day collection tracking and must provide a cl
 ## Scope
 
 This service covers:
-- opening the Quick Sticker Entry dialog from the spreadsheet menu
-- loading country data and sticker counts from the spreadsheet
-- rendering countries as interactive visual sections
-- filtering countries by search text by country code and country name
-- filtering countries by group
-- filtering stickers by status
-- showing per-country completion summaries
-- tracking local pending changes before saving
-- displaying pending-change indicators in sticker cards
-- applying pending sticker count updates to the spreadsheet in batch
-- displaying loading, empty, success, and error states in the dialog
+- Opening the Quick Sticker Entry dialog from the spreadsheet menu.
+- Loading country data and sticker counts from the spreadsheet.
+- Handles country teams and special stickers such us FIFA World Cup (`FWC`) and Coca-Cola (`CC`).
+- Rendering countries as interactive visual sections.
+- Filtering countries by search text by country code and country name.
+- Filtering countries by group.
+- Filtering stickers by status.
+- Showing per-country completion summaries.
+- Tracking local pending changes before saving.
+- Displaying pending-change indicators in sticker cards.
+- Applying pending sticker count updates to the spreadsheet in batch.
+- Displaying loading, empty, success, and error states in the dialog.
 
 This service does not cover:
-- import/export workflows
-- trade comparison features
-- spreadsheet report generation
-- offline use
-- undo/redo support
-- multi-user conflict handling
-- external libraries
-- web app deployment
-- add-on publishing
+- Import/export workflows.
+- Trade comparison features.
+- Spreadsheet report generation.
+- Offline use.
+- Undo/redo support.
+- Multi-user conflict handling.
+- External libraries.
+- Web app deployment.
+- Add-on publishing.
 
 ---
 
-## Service entry point
+## Service entry points
 
 This service is accessed from the **Manage Panini** menu through:
+- `Quick sticker entry`
 
-- `Quick Sticker Entry`
-
-The service uses the `QuickEntryDialog.html` template and backend logic encapsulated in `QuickEntryService.gs`.
+The service uses: 
+- `QuickEntryService.gs` for backend logic
+- `Commons.gs` common services used by all services via `StickerSheetRepository` class.
+- HTML files:
+  - `QuickEntryDialog.html`: main shell for desktop.
+  - `QuickEntryView.html`: View of the service and javascript functions common to desktop and mobile service.
+  - `QuickEntryHelpers.html`: client-side utilities.
+  - `QuickEntryRender.html`: logic to render DOM/UI specific functions.
+  - `MobileQuickEntryView.html`: Wrapper of the Quick entry service for mobile.
 
 ---
 
@@ -69,13 +77,13 @@ The service uses the `QuickEntryDialog.html` template and backend logic encapsul
 The service must provide an HTML dialog for Quick Sticker Entry.
 
 The dialog must include:
-- a search input for incremental country filtering
-- a group filter
-- a sticker status filter
-- an action button to apply pending changes
-- a legend for visual sticker states
-- a scrollable list of country sections
-- controls to close the dialog
+- A search input for incremental country filtering.
+- A group filter.
+- A sticker status filter.
+- An action button to apply pending changes.
+- A legend for visual sticker states.
+- A scrollable list of country sections.
+- Controls to close the dialog.
 
 The UI is country-list based, not single-country based.
 Multiple countries may be visible at the same time after filtering.
@@ -91,29 +99,29 @@ The dialog must display a clear empty-state message when the current search and 
 ### Initial loading behavior
 
 When the dialog opens:
-- a loading message or loading indicator must be displayed
-- interactive country content must appear only after the initial payload is loaded
-- the loading state must disappear when data is successfully loaded or when an error is shown
+- A loading message or loading indicator must be displayed.
+- Interactive country content must appear only after the initial payload is loaded.
+- The loading state must disappear when data is successfully loaded or when an error is shown.
 
 ### Empty result behavior
 
 When the current search text and filters match no countries:
-- no country sections must be shown
-- a clear no-results message must be displayed
-- the active search text and filters must remain available so the user can adjust them
+- No country sections must be shown.
+- A clear no-results message must be displayed.
+- The active search text and filters must remain available so the user can adjust them.
 
 ---
 
 ## Country section requirements
 
 Each visible country section must display:
-- country code
-- country name
-- group
-- flag when available
-- completion state
-- per-country summary values
-- sticker cards for the valid sticker positions of that country
+- Country code.
+- Country name.
+- Group.
+- Flag when available.
+- Completion state.
+- Per-country summary values.
+- Sticker cards for the valid sticker positions of that country.
 
 A country section must be visually identifiable as complete when it has no missing stickers.
 
@@ -124,24 +132,24 @@ A country section must be visually identifiable as complete when it has no missi
 ### Search behavior
 
 The dialog must allow incremental search by:
-- country code
-- country name
+- Country code.
+- Country name.
 
 Search behavior:
-- matching must be case-insensitive
-- partial matches must be supported
-- the visible country list must refresh without writing to the spreadsheet
+- Matching must be case-insensitive.
+- Partial matches must be supported.
+- The visible country list must refresh without writing to the spreadsheet.
 
 ### Group filter behavior
 
 The dialog must provide:
-- `All groups`
-- one option per available group code
+- `All groups`.
+- One option per available group code.
 
 Group filter behavior:
-- `All groups` shows countries from all groups
-- a selected group shows only countries belonging to that group
-- the visible country list must refresh without writing to the spreadsheet
+- `All groups` shows countries from all groups.
+- A selected group shows only countries belonging to that group.
+- The visible country list must refresh without writing to the spreadsheet.
 
 ### Sticker status filter behavior
 
@@ -152,10 +160,10 @@ The dialog must provide these sticker status options:
 - `Pending`
 
 Sticker status behavior:
-- `All` shows all valid stickers for the visible countries
-- `Missing` shows only stickers with count `0`
-- `Repeated` shows only stickers with count greater than `1`
-- `Pending` shows only stickers whose local count differs from the persisted spreadsheet count
+- `All` shows all valid stickers for the visible countries.
+- `Missing` shows only stickers with count `0`.
+- `Repeated` shows only stickers with count greater than `1`.
+- `Pending` shows only stickers whose local count differs from the persisted spreadsheet count.
 
 The `Pending` filter must use the same condition as the pending-change indicator shown on the sticker card.
 
@@ -166,40 +174,40 @@ The status filter applies to sticker visibility inside each visible country sect
 ### Filter state persistence
 
 The current search text, selected group filter, and selected sticker status filter must remain active while:
-- the user reviews visible countries
-- the user changes local counts
-- the user applies pending changes
-- the dialog refreshes from the service response
+- The user reviews visible countries.
+- The user changes local counts.
+- The user applies pending changes.
+- The dialog refreshes from the service response.
 
 ---
 
 ## Sticker card requirements
 
 Each sticker card must show:
-- sticker number
-- count
-- label formatted as `number (count)`
-- status-based visual styling
-- special sticker label when applicable
+- Sticker number.
+- Count.
+- Label formatted as `number (count)`.
+- Status-based visual styling.
+- Special sticker label when applicable.
 
 Each sticker card must provide:
-- one control to increment the count locally
-- one control to decrement the count locally
+- One control to increment the count locally.
+- One control to decrement the count locally.
 
 The service must visually identify:
-- missing stickers
-- single owned stickers
-- repeated stickers
-- pending local changes
+- Missing stickers.
+- Single owned stickers.
+- Repeated stickers.
+- Pending local changes.
 
 ### Special sticker labels
 
-For non-`FWC` countries:
-- sticker `1` must be labeled `CREST`
-- sticker `13` must be labeled `TEAM`
+For country teams:
+- Sticker `1` must be labeled `CREST`.
+- Sticker `13` must be labeled `TEAM`.
 
-For `FWC`:
-- no special sticker labels are shown
+For non country teams such as `FWC` or `CC`:
+- No special sticker labels are shown.
 
 ### Pending change indicator behavior
 
@@ -215,17 +223,17 @@ The pending-change indicator must update immediately after each increment or dec
 
 Sticker cards must reflect the current count visually:
 
-- count `0`: missing
-- count `1`: owned
-- count greater than `1`: repeated
+- count `0`: missing.
+- count `1`: owned.
+- count greater than `1`: repeated.
 
 The service must map counts to visual classes so the UI can distinguish:
-- missing
-- count `1`
-- count `2`
-- count `3`
-- count `4`
-- count `5+`
+- missing.
+- count `1`.
+- count `2`.
+- count `3`.
+- count `4`.
+- count `5+`.
 
 The color convention must match the Legend section in the `Stickers` tab.
 
@@ -233,12 +241,13 @@ The color convention must match the Legend section in the `Stickers` tab.
 
 ## Country-specific sticker rules
 
-- Sticker `0` is valid only for `FWC`
-- Sticker `20` is valid only for non-`FWC` country codes
+- Sticker `0` is valid only for `FWC`.
+- Sticker `20` is valid only for country team codes.
 
 Visible sticker ranges must be:
-- `FWC`: stickers `0..19`
-- non-`FWC`: stickers `1..20`
+- `FWC`: stickers `0..19`.
+- Country teams: stickers `1..20`.
+- `CC` (Coca-Cola) stickers: `1..12`.
 
 Invalid sticker positions used internally by the spreadsheet must not be shown in the Quick Sticker Entry UI.
 
@@ -246,21 +255,21 @@ Invalid sticker positions used internally by the spreadsheet must not be shown i
 
 ## Count update rules
 
-- Increment increases the local count by `1`
-- Decrement decreases the local count by `1`
-- The minimum allowed count is `0`
-- Negative values must not be allowed
+- Increment increases the local count by `1`.
+- Decrement decreases the local count by `1`.
+- The minimum allowed count is `0`.
+- Negative values must not be allowed.
 
 Pending updates must represent the final target count to be written, not just the delta from the original value.
 
 The user must be able to make multiple changes across multiple countries before applying them.
 
 After each local increment or decrement:
-- the displayed count must refresh immediately
-- the visual sticker state must refresh immediately
-- the pending-change indicator must be recalculated immediately
-- the country summary values must refresh immediately
-- the current sticker status filter must be reapplied immediately
+- The displayed count must refresh immediately.
+- The visual sticker state must refresh immediately.
+- The pending-change indicator must be recalculated immediately.
+- The country summary values must refresh immediately.
+- The current sticker status filter must be reapplied immediately.
 
 If a local count change causes a sticker card to no longer match the active sticker status filter, that card must stop being visible in the filtered view.
 
@@ -273,20 +282,20 @@ This rule also applies to the `Pending` filter. If a sticker no longer has a pen
 The service must not write to the spreadsheet after each click.
 
 Instead:
-- increment and decrement actions update only the local dialog state
-- the dialog tracks pending updates
-- the spreadsheet is updated only when the user presses **Update**
+- Increment and decrement actions update only the local dialog state.
+- The dialog tracks pending updates.
+- The spreadsheet is updated only when the user presses **Update**.
 
 The dialog must provide a visible indication that pending updates exist.
 
 If all local changes are reverted to their original persisted values, the pending update state must be cleared.
 
 After a successful update:
-- all pending updates must be written to the corresponding positions in `COUNTS`
-- the pending changes list must be cleared
-- the affected country sections must refresh
-- summary values must refresh
-- the active filters must remain applied
+- All pending updates must be written to the corresponding positions in `COUNTS`.
+- The pending changes list must be cleared.
+- The affected country sections must refresh.
+- Summary values must refresh.
+- The active filters must remain applied.
 
 If there are no pending updates, applying changes must return a clear error.
 
@@ -297,25 +306,25 @@ If there are no pending updates, applying changes must return a clear error.
 The service must use the existing spreadsheet data model.
 
 Reads:
-- country codes must be resolved from `COUNTRIES`
-- sticker counts must be read from `COUNTS`
-- group codes must be read from `GROUPS`
-- country names must be read from `COUNTRY_NAMES`
-- flag values must be resolved from `FLAGS_URL`
+- Country codes must be resolved from `COUNTRIES`.
+- Sticker counts must be read from `COUNTS`.
+- Group codes must be read from `GROUPS`.
+- Country names must be read from `COUNTRY_NAMES`.
+- Flag values must be resolved from `FLAGS_URL`.
 
 Writes:
-- sticker counts must be written only to `COUNTS`
+- Sticker counts must be written only to `COUNTS`.
 
 ---
 
 ## Summary information requirements
 
 Each visible country section must show a summary including:
-- owned sticker count
-- missing sticker count
-- repeated sticker count
-- total sticker count
-- completion percentage
+- Owned sticker count.
+- Missing sticker count.
+- Repeated sticker count.
+- Total sticker count.
+- Completion percentage.
 
 Completion percentage must be calculated from the visible valid sticker positions of the country.
 
@@ -324,10 +333,10 @@ Completion percentage must be calculated from the visible valid sticker position
 ## Validation requirements
 
 Before applying updates, the service must validate:
-- pending updates exist
-- each update contains a valid country code
-- each update contains a valid sticker number for the selected country
-- each update contains a non-negative integer count
+- Pending updates exist.
+- Each update contains a valid country code.
+- Each update contains a valid sticker number for the selected country.
+- Each update contains a non-negative integer count.
 
 If validation fails, the batch update must stop and return a clear error message.
 
@@ -336,23 +345,23 @@ If validation fails, the batch update must stop and return a clear error message
 ## Formatting and data safety
 
 The service must:
-- write only values
-- preserve spreadsheet formatting
-- avoid modifying formulas or unrelated cells
-- avoid writing outside the `COUNTS` named range
+- Write only values.
+- Preserve spreadsheet formatting.
+- avoid modifying formulas or unrelated cells.
+- Avoid writing outside the `COUNTS` named range.
 
 ---
 
 ## Error handling requirements
 
 The service must show a clear message when:
-- initial country data cannot be loaded
-- required named ranges are missing
-- group, flag, or country-name support data is unavailable
-- a pending update is invalid
-- a batch save fails
-- spreadsheet data is unavailable
-- the dialog cannot apply changes
+- Initial country data cannot be loaded.
+- required named ranges are missing.
+- Group, flag, or country-name support data is unavailable.
+- A pending update is invalid.
+- A batch save fails.
+- Spreadsheet data is unavailable.
+- The dialog cannot apply changes.
 
 Error messages should be concise and understandable by a spreadsheet user.
 
@@ -361,64 +370,61 @@ Error messages should be concise and understandable by a spreadsheet user.
 ## Technical design guidelines
 
 The implementation should separate responsibilities between:
-- spreadsheet data access
-- Quick Entry business logic
-- dialog rendering and interaction
+- Spreadsheet data access.
+- Quick Entry business logic.
+- Dialog rendering and interaction.
 
 ### Expected module responsibilities
 
 - `Code.gs`
-  - menu creation
-  - dialog opening
-  - thin wrapper functions callable by the HTML dialog
+  - Menu creation
+  - Dialog opening
+  - Thin wrapper functions callable by the HTML dialog
 
 - `QuickEntryService.gs`
-  - Quick Entry service orchestration
-  - country view model generation
-  - summary generation
-  - validation and normalization of pending updates
+  - Quick Entry service orchestration.
+  - country view model generation.
+  - summary generation.
+  - validation and normalization of pending updates.
 
 - `Commons.gs`
-  - shared sticker sheet access
-  - named range validation
-  - country, group, flag, and count retrieval
-  - batch count persistence
+  - Shared sticker sheet access.
+  - Named range validation.
+  - Country, group, flag, and count retrieval.
+  - Batch count persistence.
 
-- `QuickEntryDialog.html`
-  - Quick Entry user interface
-  - search and filter interaction
-  - local pending change tracking
-  - update action and refresh handling
-  - loading, empty, and error state rendering
+- `QuickEntryDialog.html`: Desktop dialog for Quick Entry.
+  - Load styles: `CommonStyles.html` and `QuickEntryStyles.html`.
+  - Provides the desktop dialog shell.
+  - Includes desktop styles.
+  - Loads `QuickEntryView.html` (The view file, loads the `QuickEntryHelpers.html` and `QuickEntryRender.html`)
+  - Initializes the shared Quick Entry view.
+
+- `QuickEntryView.html`
+  - Displays the toolbar, filters, legend, message area, and country list.
+  - Includes the shared helpers and rendering modules.
+  - Manages view state and user interactions.
+  - Calls the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web app.
+  - Loads `QuickEntryHelpers.html` and `QuickEntryViewRender.html` files.
+
+- `MobileQuickEntryView.html`: Mobile wrapper around `QuickEntryView.html`.
+    - Configures the mobile layout.
+    - Sets the number of stickers displayed per row.
+    - Reuses the shared Quick Entry implementation.
 
 No external libraries are required for this service.
 
 ---
 
-## Non-goals
-
-Version 1 does not need to include:
-- immediate spreadsheet writes on every click
-- batch editing with spreadsheet-like paste behavior
-- undo/redo support
-- offline support
-- import/export from the Quick Sticker Entry dialog
-- trade comparison features
-- advanced filtering beyond search, group filter, and sticker status filter
-- user-defined sticker groupings
-- customizable color themes
-
----
-
 ## Expected user workflow
 
-1. Open the spreadsheet
-2. Open the custom menu `Manage Panini`
-3. Select `Quick Sticker Entry`
-4. Wait for the initial country data to load
-5. Use search and group filters to narrow the visible countries
-6. Use the sticker status filter to focus on all, missing, repeated, or pending stickers
-7. Adjust one or more sticker counts with the increment and decrement controls
-8. Review pending visual changes
-9. Press **Update**
-10. Review the refreshed summaries and country states
+1. Open the spreadsheet.
+2. Open the custom menu `Manage Panini`.
+3. Select `Quick Sticker Entry`.
+4. Wait for the initial country data to load.
+5. Use search and group filters to narrow the visible countries.
+6. Use the sticker status filter to focus on all, missing, repeated, or pending stickers.
+7. Adjust one or more sticker counts with the increment and decrement controls.
+8. Review pending visual changes.
+9. Press **Update**.
+10. Review the refreshed summaries and country states.

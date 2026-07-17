@@ -27,7 +27,7 @@ This service does not cover:
 - External libraries.
 - Web app deployment.
 - Add-on publishing.
-- Special collections such as Coca-Cola stickers.
+- Special collections such as Coca-Cola (`CC`) and FIFA World Cup (`FWC`) stickers.
 
 ---
 
@@ -41,9 +41,11 @@ This service is accessed from the **Manage Panini** menu through:
 The service uses: 
 - `ExportService.gs` for backend logic
 - `Commons.gs` common services used by all services via `StickerSheetRepository` class.
-- HTML dialog files:
-  - `ExportDialog.html` (main shell).
-  - `ExportDialogHelpers.html` (client-side utilities).
+- HTML files:
+  - `ExportDialog.html` (main shell doe desktop).
+  - `ExportView.html`: The export view common to both desktop and mobile services.
+  - `ExportHelpers.html` (client-side utilities).
+  - `MobileExportView.html`: Wrapper for mobile export services.
 
 ---
 
@@ -60,7 +62,7 @@ The service uses:
 - `FLAG_ICONS`: flag icons column. Reads export flag icons (emojis)
 - `DONE`: total count of unique stickers (not counting repeats). 
 
-**Note:** Named ranges do not necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows (`49`, i.e `48` teams plus FWC) must match across all named ranges used together.
+**Note:** Named ranges do not necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows (`50`, i.e `48` country teams plus `FWC` and `CC`) must match across all named ranges used together.
 
 #### Data used for export
 
@@ -100,12 +102,15 @@ where `[flag]` and number-range are present if the user selected the correspondi
   - count `1` → export as `number`.
   - count greater than `1` → export as `number(repeats)`.
 - Sticker `0` must be exported only for `FWC`.
-- Sticker `20` must be exported only for non-`FWC` country codes.
+- Sticker `20` must be exported only for country team codes.
+- Only stickers `[1-12]` for `CC` (Coca-Cola).
 - Invalid sticker positions must never appear in exported output, even if the sheet contains a positive stored value.
 
 Examples:
 - `MEX,0` must never appear in exported output.
 - `FWC,20` must never appear in exported output.
+- `CC,0` must never appear in the exported output.
+- `CC,13,14...,20` must never appear in the exported output
 
 ### Export example
 

@@ -94,7 +94,9 @@ class QuickEntryService {
 
   /** Returns the sticker corner label for special sticker numbers. */
   _getStickerIconLabel(countryCode, stickerNumber) {
-    if (countryCode === 'FWC') {
+    const isTeam = !StickerSheetRepository.getCountryBounds().has(countryCode)
+
+    if (!isTeam) {
       return ''
     }
     if (stickerNumber === 1) {
@@ -142,11 +144,10 @@ class QuickEntryService {
 
   /** Returns visible sticker numbers for one country. */
   _getVisibleStickerNumbers(countryCode) {
-    if (countryCode === 'FWC') {
-      return this._buildNumberRange(0, 19)
-    }
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [start, end] = bounds.get(countryCode) || bounds.get('TEAM')
 
-    return this._buildNumberRange(1, 20)
+    return this._buildNumberRange(start, end)
   }
 
   /** Builds an inclusive number range. */

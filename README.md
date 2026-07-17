@@ -24,19 +24,20 @@ Since the URL ends with `/copy`, clicking it creates your own copy of the templa
 
 ## Main features
 
-- Track owned stickers (national teams and special `FWC` stickers) in the `Stickers` tab.
+- Track owned stickers from country teams and special `FWC` (FIFA stickers), `CC` (Coca-Cola) stickers in the `Stickers` tab.
 - Update sticker counts quickly through the **Quick sticker entry** dialog inside the **Manage Panini** custom menu.
 - Import and export sticker data via the **Manage Panini** custom menu.
 - Export a shared list of stickers for trading in text format to easily share with other collectors via the **Manage Panini** custom menu.
 - See progress summaries in the `Reports` tab.
 - Share a compact swap view with other collectors in the `Compact Swap View` tab.
 - Trade with another collector in the `Trade` tab.
+- Expose **Manage Panini** services for desktop (Google Sheet) and mobile via browser.
 
 ---
 
 ## Out of scope
 
-- Coca-Cola stickers.
+- Mobile app, the services is provided via browser in mobile devices.
 
 ---
 
@@ -116,7 +117,8 @@ Export behavior:
 - Generates a text representation using the same syntax accepted by the import tool (Format 1, check the session **Input format** for more details)
 - Exports only valid sticker numbers:
   - `[0-19]` for `FWC` stickers.
-  - `[1-20]` for team country stickers (non-`FWC`).
+  - `[1-12]` for `CC` (Coca-Cola) stickers
+  - `[1-20]` for team country stickers.
 - The exported content can be copied or downloaded for reuse.
 - Allows the user to decide whether to include flag icons in the export.
 
@@ -183,7 +185,7 @@ The output of Need Stickers can be sorted, look for the drop-down value to the r
 
 ### Review your progress
 
-The tracker provides visual summaries and completion analysis so you can monitor progress across all teams.
+The tracker provides visual summaries and completion analysis so you can monitor progress across all teams. It allows the user to decide whether to include Coca-Cola stickers or not via drop-down in the table with all the metrics (top left). For the rest of the tables, charts and pivot table, Coca-Cola stickers are included.
 
 This service is enabled mainly through the `Reports` tab, which generates reports and pivot-based summaries from the data entered in the `Stickers` tab. No manual input is required there.
 
