@@ -17,37 +17,9 @@
    */
   window.Import = (function () {
 
-    /** Normalizes state into backend payload format.
-     * @export
-     */
-    function getPayloadFromState(state) {
-      return {
-        text: state.text || '',
-        mode: state.mode || 'update'
-      }
-    }
-
-    /** Converts backend export result into displayable text.
-     * @export
-     */
-    function renderPreviewData(result) {
-      if (!result || !result.countries || !result.countries.length) return ''
-
-      return result.countries.map(country => {
-        const stickerText = (country.stickers || [])
-          .map(item => `${item.number}:${item.count}`)
-          .join(', ')
-
-        return `${country.code} -> ${stickerText}`
-      }).join('\n')
-    }
-
-    // =========================
-    // DOM HELPERS (NOT TESTED YET)
-    // =========================
-
     /** Reads current UI state from DOM inputs.
      * @export
+     * @public
      */
     function getUIState(deps = {}) {
       const textEl = deps.textInput || (typeof textInput !== 'undefined' ? textInput : null)
@@ -64,6 +36,7 @@
 
     /** Clears preview output area.
      * @export
+     * @public
      */
     function clearPreview(deps = {}) {
       const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
@@ -74,10 +47,11 @@
 
     /** Renders preview content into UI.
      * @export
+     * @public
      */
     function renderPreview(result, deps = {}) {
       const el = deps.previewEl || previewEl
-      const text = renderPreviewData(result)
+      const text = _renderPreviewData(result)
       if (!text) {
         clearPreview({ previewEl: el })
         return
@@ -88,6 +62,7 @@
 
     /** Enables/disables UI during async operations. 
      * @export
+     * @public
      */
     function setBusy(isBusy, deps = {}) {
       const doc = deps.document || document
@@ -102,6 +77,7 @@
 
     /** Displays a message in the dialog UI.
      * @export
+     * @public
      */
     function setMessage(text, type, deps = {}) {
       const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
@@ -109,6 +85,33 @@
       el.className = `message ${type || 'info'}`
       el.textContent = text || ''
     }
+
+
+    /** Normalizes state into backend payload format.
+     * @export
+     */
+    function _getPayloadFromState(state) {
+      return {
+        text: state.text || '',
+        mode: state.mode || 'update'
+      }
+    }
+
+    /** Converts backend export result into displayable text.
+     * @export
+     */
+    function _renderPreviewData(result) {
+      if (!result || !result.countries || !result.countries.length) return ''
+
+      return result.countries.map(country => {
+        const stickerText = (country.stickers || [])
+          .map(item => `${item.number}:${item.count}`)
+          .join(', ')
+
+        return `${country.code} -> ${stickerText}`
+      }).join('\n')
+    }
+
 
     return { // namespace export
       getUIState,

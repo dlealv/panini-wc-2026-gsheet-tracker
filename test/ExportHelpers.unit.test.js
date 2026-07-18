@@ -32,28 +32,12 @@ describe('ExportHelpers unit tests', () => {
     })
   })
 
-  /** Get current UI state from input elements. */
-  describe('getUIState()', () => {
-    test('returns default values when inputs are missing', () => {
-      global.textInput = null
-      global.modeInput = null
-      global.includeFlagsCheckbox = null
-      const result = helpers.getUIState()
-      expect(result).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
-    })
-    test('reads values from DOM inputs', () => {
-      global.includeFlagsCheckbox = { checked: true }
-      const result = helpers.getUIState()
-      expect(result).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
-    })
-  })
-
   /** Get payload for export based on current UI state. */
   describe('getPayload()', () => {
     test('returns same result as getUIState', () => {
       global.includeFlagsCheckbox = { checked: true }
       expect(helpers.getPayload()).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
-      expect(helpers.getPayload()).toEqual(helpers.getUIState())
+      expect(helpers.getPayload()).toEqual(helpers._getUIState())
     })
   })
 
@@ -132,5 +116,21 @@ describe('triggerDownload()', () => {
     expect(removeMock).toHaveBeenCalledTimes(1)
     expect(setTimeoutMock).toHaveBeenCalledTimes(1)
     expect(revokeObjectURLMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+/** Get current UI state from input elements. */
+describe('_getUIState()', () => {
+  test('returns default values when inputs are missing', () => {
+    global.textInput = null
+    global.modeInput = null
+    global.includeFlagsCheckbox = null
+    const result = helpers._getUIState()
+    expect(result).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
+  })
+  test('reads values from DOM inputs', () => {
+    global.includeFlagsCheckbox = { checked: true }
+    const result = helpers._getUIState()
+    expect(result).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
   })
 })

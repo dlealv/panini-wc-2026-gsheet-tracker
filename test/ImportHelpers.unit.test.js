@@ -116,12 +116,12 @@ describe('integration scenarios', () => {
   test('state flows correctly into payload and preview rendering', () => {
     // verifies UI state → backend payload transformation
     const state = { text: 'ARG,1,3(2)', mode: 'update' }
-    const payload = helpers.getPayloadFromState(state)
+    const payload = helpers._getPayloadFromState(state)
 
     expect(payload).toEqual({ text: 'ARG,1,3(2)', mode: 'update' })
 
     // backend-style result → UI rendering
-    const preview = helpers.renderPreviewData({
+    const preview = helpers._renderPreviewData({
       countries: [{
         code: 'ARG',
         stickers: [{ number: 1, count: 1 },
@@ -144,7 +144,7 @@ describe('cross-layer integration scenarios', () => {
           { number: 5, count: 1 }]
       }]
     }
-    const preview = helpers.renderPreviewData(backendResult)
+    const preview = helpers._renderPreviewData(backendResult)
 
     expect(preview).toBe('ARG -> 1:1, 3:2, 5:1')
   })
@@ -165,7 +165,7 @@ describe('true end-to-end scenarios', () => {
         { code: 'FWC', stickers: [{ number: 0, count: 1 }, { number: 1, count: 1 }, { number: 20, count: 0 }] }
       ]
     }
-    const preview = helpers.renderPreviewData(parsedResult)
+    const preview = helpers._renderPreviewData(parsedResult)
 
     expect(preview).toBe('ARG -> 1:1, 3:2, 5:1, 6:1\nBRA -> 10:2, 11:2, 12:2\nFWC -> 0:1, 1:1, 20:0')
   })
@@ -175,18 +175,18 @@ describe('true end-to-end scenarios', () => {
 describe('edge-case integration scenarios', () => {
   test('empty backend result returns empty string', () => {
     const result = { countries: [] }
-    const preview = helpers.renderPreviewData(result)
+    const preview = helpers._renderPreviewData(result)
 
     expect(preview).toBe('')
   })
   test('null backend result does not crash renderer', () => {
-    const preview = helpers.renderPreviewData(null)
+    const preview = helpers._renderPreviewData(null)
 
     expect(preview).toBe('')
   })
   test('missing stickers array is handled safely', () => {
     const result = { countries: [{ code: 'ARG' }] } // missing stickers = real API edge case
-    const preview = helpers.renderPreviewData(result)
+    const preview = helpers._renderPreviewData(result)
 
     expect(preview).toBe('ARG -> ')
   })
@@ -202,7 +202,7 @@ describe('service-level integration scenarios', () => {
         { code: 'BRA', stickers: [{ number: 10, count: 1 }] }
       ]
     }
-    const uiOutput = helpers.renderPreviewData(serviceOutput)
+    const uiOutput = helpers._renderPreviewData(serviceOutput)
 
     expect(uiOutput).toBe('ARG -> 1:1, 3:2\nBRA -> 10:1')
   })

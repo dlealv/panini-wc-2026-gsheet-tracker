@@ -60,10 +60,10 @@ describe('QuickEntryHelpers.html', () => {
   describe('buildCountrySummary()', () => {
     test('returns zero completion for empty sticker list', () => {
       // prevents division edge cases for empty countries
-      expect(helpers.buildCountrySummary([])).toEqual({ total: 0, owned: 0, missing: 0, repeated: 0, completionPercent: 0 })
+      expect(helpers._buildCountrySummary([])).toEqual({ total: 0, owned: 0, missing: 0, repeated: 0, completionPercent: 0 })
     })
     test('treats undefined counts as neutral (not missing)', () => {
-      expect(helpers.buildCountrySummary([{ count: undefined }, { count: 1 }])).
+      expect(helpers._buildCountrySummary([{ count: undefined }, { count: 1 }])).
         toEqual({ total: 2, owned: 1, missing: 0, repeated: 0, completionPercent: 50 })
     })
   })
@@ -72,10 +72,10 @@ describe('QuickEntryHelpers.html', () => {
   describe('buildPendingKey()', () => {
     test('builds stable country-sticker key', () => {
       // ensures pending updates use deterministic identifiers
-      expect(helpers.buildPendingKey('ARG', 12)).toBe('ARG|12')
+      expect(helpers._buildPendingKey('ARG', 12)).toBe('ARG|12')
     })
     test('handles numeric string input consistently', () => {
-      expect(helpers.buildPendingKey('BRA', '5')).toBe('BRA|5')
+      expect(helpers._buildPendingKey('BRA', '5')).toBe('BRA|5')
     })
   })
 
@@ -85,7 +85,7 @@ describe('QuickEntryHelpers.html', () => {
       // verifies missing filter logic
       const state = { selectedStatusFilter: 'missing' }
       const country = { stickers: [{ count: 0 }, { count: 1 }, { count: 2 }] }
-      expect(helpers.filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterCountryStickers(country, state)).toEqual({
         stickers: [{ count: 0 }]
       })
     })
@@ -93,14 +93,14 @@ describe('QuickEntryHelpers.html', () => {
       // verifies repeated filter logic
       const state = { selectedStatusFilter: 'repeated' }
       const country = { stickers: [{ count: 0 }, { count: 2 }, { count: 3 }] }
-      expect(helpers.filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterCountryStickers(country, state)).toEqual({
         stickers: [{ count: 2 }, { count: 3 }]
       })
     })
     test('returns null when filtered stickers become empty and filter is not all', () => {
       const state = { selectedStatusFilter: 'missing' }
       const country = { stickers: [{ count: 1 }, { count: 2 }] }
-      expect(helpers.filterCountryStickers(country, state)).toBeNull()
+      expect(helpers._filterCountryStickers(country, state)).toBeNull()
     })
     test('filters pending stickers only', () => {
       const state = { selectedStatusFilter: 'pending' }
@@ -110,7 +110,7 @@ describe('QuickEntryHelpers.html', () => {
           { number: 2, count: 2, hasPendingChange: false }
         ]
       }
-      expect(helpers.filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterCountryStickers(country, state)).toEqual({
         stickers: [{ number: 1, count: 1, hasPendingChange: true }]
       })
     })
@@ -119,10 +119,10 @@ describe('QuickEntryHelpers.html', () => {
   /** Tests for matchesGroupFilter() */
   describe('matchesGroupFilter()', () => {
     test('returns true when country matches selected group', () => {
-      expect(helpers.matchesGroupFilter({ group: 'B' }, { selectedGroupFilter: 'B' })).toBe(true)
+      expect(helpers._matchesGroupFilter({ group: 'B' }, { selectedGroupFilter: 'B' })).toBe(true)
     })
     test('returns false when country group is undefined and filter is specific', () => {
-      expect(helpers.matchesGroupFilter({}, { selectedGroupFilter: 'A' })).toBe(false)
+      expect(helpers._matchesGroupFilter({}, { selectedGroupFilter: 'A' })).toBe(false)
     })
   })
 
@@ -132,34 +132,34 @@ describe('QuickEntryHelpers.html', () => {
       const sticker = { number: 10, count: 1 }
       const state = { pendingUpdates: { 'ARG|10': 3 } }
       expect(
-        helpers.applyPendingStickerUpdate('ARG', sticker, state)
+        helpers._applyPendingStickerUpdate('ARG', sticker, state)
       ).toEqual({ number: 10, count: 3, label: '10 (3)', hasPendingChange: true })
     })
     test('keeps original sticker when no pending update exists', () => {
-      expect(helpers.applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, { pendingUpdates: {} })).toEqual({ number: 5, count: 2, hasPendingChange: false })
+      expect(helpers._applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, { pendingUpdates: {} })).toEqual({ number: 5, count: 2, hasPendingChange: false })
     })
     test('handles missing pendingUpdates safely', () => {
-      expect(helpers.applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, {})).
+      expect(helpers._applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, {})).
         toEqual({ number: 5, count: 2, hasPendingChange: false })
     })
     test('updates label with pending count when applied', () => {
-      expect(helpers.applyPendingStickerUpdate('ARG', { number: 7, count: 1 }, { pendingUpdates: { 'ARG|7': 9 } }).label).toBe('7 (9)')
+      expect(helpers._applyPendingStickerUpdate('ARG', { number: 7, count: 1 }, { pendingUpdates: { 'ARG|7': 9 } }).label).toBe('7 (9)')
     })
   })
 
   /** Tests for matchesTeamSearch() */
   describe('matchesTeamSearch()', () => {
     test('matches country name case-insensitively', () => {
-      expect(helpers.matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'argen' })).toBe(true)
+      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'argen' })).toBe(true)
     })
     test('matches country code prefix case-insensitively', () => {
-      expect(helpers.matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'ar' })).toBe(true)
+      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'ar' })).toBe(true)
     })
     test('matches country name prefix case-insensitively', () => {
-      expect(helpers.matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'arg' })).toBe(true)
+      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'arg' })).toBe(true)
     })
     test('returns false when no match is found', () => {
-      expect(helpers.matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'zzz' })).toBe(false)
+      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'zzz' })).toBe(false)
     })
   })
 
@@ -292,13 +292,13 @@ describe('QuickEntryHelpers.html', () => {
     })
   })
 
-  /** Tests for renderPreviewData() */
-  describe('renderPreviewData()', () => {
+  /** Tests for _renderPreview() */
+  describe('_renderPreview()', () => {
     test('formats countries into preview lines', () => {
-      expect(helpers.renderPreviewData({ countries: [{ code: 'ARG', stickers: [{ number: 1, count: 2 }] }] })).toBe('ARG -> 1:2')
+      expect(helpers._renderPreviewData({ countries: [{ code: 'ARG', stickers: [{ number: 1, count: 2 }] }] })).toBe('ARG -> 1:2')
     })
     test('joins multiple countries with newline', () => {
-      expect(helpers.renderPreviewData({
+      expect(helpers._renderPreviewData({
         countries: [
           { code: 'ARG', stickers: [{ number: 1, count: 1 }] },
           { code: 'BRA', stickers: [{ number: 2, count: 2 }] }
@@ -306,27 +306,27 @@ describe('QuickEntryHelpers.html', () => {
       })).toBe('ARG -> 1:1\nBRA -> 2:2')
     })
     test('returns empty string for empty input', () => {
-      expect(helpers.renderPreviewData({ countries: [] })).toBe('')
+      expect(helpers._renderPreviewData({ countries: [] })).toBe('')
     })
     test('returns empty string for invalid input', () => {
-      expect(helpers.renderPreviewData(null)).toBe('')
+      expect(helpers._renderPreviewData(null)).toBe('')
     })
   })
 
   /** Test for getPayloadFromState() */
   describe('getPayloadFromState()', () => {
     test('maps full state into payload correctly', () => {
-      expect(helpers.getPayloadFromState({ text: 'abc', mode: 'clean', includeFlags: true })).toEqual({ text: 'abc', mode: 'clean', includeFlags: true })
+      expect(helpers._getPayloadFromState({ text: 'abc', mode: 'clean', includeFlags: true })).toEqual({ text: 'abc', mode: 'clean', includeFlags: true })
     })
     test('applies default values when state is empty', () => {
-      expect(helpers.getPayloadFromState({})).toEqual({ text: '', mode: 'update', includeFlags: false })
+      expect(helpers._getPayloadFromState({})).toEqual({ text: '', mode: 'update', includeFlags: false })
     })
     test('handles undefined state safely', () => {
-      expect(helpers.getPayloadFromState(undefined)).toEqual({ text: '', mode: 'update', includeFlags: false })
+      expect(helpers._getPayloadFromState(undefined)).toEqual({ text: '', mode: 'update', includeFlags: false })
     })
     test('normalizes includeFlags to boolean', () => {
-      expect(helpers.getPayloadFromState({ includeFlags: 'yes' }).includeFlags).toBe(true)
-      expect(helpers.getPayloadFromState({ includeFlags: 0 }).includeFlags).toBe(false)
+      expect(helpers._getPayloadFromState({ includeFlags: 'yes' }).includeFlags).toBe(true)
+      expect(helpers._getPayloadFromState({ includeFlags: 0 }).includeFlags).toBe(false)
     })
   })
 
