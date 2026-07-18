@@ -412,16 +412,24 @@ The operator prefix may be applied to any valid import line format:
 
 ## Named ranges
 
-- `COUNTRIES`: A column containing country codes.
-- `COUNTS`: A column displaying the count (number of stickers owned) of stickers for stickers numbered from 0 to 20 in the `Stickers` tab.
-- `COUNTRY_NAMES`: A column containing the country names used by Quick sticker entry service for incremental search based on country names.
-- `GROUPS`: A column containing the team group for each country code. This column is only used by the Quick sticker entry service.
-- `DONE`: A column displaying the total count of unique stickers completed for each country. This column is used by Quick sticker entry and Export shared stickers services.
-- `FLAGS`: A column containing the flag images for each country.
-- `FLAGS_URL`: A column containing the source of the flag images used by Quick sticker entry dialog and by the `FLAGS` named range.
-- `FLAG_ICONS`: A column containing the country flag icons (emojis). This column is used in export services.
+- `COUNTRIES`: `FIFA Code` column from `Conf` tab containing country codes.
+- `COUNTRY_NAMES`: `Name` column from `Conf` tab containing the country names used by Quick sticker entry service for incremental search based on country names.
+- `COUNTS`: Range from `Stickers` tab displaying the count (number of stickers owned) of stickers for stickers numbered from 0 to 20 for all countries.
+- `DONE`: `Done` column from `Stickers` tab displaying the total count of unique stickers completed for each country. This column is used by Quick sticker entry and Export shared stickers services.
+- `FLAG_ICONS`: `Flag URL` column from `Conf` containing the country flag icons (emojis). This named range is used in export services and in the Google sheet template.
+- `FLAGS`: A column containing the flag images for each country. Used in `Stickers` tab.
+- `FLAGS_URL`: `Flag` column from `Conf` containing the source of the flag images used by Quick sticker entry dialog and by the `FLAGS` named range.
+- `GROUPS`: `Group` column from `Conf` containing the team group for each country code. This column is only used by the Quick sticker entry service and in `Reports` tab.
+- `MAX_STICKERS`: `Max Stickers` column from `Conf` tab representing the total stickers each country team can has. Required to calculate percentage completion for each team.
+-`MISSING`: Column `Miss` from `Stickers` tab representing the count of missing stickers considering its maximum sticker capacity.
+- `P_COMPLETION`: Column `%` from `Stickers` tab. Used to calculate the number of teams completed. It takes into account maximum number of stickers for each team.
+- `REPEATS`: `Rep` column from `Stickers` tab.
+- `TOTAL_COMPLETED_STICKERS`: Cell from `Stickers` tab to store the total number of stickers completed.
+- `TOTAL_MISSING_STICKERS`: Cell from `Stickers` tab to store the total number of missing stickers.
+- `TOTAL_REPEATED_STICKERS`: Cell from `Stickers` tab to store the total number of unique repeated stickers.
+- `TOTAL_STICKERS`: Cell from `Reports` tab representing the Total number of stickers the album has.
 
-Note: All named ranges must have `49` rows, which includes `48` country teams and the FWC.
+Note: All column or range (such as `COUNTS`) named ranges must have `50` rows, which includes `48` country teams plus `FWC` and `CC`.
 
 ---
 

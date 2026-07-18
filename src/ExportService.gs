@@ -207,14 +207,18 @@ class ExportStickers {
    */
   _filterStickerNumbersBy(row, by) {
     const out = []
-    const STICKER_MIN = this.STICKER_MIN
-    const STICKER_MAX = this.STICKER_MAX
+    const STICKER_MIN = StickerSheetRepository.getStickerMin()
+    const STICKER_MAX = StickerSheetRepository.getStickerMax()
     for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
       if (!this._isExportableSticker(row.code, s)) { continue }
       const n = Number(row.counts[s] || 0)
       if (by === 'owned' && n >= 1) { out.push({ sticker: s, count: n }) }
-      else if (by === 'missing' && n === 0) { out.push({ sticker: s, count: 0 }) }
-      else if (by === 'repeats' && n >= 2) { out.push({ sticker: s, count: n }) }
+      else if (by === 'missing' && n === 0) {
+        out.push({ sticker: s, count: 0 })
+      }
+      else if (by === 'repeats' && n >= 2) {
+        out.push({ sticker: s, count: n })
+      }
     }
     return out
   }
@@ -307,8 +311,9 @@ class ExportStickers {
    * @returns {boolean}
    */
   _isExportableSticker(countryCode, stickerNumber) {
-    if (countryCode === 'FWC') { return stickerNumber >= 0 && stickerNumber <= 19 }
-    return stickerNumber >= 1 && stickerNumber <= 20
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [minSticker, maxSticker] = bounds.get(countryCode) || bounds.get('TEAM')
+    return stickerNumber >= minSticker && stickerNumber <= maxSticker
   }
 
 }

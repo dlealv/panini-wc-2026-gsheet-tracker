@@ -32,7 +32,6 @@ global.document = {
 
 /** Tests for QuickEntryRender.html. */
 describe('QuickEntryRender.html', () => {
-
   describe('buildCountrySection', () => {
     test('builds a completed country section', () => {
       const country = {
@@ -55,7 +54,7 @@ describe('QuickEntryRender.html', () => {
 
       const state = { selectedStatusFilter: 'all', isBusy: false }
       const layout = { stickersPerRow: 2 }
-      const section = helpers.buildCountrySection( country, state, layout, () => { } )
+      const section = helpers.buildCountrySection(country, state, layout, () => { })
       expect(section.className).toContain('country-section')
       expect(section.children.length).toBe(2) // header + sticker grid
     })
