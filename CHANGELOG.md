@@ -21,12 +21,15 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Added a new row at the end to include Coca-Cola stickers.
     - Country column now uses the `COUNTRIES` named range.
     - Calculation of the **Done** column now uses the `COUNTS` named range.
-    - Calculation of the **%** column now uses the `DONE` named range.
-    - Calculation of the **Miss** column now uses the `DONE` named range.
+    - Calculation of the **%** column now uses the `DONE` and `P_COMPLETION` named ranges.
+    - Calculation of the **Miss** column now considers `MAX_STICKERS` to a more precise calculation.
     - Calculation of the **Rep** column now uses the `COUNTS` named range.
     - Adjusted conditional formatting for **Done**, **%**, **Miss**, and **Rep** to include the Coca-Cola row.
     - Adjusted conditional formatting for count values to prevent expansion to additional rows in the future.
     - Added the `MISSING` named range for the **Miss** column.
+    - Added the `P_COMPLETION` named range for the percentage of completion for each country. It is calculated now considering the maximum possible stickers for each country.
+    - Adjusted the named ranges `TOTAL_*_STICKERS` to the correct cell after adding Coca-Cola row. 
+    - Added named range `REPEATS` for **Rep** column.
 
   - `Reports` tab:
     - Added a drop-down under the metrics section to allow users to decide whether to include Coca-Cola stickers, since not all users collect them. Most calculated fields in the metrics section now depend on this selection.
@@ -34,6 +37,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Adjusted the chart range to include Coca-Cola stickers.
     - Adjusted the pivot table range to include Coca-Cola stickers.
     - Adjusted the formula for missing stickers to use the `COUNTRIES` and `FLAG_ICONS` named ranges.
+    - Adjusted the calculation of Team Complete, based on maximum number of stickers for each country.
 
   - `Trade` tab:
     - Adjusted the formulas so both input columns derive from a common input range to avoid inconsistencies caused by different row counts. Both inputs now derive from the `input` let variable.
@@ -43,6 +47,8 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Adjusted the named range to include Coca-Cola.
     - Adjusted the formula that generates the flags to ensure the Coca-Cola flag appears as a square.
     - `GROUPS` named range now points to the `Conf` tab instead of the `Sticker` tab.
+    - Added column: `Max Stickers`, i.e. max number of possible stickers for country.
+    - Added named range `MAX_STICKERS` for the column `Max Stickers`.
 
 - Under the `docs` folder:
   - `ImportServiceRequirements.md`: Added the requirements for Coca-Cola stickers.

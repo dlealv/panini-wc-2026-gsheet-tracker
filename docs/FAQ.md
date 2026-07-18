@@ -29,6 +29,10 @@ instead of:
 
 Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device. Because Google Apps Script does not provide native support for mobile add-ons, **a one-time setup is required** after making a copy of the tracker template. For setup instructions, see the **Mobile Services** section in the [README](../README.md).
 
+### Can I collect Coca-Cola sticker with this tracker?
+
+Yes, since release `1.1.1` it is possible to collect Coca-Cola stickers. The **Manage Panini** services were also adjusted to include such stickers.
+
 ### After copying the Panini template, I don't see the **Manage Panini** menu?
 
 This is usually a timing issue. It may take a few moments for the menu to appear. Simply refresh the page, and the **Manage Panini** menu should become available.
