@@ -7,7 +7,7 @@ project structure, and documentation.
 
 ---
 
-## [1.1.1] 2026-07-18
+## [1.1.1] 2026-07-19
 
 ### Overview
 
