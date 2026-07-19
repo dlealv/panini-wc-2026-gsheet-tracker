@@ -526,8 +526,10 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 
 ## Files
 
-- Under the `.github/workflows` folder:
-  - `deploy.yml`: CI deployment file using Github secrets.
+- Under the `.github` folder:
+  - `action/setup-project/action.yml`: Common CI setup project.
+  - `workflows/deploy.yml`: CI deployment file using Github secrets, to be executed when changes in `src/` folder, `deploy.yml` and `action.yml` files.
+  - `workflows/validation.yml`: CI project validation, i.e. runs EsLint and tests.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
@@ -537,9 +539,12 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `TechnicalArchitecture.md`: Comprehensive technical overview of the system architecture, file structure, development lifecycle pipelines, and core engineering design constraints governing the project.
   - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
-- Under the `examples`folder:
-  - `example_sticker_data.txt`: Sample file of the export all stickers service output.
-
+- Under the `examples`folder: Export file samples. Export samples for Export all stickers are also valid input samples for Import service.
+  - `panini-stickers-all.txt`: Sample of Export all stickers service.
+  - `panini-stickers-all_flagTrue_compactTrue.txt`: Sample of Export all stickers service with **Flag** and **Compact (using ranges)** checkboxes activated.
+  - `panini-stickers-shared.txt`: Sample of Export shared stickers service output.
+  - `panini-stickers-shared_flagTrue_compactTrue.txt`: Sample of Export shared stickers service with **Flag** and **Compact (using ranges)** checkboxes activated.
+ 
 - Under the `images` folder: Images used in the `README.md` file and `doc` folder documents.
 
 - Under the `scripts` folder:
@@ -562,13 +567,11 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
   - `ExportView.html`: View and javascript functions used by export service (desktop and mobile).
   - `ExportHelpers.html`: helper testable logic function used in `src/html/ExportDialog.html`.
-  
   - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
   - `QuickEntryView.html`: View and javascript functions used by Quick entry service (desktop and mobile).
   - `QuickEntryHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
   - `QuickEntryRender.html`: DOM/UI-specific functions used in `src/html/QuickEntryDialog.html`.
   - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
-
   - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
   - `MobileImportView.html`: Simplified view for mobile import service.
   - `MobileExportView.html`: View for both export services. It acts as a wrapper.
@@ -577,7 +580,6 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
   - `MobileImportStyles.html`: CCS specific styles for mobile import service.
   - `MobileExportStyles.html`: CCS specific styles for mobile export service.
-
 
 - Under the `test/` folder:
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.

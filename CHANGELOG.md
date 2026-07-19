@@ -174,6 +174,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Updated the document to include Coca-Cola stickers
     - Updated the section **Named range** with the new named range required.
     - Updated the section **Testing** adding information about the coverage.
+    - Updated the section **Files** to include `.github` folder new files and folder created in previous release.
 
   - `TODO.md`:
     - Mark Include Coca-Cola stickers as done.
