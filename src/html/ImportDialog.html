@@ -290,6 +290,7 @@
     /**Validates the current import input and renders a preview without writing data. */
     function previewData() {
       Import.clearPreview()
+      renderWarnings([]) // clear previous warnings immediately
       Import.setBusy(true)
       Import.setMessage('Validating input...', 'info')
       google.script.run
@@ -302,6 +303,7 @@
         .withFailureHandler((error) => {
           Import.setBusy(false)
           Import.clearPreview()
+          renderWarnings([])
           Import.setMessage(error && error.message ? error.message : String(error), 'error')
         })
         .previewStickerData(Import.getPayload())
@@ -310,6 +312,7 @@
     /**Imports the current sticker payload into the spreadsheet. */
     function importData() {
       Import.clearPreview()
+      renderWarnings([]) // clear previous warnings immediately
       Import.setBusy(true)
       Import.setMessage('Importing data...', 'info')
       google.script.run

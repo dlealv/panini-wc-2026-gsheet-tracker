@@ -18,39 +18,18 @@
      */
     window.QuickEntry = (function () {
 
-        // CORE STATE
-
         /**
          * Updates the current sticker grid layout.
          * - stores the selected stickers-per-row value
          * - updates the CSS variable in browser environments
          * - safely skips DOM access during Jest execution
          * @export
+         * @public
          */
         function applyLayout(value) {
             stickersPerRow = value
             if (typeof document === 'undefined') return
             document.documentElement.style.setProperty('--stickers-per-row', String(value))
-        }
-
-        /**
-         * Returns the current UI configuration state.
-         * - exposes shared UI values
-         * - used by rendering and tests
-         */
-        function getUIState() {
-            return { stickersPerRow }
-        }
-
-
-        // UI HELPERS
-
-        /**
-         * Creates a normalized group option object.
-         * - converts dropdown values into a consistent structure
-         */
-        function buildGroupOption(value, text) {
-            return { value, text }
         }
 
         /**
@@ -106,146 +85,11 @@
             if (!state || !Array.isArray(state.countries)) return []
 
             return state.countries
-                .map(c => applyPendingCountryUpdates(c, state))
-                .filter(c => matchesTeamSearch(c, state))
-                .filter(c => matchesGroupFilter(c, state))
-                .map(c => filterCountryStickers(c, state))
+                .map(c => _applyPendingCountryUpdates(c, state))
+                .filter(c => _matchesTeamSearch(c, state))
+                .filter(c => _matchesGroupFilter(c, state))
+                .map(c => _filterCountryStickers(c, state))
                 .filter(Boolean)
-        }
-
-        /**
-         * Applies pending sticker updates to a country.
-         * - recalculates sticker counts
-         * - recalculates summary metrics
-         * - marks completion state
-         */
-        function applyPendingCountryUpdates(country, state) {
-            const stickers = country.stickers.map(s =>
-                applyPendingStickerUpdate(country.code, s, state)
-            )
-
-            const summary = buildCountrySummary(stickers)
-
-            return {
-                ...country,
-                stickers,
-                summary,
-                isCompleted: summary.missing === 0
-            }
-        }
-
-        /**
-         * Applies pending changes to a single sticker.
-         * - overlays temporary pending counts
-         * - marks stickers with pending changes
-         * @export
-         */
-        function applyPendingStickerUpdate(countryCode, sticker, state) {
-            const key = buildPendingKey(countryCode, sticker.number)
-            const pending = state.pendingUpdates?.[key] // ADDED: make it safe for undefined pendingUpdates
-
-            if (pending == null) {
-                return { ...sticker, hasPendingChange: false }
-            }
-
-            return {
-                ...sticker,
-                count: pending,
-                label: `${sticker.number} (${pending})`,
-                hasPendingChange: true
-            }
-        }
-
-        /**
-         * Matches a country against the active team search.
-         * - performs case-insensitive prefix matching
-         * - checks both country code and country name
-         * @export
-         */
-        function matchesTeamSearch(country, state) {
-            if (!state.teamSearchText) return true
-
-            const code = String(country.code || '').toLowerCase()
-            const name = String(country.countryName || '').toLowerCase()
-
-            const search = String(state.teamSearchText).toLowerCase()
-
-            return code.startsWith(search) || name.startsWith(search)
-        }
-
-        /**
-         * Matches a country against the selected group filter.
-         * - supports "all" as wildcard
-         * - otherwise requires exact group match
-         * @export  
-         */
-        function matchesGroupFilter(country, state) {
-            return state.selectedGroupFilter === 'all'
-                ? true
-                : country.group === state.selectedGroupFilter
-        }
-
-        /**
-         * Filters stickers according to the active status filter.
-         * - supports missing stickers
-         * - supports repeated stickers
-         * - supports pending sticker changes
-         * @export
-         */
-        function filterCountryStickers(country, state) {
-            let stickers = country.stickers
-
-            if (state.selectedStatusFilter === 'missing') {
-                stickers = stickers.filter(s => s.count === 0)
-            }
-
-            if (state.selectedStatusFilter === 'repeated') {
-                stickers = stickers.filter(s => s.count > 1)
-            }
-
-            if (state.selectedStatusFilter === 'pending') {
-                stickers = stickers.filter(s => s.hasPendingChange)
-            }
-
-            // 🔴 CRITICAL FIX: drop empty countries
-            if (state.selectedStatusFilter !== 'all' && stickers.length === 0) {
-                return null
-            }
-
-            return { ...country, stickers }
-        }
-
-        /**
-         * Builds summary statistics for a sticker collection.
-         * - calculates owned stickers
-         * - calculates missing stickers
-         * - calculates repeated stickers
-         * - calculates completion percentage
-         * @export
-         */
-        function buildCountrySummary(stickers) {
-            const total = stickers.length
-            const owned = stickers.filter(s => s.count > 0).length
-            const missing = stickers.filter(s => s.count === 0).length
-            const repeated = stickers.filter(s => s.count > 1).length
-
-            return {
-                total,
-                owned,
-                missing,
-                repeated,
-                completionPercent: total ? Math.round((owned / total) * 100) : 0
-            }
-        }
-
-        /**
-         * Builds a stable pending-update identifier.
-         * - combines country code and sticker number
-         * - used for deterministic update tracking
-         * @export
-         */
-        function buildPendingKey(c, n) {
-            return `${c}|${n}`
         }
 
         /**
@@ -275,7 +119,7 @@
          * @public
          */
         function queueStickerChange(state, c, n, next) {
-            const key = buildPendingKey(c, n)
+            const key = _buildPendingKey(c, n)
             const safe = Math.max(0, next)
             const original = state.countries.find(x => x.code === c)?.stickers.find(s => s.number === n)?.count || 0
 
@@ -320,14 +164,14 @@
             )
         }
 
-        // PREVIEW / EXPORT
+        // Private functions
 
         /**
          * Builds preview text for import/export operations.
          * - converts parsed countries into readable preview lines
          * @export
          */
-        function renderPreviewData(result) {
+        function _renderPreviewData(result) {
             if (!result || !Array.isArray(result.countries) || result.countries.length === 0) {
                 return ''
             }
@@ -346,7 +190,7 @@
          * - guarantees predictable payload structure
          * @export
          */
-        function getPayloadFromState(state = {}) {
+        function _getPayloadFromState(state = {}) {
             return {
                 text: state.text || '',
                 mode: state.mode || 'update',
@@ -359,7 +203,7 @@
          * - disables inputs during async operations
          * - safe for browser and Jest environments
          */
-        function setBusy(isBusy) {
+        function _setBusy(isBusy) {
             const elements = [
                 global.fileInput,
                 global.modeInput,
@@ -377,7 +221,7 @@
          * - displays preview data
          * - hides preview when no data exists
          */
-        function renderPreview(input) {
+        function _renderPreview(input) {
             if (!global.previewEl) return
 
             if (!input || !input.countries || input.countries.length === 0) {
@@ -401,7 +245,7 @@
          * - hides preview container
          * - removes preview text
          */
-        function clearPreview() {
+        function _clearPreview() {
             if (global.previewEl) {
                 global.previewEl.style.display = 'none'
                 global.previewEl.textContent = ''
@@ -409,23 +253,152 @@
         }
 
         /**
-         * Builds deterministic export filenames.
-         * - formats timestamps consistently
-         * - produces sortable export filenames
+         * Applies pending sticker updates to a country.
+         * - recalculates sticker counts
+         * - recalculates summary metrics
+         * - marks completion state
          */
-        function buildExportFileName(date = new Date()) {
-            const pad = n => String(n).padStart(2, '0')
-            const yyyy = date.getFullYear()
-            const mm = pad(date.getMonth() + 1)
-            const dd = pad(date.getDate())
-            const hh = pad(date.getHours())
-            const min = pad(date.getMinutes())
-            const ss = pad(date.getSeconds())
+        function _applyPendingCountryUpdates(country, state) {
+            const stickers = country.stickers.map(s =>
+                _applyPendingStickerUpdate(country.code, s, state)
+            )
+            const summary = _buildCountrySummary(stickers)
 
-            return `panini - stickers -export -${yyyy}${mm}${dd} -${hh}${min}${ss}.txt`
+            return {
+                ...country,
+                stickers,
+                summary,
+                isCompleted: summary.missing === 0
+            }
+        }
+
+        /**
+         * Returns the current UI configuration state.
+         * - exposes shared UI values
+         * - used by rendering and tests
+         */
+        function _getUIState() {
+            return { stickersPerRow }
+        }
+
+        /**
+         * Creates a normalized group option object.
+         * - converts dropdown values into a consistent structure
+         */
+        function _buildGroupOption(value, text) {
+            return { value, text }
+        }
+
+        /**
+         * Builds a stable pending-update identifier.
+         * - combines country code and sticker number
+         * - used for deterministic update tracking
+         * @export
+         */
+        function _buildPendingKey(c, n) {
+            return `${c}|${n}`
+        }
+
+        /**
+         * Builds summary statistics for a sticker collection.
+         * - calculates owned stickers
+         * - calculates missing stickers
+         * - calculates repeated stickers
+         * - calculates completion percentage
+         * @export
+         */
+        function _buildCountrySummary(stickers) {
+            const total = stickers.length
+            const owned = stickers.filter(s => s.count > 0).length
+            const missing = stickers.filter(s => s.count === 0).length
+            const repeated = stickers.filter(s => s.count > 1).length
+
+            return {
+                total,
+                owned,
+                missing,
+                repeated,
+                completionPercent: total ? Math.round((owned / total) * 100) : 0
+            }
+        }
+
+        /**
+        * Filters stickers according to the active status filter.
+        * - supports missing stickers
+        * - supports repeated stickers
+        * - supports pending sticker changes
+        * @export
+        */
+        function _filterCountryStickers(country, state) {
+            let stickers = country.stickers
+            if (state.selectedStatusFilter === 'missing') {
+                stickers = stickers.filter(s => s.count === 0)
+            }
+            if (state.selectedStatusFilter === 'repeated') {
+                stickers = stickers.filter(s => s.count > 1)
+            }
+            if (state.selectedStatusFilter === 'pending') {
+                stickers = stickers.filter(s => s.hasPendingChange)
+            }
+            // 🔴 CRITICAL FIX: drop empty countries
+            if (state.selectedStatusFilter !== 'all' && stickers.length === 0) {
+                return null
+            }
+
+            return { ...country, stickers }
+        }
+
+        /**
+         * Matches a country against the selected group filter.
+         * - supports "all" as wildcard
+         * - otherwise requires exact group match
+         * @export  
+         */
+        function _matchesGroupFilter(country, state) {
+            return state.selectedGroupFilter === 'all'
+                ? true
+                : country.group === state.selectedGroupFilter
+        }
+
+         /**
+         * Matches a country against the active team search.
+         * - performs case-insensitive prefix matching
+         * - checks both country code and country name
+         * @export
+         */
+        function _matchesTeamSearch(country, state) {
+            if (!state.teamSearchText) return true
+            const code = String(country.code || '').toLowerCase()
+            const name = String(country.countryName || '').toLowerCase()
+            const search = String(state.teamSearchText).toLowerCase()
+
+            return code.startsWith(search) || name.startsWith(search)
+        }
+
+         /**
+         * Applies pending changes to a single sticker.
+         * - overlays temporary pending counts
+         * - marks stickers with pending changes
+         * @export
+         */
+        function _applyPendingStickerUpdate(countryCode, sticker, state) {
+            const key = _buildPendingKey(countryCode, sticker.number)
+            const pending = state.pendingUpdates?.[key] // ADDED: make it safe for undefined pendingUpdates
+
+            if (pending == null) {
+                return { ...sticker, hasPendingChange: false }
+            }
+
+            return {
+                ...sticker,
+                count: pending,
+                label: `${sticker.number} (${pending})`,
+                hasPendingChange: true
+            }
         }
 
         return { // namespace export
+            applyLayout,
             buildEmptyState,
             setMessage,
             getVisibleCountries,

@@ -127,8 +127,8 @@
     const layout = getLayout()
     showBusyState(true)
     showMessage('Loading countries...', 'info')
-    if (typeof applyLayout === 'function') {
-      applyLayout(layout.stickersPerRow)
+    if (typeof QuickEntry.applyLayout === 'function') {
+      QuickEntry.applyLayout(layout.stickersPerRow)
     }
     const backendMethod = isDesktopDialogHost()
       ? 'getQuickEntryInitialData'
@@ -239,7 +239,7 @@
   /**Renders the visible country cards.*/
   function renderCountryList() {
     const layout = getLayout()
-    const visibleCountries = QuickEntry.getVisibleCountries(state, layout)
+    const visibleCountries = QuickEntry.getVisibleCountries(state)
     countryListEl.innerHTML = ''
     if (!visibleCountries.length) {
       countryListEl.appendChild(QuickEntry.buildEmptyState(getEmptyStateMessage()))

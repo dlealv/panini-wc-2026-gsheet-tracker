@@ -21,6 +21,7 @@ This service covers:
 - Validation of import syntax and business rules.
 - Preview of parsed import values.
 - File upload or manual pasting as import input.
+- Country teams and special category stickers such as FIFA World Cup (`FWC`) and Coca-Cola (`CC`) stickers.
 
 This service does not cover:
 - Export service
@@ -29,7 +30,6 @@ This service does not cover:
 - External libraries.
 - Web app deployment.
 - Add-on publishing.
-- Special collections such as Coca-Cola stickers.
 
 ---
 
@@ -44,9 +44,10 @@ This service is accessed from the **Manage Panini** menu through:
 The service uses: 
 - `ImportService.gs` for backend logic
 - `Commons.gs` common services used by all services via `StickerSheetRepository` class.
-- HTML dialog files:
-  - `ImportDialog.html` (main shell).
-  - `ImportDialogHelpers.html` (client-side utilities).
+- HTML files:
+  - `ImportDialog.html` (main shell for desktop).
+  - `ImportHelpers.html` (client-side utilities).
+  - `MobileImportView.html`: Simplified view of import service for mobile devices.
 
 ---
 
@@ -61,20 +62,33 @@ The service uses:
 - `COUNTRIES`: country code column to identify country codes.
 - `COUNTS`: writable sticker count range in the `Stickers` sheet.
 
-**Note:** Named ranges do not necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows must match across all named ranges used together.
+**Note:** Named ranges do not necessarily have to be defined in the same sheet. For example, you can define `COUNTRIES` in the `Conf` tab and `COUNTS` in the `Stickers` tab, but the total number of rows must match across all named ranges used together. The total number of rows is `50`, ie. 48 country teams, plus `FWC` and `CC`.
 
 ---
 
 ## Sticker classification based on its position
 
-Consider the following definitions that the parser must take into account:
+Consider the following sticker classifications used by the parser:
 
-- `INVALID_STICKER` (hard invalid): Outside global numeric domain or malformed. Example: `25`, `-1`, `99`. Behavior: report a warning and skip the sticker.
-- `OUT_OF_ALBUM_STICKER` (soft invalid / semantic null): Inside numeric domain `[0–20]` but not part of the album mapping for that country. Example: `FWC-20` or `0` for non-`FWC` (team country). `FWC` stickers are a special FIFA sticker category; they do not belong to any competing national team, and their range is `[0-19]`. Example: `MEX,0`, `BRA,0`. Behavior: no warning; mapped to 0; allowed on import.
-- `VALID_STICKER`: Stickers in range `[0-20]` with specific cases based on the type of stickers: 
-`FWC` from `[0-19]` and for non-`FWC` countries `[1-20]`. Behavior: sticker is accepted; no warning is issued.
+- `VALID_STICKER`: A sticker whose number falls within the global numeric domain `[0-20]` (inclusive) and represents a valid sticker position for its country. Valid ranges depend on the country category:
+  - **Country teams:** `[1-20]`. Examples: `MEX,1`, `BRA,20`.
+  - **Non-Country teams** or special stickers:
+    - `FWC` (FIFA World Cup): `[0-19]`.
+    - `CC` (Coca-Cola): `[1-12]`.
 
-`OUT_OF_ALBUM_STICKER` and `VALID_STICKER` are treated by the parser as valid positions.
+- `OUT_OF_ALBUM_STICKER` (soft invalid / semantic null): A sticker whose number is within the global numeric domain `[0-20]` but does not correspond to a valid album position for the specified country.
+  - **Behavior:** The sticker is accepted without generating a warning, imported normally, and its count is mapped to `0`.
+  - Examples:
+    - `FWC,20`
+    - Country team position `0`: `BRA,0`, `MEX,0`
+    - Coca-Cola position `0`: `CC,0`
+    - Coca-Cola positions outside its album range: `CC,13`, `CC,20`
+
+- `INVALID_STICKER` (hard invalid): A sticker whose number is outside the global numeric domain or whose syntax is malformed.
+  - Examples: `25`, `-1`, `99`
+  - **Behavior:** A warning is generated and the sticker is skipped.
+
+For parsing purposes, both `VALID_STICKER` and `OUT_OF_ALBUM_STICKER` are considered valid sticker positions. Only `INVALID_STICKER` generates a warning and is excluded from the import.
 
 ---
 
@@ -87,11 +101,16 @@ One country per line. The parser supports two input formats:
   - 🇲🇽 `MEX,1,2,3(3)` → sticker `3` is repeated `3` times.
   - `MEX,1-3` → same as: `MEX,1,2,3`.
   - `MEX,1-3(2)` → same as: `MEX,1(2),2(2),3(2)`.
+  - `CC,1,2,3` → Coca-Cola stickers `1`,`2`,`3`, no repeats.
+  - `FWC,1,2,3` → FIFA stickers `1`,`2`,`3`, no repeats.
 
 - Format 2: Similar to the sticker ID on the back of the sticker card.
   - `MEX-1,MEX-2,MEX3` → the dash (`-`) is optional, as in `MEX3`.
   - 🇲🇽 `MEX-1,MEX-9-10` → same as: `MEX-1,MEX-9,MEX-10`.
   - `MEX-1,MEX-9-10(2)` → same as: `MEX-1,MEX-9(2),MEX-10(2)`.
+  - `CC1,CC2,CC3` → Coca-Cola stickers `1`,`2`,`3`, no repeats.
+  - `FWC-1,FWC-2,FWC-3` → FIFA stickers `1`,`2`,`3`, no repeats.
+  
 
 See the **Format 1** and **Format 2** sections below for more details.
 
@@ -106,7 +125,7 @@ See the **Format 1** and **Format 2** sections below for more details.
 4. Removes repeated or leading/trailing commas
 5. All possible repeat representations (`NxX`, `N(xX)`, `A-BxX`, `A-B(xX)`) are normalized to the canonical repeat forms: `N(X)`, `A-B(X)`.
 
-> All steps carried out during the pre-normalization phase are performed at the line level (pre-tokenization).
+> All steps carried out during the pre-normalization phase are performed at the line level (before tokenization).
 
 
 ### Repeat representation
@@ -116,7 +135,7 @@ The parser should allow different ways to represent repeats, as all of them are 
 - Single sticker repeat: `N(X)`, `NxX`, `N(xX)`; all of them denote that sticker `N` is repeated `X` times, where `X > 1`.
 - Sticker range repeats: `A-B(X)`, `A-BxX`, `A-B(xX)`; all sticker numbers from `A` to `B` (both inclusive) are repeated `X` times.
 
-In the above cases, the **canonical form** is the first one: `N(X)` or, for ranges, `A-B(X)`.
+In the above cases, the **canonical form** is for one sticker `N(X)` or, for ranges, `A-B(X)`.
 
 Examples:
 
@@ -138,7 +157,7 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 - *First country rule*: The first mandatory token in the country line must be a country code; all stickers belong to this country code.
 - `N` sticker number. Sticker number is classified as:
   - `VALID_STICKER` → normal processing.
-  - `OUT_OF_ALBUM_STICKER` → accepted, mapped to 0, no warning.
+  - `OUT_OF_ALBUM_STICKER` → accepted, mapped to `0`, no warning.
   - `INVALID_STICKER` → skipped with warning.
 - `N(X)` sticker number repeated `X` times, where `X > 1` (otherwise skipped and a warning is reported).
 - `A-B` sticker range from `A` to `B`, both inclusive, where `A` is less than `B` (otherwise skipped and a warning is reported).
@@ -151,7 +170,7 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 ### Format 1 — Classic (country prefix once)
 
 ```text
-Format: [flag] CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
+Format: [flag] CODE,number[,[number](repeats)][,number-range][,number-range(repeats)]...
 ```
 
 Examples:
@@ -163,6 +182,7 @@ BRA,7(3)
 MEX,1-4,8
 BRA,5-8(2),10
 MEX,1,2,3(2),5-8,10-12(2)
+CC,1,3,5-7(2)
 ```
 
 ### Canonical line form
@@ -186,7 +206,7 @@ Each sticker token includes the country code as a prefix. The dash between the c
 All current country codes for the Panini WC 2026 album are exactly three characters long; the parser relies on this fixed length to identify the code prefix in Format 2 tokens.
 
 ```text
-Format: [flag] CODE[-]N[,CODE[-]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...
+Format: [flag] CODE[-]N[,[CODE[-]]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...
 ```
 
 Where `CODE[-]` means the country code followed by an optional dash.
@@ -205,7 +225,9 @@ MEX1,MEX3-5(2)
 MEX-1,MEX-5(2),MEX-10
 FWC-1,FWC-3-5(2)
 FWC1,FWC3-5(2)
+CC-1,CC3,CC-5-7(2)
 ```
+> The implementation needs to consider all country code have 3-characters, except Coca-Cola (`CC`) stickers.
 
 ### Range interpretation examples
 
@@ -241,8 +263,9 @@ Examples:
 - If a sticker token is written as `N(X)`, its mapped count is `X`, unless a special sticker rule applies.
 - If a sticker token is written as `A-B`, it is first expanded into individual sticker numbers during parser transformation; each resulting sticker is then mapped to `1`, unless a special sticker rule applies.
 - If a sticker token is written as `A-B(X)`, each sticker in the inclusive range is mapped as if written individually with count `X`, unless a special sticker rule applies.
-- Sticker `0` only exists for `FWC`; for other country codes it is accepted as input and silently mapped to count `0`.
-- Sticker `20` only exists for non-`FWC` country codes; for `FWC` it is accepted as input and silently mapped to count `0`.
+- Sticker `0` only exists for `FWC`; for other categories it is accepted as input and silently mapped to count `0`.
+- Sticker `20` only exists for country team codes ; for `FWC`, `CC` it is accepted as input and silently mapped to count `0`.
+- Stickers `[13-20]` doesn't exist for `CC` country code; it is accepted as input and silently mapped to count `0`.
 
 See **Sticker classification based on its position** for the complete definition of valid positions.
 
@@ -262,6 +285,7 @@ See **Sticker classification based on its position** for the complete definition
 | `BRA,5-7(2)` | stickers `5,6,7` → `2,2,2` |
 | `MEX-1,MEX-3-5` | stickers `1,3,4,5` (after expansion) → `1,1,1,1` |
 | `MEX1,MEX3-5(2)` | stickers `1,3,4,5` (after parser transformation and range expansion) → `1,2,2,2` |
+| `CC,1,3,12,15` | stickers `1,3,12`, sticker `15` is silently skipped with count `0` (out of range for `CC` stickers) |
 
 
 ### Exclusion operator
@@ -303,12 +327,13 @@ The operator prefix may be applied to any valid import line format:
 | `<>FWC,1-10,12-19` | `FWC,0,11` |
 | `!=MEX,1,2,3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 | `^MEX1,MEX2,MEX3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
+| `^CC,1,2,3` | `CC,4,5,6,7,8,9,10,11,12` |
 
 #### Exclusion operator validation rules
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of a line, only the first is recognized; the remainder are silently ignored.
-- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country, use the explicit form `CODE,1-20` (or `FWC,0-19`) instead.
+- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country, use the explicit form `CODE,1-20` (or `FWC,0-19` or `CC,1-12`) instead.
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat counts in exclusion lines are silently ignored; the complement always uses count `1`.
 
@@ -329,7 +354,7 @@ The import parser is designed to be flexible: it does not abort the entire impor
 | Country code does not exist in `COUNTRIES` | Line skipped; warning reported |
 | Invalid country code format | Line skipped; warning reported |
 | `INVALID_STICKER` | Token skipped; warning reported |
-| `OUT_OF_ALBUM_STICKER` (e.g. `MEX,0` or `FWC,20`) | Silently mapped to `0`; no warning reported |
+| `OUT_OF_ALBUM_STICKER` (e.g. `MEX,0` or `FWC,20` or `CC,15`) | Silently mapped to `0`; no warning reported |
 | Invalid or non-integer repeat value | Token skipped; warning reported |
 | Invalid range order (`start > end` before expansion) | Token skipped; warning reported |
 | Mismatched per-sticker country code prefix in a Format 2 token (e.g. in `MEX-1,BRA-2,MEX-3`, `BRA-2` is skipped) | Token skipped; warning reported |
@@ -375,7 +400,7 @@ The service must provide three loading modes.
 - Updates only sticker positions explicitly provided in the input.
 - All other sticker counts for the country remain unchanged.
 
-> For countries being processed by the import operation, OUT_OF_ALBUM_STICKER positions are always silently populated with `0`, regardless of whether the user explicitly provided them.
+> For countries being processed by the import operation, `OUT_OF_ALBUM_STICKER` positions are always silently populated with `0`, regardless of whether the user explicitly provided them.
 
 ### Data writing requirements
 
@@ -439,7 +464,7 @@ The import dialog must show only import-related sections and actions.
 #### Import dialog action behavior
 
 - **Validate / Preview**
-  - Validates syntax and business rules.
+  - Validates syntax and business rules. During validation clears any existing previous warning.
   - Shows the mapped values without writing to the sheet.
   - Displays all collected warnings (e.g. skipped unknown country codes, skipped duplicate stickers).
   - Displays the first error encountered, if any, and stops; the user must correct the input and try again.
@@ -452,7 +477,7 @@ The import dialog must show only import-related sections and actions.
 
 - **Import**
   - Runs the same validation pipeline as **Validate / Preview** before writing.
-  - Imports validated data using the selected loading mode.
+  - Imports validated data using the selected loading mode. During import clears any existing previous warning.
 
 - **Cancel**
   - Closes the dialog without importing.

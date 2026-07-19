@@ -41,34 +41,12 @@
       return `${prefix}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.txt`
     }
 
-
-    // =========================
-    // DOM HELPERS (NOT TESTED YET)
-    // =========================
-
-    /** Reads current UI state from DOM inputs.
-     * @export
-     */
-    function getUIState(deps = {}) {
-      const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
-      const sortDoneEl = deps.sortByDoneCheckbox ||
-        (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
-      const compactEl = deps.isCompactCheckbox ||
-        (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
-
-      return {
-        includeFlags: flagsEl ? flagsEl.checked : false,
-        sortByDone: sortDoneEl ? sortDoneEl.checked : false,
-        isCompact: compactEl ? compactEl.checked : false
-      }
-    }
-
     /** Backend payload wrapper (stable contract for services).
      * @export
      * @public
      */
     function getPayload(deps = {}) {
-      return getUIState(deps)
+      return _getUIState(deps)
     }
 
     /** Displays a message in the dialog UI.
@@ -139,6 +117,23 @@
       setTimeoutFn(() => {
         urlApi.revokeObjectURL(url)
       }, 1000)
+    }
+
+    /** Reads current UI state from DOM inputs.
+     * @export
+     */
+    function _getUIState(deps = {}) {
+      const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
+      const sortDoneEl = deps.sortByDoneCheckbox ||
+        (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
+      const compactEl = deps.isCompactCheckbox ||
+        (typeof isCompactCheckbox !== 'undefined' ? isCompactCheckbox : null)
+
+      return {
+        includeFlags: flagsEl ? flagsEl.checked : false,
+        sortByDone: sortDoneEl ? sortDoneEl.checked : false,
+        isCompact: compactEl ? compactEl.checked : false
+      }
     }
 
     return { // namespace export

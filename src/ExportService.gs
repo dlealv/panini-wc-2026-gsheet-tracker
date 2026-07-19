@@ -28,14 +28,6 @@ class ExportService {
     this.rows = null
   }
 
-  /** Gets the sticker sheet repository instance. Lazy initializes repository on first access.*/
-  getRepo() {
-    if (!this.repo) {
-      this.repo = new StickerSheetRepository(this.spreadsheet)
-    }
-    return this.repo
-  }
-
   /** GAS entrypoint for 'Export all stickers' operation. 
    * @returns {{ success: boolean, text: string, lines: number }}
   */
@@ -115,12 +107,12 @@ class ExportService {
    * @returns {number[]}
    */
   _normalizeCountsRow(values) {
-    const SMIN = this.getRepo().STICKER_MIN
-    const SMAX = this.getRepo().STICKER_MAX
-    const EXPECTED_LENGTH = this.getRepo().EXPECTED_STICKER_COLUMNS
-    const normalized = new Array(EXPECTED_LENGTH).fill(0)
+    const EXPECTED_STICKER_COLUMNS = StickerSheetRepository.getExpectedStickerColumns()
+    const STICKER_MIN = StickerSheetRepository.getStickerMin()
+    const STICKER_MAX = StickerSheetRepository.getStickerMax()
+    const normalized = new Array(EXPECTED_STICKER_COLUMNS).fill(0)
 
-    for (let s = SMIN; s <= SMAX; s++) {
+    for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
       normalized[s] = Number(values && values[s]) || 0
     }
     return normalized
@@ -145,9 +137,9 @@ class ExportStickers {
   * Precomputed and normalized export rows.
   */
   constructor(rows) {
-    this.STICKER_MIN = 0
-    this.STICKER_MAX = 20
-    this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
+    this.STICKER_MIN = StickerSheetRepository.getStickerMin()
+    this.STICKER_MAX = StickerSheetRepository.getStickerMax()
+    this.EXPECTED_STICKER_COLUMNS = StickerSheetRepository.getExpectedStickerColumns()
     this.rows = Array.isArray(rows) ? rows : []
   }
 
@@ -215,12 +207,18 @@ class ExportStickers {
    */
   _filterStickerNumbersBy(row, by) {
     const out = []
-    for (let s = this.STICKER_MIN; s <= this.STICKER_MAX; s++) {
+    const STICKER_MIN = StickerSheetRepository.getStickerMin()
+    const STICKER_MAX = StickerSheetRepository.getStickerMax()
+    for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
       if (!this._isExportableSticker(row.code, s)) { continue }
       const n = Number(row.counts[s] || 0)
       if (by === 'owned' && n >= 1) { out.push({ sticker: s, count: n }) }
-      else if (by === 'missing' && n === 0) { out.push({ sticker: s, count: 0 }) }
-      else if (by === 'repeats' && n >= 2) { out.push({ sticker: s, count: n }) }
+      else if (by === 'missing' && n === 0) {
+        out.push({ sticker: s, count: 0 })
+      }
+      else if (by === 'repeats' && n >= 2) {
+        out.push({ sticker: s, count: n })
+      }
     }
     return out
   }
@@ -313,8 +311,9 @@ class ExportStickers {
    * @returns {boolean}
    */
   _isExportableSticker(countryCode, stickerNumber) {
-    if (countryCode === 'FWC') { return stickerNumber >= 0 && stickerNumber <= 19 }
-    return stickerNumber >= 1 && stickerNumber <= 20
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [minSticker, maxSticker] = bounds.get(countryCode) || bounds.get('TEAM')
+    return stickerNumber >= minSticker && stickerNumber <= maxSticker
   }
 
 }

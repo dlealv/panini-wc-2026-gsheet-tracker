@@ -30,21 +30,10 @@ describe('ExportHelpers unit tests', () => {
       expect(result.startsWith('panini-stickers-shared')).toBe(true)
       expect(result.endsWith('.txt')).toBe(true)
     })
-  })
-
-  /** Get current UI state from input elements. */
-  describe('getUIState()', () => {
-    test('returns default values when inputs are missing', () => {
-      global.textInput = null
-      global.modeInput = null
-      global.includeFlagsCheckbox = null
-      const result = helpers.getUIState()
-      expect(result).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
-    })
-    test('reads values from DOM inputs', () => {
-      global.includeFlagsCheckbox = { checked: true }
-      const result = helpers.getUIState()
-      expect(result).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
+    test('falls back to all prefix for unknown export type', () => {
+      const date = new Date(2026, 0, 5, 9, 4, 7)
+      const result = helpers.buildExportFileName('invalid', date)
+      expect(result).toBe('panini-stickers-all-20260105-090407.txt')
     })
   })
 
@@ -53,7 +42,7 @@ describe('ExportHelpers unit tests', () => {
     test('returns same result as getUIState', () => {
       global.includeFlagsCheckbox = { checked: true }
       expect(helpers.getPayload()).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
-      expect(helpers.getPayload()).toEqual(helpers.getUIState())
+      expect(helpers.getPayload()).toEqual(helpers._getUIState())
     })
   })
 
@@ -70,6 +59,10 @@ describe('ExportHelpers unit tests', () => {
       helpers.setMessage('Test', undefined, { messageEl })
       expect(messageEl.className).toBe('message info')
     })
+    test('does nothing when message element is missing', () => {
+      expect(() => helpers.setMessage('Hello', 'success', { messageEl: null })).
+        not.toThrow()
+    })
   })
 })
 
@@ -82,6 +75,12 @@ describe('setBusy()', () => {
     helpers.setBusy(true, { document: docMock, controls })
     buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
     controls.forEach(control => { expect(control.disabled).toBe(true) })
+  })
+  test('ignores null controls while setting busy state', () => {
+    const buttons = [{ disabled: false }]
+    const docMock = { querySelectorAll: jest.fn(() => buttons) }
+    helpers.setBusy(true, { document: docMock, controls: [null, { disabled: false }] })
+    expect(buttons[0].disabled).toBe(true)
   })
 })
 
@@ -132,5 +131,21 @@ describe('triggerDownload()', () => {
     expect(removeMock).toHaveBeenCalledTimes(1)
     expect(setTimeoutMock).toHaveBeenCalledTimes(1)
     expect(revokeObjectURLMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+/** Get current UI state from input elements. */
+describe('_getUIState()', () => {
+  test('returns default values when inputs are missing', () => {
+    global.textInput = null
+    global.modeInput = null
+    global.includeFlagsCheckbox = null
+    const result = helpers._getUIState()
+    expect(result).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
+  })
+  test('reads values from DOM inputs', () => {
+    global.includeFlagsCheckbox = { checked: true }
+    const result = helpers._getUIState()
+    expect(result).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
   })
 })

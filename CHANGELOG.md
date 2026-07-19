@@ -7,6 +7,195 @@ project structure, and documentation.
 
 ---
 
+## [1.1.1] 2026-07-19
+
+### Overview
+
+The Google Sheets Panini template now supports Coca-Cola stickers. The template and backend were updated to handle Coca-Cola stickers using the country code `CC`. For `*Helpers.html` and `*Render.html` files, an underscore prefix was added to private functions. The corresponding tests were updated to reflect the renamed functions. Fixed an issue in the Quick Entry service where the mobile layout rendered stickers in a single column instead of the configured five-column layout.
+
+### Added
+
+- Under the `examples` folder: Added more specific sample files for the Export all stickers and Export shared stickers services:
+  - `panini-stickers-all.txt`: Sample output of the Export all stickers service.
+  - `panini-stickers-all_flagTrue_compactTrue.txt`: Sample output of the Export all stickers service with the **Flag** and **Compact (using ranges)** checkboxes activated.
+  - `panini-stickers-shared.txt`: Sample output of the Export shared stickers service.
+  - `panini-stickers-shared_flagTrue_compactTrue.txt`: Sample output of the Export shared stickers service with the **Flag** and **Compact (using ranges)** checkboxes activated.
+
+### Changes
+
+- Under the GSheet template:
+  - `Sticker` tab:
+    - Renamed the Numbers columns to Stickers.
+    - Added a new row at the end to include Coca-Cola stickers.
+    - The Country column now uses the `COUNTRIES` named range.
+    - The calculation of the **Done** column now uses the `COUNTS` named range.
+    - The calculation of the **%** column now uses the `DONE` and `P_COMPLETION` named ranges to calculate the correct completion percentage based on the maximum number of stickers for each country.
+    - The calculation of the **Miss** column now considers `MAX_STICKERS` for a more precise calculation based on the maximum number of stickers for each country.
+    - The calculation of the **Rep** column now uses the `COUNTS` named range.
+    - Adjusted conditional formatting for **Done**, **%**, **Miss**, and **Rep** to include the Coca-Cola row.
+    - Adjusted conditional formatting for count values to prevent expansion to additional rows in the future and adjusted the range to include Coca-Cola sticker counts.
+    - Added the `MISSING` named range for the **Miss** column.
+    - Added the `P_COMPLETION` named range for the completion percentage of each country. It is now calculated considering the maximum possible stickers for each country.
+    - Adjusted the named ranges `TOTAL_*_STICKERS` to point to the correct cells after adding the Coca-Cola row. Adjusted the formulas to use the new named ranges.
+    - Added the `REPEATS` named range for the **Rep** column.
+    - All calculations in the `Stickers` tab now use the defined named ranges.
+
+  - `Reports` tab:
+    - Added a drop-down under the metrics section to allow users to decide whether to include Coca-Cola stickers, since not all users collect them. Most calculated fields in the metrics section now depend on this selection.
+    - Adjusted conditional formatting.
+    - Adjusted the chart range to include Coca-Cola stickers.
+    - Adjusted the pivot table range to include Coca-Cola stickers.
+    - Adjusted the formula for missing stickers to use the `COUNTRIES` and `FLAG_ICONS` named ranges.
+    - Team Completed now uses `P_COMPLETION` to correctly calculate completed teams considering that not all teams have `20` stickers.
+
+  - `Trade` tab:
+    - Adjusted the formulas so both input columns derive from a common input range to avoid inconsistencies caused by different row counts. Both inputs now derive from the `input` let variable.
+    - Adjusted the formula for TOTAL in the **INPUT** section to calculate correctly using the `CLEAN_STICKER_LINE` named function.
+
+  - Named functions:
+    - `CLEAN_STICKER_LINE`: Extended the function to remove `A-B(X)` ranges as well.
+
+  - `Conf` tab (hidden):
+    - Added a new row with Coca-Cola information.
+    - Adjusted the named range to include Coca-Cola.
+    - Adjusted the formula that generates flags to ensure the Coca-Cola flag appears as a square.
+    - The `GROUPS` named range now points to the `Conf` tab instead of the `Sticker` tab.
+    - Added the **Max Stickers** column, representing the maximum number of possible stickers for each country.
+    - Added the `MAX_STICKERS` named range for the **Max Stickers** column.
+
+- Under the `docs` folder:
+  - `ImportServiceRequirements.md`: Added requirements for Coca-Cola stickers.
+  - `ExportServiceRequirements.md`: Updated references from non-`FWC` notation to country teams.
+  - `QuickEntryServiceMockDesign.md`: Added specific requirements for Coca-Cola stickers and updated references from non-`FWC` notation to country teams.
+  - `QuickEntryServiceRequirements.md`: Added specific requirements for Coca-Cola stickers, updated references from non-`FWC` notation to country teams, and removed outdated sections at the end.
+
+- Under the `examples` folder: Removed previous sample files and replaced them with more specific sample files.
+
+- Under the `images` folder:
+  - `reportsView.jpg`: Updated to show Coca-Cola data and the drop-down allowing users to select whether to include `CC` stickers in statistics.
+  - `stickerView.jpg`: Updated to include the Coca-Cola row.
+
+- Under the `src` folder:
+  - `Commons.gs`:
+    - Defined file-level constant variables and corresponding static getters. Since GAS V8 does not support static class fields, this provides a consistent workaround for shared constants.
+    - Changes in `StickerSheetRepository`:
+      - Added the following static getters: `getCountryBounds()`, `getStickerMin()`, `getStickerMax()`, and `getMaxRows()`.
+      - `getCountryBounds()`: Handles country sticker ranges, including the special cases for `FWC` and Coca-Cola.
+      - Refactored `_updateCountryCounts()` to use `getCountryBounds()` for range validation.
+      - `_buildCountryRecord()` now handles optional fields such as group and flag.
+      - Refactored constant attributes into static getters and updated the rest of the class accordingly.
+
+  - `QuickEntryService.gs`:
+    - Adjusted the class to support special countries such as `FWC` and Coca-Cola.
+    - `_getStickerIconLabel()`: Now uses `StickerSheetRepository.getCountryBounds()` to determine whether the country is a team and assign the special labels `TEAM` or `CREST`.
+    - `_getVisibleStickerNumbers()`: Now uses `StickerSheetRepository.getCountryBounds()` to determine the visible sticker range for special countries such as `FWC` and Coca-Cola.
+
+  - `ImportService.gs`:
+    - Adjusted the classes to support Coca-Cola stickers.
+    - `LineNormalize` class:
+      - Added static attributes `COUNTRY_CODE_PATTERN` and `FORMAT2_COUNTRY_REGEX` to centralize country validation patterns. These patterns now support Coca-Cola stickers.
+      - `_extractCountryCode()`: Adjusted to support Coca-Cola stickers.
+      - `_normalizeToken()`: Adjusted to support Coca-Cola stickers.
+      - `_getAlbumPositions()`: Now validates ranges using `StickerSheetRepository.getCountryBounds()`.
+    - `ImportSticker` class:
+      - `_validateCountryCode()`: Now validates Coca-Cola country codes.
+      - `_validateStickerNumber()`: Now uses static methods from `StickerSheetRepository` to validate sticker numbers and generate customized warnings showing the correct valid range, including non-team countries.
+      - `_mapTokenToCount()`: Improved documentation and refactored to use static methods from `StickerSheetRepository`.
+    - `ImportService` class:
+      - `_writeCountries()`: Now uses country-specific bounds from `StickerSheetRepository.getCountryBounds()`.
+
+  - `ExportService.gs`:
+    - Updated to use the new static getters from `StickerSheetRepository`.
+    - `_normalizeCountsRow()`: Now uses static methods from `StickerSheetRepository`.
+    - `_isExportableSticker()`: Now uses a static method from `StickerSheetRepository`.
+
+- Under the `src/html` folder:
+  - `ImportHelpers.html`:
+    - Added the `@public` tag to exported namespace functions.
+    - Renamed `getPayloadFromState()` to `_getPayloadFromState()` since it is private and moved it after the exported functions.
+    - Renamed `renderPreviewData()` to `_renderPreviewData()` since it is private and moved it after the exported functions.
+
+  - `ImportDialog.html`:
+    - Ensures both `preview()` and `importData()` clear validation warnings by calling `renderWarnings([])`.
+
+  - `ExportHelpers.html`:
+    - Renamed `getUIState()` to `_getUIState()` since it is private and moved it after the exported functions.
+
+  - `QuickEntryHelpers.html`:
+    - Added `applyLayout()` to the namespace exports and tagged it as `@public`. This fixes the mobile Quick Entry layout, which previously rendered stickers in a single column.
+    - Added an underscore prefix to the following private functions and moved them after public functions: `matchesTeamSearch()`, `matchesGroupFilter()`, `applyPendingCountryUpdates()`, `filterCountryStickers()`, `buildCountrySummary()`, `buildPendingKey()`, `renderPreview()`, `clearPreview()`, `setBusy()`.
+    - Removed the unused `buildExportFileName()` method.
+
+  - `QuickEntryRender.html`:
+    - Added an underscore prefix to all private functions.
+
+- Under the `test` folder:
+  - `Commons.unit.test.js`:
+    - Defined the `MAX_ROWS` constant to avoid hardcoded values across multiple tests.
+
+  - `ImportService.unit.test.js`:
+    - Under the `ImportService` test suite:
+      - Updated the `out-of-bound sticker zeroing` suite to handle Coca-Cola stickers.
+      - Updated the `parse() success paths` suite to handle Coca-Cola stickers.
+      - Added a `parse error handling` suite.
+      - Updated the `integration scenarios` suite to call `_getPayloadFromState()`.
+    - Under the `ImportSticker` test suite:
+      - Added more test cases to the `parse() error/warning cases` suite.
+    - Under the `LineNormalizer` suites:
+      - Updated the `normalize` variable to include Coca-Cola.
+      - Extended existing tests with Coca-Cola cases.
+      - Added new Coca-Cola-specific test cases.
+
+  - `ImportHelpers.unit.test.js`: Added additional tests to increase coverage.
+
+  - `ExportService.unit.test.js`:
+    - Renamed the `getUIState()` suite to `_getUIState()` and updated the function calls accordingly.
+
+  - `ExportHelpers.unit.test.js`: Added additional tests to increase coverage.
+
+  - `QuickEntryService.unit.test.js`:
+    - Added Coca-Cola test cases for `_getStickerIconLabel()`.
+    - Added Coca-Cola test cases for `_getVisibleStickerNumbers()`.
+
+  - `QuickEntryHelpers.html.unit.test.js`:
+    - Updated private function calls to use the underscore prefix.
+    - Added additional tests to increase coverage.
+
+  - `QuickEntryRender.html.unit.test.js`:
+    - Updated private function calls to use the underscore prefix.
+    - Added a test suite for `buildCountrySection()`, the only public function in the file.
+    - Added additional tests to increase coverage.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`:
+    - Updated the test data and mocks to support Coca-Cola.
+    - `TEST_DATA`: Added the Coca-Cola country.
+    - `MockStickerSheetRepository`:
+      - Updated the constructor to mock the static getters.
+      - `COUNTRY_BOUNDS`: Added the bounds and corresponding getter.
+    - `initializeSpreadsheetAppMock()`: Updated to include the Coca-Cola country and defined the `STICKER_COLS` constant.
+
+- Under the root folder:
+  - `package.json`:
+    - Fixed the `test:file` task so it now works correctly.
+    - Fixed the `test:coverage` script task to ensure folders that should not be part of coverage analysis are excluded.
+
+  - `README.md`:
+    - Updated the document to include Coca-Cola stickers.
+    - Updated the **Named range** section with the new required named ranges.
+    - Updated the **Testing** section with information about coverage.
+    - Updated the **Files** section to include new `.github` folder files and folders created in previous releases.
+
+  - `TODO.md`:
+    - Marked "Include Coca-Cola stickers" as completed.
+
+### Fix
+
+- Fixed an issue in the Quick Entry mobile service where stickers were rendered in a single column. The `applyLayout()` function was added to the `QuickEntry` namespace in `QuickEntryHelpers.html`, restoring the configured five-column mobile layout.
+- In the `Trades` tab, corrected the formulas used to calculate the TOTAL in the **INPUT** section to correctly handle ranges and repeats using the `CLEAN_STICKER_LINE` named function.
+
+---
+
 ## [1.1.0] 2026-07-12
 
 ### Overview

@@ -21,33 +21,39 @@ const writeRangeMock = {
 const TEST_DATA = {
   countries: [
     { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 2: 0, 3: 2 } },
-    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 17: 1, 18: 0, 20: 2 } }
+    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 17: 1, 18: 0, 20: 2 } },
+    { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
   ],
   groupCodes: ['A', 'B', 'C']
 }
 
 /** Mock repository used across services */
 class MockStickerSheetRepository {
+  // instance constants for sticker number ranges and country bounds
   constructor() {
-    this.ss = global.SpreadsheetApp.getActiveSpreadsheet()
-    this.sheet = this.ss.getRangeByName('COUNTS').getSheet()
-
-    this.countriesRange = this.ss.getRangeByName('COUNTRIES')
-    this.countsRange = this.ss.getRangeByName('COUNTS')
-    this.groupsRange = this.ss.getRangeByName('GROUPS')
-    this.doneRange = this.ss.getRangeByName('DONE')
-    this.flagsUrlRange = this.ss.getRangeByName('FLAGS_URL')
-    this.flagIconsRange = this.ss.getRangeByName('FLAG_ICONS')
-    this.countryNamesRange = this.ss.getRangeByName('COUNTRY_NAMES')
+    this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
+    this.COUNTS_RANGE_NAME = 'COUNTS'
+    this.GROUPS_RANGE_NAME = 'GROUPS'
+    this.DONE_RANGE_NAME = 'DONE'
+    this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
+    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
+    this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
 
     this.startCol = 1
     this.numStickerCols = 21
-    this.STICKER_MIN = 0
-    this.STICKER_MAX = 20
-    this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
+
+    this.ss = global.SpreadsheetApp.getActiveSpreadsheet()
+    this.sheet = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME).getSheet()
+
+    this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)
+    this.countsRange = this.ss.getRangeByName(this.COUNTS_RANGE_NAME)
+    this.groupsRange = this.ss.getRangeByName(this.GROUPS_RANGE_NAME)
+    this.doneRange = this.ss.getRangeByName(this.DONE_RANGE_NAME)
+    this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
+    this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
+    this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
 
     const baseCountries = TEST_DATA.countries
-
     this.countryMap =
       Object.fromEntries(
         baseCountries.map((c, index) => [
@@ -55,6 +61,27 @@ class MockStickerSheetRepository {
           { row: 1 + index, index }
         ])
       )
+  }
+
+  // static methods
+  static getCountryBounds() {
+    return new Map(
+      [
+        ['FWC', [0, 19]],
+        ['CC', [1, 12]],
+        ['TEAM', [1, 20]]
+      ])
+  }
+
+  static getStickerMin() { return 0 }
+
+  static getStickerMax() { return 20 }
+
+  static getMaxRows() { return 50 }
+
+  static getExpectedStickerColumns() {
+    return MockStickerSheetRepository.getStickerMax() -
+      MockStickerSheetRepository.getStickerMin() + 1
   }
 
   getCountriesRange() { return this.countriesRange }
@@ -87,12 +114,17 @@ function initTestKernel() {
 
 /** Initializes a mock for the SpreadsheetApp environment. */
 function initializeSpreadsheetAppMock() {
-  const MAX_ROWS = 49
-  const fwcCounts = Array(21).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
-  const mexCounts = Array(21).fill('')
-  const countriesValues = [['FWC'], ['MEX'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])]
-  const countsValues = [fwcCounts,
-    mexCounts, ...Array.from({ length: MAX_ROWS - 2 }, () => Array(21).fill(''))]
+  const MAX_ROWS = 50
+  const STICKER_COLS = 21
+  const fwcCounts = Array(STICKER_COLS).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
+  const mexCounts = Array(STICKER_COLS).fill('')
+  const ccCounts = Array(STICKER_COLS).fill('')
+  const countriesValues = [['FWC'], ['MEX'], ['CC'], ...Array.from({ length: MAX_ROWS - 3 }, () => [''])]
+  const countsValues = [
+    fwcCounts,
+    mexCounts,
+    ccCounts,
+    ...Array.from({ length: MAX_ROWS - 3 }, () => Array(STICKER_COLS).fill(''))]
 
   const getRangeMock = jest.fn((row, col, numRows, numCols) => {
     if (row == null || col == null || numRows == null || numCols == null) {
@@ -105,7 +137,7 @@ function initializeSpreadsheetAppMock() {
   const countsRange = {
     getValues: jest.fn(() => countsValues),
     getNumRows: jest.fn(() => countsValues.length),
-    getNumColumns: jest.fn(() => 21),
+    getNumColumns: jest.fn(() => STICKER_COLS),
     getRow: jest.fn(() => 1),
     getColumn: jest.fn(() => 2),
     getSheet: jest.fn(() => sheetMock),

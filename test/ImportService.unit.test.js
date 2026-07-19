@@ -94,6 +94,85 @@ describe('ImportService (unit)', () => {
     })
   })
 
+  /* Test error handling in parse() method */
+  describe('parse error handling', () => {
+    test('preview accepts CC as a valid country without warnings', () => {
+      const result = service.preview('CC,1,2,3')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries).toHaveLength(1)
+      expect(result.countries[0]).toEqual({
+        code: 'CC',
+        stickers: [
+          { number: 1, count: 1 },
+          { number: 2, count: 1 },
+          { number: 3, count: 1 }
+        ]
+      })
+    })
+    test('accepts FWC sticker 0 as a valid sticker position', () => {
+      const result = service.preview('FWC,0')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 0, count: 1 }
+      ])
+    })
+    test('accepts FWC sticker 20 as out-of-album sticker without warning', () => {
+      const result = service.preview('FWC,20')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 20, count: 0 }
+      ])
+    })
+    test('accepts team country sticker 0 as out-of-album sticker without warning', () => {
+      const result = service.preview('MEX,0')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 0, count: 0 }
+      ])
+    })
+    test('accepts CC sticker 0 as out-of-album sticker without warning', () => {
+      const result = service.preview('CC,0')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 0, count: 0 }
+      ])
+    })
+    test('accepts CC stickers above album range as out-of-album without warning', () => {
+      const result = service.preview('CC,13,20')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 13, count: 0 },
+        { number: 20, count: 0 }
+      ])
+    })
+    test('rejects stickers outside global domain with warnings and skips them', () => {
+      const result = service.preview('MEX,1,25,99')
+      expect(result.success).toBe(true)
+      expect(result.warnings.length).toBe(2)
+      expect(result.warnings.some(w => w.includes('25'))).toBe(true)
+      expect(result.warnings.some(w => w.includes('99'))).toBe(true)
+      expect(result.countries[0].stickers).toEqual([
+        { number: 1, count: 1 }
+      ])
+    })
+    test('does not warn when valid and out-of-album stickers are mixed', () => {
+      const result = service.preview('FWC,0,1,20')
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].stickers).toEqual([
+        { number: 0, count: 1 },
+        { number: 1, count: 1 },
+        { number: 20, count: 0 }
+      ])
+    })
+  })
+
   /** Tests for parser integration, ensuring that the import and export methods correctly interact with the parser. */
   describe('parser integration', () => {
     test('warnings are preserved from parser', () => {
@@ -195,7 +274,7 @@ describe('ImportService (unit)', () => {
   })
 
   /** Tests that non-valid sticker positions are always written as 0 on import, for all modes. */
-  describe('non-valid sticker position zeroing', () => {
+  describe('out-of-bound sticker zeroing', () => {
     test('FWC import always writes 0 at offset 20 (update mode)', () => {
       service.import('FWC,1,3(2)')
       const written = __writeRangeMock.setValues.mock.calls[0][0][0]
@@ -205,6 +284,14 @@ describe('ImportService (unit)', () => {
       service.import('MEX,1,3(2)')
       const written = __writeRangeMock.setValues.mock.calls[0][0][0]
       expect(written[0]).toBe(0) // offset 0 is non-valid for non-FWC
+    })
+    test('CC import zeroes stickers outside its valid bounds', () => {
+      service.import('CC,1,12,13')
+      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
+      expect(written[0]).toBe(0) // below lower bound
+      expect(written[13]).toBe(0) // above upper bound
+      expect(written[1]).toBe(1) // valid
+      expect(written[12]).toBe(1) // valid
     })
     test('replace_countries mode also zeroes non-valid offset', () => {
       service.import('MEX,1', 'replace_countries')
@@ -227,7 +314,7 @@ describe('ImportStickers (unit)', () => {
   isolation and prevent state leakage between tests. */
   beforeEach(() => {
     jest.clearAllMocks()
-    parser = new ImportStickers({ FWC: true, MEX: true })
+    parser = new ImportStickers({ FWC: true, MEX: true, CC: true })
   })
 
   /**
@@ -236,10 +323,15 @@ describe('ImportStickers (unit)', () => {
   */
   describe('parse() success paths', () => {
     test('simple parsing returns correct structure', () => {
-      const result = parser.parse('FWC,1,2,3')
-      expect(result.countries[0].code).toBe('FWC')
-      expect(result.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1 })
-      expect(result.warnings.length).toBe(0)
+      const result1 = parser.parse('FWC,1,2,3')
+      expect(result1.countries[0].code).toBe('FWC')
+      expect(result1.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1 })
+      expect(result1.warnings.length).toBe(0)
+      // Testing Coca-Cola
+      const result2 = parser.parse('CC,1,2,3')
+      expect(result2.countries[0].code).toBe('CC')
+      expect(result2.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1 })
+      expect(result2.warnings.length).toBe(0)
     })
     test('repeat syntax expands correctly', () => {
       const result = parser.parse('FWC,2(2),5(3)')
@@ -259,11 +351,11 @@ describe('ImportStickers (unit)', () => {
    Tests for error handling in parse() method, ensuring that invalid inputs are properly
   rejected with exceptions, and that edge cases like empty input are handled gracefully.
   */
-  describe('parse() error cases', () => {
+  describe('parse() error/warning cases', () => {
     test('reject empty input with message', () => {
       expect(() => parser.parse('')).toThrow('No input provided')
     })
-    test('unknown country produces warning and skips line', () => {
+    test('unknown country code produces warning and skips line', () => {
       const result = parser.parse('🇺🇸,1')
       expect(result.countries.length).toBe(0)
       expect(result.warnings.length).toBeGreaterThan(0)
@@ -278,6 +370,26 @@ describe('ImportStickers (unit)', () => {
       const result = parser.parse('MEX,1,22')
       expect(result.countries.length).toBe(1) // line is still imported; sticker 22 is skipped
       expect(result.warnings.some(w => w.includes('22') && w.includes('outside allowed range'))).toBe(true)
+    })
+    test('team sticker 0 is accepted and mapped to zero', () => {
+      const result = parser.parse('MEX,0')
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].counts).toEqual({ 0: 0 })
+    })
+    test('FWC sticker 20 is accepted and mapped to zero', () => {
+      const result = parser.parse('FWC,20')
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].counts).toEqual({ 20: 0 })
+    })
+    test('CC sticker 13 is accepted and mapped to zero', () => {
+      const result = parser.parse('CC,13')
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].counts).toEqual({ 13: 0 })
+    })
+    test('CC sticker 20 is accepted and mapped to zero', () => {
+      const result = parser.parse('CC,20')
+      expect(result.warnings).toEqual([])
+      expect(result.countries[0].counts).toEqual({ 20: 0 })
     })
   })
 
@@ -330,7 +442,7 @@ describe('LineNormalizer (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    normalize = new LineNormalize({ FWC: true, MEX: true, BRA: true, CPV: true })
+    normalize = new LineNormalize({ FWC: true, MEX: true, BRA: true, CPV: true, CC: true })
   })
 
   /* Tests for normalizeLine() method covering a wide range of input formats and edge cases, ensuring that
@@ -357,41 +469,69 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('BRA 1:2:3')
       expect(result.line).toBe('BRA,1,2,3')
     })
-    test('mix lower and upper case country code and parsed correctly', () => {
+    test('mix lower and upper case country code (format 2) and parsed correctly', () => {
       const result = normalize.normalizeLine('Bra-1;BRA-2;bra-3')
       expect(result.line).toBe('BRA,1,2,3')
     })
+    test('CC special country code is normalized correctly', () => {
+      const result = normalize.normalizeLine('CC-1')
+      expect(result.line).toBe('CC,1')
+    })
+    test('CC special country code (format 2) is normalized correctly', () => {
+      const result = normalize.normalizeLine('CC1')
+      expect(result.line).toBe('CC,1')
+    })
+    test('Multiple CC tokens (format 2) are normalized correctly', () => {
+      const result = normalize.normalizeLine('CC-1;CC2;CC-3(2)')
+      expect(result.line).toBe('CC,1,2,3(2)')
+    })
     test('normalize repeats NxX is applied correctly', () => {
-      const result = normalize.normalizeLine('MEX,1,2x2,3')
-      expect(result.line).toBe('MEX,1,2(2),3')
+      const result1 = normalize.normalizeLine('MEX,1,2x2,3')
+      expect(result1.line).toBe('MEX,1,2(2),3')
+      const result2 = normalize.normalizeLine('CC,1,2x2,3')
+      expect(result2.line).toBe('CC,1,2(2),3')
     })
     test('normalize repeats N(xX) is applied correctly', () => {
-      const result = normalize.normalizeLine('MEX-1,MEX-2(x2),MEX3')
-      expect(result.line).toBe('MEX,1,2(2),3')
+      const result1 = normalize.normalizeLine('MEX-1,MEX-2(x2),MEX3')
+      expect(result1.line).toBe('MEX,1,2(2),3')
+      const result2 = normalize.normalizeLine('CC-1,CC-2(x2),CC3')
+      expect(result2.line).toBe('CC,1,2(2),3')
     })
     test('normalize repeats A-BxX is applied correctly', () => {
-      const result = normalize.normalizeLine('MEX,1,4-6x2,10')
-      expect(result.line).toBe('MEX,1,4(2),5(2),6(2),10')
+      const result1 = normalize.normalizeLine('MEX,1,4-6x2,10')
+      expect(result1.line).toBe('MEX,1,4(2),5(2),6(2),10')
+      const result2 = normalize.normalizeLine('CC,1,4-6x2,10')
+      expect(result2.line).toBe('CC,1,4(2),5(2),6(2),10')
     })
     test('normalize repeats A-B(xX) is applied correctly', () => {
-      const result = normalize.normalizeLine('MEX,1,4-6(x2),10')
-      expect(result.line).toBe('MEX,1,4(2),5(2),6(2),10')
+      const result1 = normalize.normalizeLine('MEX,1,4-6(x2),10')
+      expect(result1.line).toBe('MEX,1,4(2),5(2),6(2),10')
+      const result2 = normalize.normalizeLine('CC,1,4-6(x2),10')
+      expect(result2.line).toBe('CC,1,4(2),5(2),6(2),10')
     })
     test('Format 2 without dash is parsed correctly', () => {
-      const result = normalize.normalizeLine('MEX1,MEX2,MEX3')
-      expect(result.line).toBe('MEX,1,2,3')
+      const result1 = normalize.normalizeLine('MEX1,MEX2,MEX3')
+      expect(result1.line).toBe('MEX,1,2,3')
+      const result2 = normalize.normalizeLine('CC1,CC2,CC3')
+      expect(result2.line).toBe('CC,1,2,3')
     })
     test('range expansion without repeats is fully expanded', () => {
-      const result = normalize.normalizeLine('CPV-1-3')
-      expect(result.line).toBe('CPV,1,2,3')
+      const result1 = normalize.normalizeLine('CPV-1-3')
+      expect(result1.line).toBe('CPV,1,2,3')
+      const result2 = normalize.normalizeLine('CC-1-3')
+      expect(result2.line).toBe('CC,1,2,3')
     })
     test('range expansion with repeats is applied per sticker', () => {
-      const result = normalize.normalizeLine('CPV-1-3(2)')
-      expect(result.line).toBe('CPV,1(2),2(2),3(2)')
+      const result1 = normalize.normalizeLine('CPV-1-3(2)')
+      expect(result1.line).toBe('CPV,1(2),2(2),3(2)')
+      const result2 = normalize.normalizeLine('CC-1-3(2)')
+      expect(result2.line).toBe('CC,1(2),2(2),3(2)')
     })
-    test('mixed Format 1 and Format 2 tokens are normalized together', () => {
-      const result = normalize.normalizeLine('MEX-1,MEX2,MEX3-4(2)')
-      expect(result.line).toBe('MEX,1,2,3(2),4(2)')
+    test('mixed Format 2 tokens are normalized together', () => {
+      const result1 = normalize.normalizeLine('MEX-1,MEX2,MEX3-4(2)')
+      expect(result1.line).toBe('MEX,1,2,3(2),4(2)')
+      const result2 = normalize.normalizeLine('CC-1,CC2,CC3-4(2)')
+      expect(result2.line).toBe('CC,1,2,3(2),4(2)')
     })
     test('whitespace and emoji are stripped before parsing', () => {
       const result = normalize.normalizeLine('🇧🇷   BRA-1 , BRA2 ; BRA-3')
@@ -401,6 +541,7 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('XXX-1,2,3')
       expect(result.line).toBeNull()
     })
+    // Exclusion operator tests
     test('multiple exclusion operators <>^', () => {
       const result = normalize.normalizeLine('<>^MEX,1,2')
       expect(result.line).toBe('MEX,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20')
@@ -421,13 +562,17 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('^MEX,1,2')
       expect(result.line).toBe('MEX,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20')
     })
-    test('FWC exclusion operator includes 0..19 valid positions only', () => {
-      const result = normalize.normalizeLine('<>FWC,1-10')
-      expect(result.line).toBe('FWC,0,11,12,13,14,15,16,17,18,19')
+    test('Exclusion operator for non-Team countries, generates valid positions only', () => {
+      const result1 = normalize.normalizeLine('<>FWC,1-10')
+      expect(result1.line).toBe('FWC,0,11,12,13,14,15,16,17,18,19')
+      const result2 = normalize.normalizeLine('<>^CC,1,2')
+      expect(result2.line).toBe('CC,3,4,5,6,7,8,9,10,11,12')
     })
     test('duplicate tokens are deduplicated using first-occurrence rule', () => {
-      const result = normalize.normalizeLine('MEX,1,1,2,2')
-      expect(result.line).toBe('MEX,1,2')
+      const result1 = normalize.normalizeLine('MEX,1,1,2,2')
+      expect(result1.line).toBe('MEX,1,2')
+      const result2 = normalize.normalizeLine('CC,1,1,2,2')
+      expect(result2.line).toBe('CC,1,2')
     })
     test('overlapping ranges are deduplicated using first occurrence wins', () => {
       const result = normalize.normalizeLine('MEX,1-3,3-5')
@@ -465,9 +610,11 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('<>MEX,1(2),2(3)')
       expect(result.line).toBe('MEX,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20')
     })
-    test('FWC exclusion ignores repeats and expands correctly', () => {
-      const result = normalize.normalizeLine('<>FWC,1(2),2(3)')
-      expect(result.line).toBe('FWC,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19')
+    test('For non-Team exclusion ignores repeats and expands correctly', () => {
+      const result1 = normalize.normalizeLine('<>FWC,1(2),2(3)')
+      expect(result1.line).toBe('FWC,0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19')
+      const result2 = normalize.normalizeLine('<>CC,2(2),3(3)')
+      expect(result2.line).toBe('CC,1,4,5,6,7,8,9,10,11,12')
     })
     test('completely invalid tokens produce null output', () => {
       const result = normalize.normalizeLine('!!!@@@###')

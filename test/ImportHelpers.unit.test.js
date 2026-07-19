@@ -40,6 +40,9 @@ describe('ImportHelpers unit tests', () => {
       helpers.setMessage('Test', undefined, { messageEl })
       expect(messageEl.className).toBe('message info')
     })
+    test('does nothing when message element does not exist', () => {
+      expect(() => helpers.setMessage('Hello', 'success')).not.toThrow()
+    })
   })
 })
 
@@ -53,6 +56,12 @@ describe('clearPreview()', () => {
   })
   test('does nothing when preview is null', () => {
     expect(() => helpers.clearPreview({ previewEl: null })).not.toThrow()
+  })
+  test('uses global preview element when dependency is not provided', () => {
+    global.previewEl = { style: {}, textContent: 'old' }
+    helpers.clearPreview()
+    expect(global.previewEl.style.display).toBe('none')
+    expect(global.previewEl.textContent).toBe('')
   })
 })
 
@@ -93,6 +102,24 @@ describe('setBusy()', () => {
     buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
     controls.forEach(control => { expect(control.disabled).toBe(true) })
   })
+  test('uses global controls when controls dependency is missing', () => {
+    global.fileInput = { disabled: false }
+    global.modeInput = { disabled: false }
+    global.textInput = { disabled: false }
+    const docMock = { querySelectorAll: jest.fn(() => []) }
+    helpers.setBusy(true, { document: docMock })
+    expect(global.fileInput.disabled).toBe(true)
+    expect(global.modeInput.disabled).toBe(true)
+    expect(global.textInput.disabled).toBe(true)
+  })
+  test('enables controls when busy is false', () => {
+    const controls = [{ disabled: true }]
+    helpers.setBusy(false, {
+      document: { querySelectorAll: () => [] },
+      controls
+    })
+    expect(controls[0].disabled).toBe(false)
+  })
 })
 
 /** Get current UI state from input elements. */
@@ -109,6 +136,13 @@ describe('getUIState()', () => {
     const result = helpers.getUIState()
     expect(result).toEqual({ text: 'abc', mode: 'update' })
   })
+  test('uses dependency inputs when provided', () => {
+    const result = helpers.getUIState({
+      textInput: { value: 'from deps' },
+      modeInput: { value: 'clean' }
+    })
+    expect(result).toEqual({ text: 'from deps', mode: 'clean' })
+  })
 })
 
 /** Integration tests for ImportDialogHelpers. */
@@ -116,12 +150,10 @@ describe('integration scenarios', () => {
   test('state flows correctly into payload and preview rendering', () => {
     // verifies UI state → backend payload transformation
     const state = { text: 'ARG,1,3(2)', mode: 'update' }
-    const payload = helpers.getPayloadFromState(state)
-
+    const payload = helpers._getPayloadFromState(state)
     expect(payload).toEqual({ text: 'ARG,1,3(2)', mode: 'update' })
-
     // backend-style result → UI rendering
-    const preview = helpers.renderPreviewData({
+    const preview = helpers._renderPreviewData({
       countries: [{
         code: 'ARG',
         stickers: [{ number: 1, count: 1 },
@@ -144,7 +176,7 @@ describe('cross-layer integration scenarios', () => {
           { number: 5, count: 1 }]
       }]
     }
-    const preview = helpers.renderPreviewData(backendResult)
+    const preview = helpers._renderPreviewData(backendResult)
 
     expect(preview).toBe('ARG -> 1:1, 3:2, 5:1')
   })
@@ -165,8 +197,7 @@ describe('true end-to-end scenarios', () => {
         { code: 'FWC', stickers: [{ number: 0, count: 1 }, { number: 1, count: 1 }, { number: 20, count: 0 }] }
       ]
     }
-    const preview = helpers.renderPreviewData(parsedResult)
-
+    const preview = helpers._renderPreviewData(parsedResult)
     expect(preview).toBe('ARG -> 1:1, 3:2, 5:1, 6:1\nBRA -> 10:2, 11:2, 12:2\nFWC -> 0:1, 1:1, 20:0')
   })
 })
@@ -175,19 +206,22 @@ describe('true end-to-end scenarios', () => {
 describe('edge-case integration scenarios', () => {
   test('empty backend result returns empty string', () => {
     const result = { countries: [] }
-    const preview = helpers.renderPreviewData(result)
-
+    const preview = helpers._renderPreviewData(result)
     expect(preview).toBe('')
   })
   test('null backend result does not crash renderer', () => {
-    const preview = helpers.renderPreviewData(null)
-
+    const preview = helpers._renderPreviewData(null)
     expect(preview).toBe('')
   })
   test('missing stickers array is handled safely', () => {
     const result = { countries: [{ code: 'ARG' }] } // missing stickers = real API edge case
-    const preview = helpers.renderPreviewData(result)
-
+    const preview = helpers._renderPreviewData(result)
+    expect(preview).toBe('ARG -> ')
+  })
+  test('handles null stickers collection safely', () => {
+    const preview = helpers._renderPreviewData({
+      countries: [{ code: 'ARG', stickers: null }]
+    })
     expect(preview).toBe('ARG -> ')
   })
 })
@@ -202,7 +236,7 @@ describe('service-level integration scenarios', () => {
         { code: 'BRA', stickers: [{ number: 10, count: 1 }] }
       ]
     }
-    const uiOutput = helpers.renderPreviewData(serviceOutput)
+    const uiOutput = helpers._renderPreviewData(serviceOutput)
 
     expect(uiOutput).toBe('ARG -> 1:1, 3:2\nBRA -> 10:1')
   })

@@ -10,10 +10,54 @@
  * application architecture.
  */
 
+// Constants used in the class
+const STICKER_MIN = 0    // start index position
+const STICKER_MAX = 20   // end index position
+const MAX_ROWS = 50      // 48 teams plus FWC and CCC
+const EXPECTED_STICKER_COLUMNS = STICKER_MAX - STICKER_MIN + 1
+
+/** Defines valid sticker number ranges for specific countries, used for validation during import and updates. 
+ * `TEAM` represents all standard teams, `FWC` represents the World Cup team, and `CC` represents the Coca-Cola team.
+ * The bounds are inclusive.*/
+const COUNTRY_BOUNDS = new Map([
+  ['FWC', [STICKER_MIN, STICKER_MAX-1]],  // FWC has stickers 0-19
+  ['CC', [STICKER_MIN+1, 12]], // Coca-Cola has stickers 1-12
+  ['TEAM', [STICKER_MIN+1, STICKER_MAX]] // All teams have 1-20 stickers.
+])
+
 /** Provides shared access to sticker sheet data stored in named ranges. 
  * @export
  */
 class StickerSheetRepository {
+
+  // Static getter methods (are used outside of the class):
+  /** Returns the country bounds map, which defines valid sticker number ranges for specific countries.*/
+  static getCountryBounds() {
+    return new Map(COUNTRY_BOUNDS)
+  }
+
+  /* Returns the minimum sticker number allowed, which is 0. */
+  static getStickerMin() {
+    return STICKER_MIN
+  }
+
+  /* Returns the maximum sticker number allowed, which is 20. */
+  static getStickerMax() {
+    return STICKER_MAX
+  }
+
+  /* Returns the maximum number of rows allowed in the named ranges, which is 50. This includes 48 teams plus FWC and CC. */
+  static getMaxRows() { 
+    return MAX_ROWS
+  }
+
+  /* Returns the expected number of sticker columns*/
+  static getExpectedStickerColumns() {
+    return EXPECTED_STICKER_COLUMNS
+  }
+
+  // Instance methods:
+
   /** Creates a repository for sticker data.
    * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
    *   Defaults to SpreadsheetApp.getActiveSpreadsheet() for normal dialog context.
@@ -21,17 +65,14 @@ class StickerSheetRepository {
    *   getActiveSpreadsheet() returns null (e.g. doGet or google.script.run from a web app).
    */
   constructor(ss) {
+    // Constants
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
     this.GROUPS_RANGE_NAME = 'GROUPS'
+    this.DONE_RANGE_NAME = 'DONE'
     this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
     this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
-    this.DONE_RANGE_NAME = 'DONE'
-    this.STICKER_MIN = 0
-    this.STICKER_MAX = 20
-    this.MAX_ROWS = 49 // 48 teams plus FWC
-    this.EXPECTED_STICKER_COLUMNS = this.STICKER_MAX - this.STICKER_MIN + 1
 
     this.ss = ss || SpreadsheetApp.getActiveSpreadsheet()
     this.countriesRange = null
@@ -56,8 +97,9 @@ class StickerSheetRepository {
   /** Lazy loads and validates the COUNTRIES named range, ensuring it has the correct shape and dimensions. */
   getCountriesRange() {
     if (!this.countriesRange) {
-      this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)
-      this._validateRange(this.countriesRange, this.MAX_ROWS, 1, this.COUNTRIES_RANGE_NAME)
+      const COUNTRIES_RANGE_NAME = this.COUNTRIES_RANGE_NAME
+      this.countriesRange = this.ss.getRangeByName(COUNTRIES_RANGE_NAME)
+      this._validateRange(this.countriesRange, MAX_ROWS, 1, COUNTRIES_RANGE_NAME)
     }
     return this.countriesRange
   }
@@ -65,8 +107,9 @@ class StickerSheetRepository {
   /** Lazy loads and validates the COUNTRY_NAMES named range, ensuring it has the correct shape and dimensions. */
   getCountryNamesRange() {
     if (!this.countryNamesRange) {
-      this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
-      this._validateRange(this.countryNamesRange, this.MAX_ROWS, 1, this.COUNTRY_NAMES_RANGE_NAME)
+      const COUNTRY_NAMES_RANGE_NAME = this.COUNTRY_NAMES_RANGE_NAME
+      this.countryNamesRange = this.ss.getRangeByName(COUNTRY_NAMES_RANGE_NAME)
+      this._validateRange(this.countryNamesRange, MAX_ROWS, 1, COUNTRY_NAMES_RANGE_NAME)
     }
     return this.countryNamesRange
   }
@@ -80,8 +123,9 @@ class StickerSheetRepository {
   */
   getCountsRange() {
     if (!this.countsRange) {
-      this.countsRange = this.ss.getRangeByName(this.COUNTS_RANGE_NAME)
-      this._validateRange(this.countsRange, this.MAX_ROWS, this.EXPECTED_STICKER_COLUMNS, this.COUNTS_RANGE_NAME)
+      const COUNTS_RANGE_NAME = this.COUNTS_RANGE_NAME
+      this.countsRange = this.ss.getRangeByName(COUNTS_RANGE_NAME)
+      this._validateRange(this.countsRange, MAX_ROWS, EXPECTED_STICKER_COLUMNS, COUNTS_RANGE_NAME)
       this.startRow = this.countsRange.getRow()
       this.startCol = this.countsRange.getColumn()
       this.numRows = this.countsRange.getNumRows()
@@ -93,8 +137,9 @@ class StickerSheetRepository {
   /** Lazy loads and validates the DONE named range, ensuring it has the correct shape and dimensions. */
   getDoneRange() {
     if (!this.doneRange) {
-      this.doneRange = this.ss.getRangeByName(this.DONE_RANGE_NAME)
-      this._validateRange(this.doneRange, this.MAX_ROWS, 1, this.DONE_RANGE_NAME)
+      const DONE_RANGE_NAME = this.DONE_RANGE_NAME
+      this.doneRange = this.ss.getRangeByName(DONE_RANGE_NAME)
+      this._validateRange(this.doneRange, MAX_ROWS, 1, DONE_RANGE_NAME)
     }
     return this.doneRange
   }
@@ -102,8 +147,9 @@ class StickerSheetRepository {
   /** Lazy loads and validates the FLAG_ICONS named range, ensuring it has the correct shape and dimensions. */
   getFlagIconsRange() {
     if (!this.flagIconsRange) {
-      this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
-      this._validateRange(this.flagIconsRange, this.MAX_ROWS, 1, this.FLAG_ICONS_RANGE_NAME)
+      const FLAG_ICONS_RANGE_NAME = this.FLAG_ICONS_RANGE_NAME
+      this.flagIconsRange = this.ss.getRangeByName(FLAG_ICONS_RANGE_NAME)
+      this._validateRange(this.flagIconsRange, MAX_ROWS, 1, FLAG_ICONS_RANGE_NAME)
     }
     return this.flagIconsRange
   }
@@ -111,17 +157,19 @@ class StickerSheetRepository {
   /** Lazy loads and validates the FLAGS_URL named range, ensuring it has the correct shape and dimensions. */
   getFlagsUrlRange() {
     if (!this.flagsUrlRange) {
-      this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
-      this._validateRange(this.flagsUrlRange, this.MAX_ROWS, 1, this.FLAGS_URL_RANGE_NAME)
+      const FLAGS_URL_RANGE_NAME = this.FLAGS_URL_RANGE_NAME
+      this.flagsUrlRange = this.ss.getRangeByName(FLAGS_URL_RANGE_NAME)
+      this._validateRange(this.flagsUrlRange, MAX_ROWS, 1, FLAGS_URL_RANGE_NAME)
     }
     return this.flagsUrlRange
   }
 
-  /** Lazy loads and validates the FLAGS_URL named range, ensuring it has the correct shape and dimensions. */
+  /** Lazy loads and validates the GROUPS named range, ensuring it has the correct shape and dimensions. */
   getGroupsRange() {
     if (!this.groupsRange) {
-      this.groupsRange = this.ss.getRangeByName(this.GROUPS_RANGE_NAME)
-      this._validateRange(this.groupsRange, this.MAX_ROWS, 1, this.GROUPS_RANGE_NAME)
+      const GROUPS_RANGE_NAME = this.GROUPS_RANGE_NAME
+      this.groupsRange = this.ss.getRangeByName(GROUPS_RANGE_NAME)
+      this._validateRange(this.groupsRange, MAX_ROWS, 1, GROUPS_RANGE_NAME)
     }
     return this.groupsRange
   }
@@ -206,6 +254,8 @@ class StickerSheetRepository {
     }
     return this.groupCodes
   }
+
+  // Main methods
 
   /** Returns all sticker counts for one country.
    * @param {string} countryCode - The country code to retrieve counts for.
@@ -364,14 +414,14 @@ class StickerSheetRepository {
     if (!countryCode) {
       return null
     }
-    const groupCode = String(groupRow[0] || '').trim().toUpperCase()
+    const groupCode = String((groupRow && groupRow[0]) || '').trim().toUpperCase()
     const countryName = String(countryNameRow[0] || '').trim()
 
     return {
       code: countryCode,
       countryName,
       group: groupCode,
-      flag: String(flagRow[0] || '').trim(),
+      flag: String((flagRow && flagRow[0]) || '').trim(),
       counts: (countRow ?? []).map(value => this._toCount(value))
     }
   }
@@ -393,8 +443,12 @@ class StickerSheetRepository {
     if (!Number.isInteger(numericStickerNumber)) {
       throw new Error(`Sticker number "${stickerNumber}" is not a valid integer.`)
     }
-    if (numericStickerNumber < this.STICKER_MIN || numericStickerNumber > this.STICKER_MAX) {
-      throw new Error(`Sticker number ${numericStickerNumber} is outside allowed range 0-20.`)
+    if (numericStickerNumber < STICKER_MIN || numericStickerNumber > STICKER_MAX) {
+      throw new Error(
+        `Sticker number ${numericStickerNumber} is outside allowed range ` +
+        `${STICKER_MIN}-${STICKER_MAX}.`
+      );
+
     }
     return numericStickerNumber
   }
@@ -426,24 +480,25 @@ class StickerSheetRepository {
   _updateCountryCounts(countryCode, updates) {
     const normalizedCountryCode = this._normalizeCountryCode(countryCode)
     const row = this.getCountryMap()[normalizedCountryCode].row
-    const range = this.getSheet().getRange( row, this.getStartCol(), 1, this.getNumStickerCols() )
+    const range = this.getSheet().getRange(row, this.getStartCol(), 1, this.getNumStickerCols())
     const currentValues = range.getValues()[0]
     const updatedValues = currentValues.slice()
-    
-    const isValidSlot = (code, stickerNumber) => {
-      if (code === 'FWC') {
-        return stickerNumber >= 0 && stickerNumber <= 19
-      }
-      return stickerNumber >= 1 && stickerNumber <= 20
-    }
+
+    // Determine the valid sticker range for this country (or use the default TEAM range).
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+
+    // Apply all updates in memory before writing the row back to the sheet.
     updates.forEach(update => {
       const stickerNumber = this._validateStickerNumber(update.stickerNumber)
-      if (!isValidSlot(normalizedCountryCode, stickerNumber)) {
+      if (stickerNumber < minSticker || stickerNumber > maxSticker) {
         updatedValues[stickerNumber] = 0
         return
       }
       updatedValues[stickerNumber] = update.count === 0 ? '' : update.count
     })
+
+    // Write the updated counts in a single batch operation.
     range.setValues([updatedValues])
   }
 

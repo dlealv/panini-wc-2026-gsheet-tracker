@@ -205,7 +205,7 @@ describe('ExportService (unit)', () => {
 /** Test ExportStickers (unit) */
 describe('ExportStickers (unit)', () => {
   let inputStickers, mexInputStickers
-  let mexExportStickers, fwcExportStickers, exportStickers
+  let mexExportStickers, fwcExportStickers, exportStickers, ccExportStickers
 
   /* Define input data and ExportStickers instances before all tests to ensure consistent test conditions
   and avoid redundancy. */
@@ -244,6 +244,14 @@ describe('ExportStickers (unit)', () => {
     //   FWC,7,12,13,14,15,16,17,19,19. Compact: FWC,7,12-19
     //   MEX,7,12,13,14,16,17,18. Compact: MEX,7,12-14,16-18
     exportStickers = new ExportStickers([fwcLine, mexLine])
+
+    // Coca-Cola stickers
+    const ccStickers = [ // CC,1,2(2),3(3), 13-> mapped to 0
+      { sticker: 1, count: 1 }, { sticker: 2, count: 2 },
+      { sticker: 3, count: 3 }, { sticker: 13, count: 1 }
+    ]
+    const ccLine = { code: 'CC', icon: '🥤', done: computeDone(ccStickers), counts: buildCounts(ccStickers) }
+    ccExportStickers = new ExportStickers([ccLine])
   })
 
   /** Tests for exportAllData() method, ensuring correct export behavior and contract adherence. */
@@ -286,6 +294,15 @@ describe('ExportStickers (unit)', () => {
         icon: '🏆',
         tokens: ['0-2', '3(2)', '4-5', '6(2)', '8',
           '9-11(3)', '19']
+      })
+    })
+    test('exportAllData returns correct contract for CC, { includeFlags: true, isCompact: false }', () => {
+      const result = ccExportStickers.exportAllData({ includeFlags: true, isCompact: false })
+      const parsed = parseExportAllData(result.text, { includeFlags: true })
+      expect(parsed[0]).toEqual({
+        code: 'CC',
+        icon: '🥤',
+        tokens: ['1', '2(2)', '3(3)']
       })
     })
     test('exportAllData returns correct contract for FWC, MEX, { includeFlags: true, isCompact: false }', () => {
@@ -352,6 +369,22 @@ describe('ExportStickers (unit)', () => {
       expect(parsed.repeats.items.length).toBeGreaterThan(0)
       expect(parsed.missing.items.length).toBeGreaterThan(0)
     })
+    test('exportSharedData repeats + missing both exist for CC', () => {
+      const result = ccExportStickers.exportSharedData({ includeFlags: true, sortByDone: false, isCompact: false })
+      const parsed = parseExportSharedData(result.text, { includeFlags: true })
+      expect(parsed.repeats.items.length).toBeGreaterThan(0)
+      expect(parsed.missing.items.length).toBeGreaterThan(0)
+      expect(parsed.repeats.items[0]).toEqual({ code: 'CC', icon: '🥤', tokens: ['2', '3'] })
+      expect(parsed.missing.items[0]).toEqual({
+        code: 'CC',
+        icon: '🥤',
+        tokens: [
+          '4', '5', '6', '7', '8', '9',
+          '10', '11', '12'
+        ]
+      })
+    })
+
     test('exportSharedData correct contract for FWC, MEX, { includeFlags: true, isCompact: false }', () => {
       const exportStickers = new ExportStickers([
         { code: 'FWC', icon: '🏆', done: computeDone([]), counts: buildCounts([]) },
