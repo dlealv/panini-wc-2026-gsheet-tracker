@@ -498,7 +498,7 @@ Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|93.73         |    81.31 |   91.85.    |   94.67 |                                            
+|93.73         |    81.31 |   91.85     |   94.67 |                                            
 
 ---
 
