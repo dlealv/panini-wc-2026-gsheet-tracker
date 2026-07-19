@@ -18,6 +18,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 
 - Under GSheet template:
   - `Sticker` tab:
+    - Renamed Numbers columns to Stickers.
     - Added a new row at the end to include Coca-Cola stickers.
     - Country column now uses the `COUNTRIES` named range.
     - Calculation of the **Done** column now uses the `COUNTS` named range.
@@ -43,6 +44,10 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 
   - `Trade` tab:
     - Adjusted the formulas so both input columns derive from a common input range to avoid inconsistencies caused by different row counts. Both inputs now derive from the `input` let variable.
+    - Adjusted the formula for TOTAL in the INPUT section to calculate correctly the totals using `CLEAN_STICKER_LINE` named function.
+
+  - Named functions
+    - `CLEAN_STICKER_LINE`: Extended the function to remove `A-B(X)` ranges too.
 
   - `Conf` tab (hidden):
     - Added a new row with Coca-Cola information.
@@ -133,8 +138,12 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
       - Extended existing tests with Coca-Cola cases.
       - Added new Coca-Cola-specific test cases.
 
+  - `ImportHelpers.unit.test.js`: Added additional tests to increase coverage.
+
   - `ExportService.unit.test.gs`:
     - Renamed the `getUIState()` suite to `_getUIState()` and updated the function calls accordingly.
+
+  - `ExportHelpers.unit.test.js`: Added additional tests to increase coverage.
 
   - `QuickEntryService.unit.test.js`:
     - Added Coca-Cola test cases for `_getStickerIconLabel()`.
@@ -142,10 +151,12 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 
   - `QuickEntryHelpers.html.unit.test.js`:
     - Updated private function calls to use the underscore prefix.
+    - Added additional tests to increase coverage.
 
   - `QuickEntryRender.html.unit.test.js`:
     - Updated private function calls to use the underscore prefix.
     - Added a test suite for `buildCountrySection()`, the only public function in the file.
+    - Added additional tests to increase coverage.
 
 - Under the `test/utils` folder:
   - `testKernel.js`:
@@ -158,15 +169,22 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 - Under the root folder:
   - `package.json`:
     - Fixed the `test:file` task so it now works correctly.
+    - Fixed the script task `test:coverage` to exclude no folders should not be part of the coverage analysis.
   - `README.md`: 
     - Updated the document to include Coca-Cola stickers
-    - Updated the section `Named range` with the new named range required.
+    - Updated the section **Named range** with the new named range required.
+    - Updated the section **Testing** adding information about the coverage.
+
   - `TODO.md`:
     - Mark Include Coca-Cola stickers as done.
 
 ### Fix
 
 - Fixed an issue in the Quick Entry mobile service where stickers were rendered in a single column. The `applyLayout()` function was added to the `QuickEntry` namespace in `QuickEntryHelpers.html`, restoring the configured five-column mobile layout.
+- In `Trades` tab corrected the formulas to calculate the TOTALS in input section to handle ranges, repeats using `CLEAN_STICKER_LINE` named function.
+
+---
+
 ## [1.1.0] 2026-07-12
 
 ### Overview

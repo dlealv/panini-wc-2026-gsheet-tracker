@@ -82,7 +82,7 @@ The service must provide an export function that reads current sticker counts fr
 One country per line.
 
 ```text
-Format: [flag] CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
+Format: [flag] CODE,number[[,number](repeats)][,number-range][,number-range(repeats)]...
 ```
 
 where `[flag]` and number-range are present if the user selected the corresponding checkboxes and refresh.

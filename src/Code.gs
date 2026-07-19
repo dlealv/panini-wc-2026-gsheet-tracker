@@ -292,9 +292,7 @@ function _getMobileSpreadsheet() {
 // Helpers
 //==============================================================================
 
-/**
- * Includes an HTML partial and evaluates any template code it contains.
- */
+/** Includes an HTML partial and evaluates any template code it contains. */
 function include(filename) {
   return HtmlService
     .createTemplateFromFile(filename)

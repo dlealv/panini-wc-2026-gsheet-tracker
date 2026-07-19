@@ -2,7 +2,7 @@
 
 A practical Google Sheets tracker for the **Panini FIFA World Cup 2026** sticker album collection.
 
-This project was first published as a draft on Reddit, and GitHub is now the main place for source code, documentation, and future updates.
+This project was first published as a draft on [Reddit](https://www.reddit.com/r/Panini/comments/1taj3mn/google_sheet_tracker_for_panini_fifa_wc_2026/), and GitHub is now the main place for source code, documentation, and future updates.
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
@@ -24,7 +24,7 @@ Since the URL ends with `/copy`, clicking it creates your own copy of the templa
 
 ## Main features
 
-- Track owned stickers from country teams and special `FWC` (FIFA stickers), `CC` (Coca-Cola) stickers in the `Stickers` tab.
+- Track owned stickers from country teams and special `FWC` (FIFA World Cup), and `CC` (Coca-Cola) stickers in the `Stickers` tab.
 - Update sticker counts quickly through the **Quick sticker entry** dialog inside the **Manage Panini** custom menu.
 - Import and export sticker data via the **Manage Panini** custom menu.
 - Export a shared list of stickers for trading in text format to easily share with other collectors via the **Manage Panini** custom menu.
@@ -53,7 +53,7 @@ One support column is hidden in the `Stickers` tab: `AD`, which stores the count
 
 ![Stickers tab](images/stickersView.jpg)
 
-**Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC`. This applies throughout the tracker.
+**Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC` and `CC`. This applies throughout the tracker.
 
 ### Update sticker counts quickly
 
@@ -123,10 +123,10 @@ Export behavior:
 - Allows the user to decide whether to include flag icons in the export.
 
 The service allows the user to customize the output data via the following checkboxes:
-- `Flag`: Before the country code the icon flag (emoji) is added.
-- `Compact (using ranges)`: The data generated is compacted via range, i.e. `1,2,3` → `1-3` which results in a more compact view.
+- **Flag**: Before the country code the icon flag (emoji) is added.
+- **Compact (using ranges)**: The data generated is compacted via range, i.e. `1,2,3` → `1-3` which results in a more compact view.
 
-The change in the output will be reflected when the user clicks the `Refresh` button.
+The change in the output will be reflected when the user clicks the **Refresh** button.
 
 ![Export all stickers](images/exportAllStickersView.jpg)
 
@@ -154,11 +154,11 @@ KOR,1,3,5,13,16
 
 The user can customize the output via the following checkboxes:
 
-- `Flag`: Before the country code the icon flag (emoji) is added.
-- `Compact (using ranges)`: The data generated is compacted via range, i.e. `1,2,3` → `1-3` which results in a more compact view.
-- `Sort by Done (descending) missing stickers`: Sorts the output of missing stickers by %-completion in descending order. This helps prioritize, during the trading process, teams that are close to completion.
+- **Flag**: Before the country code the icon flag (emoji) is added.
+- **Compact (using ranges)**: The data generated is compacted via range, i.e. `1,2,3` → `1-3` which results in a more compact view.
+- **Sort by Done (descending) missing stickers**: Sorts the output of missing stickers by %-completion in descending order. This helps prioritize, during the trading process, teams that are close to completion.
 
-The change in the output will be reflected when the user clicks the `Refresh` button.
+The change in the output will be reflected when the user clicks the **Refresh** button.
 
 The export format is Format 1 (refer to the session **Input format** for more details), excluding repeats. For instance, if a collector has the sticker `2` three times, it will be displayed as `2`, not `2(3)`. In the context of trading, the number of repeats a collector has is irrelevant in the Repeated sticker list.
 
@@ -197,7 +197,7 @@ It helps you identify which teams are closest to completion and review your over
 
 The tracker includes a trade comparison service that helps identify possible exchanges between your collection and another collector's collection.
 
-This service is enabled through the `Trade` tab. Paste the other collector's data in the **INPUT** section. The expected format of the input data is Format 1 (see section **Input format**). The sticker columns have conditional formatting that highlights any potential issue with the input data using a red background. In the **INPUT** section, `TOTAL` represents the total counts from Another Collector.
+This service is enabled through the `Trade` tab. Paste the other collector's data in the **INPUT** section. The expected format of the input data is Format 1 (see section **Input format**). It accepts other delimiters, repeats and ranges, the formulas in the **OUTPUT** section can handle them. The sticker columns have conditional formatting that highlights any potential issue with the input data using a red background. In the **INPUT** section, `TOTAL` represents the total counts from Another Collector.
 
 Review the generated **OUTPUT** section to see what you can offer and what you may receive.
 
@@ -300,7 +300,10 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 - *First country rule*: The first mandatory token in the country line must be a country code; all stickers belong to this country code.
 - Country codes must exist in the `COUNTRIES` named range. Invalid countries are skipped and a warning is reported.
 - A sticker token must be one of the following:
-  - `N` sticker number. The number must be in the valid range: `[0-20]`. Outside this range, the sticker is skipped and reported as a warning. Stickers not in the album, such as `FWC-20` or non-`FWC-0`, are accepted on input if present and populated with a count of `0`.
+  - `N` sticker number. The number must be in the valid range: `[0-20]`. Outside this range, the sticker is skipped and reported as a warning. 
+  - Stickers not in the album, such as
+    - `FWC,20`, `MEX,0` for country teams or `CC,0`, are accepted on input if present and populated with a count of `0`.
+    - `CC,13-20`, are accepted on input if present and populated with a count of `0`.
   - `N(X)` sticker number repeated `X` times where `X > 1` (otherwise skipped and a warning is reported).
   - `A-B` sticker range from `A` to `B`, both inclusive, where `A` is lower than `B` (otherwise skipped and a warning is reported).
   - `A-B(X)` sticker range with repeats. Same as `A-B` case but repeats `X` times for each sticker in the range.
@@ -314,7 +317,7 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 Country line after pre-normalization:
 
 ```text
-Format: CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
+Format: CODE,number[,[number][(repeats)]][,number-range][,number-range(repeats)]...
 ```
 
 Please check **Common syntax rules** for the validation rules that apply.
@@ -344,7 +347,7 @@ Each sticker token includes the country code as a prefix. The dash between the c
 Country line after pre-normalization:
 
 ```text
-Format: CODE[-]N[,CODE[-]N(repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...
+Format: CODE[-]N[,[CODE[-]N](repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...
 ```
 
 Where `CODE[-]` means the country code followed by an optional dash.
@@ -383,8 +386,8 @@ The following operator symbols are equivalent and interchangeable:
 The operator prefix may be applied to any valid import line format:
 
 ```text
-<OPERATOR> CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...   (Format 1)
-<OPERATOR> CODE[-]N[,CODE[-]N(repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...  (Format 2)
+<OPERATOR> CODE,number[,[number](repeats)][,start-end][,start-end(repeats)]...   (Format 1)
+<OPERATOR> CODE[-]N[,[CODE[-]N](repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...  (Format 2)
 ```
 
 #### Exclusion examples
@@ -402,7 +405,7 @@ The operator prefix may be applied to any valid import line format:
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of the line, only the first is recognized; the remainder are silently ignored.
-- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country, use the explicit form `CODE,1-20` (or `FWC,0-19`) instead.
+- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country teams, use the explicit form `CODE,1-20` (e.g. `MEX,1-20`) or `FWC,0-19`, `CC,1-12` for non-country teams.
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat values, if present in an exclusion line, are ignored — the complement always assigns count `1` to each resulting sticker position, and no warning is issued.
 
@@ -412,31 +415,31 @@ The operator prefix may be applied to any valid import line format:
 
 ## Named ranges
 
-- `COUNTRIES`: `FIFA Code` column from `Conf` tab containing country codes.
-- `COUNTRY_NAMES`: `Name` column from `Conf` tab containing the country names used by Quick sticker entry service for incremental search based on country names.
-- `COUNTS`: Range from `Stickers` tab displaying the count (number of stickers owned) of stickers for stickers numbered from 0 to 20 for all countries.
-- `DONE`: `Done` column from `Stickers` tab displaying the total count of unique stickers completed for each country. This column is used by Quick sticker entry and Export shared stickers services.
-- `FLAG_ICONS`: `Flag URL` column from `Conf` containing the country flag icons (emojis). This named range is used in export services and in the Google sheet template.
-- `FLAGS`: A column containing the flag images for each country. Used in `Stickers` tab.
-- `FLAGS_URL`: `Flag` column from `Conf` containing the source of the flag images used by Quick sticker entry dialog and by the `FLAGS` named range.
-- `GROUPS`: `Group` column from `Conf` containing the team group for each country code. This column is only used by the Quick sticker entry service and in `Reports` tab.
-- `MAX_STICKERS`: `Max Stickers` column from `Conf` tab representing the total stickers each country team can has. Required to calculate percentage completion for each team.
--`MISSING`: Column `Miss` from `Stickers` tab representing the count of missing stickers considering its maximum sticker capacity.
-- `P_COMPLETION`: Column `%` from `Stickers` tab. Used to calculate the number of teams completed. It takes into account maximum number of stickers for each team.
-- `REPEATS`: `Rep` column from `Stickers` tab.
-- `TOTAL_COMPLETED_STICKERS`: Cell from `Stickers` tab to store the total number of stickers completed.
-- `TOTAL_MISSING_STICKERS`: Cell from `Stickers` tab to store the total number of missing stickers.
-- `TOTAL_REPEATED_STICKERS`: Cell from `Stickers` tab to store the total number of unique repeated stickers.
-- `TOTAL_STICKERS`: Cell from `Reports` tab representing the Total number of stickers the album has.
-
-Note: All column or range (such as `COUNTS`) named ranges must have `50` rows, which includes `48` country teams plus `FWC` and `CC`.
+- `COUNTRIES`: `FIFA Code` column from the hidden `Conf` tab containing the country codes.
+- `COUNTRY_NAMES`: `Name` column from the hidden `Conf` tab containing the country names used by the Quick Sticker Entry service for incremental searches by country name.
+- `COUNTS`: Range from the `Stickers` tab displaying the sticker counts (number of stickers owned) for sticker numbers `0` to `20` for all countries.
+- `DONE`: `Done` column from the `Stickers` tab displaying the total number of unique stickers collected for each country. This named range is used by the Quick Sticker Entry and Export Shared Stickers services.
+- `FLAG_ICONS`: `Flag URL` column from the hidden `Conf` tab containing the country flag emojis. This named range is used by the export services and the Google Sheets template.
+- `FLAGS`: Column containing the flag images for each country. Used in the `Stickers` tab.
+- `FLAGS_URL`: `Flag` column from the hidden `Conf` tab containing the source URLs of the flag images used by the Quick Sticker Entry dialog and by the `FLAGS` named range.
+- `GROUPS`: `Group` column from the hidden `Conf` tab containing the group assigned to each country code. This named range is used only by the Quick Sticker Entry service and the `Reports` tab.
+- `MAX_STICKERS`: `Max Stickers` column from the hidden `Conf` tab representing the maximum number of stickers each country team can have. Used to calculate the completion percentage for each team.
+- `MISSING`: `Miss` column from the `Stickers` tab representing the number of missing stickers, taking into account the maximum number of stickers for each country.
+- `P_COMPLETION`: `%` column from the `Stickers` tab. Used to calculate the number of completed teams while taking into account the maximum number of stickers for each team.
+- `REPEATS`: `Rep` column from the `Stickers` tab.
+- `TOTAL_COMPLETED_STICKERS`: Cell in the `Stickers` tab storing the total number of completed stickers.
+- `TOTAL_MISSING_STICKERS`: Cell in the `Stickers` tab storing the total number of missing stickers.
+- `TOTAL_REPEATED_STICKERS`: Cell in the `Stickers` tab storing the total number of unique repeated stickers.
+- `TOTAL_STICKERS`: Cell in the `Reports` tab representing the total number of stickers in the album.
 
 ---
+
+**Note:** All column-based named ranges (such as `COUNTS`) must contain `50` rows, representing `48` country teams plus `FWC` and `CC`.
 
 ## Named functions
 The Gsheet tracker has defined some custom functions to simplify the calculation process:
 
-- `CLEAN_STICKER_LINE(txt)`: This function is utilized in the `GET_TRADES` function, which is situated in the `Trade` tab. It cleans the input data from another collector during the process of calculating matches. The cleaning process aims to standardize the sticker list to Format 1.
+- `CLEAN_STICKER_LINE(txt)`: This function is utilized in the `GET_TRADES` function and in `Trade` tab. It cleans the input data from another collector during the process of calculating matches. The cleaning process aims to standardize the sticker list to Format 1.
 
 - `GET_STICKERS(ctry,in,isRep)`: This function retrieves the list of repeated stickers (if `isRep` is `TRUE/1`) or the list of missing stickers (if `isRep` is `FALSE/0`) for a specified country. It is used in the `Compact Swap View` tab.
 
@@ -491,7 +494,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. Starting from version `1.0.5` `312` tests passed, achieving an impressive `88.77%` coverage.
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.1` `374` tests passed with the following coverage:
+
+| % Statements | % Branch | % Functions | % Lines |                                     
+|--------------|----------|-------------|---------|
+|93.73         |    81.31 |   91.85.    |   94.67 |                                            
 
 ---
 

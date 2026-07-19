@@ -39,24 +39,30 @@ describe('QuickEntryRender.html', () => {
         group: 'A',
         flag: 'flag.png',
         isCompleted: true,
-        summary: {
-          owned: 10,
-          total: 10,
-          missing: 0,
-          repeated: 2,
-          completionPercent: 100
-        },
-        stickers: [
-          { number: 1, count: 1 },
-          { number: 2, count: 0 }
-        ]
+        summary: { owned: 10, total: 10, missing: 0, repeated: 2, completionPercent: 100 },
+        stickers: [{ number: 1, count: 1 }, { number: 2, count: 0 }]
       }
-
       const state = { selectedStatusFilter: 'all', isBusy: false }
       const layout = { stickersPerRow: 2 }
       const section = helpers.buildCountrySection(country, state, layout, () => { })
       expect(section.className).toContain('country-section')
       expect(section.children.length).toBe(2) // header + sticker grid
+    })
+    test('builds country section without flag when flag is missing', () => {
+      const country = {
+        code: 'ARG',
+        summary: {
+          owned: 1,
+          total: 1,
+          missing: 0,
+          repeated: 0,
+          completionPercent: 100
+        },
+        stickers: []
+      }
+      const section = helpers.buildCountrySection(
+        country, { selectedStatusFilter: 'all', isBusy: false }, { stickersPerRow: 2 }, () => { })
+      expect(section.className).toContain('country-section')
     })
   })
 
@@ -194,6 +200,32 @@ describe('QuickEntryRender.html', () => {
       const sticker = { number: 1, count: 2, hasPendingChange: true }
       const el = helpers._buildStickerCard({ code: 'ARG' }, sticker, state, () => { })
       expect(el.classList).toBeDefined()
+    })
+    test('_buildStickerCard calls callback when decrement button is clicked', () => {
+      const onStickerChange = jest.fn()
+      const el = helpers._buildStickerCard(
+        { code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, onStickerChange)
+      const buttons = el.children[1].children
+      buttons[0].onclick()
+      expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 1)
+    })
+    test('_buildStickerCard calls callback when increment button is clicked', () => {
+      const onStickerChange = jest.fn()
+      const el = helpers._buildStickerCard({ code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, onStickerChange)
+      const buttons = el.children[1].children
+      buttons[1].onclick()
+      expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 3)
+    })
+    test('_buildStickerCard adds badge when sticker has icon label', () => {
+      const el = helpers._buildStickerCard(
+        { code: 'ARG' }, {
+          number: 1,
+          count: 2,
+          iconLabel: 'TEAM'
+        }, { isBusy: false }, () => { }
+      )
+      expect(el.children[0].className).toBe('sticker-badge')
+      expect(el.children[0].textContent).toBe('TEAM')
     })
   })
 

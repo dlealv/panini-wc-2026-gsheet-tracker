@@ -30,6 +30,11 @@ describe('ExportHelpers unit tests', () => {
       expect(result.startsWith('panini-stickers-shared')).toBe(true)
       expect(result.endsWith('.txt')).toBe(true)
     })
+    test('falls back to all prefix for unknown export type', () => {
+      const date = new Date(2026, 0, 5, 9, 4, 7)
+      const result = helpers.buildExportFileName('invalid', date)
+      expect(result).toBe('panini-stickers-all-20260105-090407.txt')
+    })
   })
 
   /** Get payload for export based on current UI state. */
@@ -54,6 +59,10 @@ describe('ExportHelpers unit tests', () => {
       helpers.setMessage('Test', undefined, { messageEl })
       expect(messageEl.className).toBe('message info')
     })
+    test('does nothing when message element is missing', () => {
+      expect(() => helpers.setMessage('Hello', 'success', { messageEl: null })).
+        not.toThrow()
+    })
   })
 })
 
@@ -66,6 +75,12 @@ describe('setBusy()', () => {
     helpers.setBusy(true, { document: docMock, controls })
     buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
     controls.forEach(control => { expect(control.disabled).toBe(true) })
+  })
+  test('ignores null controls while setting busy state', () => {
+    const buttons = [{ disabled: false }]
+    const docMock = { querySelectorAll: jest.fn(() => buttons) }
+    helpers.setBusy(true, { document: docMock, controls: [null, { disabled: false }] })
+    expect(buttons[0].disabled).toBe(true)
   })
 })
 

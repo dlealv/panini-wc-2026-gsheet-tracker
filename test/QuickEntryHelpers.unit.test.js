@@ -30,8 +30,18 @@ describe('QuickEntryHelpers.html', () => {
     test('queueStickerChange stores pending sticker updates', () => {
       // verifies pending updates are tracked with stable keys
       const result = helpers.queueStickerChange({ countries: [], pendingUpdates: {} }, 'ARG', 1, 2)
-
       expect(result.pendingUpdates['ARG|1']).toBe(2)
+    })
+    test('stores zero when next value is negative and original is greater than zero', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          stickers: [{ number: 1, count: 2 }]
+        }],
+        pendingUpdates: {}
+      }
+      helpers.queueStickerChange(state, 'ARG', 1, -5)
+      expect(state.pendingUpdates['ARG|1']).toBe(0)
     })
   })
 
@@ -200,9 +210,18 @@ describe('QuickEntryHelpers.html', () => {
   describe('buildEmptyState()', () => {
     test('creates empty state element with message', () => {
       const el = helpers.buildEmptyState('Nothing found')
-
       expect(el.className).toBe('empty-state')
       expect(el.textContent).toBe('Nothing found')
+    })
+    test('returns plain object when document is undefined', () => {
+      const doc = global.document
+      delete global.document
+      const el = helpers.buildEmptyState('Nothing found')
+      expect(el).toEqual({
+        className: 'empty-state',
+        textContent: 'Nothing found'
+      })
+      global.document = doc
     })
   })
 
@@ -210,10 +229,12 @@ describe('QuickEntryHelpers.html', () => {
   describe('setMessage()', () => {
     test('updates message element text and class', () => {
       const el = { className: '', textContent: '' }
-
       helpers.setMessage(el, 'Updated', 'success')
       expect(el.textContent).toBe('Updated')
       expect(el.className).toBe('message success')
+    })
+    test('returns null when element is missing', () => {
+      expect(helpers.setMessage(null, 'Hello', 'success')).toBeNull()
     })
   })
 
@@ -224,6 +245,18 @@ describe('QuickEntryHelpers.html', () => {
       expect(
         document.documentElement.style.getPropertyValue('--stickers-per-row')
       ).toBe('6')
+    })
+    test('applyLayout safely skips DOM when document is undefined', () => {
+      const doc = global.document
+      delete global.document
+      expect(() => helpers.applyLayout(5)).not.toThrow()
+      global.document = doc
+    })
+    test('does not fail when document is undefined', () => {
+      const oldDocument = global.document
+      delete global.document
+      expect(() => helpers.applyLayout(5)).not.toThrow()
+      global.document = oldDocument
     })
   })
 
@@ -351,6 +384,24 @@ describe('QuickEntryHelpers.html', () => {
         teamSearchText: undefined
       })).toEqual([])
     })
+    test('recalculates summary after applying pending updates', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          countryName: 'Argentina',
+          group: 'A',
+          stickers: [{ number: 1, count: 0 }]
+        }],
+        pendingUpdates: { 'ARG|1': 1 },
+        selectedGroupFilter: 'A',
+        selectedStatusFilter: 'all',
+        teamSearchText: ''
+      }
+      const result = helpers.getVisibleCountries(state)
+      expect(result[0].summary.owned).toBe(1)
+      expect(result[0].summary.missing).toBe(0)
+      expect(result[0].isCompleted).toBe(true)
+    })
   })
   /** Tests for commitPendingUpdates() */
   describe('commitPendingUpdates()', () => {
@@ -427,6 +478,19 @@ describe('QuickEntryHelpers.html', () => {
       expect(state.countries[0].stickers[0].count).toBe(1)
       expect(state.countries[0].stickers[0].label).toBe('1 (1)')
       expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
+    })
+    test('continues processing after skipping an invalid update', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          stickers: [{ number: 1, count: 0, label: '1 (0)', hasPendingChange: true }]
+        }]
+      }
+      helpers.commitPendingUpdates(state, [
+        { countryCode: 'XXX', stickerNumber: 1, count: 9 },
+        { countryCode: 'ARG', stickerNumber: 1, count: 2 }
+      ])
+      expect(state.countries[0].stickers[0].count).toBe(2)
     })
   })
 })

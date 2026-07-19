@@ -170,7 +170,7 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 ### Format 1 — Classic (country prefix once)
 
 ```text
-Format: [flag] CODE,number[,number(repeats)][,number-range][,number-range(repeats)]...
+Format: [flag] CODE,number[,[number](repeats)][,number-range][,number-range(repeats)]...
 ```
 
 Examples:
@@ -206,7 +206,7 @@ Each sticker token includes the country code as a prefix. The dash between the c
 All current country codes for the Panini WC 2026 album are exactly three characters long; the parser relies on this fixed length to identify the code prefix in Format 2 tokens.
 
 ```text
-Format: [flag] CODE[-]N[,CODE[-]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...
+Format: [flag] CODE[-]N[,[CODE[-]]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...
 ```
 
 Where `CODE[-]` means the country code followed by an optional dash.
