@@ -30,7 +30,8 @@ const TEST_DATA = {
 /** Mock repository used across services */
 class MockStickerSheetRepository {
   // instance constants for sticker number ranges and country bounds
-  constructor() {
+  constructor(ss) {
+    this.ss = ss || global.SpreadsheetApp.getActiveSpreadsheet()
     this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
     this.COUNTS_RANGE_NAME = 'COUNTS'
     this.GROUPS_RANGE_NAME = 'GROUPS'
@@ -42,7 +43,6 @@ class MockStickerSheetRepository {
     this.startCol = 1
     this.numStickerCols = 21
 
-    this.ss = global.SpreadsheetApp.getActiveSpreadsheet()
     this.sheet = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME).getSheet()
 
     this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)

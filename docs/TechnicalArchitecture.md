@@ -1,6 +1,6 @@
 # 📘 Technical Documentation: Panini WC 2026 GSheet Tracker
 
-This document provides a comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the Panini WC 2026 GSheet Tracker project.
+This document provides a comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the Panini WC 2026 Gsheet Tracker project.
 
 ---
 
@@ -157,16 +157,20 @@ At startup, the script prints the active configuration, for example:
 panini-wc-2026-gsheet-tracker/
 ├── .clasp.json.template         # Template clasp configuration file, used in 'clasp.zsh'.
 |── .claspignore                 # Indicates folders/files to ignore by clasp.
-|── .eslintignore                # Indicates folders/files to ignore by eslint (code analysis).
-|── .eslintrc.js                 # Eslint configuration file with customized rules.
+|── .eslintignore                # Indicates folders/files to ignore by ESLint (code analysis).
+|── .eslintrc.js                 # ESLint configuration file with customized rules.
 |── .gitignore                   # Folders/files to ignore by git (repository).
 ├── package.json                 # Node project descriptors, dependencies, and pipeline bindings.
 ├── package-lock.json            # Generated, lock to exact version. Required for CI.
-├── jsconfig.json                # VS Code config file to specify JavaScript project's configuration.
-├── .github/                     # GitHub-specific configurations, automation workflows, and community health files.
-│   └── workflows/               # Dedicated directory used exclusively to store GitHub Actions workflow files
-│       └── deploy.yml.          # specific automation script used to set up Continuous Deployment (CD) for your project
-├── scripts/
+├── jsconfig.json                # VS Code config file to specify JavaScript project's configuration.      
+├── .github/                     # GitHub-specific configurations, automation workflows, CI project setup.
+│    ├── actions/                # Standard folder for CI project setup.
+│    │   └── setup-project/      # Standard folder for CI actions.
+│    │       └── action.yml      # CI project common setup to both workflows.
+│    └── workflows/              # Dedicated directory used exclusively to store GitHub Actions workflow files
+│        ├── deploy.yml          # CI deploy of the project to GAS
+│        └── validate.yml        # CI validation, i.e. ESLint and test
+├── scripts/                     # Folder for utility scripts.
 │   ├── build.js                 # JavaScript bridge extracting HTML blocks for local unit tests.
 │   ├── clasp.zsh                # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository).
 |   ├── fix-jsdoc.js             # Fit short JSDOC comments into a single line.
@@ -180,7 +184,7 @@ panini-wc-2026-gsheet-tracker/
 |       |── *View.html           # View services used by *Dialog.html and Mobile*.html services.
 │       ├── *Helpers.html        # Extracted browser-independent pure processing logic.
 │       └── *Render.html         # Dedicated UI factory components building visual DOM structures.
-│       └── MobileHome.html      # Mobile entry point (navigation drawer, view switching system, injected view via include).
+│       └── MobileHome.html      # Mobile entry point (navigation drawer, view switching, injected view via include).
 │       └── Mobile*View.html     # Wrapper views for mobile services or simplified implementation of the service.
 │       └── *Styles.html         # Styles files, i.e. CSS configuration.
 ├── build/                       # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS).
@@ -269,7 +273,7 @@ Responsibilities:
 This constructor parameter is a key part of the mobile architecture because:
 - Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
 - Mobile Web app cannot rely on `getActiveSpreadsheet()`.
-- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and pass it to the repository.
+- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and passes it to the constructors of the classes: `ImportService`, `ExportService`, and `QuickEntryService`.
 
 This design allows the same repository implementation to operate correctly in both execution environments without duplicating business logic.
 
@@ -278,7 +282,7 @@ This design allows the same repository implementation to operate correctly in bo
 - Validate the spreadsheet structure.
 - Read country and sticker data.
 - Update sticker counts in batches.
-- Provide reusable lookup helpers for the import, export, and Quick Entry services.
+- Provide reusable lookup helpers for the Import, Export, and Quick entry services.
 - Lazily initialize internal attributes through getters to reduce execution time.
 
 ### UI
@@ -325,7 +329,7 @@ Examples:
     - Export hints and warnings.
     - Mode-driven export routing.
   - The active export mode is supplied by the parent wrapper instead of relying on duplicated global state.
-  - Loads `ExportViewHelpers.html`
+  - Loads `ExportHelpers.html`
 
 - `QuickEntryView.html`
   - Displays the toolbar, filters, legend, message area, and country list.
@@ -344,7 +348,7 @@ Examples:
   - Handles view switching.
   - Clears messages when navigating between services.
   - Loads the mobile styles: `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html` and `MobileQuickEntryStyles.html`.
-  - Loads the views: `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntry.html`.
+  - Loads the views: `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntryView.html`.
 
 - Mobile views:
   - `MobileImportView.html`: Simplified mobile implementation of the import service.
@@ -451,7 +455,7 @@ Before promoting code changes to GitHub or the Google Apps Script staging/produc
 npm run deploy:test
 ```
 This single gatekeeper script sequentially commands the local workspace to:
-1. Run ESLint structural syntax checks and minor corrections (`npm run lint:fix`).
+1. Run ESLint structural syntax checks (`npm run lint`). In case of errors you can run `npm run lint:fix` to fix minor errors.
 2. Recompile testing artifacts (`build/`) and verify feature compliance across all test suites via Jest (`npm run test`).
 3. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass.
 
@@ -460,7 +464,7 @@ If you want also to deploy the Web app for testing mobile services, you can use 
 ```bash
 npm run deploy:all
 ```
-It runs the same steps as in `deploy:test` plus Web app deploy to generate a new deployment version, keeping the same description, i.e. `clasp.zsh deploy`.
+It runs the same steps as in `deploy:test` plus Web app deploy (`clasp.zsh deploy`) to generate a new deployment version, keeping the same description.
 
 > Keep in mind that Google Apps Script has a limit of 200 versions and in some Apps Script versions it doesn't offer a bulk process to delete old versions. That is why we have this separated script task, so the user just deploy the Web app when it is really needed.
 

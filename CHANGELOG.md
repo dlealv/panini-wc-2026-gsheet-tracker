@@ -64,7 +64,9 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Added the `MAX_STICKERS` named range for the **Max Stickers** column.
 
 - Under the `docs` folder:
-  - `ImportServiceRequirements.md`: Added requirements for Coca-Cola stickers.
+  - `ImportServiceRequirements.md`: 
+    - Added requirements for Coca-Cola stickers.
+    - Adjusted the syntax definition of the Format 1, and 2
   - `ExportServiceRequirements.md`: Updated references from non-`FWC` notation to country teams.
   - `QuickEntryServiceMockDesign.md`: Added specific requirements for Coca-Cola stickers and updated references from non-`FWC` notation to country teams.
   - `QuickEntryServiceRequirements.md`: Added specific requirements for Coca-Cola stickers, updated references from non-`FWC` notation to country teams, and removed outdated sections at the end.
@@ -74,6 +76,8 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 - Under the `images` folder:
   - `reportsView.jpg`: Updated to show Coca-Cola data and the drop-down allowing users to select whether to include `CC` stickers in statistics.
   - `stickerView.jpg`: Updated to include the Coca-Cola row.
+  - `importFormatHelp.jpg`: Updated the view to fix the syntax of Format 2.
+  - `mobileWebAppLinkDeployView.jpg`: Updated the view to include the instruction or Description.
 
 - Under the `src` folder:
   - `Commons.gs`:
@@ -86,6 +90,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
       - Refactored constant attributes into static getters and updated the rest of the class accordingly.
 
   - `QuickEntryService.gs`:
+    - The constructor now accepts an input argument `ss` used for mobile services.
     - Adjusted the class to support special countries such as `FWC` and Coca-Cola.
     - `_getStickerIconLabel()`: Now uses `StickerSheetRepository.getCountryBounds()` to determine whether the country is a team and assign the special labels `TEAM` or `CREST`.
     - `_getVisibleStickerNumbers()`: Now uses `StickerSheetRepository.getCountryBounds()` to determine the visible sticker range for special countries such as `FWC` and Coca-Cola.
@@ -117,6 +122,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 
   - `ImportDialog.html`:
     - Ensures both `preview()` and `importData()` clear validation warnings by calling `renderWarnings([])`.
+    - Adjusted the notation of Format 2 in help dialog. Adjusted the width of the dialog.
 
   - `ExportHelpers.html`:
     - Renamed `getUIState()` to `_getUIState()` since it is private and moved it after the exported functions.
@@ -185,6 +191,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
     - Updated the **Named range** section with the new required named ranges.
     - Updated the **Testing** section with information about coverage.
     - Updated the **Files** section to include new `.github` folder files and folders created in previous releases.
+    - In `Import Format` adjusted the syntax definition of the Format 1 and 2.
 
   - `TODO.md`:
     - Marked "Include Coca-Cola stickers" as completed.
@@ -814,7 +821,7 @@ This release refactors and rebrand the `ImportExportService` to introduce a more
   - Document fully aligned with the Import/Export service implementation.
 
 - `.eslintrc.js`: Added  `sort-class-members`, `the-step-down-rule` plugins and the corresponding rules.
-- `package.json`: Added convenient task: `lint:file` to run eslint on a specific file.
+- `package.json`: Added convenient task: `lint:file` to run EsLint on a specific file.
 - `README.md`: Updated with the changes incorporated in this release.
 -  Rest of the source files in `src/`, `test/`, `scripts/` updated comments or format, not structural changes. After changes ensured all 191 tests passed.
 -  `CHANGELOG.md`: Corrected tne numbers of previous releases.
