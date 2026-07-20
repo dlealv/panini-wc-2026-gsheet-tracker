@@ -69,8 +69,6 @@
             return el
         }
 
-        // CORE FILTER LOGIC
-
         /**
          * Returns countries visible under current filters.
          * - applies pending changes
@@ -86,9 +84,10 @@
 
             return state.countries
                 .map(c => _applyPendingCountryUpdates(c, state))
-                .filter(c => _matchesTeamSearch(c, state))
+                .map(c => _applySearch(c, state))
+                .filter(Boolean)
                 .filter(c => _matchesGroupFilter(c, state))
-                .map(c => _filterCountryStickers(c, state))
+                .map(c => _filterByStickerStatus(c, state))
                 .filter(Boolean)
         }
 
@@ -329,7 +328,7 @@
         * - supports pending sticker changes
         * @export
         */
-        function _filterCountryStickers(country, state) {
+        function _filterByStickerStatus(country, state) {
             let stickers = country.stickers
             if (state.selectedStatusFilter === 'missing') {
                 stickers = stickers.filter(s => s.count === 0)
@@ -360,27 +359,56 @@
                 : country.group === state.selectedGroupFilter
         }
 
-         /**
-         * Matches a country against the active team search.
-         * - performs case-insensitive prefix matching
-         * - checks both country code and country name
+        /**
+         * Applies the active search criteria to a country.
+         * 
+         * Search behavior:
+         * - empty search returns the country unchanged
+         * - text search matches country code or country name by prefix
+         * - numeric search keeps only stickers with the matching number
+         * - returns null when the country does not satisfy the search
+         *
+         * This function handles search only.
+         * Sticker status filtering (missing/repeated/pending) is handled separately.
+         *
+         * @param {Object} country Country object to evaluate.
+         * @param {Object} state Current application state containing searchText.
+         * @returns {Object|null} Filtered country or null when no match exists.
          * @export
          */
-        function _matchesTeamSearch(country, state) {
-            if (!state.teamSearchText) return true
+        function _applySearch(country, state) {
+            const searchText = String(state.searchText || '').trim()
+
+            if (!searchText) {
+                return country
+            }
+            // Numeric search: find sticker number
+            if (_isNumericSearch(searchText)) {
+                const stickerNumber = Number(searchText)
+                const stickers = country.stickers.filter(
+                    sticker => sticker.number === stickerNumber
+                )
+                if (stickers.length === 0) {
+                    return null
+                }
+                return { ...country, stickers }
+            }
+            // Text search: country code or name
+            const search = searchText.toLowerCase()
             const code = String(country.code || '').toLowerCase()
             const name = String(country.countryName || '').toLowerCase()
-            const search = String(state.teamSearchText).toLowerCase()
-
-            return code.startsWith(search) || name.startsWith(search)
+            if (code.startsWith(search) || name.startsWith(search)) {
+                return country
+            }
+            return null
         }
 
-         /**
-         * Applies pending changes to a single sticker.
-         * - overlays temporary pending counts
-         * - marks stickers with pending changes
-         * @export
-         */
+        /**
+        * Applies pending changes to a single sticker.
+        * - overlays temporary pending counts
+        * - marks stickers with pending changes
+        * @export
+        */
         function _applyPendingStickerUpdate(countryCode, sticker, state) {
             const key = _buildPendingKey(countryCode, sticker.number)
             const pending = state.pendingUpdates?.[key] // ADDED: make it safe for undefined pendingUpdates
@@ -395,6 +423,11 @@
                 label: `${sticker.number} (${pending})`,
                 hasPendingChange: true
             }
+        }
+
+        /** Determines if the current search text is a sticker number search. */
+        function _isNumericSearch(searchText) {
+            return /^\d+$/.test(String(searchText || '').trim())
         }
 
         return { // namespace export

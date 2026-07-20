@@ -26,8 +26,9 @@
       </div>
 
       <div class="filters">
+      <!--The filters are adjusted to the device here based on specific CSS style-->
         <input type="text" id="qe-teamSearchInput" class="filter-input"
-          placeholder="Search by team code or country name" oninput="handleFiltersChange()">
+          placeholder="Search by country code/name or sticker #" oninput="handleFiltersChange()">
         <div class="filter-row">
           <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
             <option value="all">All groups</option>
@@ -102,7 +103,7 @@
   const GROUP_FILTERS = Object.freeze({ ALL: 'all' })
   const state = {
     countries: [], groupCodes: [], selectedStatusFilter: FILTERS.ALL,
-    selectedGroupFilter: GROUP_FILTERS.ALL, teamSearchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
+    selectedGroupFilter: GROUP_FILTERS.ALL, searchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
   }
 
   const teamSearchInput = document.getElementById('qe-teamSearchInput')
@@ -157,7 +158,7 @@
 
   /**Updates filters and refreshes the country list.*/
   function handleFiltersChange() {
-    state.teamSearchText = teamSearchInput.value.trim().toLowerCase()
+    state.searchText = teamSearchInput.value.trim().toLowerCase()
     state.selectedGroupFilter = groupFilterSelect.value
     renderCountryList()
   }

@@ -7,6 +7,34 @@ project structure, and documentation.
 
 ---
 
+## [1.1.2] 2026-07-XX
+
+### Overview
+Quick entry service now allows to search by sticker number too in the search box.
+
+### Added
+
+### Changes
+
+- Under `src/html` folder:
+  - `QuickEntryRender.html`: Correct the name of the source file.
+  - `QuickEntryView.html`:
+    - Adjusted the placeholder text search to indicate the user can also enter the sticker number.
+    - Changed the state property `teamSearchText` to `searchText`, since it now allows to search by sticker number too.
+  - `QuickEntryHelpers.html`: Adjusted the logic to enable search by sticker number.
+    - Replaced `teamSearchText` by `searchText`.
+    - Replaced `_matchesTeamSearch()` by `_applySearch()` now this method implements the logic for search by country or by sticker number.
+    - Added the method: `_isNumericSearch` to identify the type of search.
+    - `getVisibleCountries`: Update the return statement to adjust the filter/search pipeline with the new changes.
+    - `_filterCountryStickers` renamed to `_filterByStickerStatus` (more representative of what the function does, it doesn't do any search).
+
+- Under `test` folder:
+  - `QuickEntryHelpers.unit.test.js`: 
+    - Adjusted the tests to the renamed functions. 
+    - `getVisibleCountries` suit added the tests for testing numeric search.
+
+### Fix
+
 ## [1.1.1] 2026-07-19
 
 ### Overview

@@ -89,13 +89,13 @@ describe('QuickEntryHelpers.html', () => {
     })
   })
 
-  /** Tests for filterCountryStickers() */
-  describe('filterCountryStickers()', () => {
+  /** Tests for _filterByStickerStatus() */
+  describe('_filterByStickerStatus()', () => {
     test('returns only missing stickers', () => {
       // verifies missing filter logic
       const state = { selectedStatusFilter: 'missing' }
       const country = { stickers: [{ count: 0 }, { count: 1 }, { count: 2 }] }
-      expect(helpers._filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterByStickerStatus(country, state)).toEqual({
         stickers: [{ count: 0 }]
       })
     })
@@ -103,14 +103,14 @@ describe('QuickEntryHelpers.html', () => {
       // verifies repeated filter logic
       const state = { selectedStatusFilter: 'repeated' }
       const country = { stickers: [{ count: 0 }, { count: 2 }, { count: 3 }] }
-      expect(helpers._filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterByStickerStatus(country, state)).toEqual({
         stickers: [{ count: 2 }, { count: 3 }]
       })
     })
     test('returns null when filtered stickers become empty and filter is not all', () => {
       const state = { selectedStatusFilter: 'missing' }
       const country = { stickers: [{ count: 1 }, { count: 2 }] }
-      expect(helpers._filterCountryStickers(country, state)).toBeNull()
+      expect(helpers._filterByStickerStatus(country, state)).toBeNull()
     })
     test('filters pending stickers only', () => {
       const state = { selectedStatusFilter: 'pending' }
@@ -120,7 +120,7 @@ describe('QuickEntryHelpers.html', () => {
           { number: 2, count: 2, hasPendingChange: false }
         ]
       }
-      expect(helpers._filterCountryStickers(country, state)).toEqual({
+      expect(helpers._filterByStickerStatus(country, state)).toEqual({
         stickers: [{ number: 1, count: 1, hasPendingChange: true }]
       })
     })
@@ -157,19 +157,52 @@ describe('QuickEntryHelpers.html', () => {
     })
   })
 
-  /** Tests for matchesTeamSearch() */
-  describe('matchesTeamSearch()', () => {
+  /** Tests for _applySearch() */
+  describe('_applySearch()', () => {
     test('matches country name case-insensitively', () => {
-      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'argen' })).toBe(true)
+      expect(helpers._applySearch({
+        code: 'ARG',
+        countryName: 'Argentina',
+        stickers: []
+      }, { searchText: 'argen' })).not.toBeNull()
     })
     test('matches country code prefix case-insensitively', () => {
-      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'ar' })).toBe(true)
+      expect(helpers._applySearch({
+        code: 'ARG',
+        countryName: 'Argentina',
+        stickers: []
+      }, { searchText: 'ar' })).not.toBeNull()
     })
-    test('matches country name prefix case-insensitively', () => {
-      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'arg' })).toBe(true)
+    test('returns null when no country text match is found', () => {
+      expect(helpers._applySearch({
+        code: 'ARG',
+        countryName: 'Argentina',
+        stickers: []
+      }, { searchText: 'zzz' })).toBeNull()
     })
-    test('returns false when no match is found', () => {
-      expect(helpers._matchesTeamSearch({ code: 'ARG', countryName: 'Argentina' }, { teamSearchText: 'zzz' })).toBe(false)
+    test('returns only matching sticker for numeric search', () => {
+      const result = helpers._applySearch({
+        code: 'ARG',
+        countryName: 'Argentina',
+        stickers: [
+          { number: 13, count: 1 },
+          { number: 14, count: 2 }
+        ]
+      }, { searchText: '13' })
+      expect(result.stickers).toEqual([{ number: 13, count: 1 }])
+    })
+    test('returns null when numeric sticker search does not exist', () => {
+      expect(helpers._applySearch({
+        code: 'ARG',
+        countryName: 'Argentina',
+        stickers: [
+          { number: 13, count: 1 }
+        ]
+      }, { searchText: '99' })).toBeNull()
+    })
+    test('returns country unchanged when search is empty', () => {
+      const country = { code: 'ARG', countryName: 'Argentina', stickers: [{ number: 13, count: 1 }] }
+      expect(helpers._applySearch(country, { searchText: '' })).toEqual(country)
     })
   })
 
@@ -273,7 +306,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
-        teamSearchText: 'arg'
+        searchText: 'arg'
       }
       const result = helpers.getVisibleCountries(state)
       expect(result).toHaveLength(1)
@@ -289,7 +322,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: 'B',
         selectedStatusFilter: 'missing',
-        teamSearchText: ''
+        searchText: ''
       }
       expect(helpers.getVisibleCountries(state)).toEqual([])
     })
@@ -304,7 +337,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
-        teamSearchText: 'zzz'
+        searchText: 'zzz'
       }
       expect(helpers.getVisibleCountries(state)).toEqual([])
     })
@@ -319,7 +352,69 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
-        teamSearchText: ''
+        searchText: ''
+      }
+      expect(helpers.getVisibleCountries(state)).toEqual([])
+    })
+    test('returns matching sticker number across all countries for numeric search', () => {
+      const state = {
+        countries: [
+          {
+            code: 'ARG',
+            countryName: 'Argentina',
+            group: 'A',
+            stickers: [{ number: 1, count: 0 }, { number: 13, count: 1 }]
+          },
+          {
+            code: 'BRA',
+            countryName: 'Brazil',
+            group: 'A',
+            stickers: [{ number: 13, count: 2 }, { number: 20, count: 0 }]
+          }
+        ],
+        pendingUpdates: {},
+        selectedGroupFilter: 'all',
+        selectedStatusFilter: 'all',
+        searchText: '13'
+      }
+      const result = helpers.getVisibleCountries(state)
+      expect(result).toHaveLength(2)
+      expect(result[0].stickers).toEqual([{ number: 13, count: 1, hasPendingChange: false }])
+      expect(result[1].stickers).toEqual([{ number: 13, count: 2, hasPendingChange: false }])
+    })
+    test('numeric search combines correctly with missing filter', () => {
+      const state = {
+        countries: [
+          {
+            code: 'ARG',
+            countryName: 'Argentina',
+            group: 'A',
+            stickers: [{ number: 13, count: 0 }]
+          },
+          {
+            code: 'BRA',
+            countryName: 'Brazil',
+            group: 'A',
+            stickers: [{ number: 13, count: 1 }]
+          }
+        ],
+        pendingUpdates: {},
+        selectedGroupFilter: 'all',
+        selectedStatusFilter: 'missing',
+        searchText: '13'
+      }
+      const result = helpers.getVisibleCountries(state)
+      expect(result).toHaveLength(1)
+      expect(result[0].code).toBe('ARG')
+      expect(result[0].stickers).toEqual([{ number: 13, count: 0, hasPendingChange: false }])
+    })
+    test('returns no countries when sticker number does not exist', () => {
+      const state = {
+        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
+        pendingUpdates: {},
+        selectedGroupFilter: 'all',
+        selectedStatusFilter: 'all',
+        searchText: '999'
       }
       expect(helpers.getVisibleCountries(state)).toEqual([])
     })
@@ -371,7 +466,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
-        teamSearchText: ''
+        searchText: ''
       })).toEqual([])
       expect(helpers.getVisibleCountries(null)).toEqual([])
     })
@@ -381,7 +476,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: {},
         selectedGroupFilter: undefined,
         selectedStatusFilter: undefined,
-        teamSearchText: undefined
+        searchText: undefined
       })).toEqual([])
     })
     test('recalculates summary after applying pending updates', () => {
@@ -395,7 +490,7 @@ describe('QuickEntryHelpers.html', () => {
         pendingUpdates: { 'ARG|1': 1 },
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'all',
-        teamSearchText: ''
+        searchText: ''
       }
       const result = helpers.getVisibleCountries(state)
       expect(result[0].summary.owned).toBe(1)
