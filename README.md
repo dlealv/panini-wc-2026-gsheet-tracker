@@ -6,7 +6,7 @@ This project was first published as a draft on [Reddit](https://www.reddit.com/r
 
 Track your collection, duplicates, missing stickers, swap summary, and possible trades in one spreadsheet.
 
-**Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick sticker entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning).
+**Apps Script disclaimer:** This template uses Google Apps Script for features such as the custom **Manage Panini** menu, the **Import / Export** dialog, and the **Quick sticker entry** dialog. Depending on your Google account and authorization state, you may be asked to authorize the script and may see an unverified app warning. For more details, see [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning). You can use it without using **Manage Panini** custom menu services so it doesn't require authorization, but you will not take advantage of the full potential of ths tracker.
 
 ## Live tracker
 
@@ -18,7 +18,7 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 
 Since the URL ends with `/copy`, clicking it creates your own copy of the template.
 
-**Apps Script note:** Some scripted features (**Manage Panini** custom menu) may trigger Google's authorization flow and, for some users, an unverified app warning. See [Apps Script authorization and Google unverified app warning](#apps-script-authorization-and-google-unverified-app-warning) below for details, safety guidance, and review steps.
+**Apps Script note:** Some scripted features (**Manage Panini** custom menu) may trigger Google's authorization flow. 
 
 ---
 
@@ -30,7 +30,7 @@ Since the URL ends with `/copy`, clicking it creates your own copy of the templa
 - Export a shared list of stickers for trading in text format to easily share with other collectors via the **Manage Panini** custom menu.
 - See progress summaries in the `Reports` tab.
 - Share a compact swap view with other collectors in the `Compact Swap View` tab.
-- Trade with another collector in the `Trade` tab.
+- Trade with another collector in the `Trade` tab finding the match ready to trade.
 - Expose **Manage Panini** services for desktop (Google Sheet) and mobile via browser.
 
 ---
@@ -65,7 +65,7 @@ It is especially useful for day-to-day collection tracking because it combines t
 
 Main capabilities:
 
-- Search incrementally by **team code** or **country name**
+- Search incrementally by **country code** or **country name**
 - Filter by **group**
 - Filter stickers based on their status: **All**, **Missing**, **Repeated**, or **Pending** (pending changes that haven't been committed via the **Update** button yet).
 - Review each team with a compact summary:
@@ -76,7 +76,7 @@ Main capabilities:
 - Update sticker counts with `-` and `+` buttons
 - Queue multiple local changes before applying them via the **Update** button
 - Highlight pending changes before writing them to the sheet
-- Use a color convention for missing and repeated stickers based on count. The colors are the same as those used in the `Stickers` tab and specified in the **Legend** section of the Description in the same tab.
+- Use a color convention for owned, missing and repeated stickers based on count. The colors are the same as those used in the `Stickers` tab and specified in the **Legend** section of the Description in the same tab.
 - Easily identify special cards such as crest and team stickers
 - Mark fully completed teams visually with blue background.
 
@@ -89,6 +89,8 @@ The tracker provides import tool so you can load collection data from external s
 This service is enabled through the **Import** dialog in the **Manage Panini** custom menu. The import format is Comma-Separated Values (CSV). It also accepts `;` (semicolon) , `:` (colon), or whitespace as delimiters, but internally converts them into `,` delimiter.
 
 Import is useful when you already track your collection elsewhere and want to move it into this spreadsheet without manual re-entry. After the import is executed, **only** valid imported values are written to the `COUNTS` named range in the `Stickers` tab.
+
+Another useful use case is when the user wants to upgrade this tracker, using a recent version, then export the data from the previous version and import into the new version tracker.
 
 Available import modes:
 
@@ -120,7 +122,6 @@ Export behavior:
   - `[1-12]` for `CC` (Coca-Cola) stickers
   - `[1-20]` for team country stickers.
 - The exported content can be copied or downloaded for reuse.
-- Allows the user to decide whether to include flag icons in the export.
 
 The service allows the user to customize the output data via the following checkboxes:
 - **Flag**: Before the country code the icon flag (emoji) is added.
@@ -203,15 +204,17 @@ Review the generated **OUTPUT** section to see what you can offer and what you m
 
 ![Trade tab](images/tradeView.jpg)
 
+> Note: As you can see from the image it accepts different delimiters, flag icons, repeats and interprets correctly ranges in both forms: `A-B` and `A-B(X)`.
+
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive/send.
 
 A green background in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
 
 In the **OUTPUT** section, the collector can sort the Receive Sticker output by either `%-Done` or `Album`. The drop-down values are located to the right of the `SORT` cell. These values have the same functionality and interpretation as in the **Share your swap status** section. For more information, please refer to the content of that section.
 
-In the provided example, the maximum swap occurs when the cumulative number of stickers is `4`, meaning both collectors receive an equal number of stickers. This number represents the minimum `TOTAL` in both directions of the trade. You can also negotiate with another collector to send additional stickers and receive compensation for the difference. Since sorting is set to `%-Done`, the Receive Stickers output is sorted by the `Done` column from the `Stickers` tab in descending order. This facilitates completion of your album. For example, Brazil is closer to completion than Mexico, so it is more beneficial for the user to obtain a missing sticker from Brazil than from Mexico.
+In the provided example, the maximum swap occurs when the cumulative number of stickers is `3`, meaning both collectors receive an equal number of stickers. This number represents the minimum `TOTAL` in both directions of the trade. You can also negotiate with another collector to send additional stickers and receive compensation for the difference. Since sorting is set to `%-Done`, the Receive Stickers output is sorted by the `Done` column from the `Stickers` tab in descending order. This facilitates completion of your album. For example, Korea is closer to completion than Mexico, so it is more beneficial for the user to obtain a missing sticker from Korea than from Mexico.
 
-> The main advantage of this tab is that it finds matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available duplicates, but it does not identify matches with another collector.
+> The main advantage of this tab is that it finds matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available repeats, but it does not identify matches with another collector.
 
 📌 This entire process is significantly simplified by the information provided in this tab.
 
@@ -229,7 +232,7 @@ To enable the mobile web application:
 
 ![Mobile Service: Web App Link Dialog - Deployment Instructions](images/mobileWebAppLinkDeployView.jpg)
 
-4. Follow the deployment steps shown in the dialog. When you click **New deployment**, the required deployment settings are automatically preconfigured. Simply click **Deploy**.
+4. Follow the deployment steps shown in the dialog. When you click **New deployment**, the required deployment settings are automatically preconfigured. Just fill the Description field with the name of your preference (but you can leave it blank) and simply click **Deploy**.
 
 ![Mobile Service: New Deployment](images/newDeploymentView.jpg)
 
@@ -263,8 +266,9 @@ Although Google Apps Script does not natively support mobile add-ons, deploying 
 
 The custom **Manage Panini** spreadsheet menu is added by the Apps Script project and provides access to the main supported workflows:
 
-- Import or export (all stickers or shared stickers) collection data
-- Open the Quick Sticker Entry dialog
+- Import or export (all stickers or shared stickers) collection data.
+- Open the Quick Sticker Entry dialog.
+- Instructions on how to deploy the Web app for mobile services.
 
 ![Manage Panini menu](images/managePaniniMenuView.jpg)
 
@@ -288,21 +292,24 @@ All valid sticker values produced after parsing and validation are written to th
 
 ### Common syntax rules
 
-All formats enforce the following syntax rules (for simplicity, all examples use Format 1, but the rules apply to both formats):
+All formats enforce the following syntax rules (for simplicity, all examples use Format 1, but the rules apply to both formats).
 
-- **pre-normalization process**: standardization happens at a country line level and before split by token: 
-  - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon), or whitespace. However, internally, all these delimiters are converted to commas.
+#### pre-normalization process
+Standardization happens at a country line level and before split by token: 
+ - Accepted delimiters between tokens are `,` (comma), `:` (colon), `;` (semicolon), or whitespace. However, internally, all these delimiters are converted to commas.
   - Country codes accepted in lower/upper case, but internally converted to upper case.
   - All non-ASCII characters are stripped from each line before parsing; flag emojis are removed.
   - Empty tokens produced by consecutive delimiters (e.g. `FWC,,1,2`) are silently skipped.
   - All possible repeat representations (`NxX`, `N(xX)`, `A-BxX`, `A-B(xX)`) are normalized to the canonical repeat forms: `N(X)`, `A-B(X)`.
+
+  #### Rules
 - One country per line.
 - *First country rule*: The first mandatory token in the country line must be a country code; all stickers belong to this country code.
 - Country codes must exist in the `COUNTRIES` named range. Invalid countries are skipped and a warning is reported.
 - A sticker token must be one of the following:
   - `N` sticker number. The number must be in the valid range: `[0-20]`. Outside this range, the sticker is skipped and reported as a warning. 
   - Stickers not in the album, such as
-    - `FWC,20`, `MEX,0` for country teams or `CC,0`, are accepted on input if present and populated with a count of `0`.
+    - `FWC,20`, `CC,0` or `MEX,0` for country teams, are accepted on input if present and populated with a count of `0`.
     - `CC,13-20`, are accepted on input if present and populated with a count of `0`.
   - `N(X)` sticker number repeated `X` times where `X > 1` (otherwise skipped and a warning is reported).
   - `A-B` sticker range from `A` to `B`, both inclusive, where `A` is lower than `B` (otherwise skipped and a warning is reported).
@@ -317,55 +324,56 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 Country line after pre-normalization:
 
 ```text
-Format: CODE,number[,[number][(repeats)]][,number-range][,number-range(repeats)]...
+Format: CODE,item[,item...]
 ```
 
+where each `item` is one of:
+- `number`
+- `number(repeats)`
+- `start-end`
+- `start-end(repeats)`
+
 Please check **Common syntax rules** for the validation rules that apply.
-
-In case you are not familiar with format notation:
-
-- `[]` brackets mean optional; therefore:
-  - Repeats: `[,number(repeats)]` in parentheses are optional.
-  - Ranges: `[,number-range]` are optional.
-  - `CODE,number` is the only mandatory portion of the format, additional stickers, repeats, ranges are optional.
 
 Example:
 
 ```text
-FWC,1,3,5(2),7
-🇲🇽 MEX,18,20
-BRA,7(3)
-RSA,10-12(2)
+FWC,1,3,5(2),7    → sticker 5 is repeated 2 times.
+🇲🇽 MEX,18,20      → owns stickers 18, 20 from Mexico.
+BRA,7(3)          → stickers 7 repeated 3 times.
+RSA,10-12(2)      → same as: RSA,10(2),11(2),12(2), all stickers repeated 2 times.
 ```
-
-In the previous example, the collector has two copies of sticker `5` for `FWC`. For `BRA`, the collector has sticker `7` three times. For `RSA`, the collector has stickers `10` through `12` two times each.
 
 ### Format 2 (Per-sticker country prefix (CODE[-]N))
 
-Each sticker token includes the country code as a prefix. The dash between the code and the sticker number is **optional**. All current country codes in the Panini WC 2026 album are exactly three characters long on the back of the sticker card; the parser relies on this fixed length to identify the code prefix in Format 2 tokens.
+Each sticker token includes the country code as a prefix. The dash between the code and the sticker number is **optional**. All current country codes in the Panini WC 2026 album are exactly three characters long on the back of the sticker card, except for Coca-Cola (`CC`) stickers; the parser relies on this fixed length and the special case of Coca-Cola, to identify the code prefix in Format 2 tokens.
 
 Country line after pre-normalization:
 
 ```text
-Format: CODE[-]N[,[CODE[-]N](repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...
+Format: item[,item...]
 ```
 
-Where `CODE[-]` means the country code followed by an optional dash.
+Where:
+- each `item` is one of the following:
+  - `CODE[-]number`
+  - `CODE[-]number(repeats)`
+  - `CODE[-]start-end`
+  - `CODE[-]start-end(repeats)`
+- `CODE[-]` means the country code followed by an optional dash (`-`).
 
-Please check **Common syntax rules** and the previous section to understand the format notation if you are not familiar with it.
+Please check **Common syntax rules** for the validation rules that apply.
 
 The *First country rule* from the **Common syntax rules** section enforces that any country different from the first one in the country line is skipped and reported as a warning. For example: `MEX1,MEX10,BRA10,ARG10,MEX20` results in `MEX1,MEX10,MEX20`, and stickers `BRA10` and `ARG10` are skipped and reported as warnings.
 
 Example:
 
 ```text
-FWC1,FWC-3,FWC-5(2),FWC-7
-🇲🇽 MEX-18,MEX-20
-BRA7(3)
-RSA-10-12(2)
+- FWC1,FWC-3,FWC-5(2),FWC-7 → sticker 5 is repeated 2 times.
+- 🇲🇽 MEX-18,MEX-20`         → same as: MEX18,MEX20.
+- BRA7(3)                   → sticker 7 is repeated 3 times.
+- RSA-10-12(2)              → same as: RSA10(2),RSA11(2),RSA12(2) all stickers repeated 2 times.
 ```
-
-Same interpretation as in the example from the **Format 1** section.
 
 ### Exclusion operator (import indicating missing cards only)
 
@@ -386,8 +394,7 @@ The following operator symbols are equivalent and interchangeable:
 The operator prefix may be applied to any valid import line format:
 
 ```text
-<OPERATOR> CODE,number[,[number](repeats)][,start-end][,start-end(repeats)]...   (Format 1)
-<OPERATOR> CODE[-]N[,[CODE[-]N](repeats)][,CODE[-]A-B][,CODE[-]A-B(repeats)]...  (Format 2)
+<OPERATOR> CODE,item[,item...]  (Format 1 or 2)
 ```
 
 #### Exclusion examples
@@ -398,14 +405,14 @@ The operator prefix may be applied to any valid import line format:
 | `<>MEX,1,MEX-5-7` | `MEX,2,3,4,8,9,10,11,12,13,14,15,16,17,18,19,20` |
 | `<>MEX,1(2),MEX-5-7(2)` | Same as `<>MEX,1,MEX-5-7` (previous row) |
 | `<>FWC,1-10,12-19` | `FWC,0,11` |
-| `!=MEX,1,2,3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
-| `^MEX1,MEX2,MEX3` | `MEX,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20` |
+| `!=MEX,1,2,3` | Same as `<>MEX,1,2,3` |
+| `^MEX1,MEX2,MEX3` | Same as `<>MEX,1,2,3` |
 
 #### Exclusion operator validation rules
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of the line, only the first is recognized; the remainder are silently ignored.
-- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country teams, use the explicit form `CODE,1-20` (e.g. `MEX,1-20`) or `FWC,0-19`, `CC,1-12` for non-country teams.
+- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country teams, use the explicit form `CODE,1-20` e.g. `MEX,1-20` or `FWC,0-19`, `CC,1-12` for non-country teams.
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat values, if present in an exclusion line, are ignored — the complement always assigns count `1` to each resulting sticker position, and no warning is issued.
 
@@ -422,7 +429,7 @@ The operator prefix may be applied to any valid import line format:
 - `FLAG_ICONS`: `Flag URL` column from the hidden `Conf` tab containing the country flag emojis. This named range is used by the export services and the Google Sheets template.
 - `FLAGS`: Column containing the flag images for each country. Used in the `Stickers` tab.
 - `FLAGS_URL`: `Flag` column from the hidden `Conf` tab containing the source URLs of the flag images used by the Quick Sticker Entry dialog and by the `FLAGS` named range.
-- `GROUPS`: `Group` column from the hidden `Conf` tab containing the group assigned to each country code. This named range is used only by the Quick Sticker Entry service and the `Reports` tab.
+- `GROUPS`: `Group` column from the hidden `Conf` tab containing the group assigned to each country code. This named range is used by the Quick Sticker Entry service and the `Reports` tab.
 - `MAX_STICKERS`: `Max Stickers` column from the hidden `Conf` tab representing the maximum number of stickers each country team can have. Used to calculate the completion percentage for each team.
 - `MISSING`: `Miss` column from the `Stickers` tab representing the number of missing stickers, taking into account the maximum number of stickers for each country.
 - `P_COMPLETION`: `%` column from the `Stickers` tab. Used to calculate the number of completed teams while taking into account the maximum number of stickers for each team.
@@ -434,14 +441,14 @@ The operator prefix may be applied to any valid import line format:
 
 ---
 
-**Note:** All column-based named ranges (such as `COUNTS`) must contain `50` rows, representing `48` country teams plus `FWC` and `CC`.
+**Note:** All column-based named ranges (such as `COUNTS`, `COUNTRIES`, etc.) must contain `50` rows, representing `48` country teams plus `FWC` and `CC`.
 
 ## Named functions
 The Gsheet tracker has defined some custom functions to simplify the calculation process:
 
 - `CLEAN_STICKER_LINE(txt)`: This function is utilized in the `GET_TRADES` function and in `Trade` tab. It cleans the input data from another collector during the process of calculating matches. The cleaning process aims to standardize the sticker list to Format 1.
 
-- `GET_STICKERS(ctry,in,isRep)`: This function retrieves the list of repeated stickers (if `isRep` is `TRUE/1`) or the list of missing stickers (if `isRep` is `FALSE/0`) for a specified country. It is used in the `Compact Swap View` tab.
+- `GET_STICKERS(ctry,in,isRep)`: This function retrieves the list of repeated stickers (if `isRep` is `TRUE/1`) or the list of missing stickers (if `isRep` is `FALSE/0`) for a specified country. It is used in the `Compact Swap View`, and  `Reports` tabs.
 
 - `GET_TRADES(octry,ovals,ctry,vals,isget)`: This function takes an array of countries (`octry`) and sticker values (`ovals`) from another collector and countries (`ctry`) and values (`vals`) from the collector (owner of the tracker). It returns the matches (country and stickers) between the collectors. If the input argument `isget` is `TRUE/1`, it returns the matches of the countries and stickers that the collector will receive from another collector. In this case, the values of `octry` and `ovals` represent repeated stickers from another collector. If `isget` is `FALSE/0`, it returns the matches of the countries and stickers that the collector will send to another collector. In this case, the values of `octry` and `ovals` represent missing stickers from another collector. This named function is used in the `Trade` tab, specifically in the **OUTPUT** section.
 
@@ -460,6 +467,7 @@ This tracker includes Google Apps Script features such as:
 - The custom **Manage Panini** menu.
 - The **Import / Export** dialogs.
 - The **Quick sticker entry** dialog.
+- The **Mobile web app link** dialog.
 
 When you make your own copy of the spreadsheet and run one of these features for the first time, Google may ask you to authorize the attached Apps Script project. Depending on your Google account type and Google's OAuth rules, you may also see an **unverified app** warning in the web browser authorization flow.
 
@@ -548,9 +556,9 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 - Under the `images` folder: Images used in the `README.md` file and `doc` folder documents.
 
 - Under the `scripts` folder:
-  - `build.js`: Prepares the `src/*.gs` and `src/html/*[Helpers|Render].html` files to be tested with Jest.
-  - `clasp.zsh`: zsh script to handle `clasp` operations (`pull`/`push`/`deploy`) to synchronize the local VS Code environment with the GAS remote server repository and deploy a Web app for mobile services. It creates a preventive backup zip file before updating the source code (local/server).
-  - `fix-jsdoc.js`: Used occasionally when `eslint` doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
+  - `build.js`: Prepares the `src/*.gs` and `src/html/*[Helpers|Render].html` files to be tested with Jest. It moves the files to `build` folder, change extension `.gs` $\rightarrow$ `.js`, add export module with classes and functions with `@export` tag and indicate the source file on top.
+  - `clasp.zsh`: zsh script to handle clasp operations (`pull`/`push`/`deploy`) to synchronize the local VS Code environment with the GAS remote server repository and deploy a Web app for mobile services. It creates a preventive backup zip file before updating the source code (local/server).
+  - `fix-jsdoc.js`: Used occasionally when ESLint doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
 
 - Under the `src` folder:
   - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
@@ -562,15 +570,15 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 - Under the `src/html` folder:
   - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
   - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
-  - `ImportHelpers.html`: helper testable logic function used in `src/html/ImportDialog.html`.
-  - `ImportExportDialogStyles.html`: Styles to be used in the Import Export dialog for desktop version.
+  - `ImportHelpers.html`: Helper testable logic function used in `ImportDialog.html`.
+  - `ImportExportDialogStyles.html`: Styles to be used in the Import/Export dialog for desktop version.
   - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
   - `ExportView.html`: View and javascript functions used by export service (desktop and mobile).
-  - `ExportHelpers.html`: helper testable logic function used in `src/html/ExportDialog.html`.
+  - `ExportHelpers.html`: Helper testable logic function used in `ExportDialog.html`.
   - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
   - `QuickEntryView.html`: View and javascript functions used by Quick entry service (desktop and mobile).
-  - `QuickEntryHelpers.html`: helper logic functions used in `src/html/QuickEntryDialog.html`.
-  - `QuickEntryRender.html`: DOM/UI-specific functions used in `src/html/QuickEntryDialog.html`.
+  - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryDialog.html`.
+  - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryDialog.html`.
   - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
   - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
   - `MobileImportView.html`: Simplified view for mobile import service.
@@ -594,11 +602,11 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `jest.config.js`: `Jest` configuration file.
 
 - Under root:
-  - `clasp.json.template`: Template file used for `clasp` operations (create, edit, and deploy locally to Apps Script).
-  - `.claspignore`: Files and folders to ignore in `clasp` execution.
-  - `.eslintignore`: Files and folders to ignore by `eslint`.
-  - `.eslintrc.js`: `eslint` configuration (customizable rules).
-  - `.gitignore`: Files and folders to ignore for `git`.
+  - `clasp.json.template`: Template file used for clasp operations (create, edit, and deploy locally to Apps Script).
+  - `.claspignore`: Files and folders to ignore in clasp execution.
+  - `.eslintignore`: Files and folders to ignore by ESLint.
+  - `.eslintrc.js`: ESLint configuration (customizable rules).
+  - `.gitignore`: Files and folders to ignore for git.
   - `jsconfig.json`: JavaScript project configuration file.
   - `package.json`: Node.js project configuration file (dependencies, scripts, automation tasks, etc.).
   - `CHANGELOG.md`: Chronological summary of notable project changes.

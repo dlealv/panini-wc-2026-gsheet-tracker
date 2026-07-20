@@ -18,9 +18,14 @@
  * @export
  */
 class QuickEntryService {
-  /** Creates a service for Quick Sticker Entry. */
-  constructor() {
-    this.repo = new StickerSheetRepository()
+  /** Creates a service for Quick Sticker Entry.
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
+   *   Defaults to SpreadsheetApp.getActiveSpreadsheet() for the normal spreadsheet dialog.
+   *   Pass an explicit instance when running from the mobile web app, where
+   *   getActiveSpreadsheet() may not be available.
+   */
+  constructor(ss) {
+    this.repo = new StickerSheetRepository(ss)
     this.DEFAULT_STATUS_FILTER = 'all'
     this.DEFAULT_GROUP_FILTER = 'all'
   }

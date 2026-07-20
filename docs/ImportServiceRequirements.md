@@ -170,8 +170,14 @@ All formats enforce the following syntax rules (for simplicity, all examples use
 ### Format 1 — Classic (country prefix once)
 
 ```text
-Format: [flag] CODE,number[,[number](repeats)][,number-range][,number-range(repeats)]...
+Format: [flag] CODE,item[,item...]
 ```
+Where:
+- `item` is one of:
+  - `number`
+  - `number(repeats)`
+  - `start-end`
+  - `start-end(repeats)`
 
 Examples:
 
@@ -206,10 +212,16 @@ Each sticker token includes the country code as a prefix. The dash between the c
 All current country codes for the Panini WC 2026 album are exactly three characters long; the parser relies on this fixed length to identify the code prefix in Format 2 tokens.
 
 ```text
-Format: [flag] CODE[-]N[,[CODE[-]]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...
+Format: [flag] item[,item...]
 ```
 
-Where `CODE[-]` means the country code followed by an optional dash.
+Where 
+- `item` is one of:
+  - `CODE[-]number`
+  - `CODE[-]number(repeats)`
+  - `CODE[-]start-end`
+  - `CODE[-]start-end(repeats)`
+- `CODE[-]` means the country code followed by an optional dash (`-`).
 
 > Note: Repeats at this point have been converted into canonical form via the pre-normalization process.
 
@@ -313,8 +325,7 @@ The following operator symbols are equivalent and interchangeable:
 The operator prefix may be applied to any valid import line format:
 
 ```text
-<OPERATOR> CODE,number[,number(repeats)][,start-end][,start-end(repeats)]...   (Format 1)
-<OPERATOR> CODE[-]N[,CODE[-]N(X)][,CODE[-]A-B][,CODE[-]A-B(X)]...              (Format 2)
+<OPERATOR> item[,item...]   (Format 1 or 2)
 ```
 
 #### Exclusion examples
@@ -333,7 +344,7 @@ The operator prefix may be applied to any valid import line format:
 
 - The operator must appear only at the start of the line, immediately before the first country code token.
 - If more than one operator symbol appears at the start of a line, only the first is recognized; the remainder are silently ignored.
-- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country, use the explicit form `CODE,1-20` (or `FWC,0-19` or `CC,1-12`) instead.
+- An exclusion line must contain at least one sticker token after the country code; if no sticker tokens are present, the line is skipped and a warning is issued. To import all stickers for a country team use the explicit form `CODE,1-20` or `FWC,0-19` or `CC,1-12` for a non-country team.
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat counts in exclusion lines are silently ignored; the complement always uses count `1`.
 

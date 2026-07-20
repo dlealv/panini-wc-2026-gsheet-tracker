@@ -20,10 +20,12 @@
  */
 class ExportService {
   /** Creates an export application service.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet=} spreadsheet Optional spreadsheet for mobile web app context.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet=} ss Optional spreadsheet for mobile web app context.
+ *   Defined for architecture consistency, but not required for export services, since it doesn't need
+ *   to write to the sheet.
  */
-  constructor(spreadsheet) {
-    this.spreadsheet = spreadsheet || null
+  constructor(ss) {
+    this.ss = ss || null
     this.repo = null
     this.rows = null
   }
