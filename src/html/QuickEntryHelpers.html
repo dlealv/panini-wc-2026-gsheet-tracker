@@ -262,7 +262,6 @@
                 _applyPendingStickerUpdate(country.code, s, state)
             )
             const summary = _buildCountrySummary(stickers)
-
             return {
                 ...country,
                 stickers,
@@ -343,7 +342,6 @@
             if (state.selectedStatusFilter !== 'all' && stickers.length === 0) {
                 return null
             }
-
             return { ...country, stickers }
         }
 

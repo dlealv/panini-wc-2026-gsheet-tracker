@@ -10,23 +10,49 @@ project structure, and documentation.
 ## [1.1.2] 2026-07-XX
 
 ### Overview
-Quick entry service now allows to search by sticker number too in the search box.
+Quick entry service now allows to search by sticker number too in the search box. Refactor import services splitting responsibilities by `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html`, now it uses the helper functions from `ImportHelpers.html`.
 
 ### Added
+- Under `src/html` folder:
+  - `ImportView.html`: Moved the view portion of the `ImportDialog.html` to this file. This view is still specific for desktop version only.
+  - `ImportHelp.html`: The guide modal portion (detail format help) from `ImportDialog.html` was moved to this file along with specific javascript functions: `openHelpModal()` and `closeHelpModal()`.
 
 ### Changes
 
+- Under the `doc` folder:
+  - `FAQ.md`: Added the question: Can I search by sticker number in the Quick sticker entry service?.
+  - `TechnicalArchitecture.md`: 
+    - Update the sections: `4. UI Layer Engineering Rules` and ` 5. System Architecture` to include the import refactor with the new files: `ImportView.html` and `ImportHelp.html`.
+    - Minor improvements in `7. Continuous Integration (CI) Deployment Blueprint` section.
+
 - Under `src/html` folder:
-  - `QuickEntryRender.html`: Correct the name of the source file.
+  - `ImportDialog.html`: 
+    - Moved the view portion and the javascript functions to `ImportView.html` following the same pattern of other similar services. 
+    - Moved the help modal dialog to a separated file: `ImportHelp.html` for a better maintenance.
+    - Defined `defaultMode` now the import mode is controlled via javascript functions to keep the view clean.
+    - Moved specific help modal specific functions to `ImportHelp.html` file.
+  - `ExportHelpers.html`: Removed the method `applyModeUI()` since it is not in use any more (probably in use by some previous version).
+
+  - `MobileQuickEntryView.html`: Adjusted the place holder message to indicate the user can also search by sticker number.
+  - `QuickEntryRender.html`: Correct the name of the source file on top of the file.
   - `QuickEntryView.html`:
-    - Adjusted the placeholder text search to indicate the user can also enter the sticker number.
+    - Adjusted the placeholder text search to indicate the user can also search by sticker number.
     - Changed the state property `teamSearchText` to `searchText`, since it now allows to search by sticker number too.
-  - `QuickEntryHelpers.html`: Adjusted the logic to enable search by sticker number.
-    - Replaced `teamSearchText` by `searchText`.
+    - `handleStatusFilterChange`: Clear the info message.
+    - `handleFiltersChange`: Clear the info message.
+    - Renamed `showMessage()` function `setMessage()` to be consistent with the rest of the services.
+    - Documented the HTML code.
+    - Renamed the document variables and updated the rest of the code.
+    - Moved some functions to the end following step-down rule.
+  - `QuickEntryHelpers.html`: Adjusted the logic to enable the search by sticker number.
+    - Replaced the state property `teamSearchText` by `searchText`.
     - Replaced `_matchesTeamSearch()` by `_applySearch()` now this method implements the logic for search by country or by sticker number.
     - Added the method: `_isNumericSearch` to identify the type of search.
-    - `getVisibleCountries`: Update the return statement to adjust the filter/search pipeline with the new changes.
+    - `getVisibleCountries`: Updated the return statement to adjust the filter/search pipeline with the new changes.
     - `_filterCountryStickers` renamed to `_filterByStickerStatus` (more representative of what the function does, it doesn't do any search).
+    - Removed the function `_matchesTeamSearch()` since now the search logic is handled by `_applySearch()` method.
+    - Added the method `_applySearch()` to handle numeric and team search.
+  - `QuickEntryStyles.html` adjusted width of the property `filters` to make room for an extended placeholder text in the search box.
 
 - Under `test` folder:
   - `QuickEntryHelpers.unit.test.js`: 

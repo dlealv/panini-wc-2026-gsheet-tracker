@@ -61,6 +61,14 @@ The purpose of this step is simply to provide you with the Web App URL. Alternat
 ### After deploying the Web App, I don't see the application listed?
 
 This is usually a timing issue. Refresh the Apps Script page, then open the **Deploy** drop-down menu in the upper-right corner and select **Manage deployments**. The newly deployed Web App should appear in the list.
+
+### Can I search by sticker number in the Quick sticker entry service?
+
+Yes. Starting with release `1.1.2`, this feature was introduced. You can now search for popular sticker numbers such as `1` or `13` across all country teams using the search box.
+
+If the search text is numeric, it is interpreted as a sticker number search. Otherwise, it is treated as a country code or country name search.
+
+
 ## Google Access/Security Questions
 
 ### Why this warning can appear

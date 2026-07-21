@@ -570,20 +570,22 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 - Under the `src/html` folder:
   - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
   - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
-  - `ImportHelpers.html`: Helper testable logic function used in `ImportDialog.html`.
+  - `ImportHelp.html`:  Import format guide component via modal dialog. Used by `ImportView.html`.
+  - `ImportHelpers.html`: Helper testable logic function used by `ImportView.html` and `MobileImportView.html`.
+  - `ImportView.html`: HTML view and javascript functions for the import service for desktop version. Used by `ImportDialog.html`.
   - `ImportExportDialogStyles.html`: Styles to be used in the Import/Export dialog for desktop version.
-  - `ExportDialog.html`: HTML user interface for the export dialog shown inside Google Sheets.
-  - `ExportView.html`: View and javascript functions used by export service (desktop and mobile).
-  - `ExportHelpers.html`: Helper testable logic function used in `ExportDialog.html`.
-  - `QuickEntryDialog.html`: HTML user interface for the Quick Sticker Entry dialog.
-  - `QuickEntryView.html`: View and javascript functions used by Quick entry service (desktop and mobile).
-  - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryDialog.html`.
-  - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryDialog.html`.
+  - `ExportDialog.html`: HTML user interface for the export service dialog shown inside Google Sheets.
+  - `ExportView.html`: HTML view and javascript functions used by export service (desktop and mobile). Used by `ExportDialog.html` and `MobileExportView.html`.
+  - `ExportHelpers.html`: Helper testable logic function used in `ExportView.html`.
+  - `QuickEntryDialog.html`: HTML user interface for the Quick sticker entry dialog.
+  - `QuickEntryView.html`: HTML view and javascript functions used by Quick entry service (desktop and mobile). Used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
+  - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryView.html`.
+  - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryView.html`.
   - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
-  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include.
+  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include. It loads all the mobile styles files and mobile view files.
   - `MobileImportView.html`: Simplified view for mobile import service.
-  - `MobileExportView.html`: View for both export services. It acts as a wrapper.
-  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper.
+  - `MobileExportView.html`: View for both export services. It acts as a wrapper of `ExportView.html`.
+  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper of `QuickEntryView.html`.
   - `MobileLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project.
   - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
   - `MobileImportStyles.html`: CCS specific styles for mobile import service.

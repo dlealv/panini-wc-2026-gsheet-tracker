@@ -1,9 +1,14 @@
 <script>
   // src/html/ImportHelpers.html
   /**
-   * Pure functions (testable) related to import dialog logic, separated from DOM manipulation.
-   * These functions can be unit tested without relying on the DOM, making them more robust and easier to maintain.
-   * They should not have side effects or depend on external state.
+   * Import-related UI helpers and utilities.
+   *
+   * Contains:
+   * - pure data transformation helpers
+   * - DOM rendering helpers shared by Import views
+   *
+   * Functions accept optional dependencies where possible
+   * to allow unit testing without a browser environment.
    * 
    * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
    * external use, so they should not be removed or altered without consideration of their role in the overall
@@ -29,6 +34,7 @@
 
     /** Backend payload wrapper (stable contract for services).
      * @export
+     * @public
      */
     function getPayload(deps = {}) {
       return getUIState(deps)
@@ -85,7 +91,6 @@
       el.className = `message ${type || 'info'}`
       el.textContent = text || ''
     }
-
 
     /** Normalizes state into backend payload format.
      * @export

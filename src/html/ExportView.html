@@ -21,7 +21,11 @@
 <div class="section">
   <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
   <div class="section-title" id="exportTitle"></div>
+
+  <!-- MobileExportView.html injects an optional mobile-only hint here. -->
   <div id="mobileExportTopHint" class="export-top-hint"></div>
+
+  <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
   <div class="export-toolbar">
     <label class="toolbar-item">
       <input type="checkbox" id="includeFlagsCheckbox">
@@ -39,10 +43,13 @@
       Refresh
     </button>
   </div>
+
   <!-- Output text area for exported payload. -->
   <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
   <div id="exportHint" class="hint hint-spaced"></div>
 </div>
+
+<!-- Actions -->
 <div class="section">
   <div class="section-title">Actions</div>
   <div class="actions">
@@ -52,12 +59,24 @@
   </div>
 </div>
 
-<div id="export-message" class="message info"></div>
 <!-- Reserved for backend warnings and validation notices. -->
+<div id="export-message" class="message info"></div>
 <div id="export-warnings" class="message warning hidden"></div>
+
+<!-- Include shared export helpers (under Export namespace) -->
 <?!= include('ExportHelpers') ?>
 
 <script>
+
+  /*
+   * View controller
+   *
+   * Coordinates the Export view by:
+   *   - handling user interactions,
+   *   - invoking backend services,
+   *   - updating UI state.
+   */
+
   (function () {
     const exportTextEl = document.getElementById('exportText')
     const includeFlagsCheckboxEl = document.getElementById('includeFlagsCheckbox')
@@ -99,6 +118,7 @@
      * Displays a status message to the user.
      * @param {string} text Message to display.
      * @param {string} type Message type (info, success, warning or error).
+     * @param {object} options Optional parameters.
      */
     function setMessage(text, type, options = {}) {
       const messageEl = options.messageEl || (
@@ -126,7 +146,9 @@
       if (sortByDoneCheckboxEl) { sortByDoneCheckboxEl.disabled = isBusy }
     }
 
-    /** Loads exported sticker data into the export text area.*/
+    /** Loads exported sticker data into the export text area.
+     * @param {string} mode Export mode (export_all or export_shared).
+    */
     function loadExportData(mode = currentExportMode) {
       clearExportMessage()
       currentExportMode = getEffectiveExportMode(mode)
@@ -215,17 +237,6 @@
     }
 
     /**
-     * Applies mode-specific UI behavior.
-     * Shared mode exposes sort control and mode hint; all mode hides sort control.
-     */
-    function applyModeUI(mode) {
-      const effectiveMode = getEffectiveExportMode(mode)
-      if (sortByDoneContainerEl) {
-        sortByDoneContainerEl.style.display = effectiveMode === 'export_shared' ? 'flex' : 'none'
-      }
-    }
-
-    /**
      * Initializes the export view for the selected mode.
      * Called by desktop and mobile containers.
      */
@@ -254,7 +265,10 @@
       return Boolean(window.google && google.script && google.script.host && google.script.host.close)
     }
 
-    /**Returns the mode-specific export hint shown below the exported data.*/
+    /**Returns the mode-specific export hint shown below the exported data.
+     * @param {string} mode Export mode (export_all or export_shared).
+     * @returns {string} Mode-specific export hint text.
+     */
     function getExportHintText(mode) {
       if (mode === 'export_all') {
         return 'The exported content uses the same Format 1 syntax accepted by the import process. Only sticker counts greater than <span class="inline-code">0</span> are included.'
