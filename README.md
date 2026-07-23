@@ -1,6 +1,6 @@
-# Panini WC 2026 Google Sheets Tracker
+# Panini WC 2026 Google Spreadsheet Tracker
 
-A practical Google Sheets tracker for the **Panini FIFA World Cup 2026** sticker album collection.
+A practical Google Spreadsheet tracker for the **Panini FIFA World Cup 2026** sticker album collection.
 
 This project was first published as a draft on [Reddit](https://www.reddit.com/r/Panini/comments/1taj3mn/google_sheet_tracker_for_panini_fifa_wc_2026/), and GitHub is now the main place for source code, documentation, and future updates.
 
@@ -10,7 +10,7 @@ Track your collection, duplicates, missing stickers, swap summary, and possible 
 
 ## Live tracker
 
-Use the live Google Sheet here:
+Use the live Google Spreadsheet here:
 
 ```text
 https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUkEj8/copy
@@ -25,13 +25,13 @@ Since the URL ends with `/copy`, clicking it creates your own copy of the templa
 ## Main features
 
 - Track owned stickers from country teams and special `FWC` (FIFA World Cup), and `CC` (Coca-Cola) stickers in the `Stickers` tab.
-- Update sticker counts quickly through the **Quick sticker entry** dialog inside the **Manage Panini** custom menu.
+- Update/View sticker counts quickly and search through the **Quick sticker entry** dialog inside the **Manage Panini** custom menu.
 - Import and export sticker data via the **Manage Panini** custom menu.
 - Export a shared list of stickers for trading in text format to easily share with other collectors via the **Manage Panini** custom menu.
 - See progress summaries in the `Reports` tab.
 - Share a compact swap view with other collectors in the `Compact Swap View` tab.
 - Trade with another collector in the `Trade` tab finding the match ready to trade.
-- Expose **Manage Panini** services for desktop (Google Sheet) and mobile via browser.
+- Expose **Manage Panini** services for desktop (Google Spreadsheet) and mobile via browser.
 
 ---
 
@@ -55,7 +55,7 @@ One support column is hidden in the `Stickers` tab: `AD`, which stores the count
 
 **Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC` and `CC`. This applies throughout the tracker.
 
-### Update sticker counts quickly
+### Update/View sticker counts quickly
 
 The **Quick sticker entry** dialog provides a faster and more visual way to update the sticker counts stored in the `Stickers` tab. Instead of editing cells manually, you can review one team at a time, or multiple visible teams after filtering, and increment or decrement counts with dedicated buttons.
 
@@ -65,8 +65,9 @@ It is especially useful for day-to-day collection tracking because it combines t
 
 Main capabilities:
 
-- Search incrementally by **country code** or **country name**
-- Filter by **group**
+- Search incrementally by **country code** or **name**.
+- Search by **sticker number**.
+- Filter by **group**.
 - Filter stickers based on their status: **All**, **Missing**, **Repeated**, or **Pending** (pending changes that haven't been committed via the **Update** button yet).
 - Review each team with a compact summary:
   - Owned
@@ -182,7 +183,7 @@ The output of Need Stickers can be sorted, look for the drop-down value to the r
 - **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
 
 
-> This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Sheets or Excel trackers, or simply for screen sharing in a more visual format.
+> This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Spreadsheet or Excel trackers, or simply for screen sharing in a more visual format.
 
 ### Review your progress
 
@@ -212,7 +213,13 @@ A green background in `Cnt` highlights values that are less than or equal to the
 
 In the **OUTPUT** section, the collector can sort the Receive Sticker output by either `%-Done` or `Album`. The drop-down values are located to the right of the `SORT` cell. These values have the same functionality and interpretation as in the **Share your swap status** section. For more information, please refer to the content of that section.
 
-In the provided example, the maximum swap occurs when the cumulative number of stickers is `3`, meaning both collectors receive an equal number of stickers. This number represents the minimum `TOTAL` in both directions of the trade. You can also negotiate with another collector to send additional stickers and receive compensation for the difference. Since sorting is set to `%-Done`, the Receive Stickers output is sorted by the `Done` column from the `Stickers` tab in descending order. This facilitates completion of your album. For example, Korea is closer to completion than Mexico, so it is more beneficial for the user to obtain a missing sticker from Korea than from Mexico.
+In the provided example, the maximum swap occurs when the cumulative number of stickers is `3`, meaning both collectors exchange an equal number of stickers. This value represents the minimum `TOTAL` value required in both directions of the trade.
+
+Collectors can also negotiate different exchange conditions, such as sending additional stickers and receiving compensation for the difference.
+
+When sorting is set to `%-Done`, the **Receive Stickers** output is ordered by the `Done` column from the `Stickers` tab in descending order. This prioritizes stickers from countries that are closer to completion, helping collectors complete their albums more efficiently.
+
+For example, Korea is closer to completion than Mexico, so obtaining a missing sticker from Korea is generally more beneficial than obtaining one from Mexico.
 
 > The main advantage of this tab is that it finds matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available repeats, but it does not identify matches with another collector.
 
@@ -220,17 +227,17 @@ In the provided example, the maximum swap occurs when the cumulative number of s
 
 ### Mobile Services
 
-Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
+Starting with release `1.1.0`, the Google Spreadsheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
 
 Because Google Apps Script does not provide native support for mobile add-ons, a **one-time setup is required** after making a copy of the tracker template.
 
 To enable the mobile web application:
 
-1. Open the Google Sheet tracker from a desktop browser.
+1. Open the Google Spreadsheet tracker from a desktop browser.
 2. Select **Manage Panini** → **Mobile Web App Link**.
 3. A dialog will appear with instructions for deploying the application as a Google Apps Script **Web App**.
 
-![Mobile Service: Web App Link Dialog - Deployment Instructions](images/mobileWebAppLinkDeployView.jpg)
+![Mobile Service: Web App Link Dialog - Deployment Instructions](images/webAppLinkInstructionsView.jpg)
 
 4. Follow the deployment steps shown in the dialog. When you click **New deployment**, the required deployment settings are automatically preconfigured. Just fill the Description field with the name of your preference (but you can leave it blank) and simply click **Deploy**.
 
@@ -240,7 +247,7 @@ The Web App is deployed under your own Google account, ensuring that only you ca
 
 5. After the initial deployment, select **Manage Panini** → **Mobile Web App Link** again. The dialog will now display the URL of your deployed Web App. Click on **Copy URL**.
 
-![Mobile Service: Web App Link Dialog - URL](images/mobileWebAppLinkURLView.jpg)
+![Mobile Service: Web App deployed](images/webAppLinkDeployedView.jpg)
 
 > If the URL is not displayed immediately, wait about a minute and open the **Mobile Web App Link** menu option again. This dialog is intended to make it easy to retrieve the Web App URL. Alternatively, once the deployment is complete, you can copy the URL directly from the **Manage Deployments** dialog, as shown below.
 
@@ -252,13 +259,13 @@ The following image shows the **Quick Sticker Entry** service on a mobile device
 
 ![Mobile Service: Quick Sticker Entry](images/mobileQuickEntryView.jpg)
 
-At the top, the application displays the name of your Google Sheet tracker. The **Quick Sticker Entry** view has been optimized for mobile devices by displaying a maximum of **5 sticker columns**, providing a better viewing and touch experience.
+At the top, the application displays the name of your Google Spreadsheet tracker. The **Quick Sticker Entry** view has been optimized for mobile devices by displaying a maximum of **5 sticker columns**, providing a better viewing and touch experience.
 
 Tap the hamburger menu (&#9776;) in the upper-left corner to access the available services. The mobile application provides the same functionality as the desktop version, with interfaces simplified and optimized for mobile browsers.
 
 **The deployment process only needs to be completed once.** After that, you can use the same Web App URL whenever you want to access the tracker from your mobile device.
 
-Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web App provides a practical and secure solution for accessing the Google Sheet Tracker from smartphones and tablets.
+Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web App provides a practical and secure solution for accessing the Google Spreadsheet Tracker from smartphones and tablets.
 
 ---
 
@@ -398,7 +405,7 @@ The following operator symbols are equivalent and interchangeable:
 
 | Symbol | Background |
 | ---    | --- |
-| `<>`   | Spreadsheet users (Google Sheets / Excel not-equal operator) |
+| `<>`   | Spreadsheet users (Google Spreadsheet / Excel not-equal operator) |
 | `!=`   | JavaScript / Java developers |
 | `^`    | Regex / set-complement notation |
 
@@ -439,7 +446,7 @@ The operator prefix may be applied to any valid import line format:
 - `COUNTRY_NAMES`: `Name` column from the hidden `Conf` tab containing the country names used by the Quick Sticker Entry service for incremental searches by country name.
 - `COUNTS`: Range from the `Stickers` tab displaying the sticker counts (number of stickers owned) for sticker numbers `0` to `20` for all countries.
 - `DONE`: `Done` column from the `Stickers` tab displaying the total number of unique stickers collected for each country. This named range is used by the Quick Sticker Entry and Export Shared Stickers services.
-- `FLAG_ICONS`: `Flag URL` column from the hidden `Conf` tab containing the country flag emojis. This named range is used by the export services and the Google Sheets template.
+- `FLAG_ICONS`: `Flag URL` column from the hidden `Conf` tab containing the country flag emojis. This named range is used by the export services and the Google Spreadsheet template.
 - `FLAGS`: Column containing the flag images for each country. Used in the `Stickers` tab.
 - `FLAGS_URL`: `Flag` column from the hidden `Conf` tab containing the source URLs of the flag images used by the Quick Sticker Entry dialog and by the `FLAGS` named range.
 - `GROUPS`: `Group` column from the hidden `Conf` tab containing the group assigned to each country code. This named range is used by the Quick Sticker Entry service and the `Reports` tab.
@@ -515,11 +522,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.1` `374` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.2` `376` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|93.73         |    81.31 |   91.85     |   94.67 |                                            
+|93.77         |    81.73 |   91.89     |   94.71 |                                            
 
 ---
 
@@ -546,6 +553,7 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 ---
 
 ## Files
+In alphabetical order and organized by folders:
 
 - Under the `.github` folder:
   - `action/setup-project/action.yml`: Common CI setup project.
@@ -573,38 +581,38 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `clasp.zsh`: zsh script to handle clasp operations (`pull`/`push`/`deploy`) to synchronize the local VS Code environment with the GAS remote server repository and deploy a Web app for mobile services. It creates a preventive backup zip file before updating the source code (local/server).
   - `fix-jsdoc.js`: Used occasionally when ESLint doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
 
+- Under the `src/html` folder:
+  - `AboutView.html`: HTML user interface for providing Apps Script version information. The properties of this file needs to be updated every time a new version of the Apps Script project is released. Used by desktop and mobile versions.
+  - `AboutViewDialog.html`: Wrapper for desktop version of the `AboutView.html` view.
+  - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
+  - `ExportDialog.html`: HTML user interface for the export service dialog shown inside Google Spreadsheets.
+  - `ExportView.html`: HTML view and javascript functions used by export service (desktop and mobile). Used by `ExportDialog.html` and `MobileExportView.html`.
+  - `ExportHelpers.html`: Helper testable logic function used in `ExportView.html`.
+  - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Spreadsheets.
+  - `ImportExportDialogStyles.html`: Styles to be used in the Import/Export dialog for desktop version.
+  - `ImportHelp.html`:  Import format guide component via modal dialog. Used by `ImportView.html`.
+  - `ImportHelpers.html`: Helper testable logic function used by `ImportView.html` and `MobileImportView.html`.
+  - `ImportView.html`: HTML view and javascript functions for the import service for desktop version. Used by `ImportDialog.html`.
+  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include. It loads all the mobile styles files and mobile view files.
+  - `MobileImportView.html`: Simplified view for mobile import service.
+  - `MobileExportView.html`: View for both export services. It acts as a wrapper of `ExportView.html`.
+  - `MobileExportStyles.html`: CCS specific styles for mobile export service.
+  - `MobileImportStyles.html`: CCS specific styles for mobile import service.
+  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper of `QuickEntryView.html`.
+  - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `QuickEntryDialog.html`: HTML user interface for the Quick sticker entry dialog.
+  - `QuickEntryView.html`: HTML view and javascript functions used by Quick entry service (desktop and mobile). Used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
+  - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryView.html`.
+  - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryView.html`.
+  - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
+  - `WebAppLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project. Once the Web app project is deployed it provided the URL, so the user can use this URL from a mobile device.
+
 - Under the `src` folder:
   - `Code.gs`: Spreadsheet entry points only. It contains menu creation, dialog opening functions, and thin wrapper functions callable from HTML dialogs.
   - `Commons.gs`: this shared spreadsheet provides access, named range validation, and common lookup utilities used throughout import/export and Quick Entry workflows. All these services are encapsulated within the `StickerSheetRepository` class.
   - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
   - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
-
-- Under the `src/html` folder:
-  - `AboutView.html`: HTML user interface for providing Apps Script version information. The properties of this file needs to be updated every time a new version of the Apps Script project is released.
-  - `AboutViewDialog.html`: wrapper for desktop version of the `AboutView.html` view.
-  - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
-  - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
-  - `ImportHelp.html`:  Import format guide component via modal dialog. Used by `ImportView.html`.
-  - `ImportHelpers.html`: Helper testable logic function used by `ImportView.html` and `MobileImportView.html`.
-  - `ImportView.html`: HTML view and javascript functions for the import service for desktop version. Used by `ImportDialog.html`.
-  - `ImportExportDialogStyles.html`: Styles to be used in the Import/Export dialog for desktop version.
-  - `ExportDialog.html`: HTML user interface for the export service dialog shown inside Google Sheets.
-  - `ExportView.html`: HTML view and javascript functions used by export service (desktop and mobile). Used by `ExportDialog.html` and `MobileExportView.html`.
-  - `ExportHelpers.html`: Helper testable logic function used in `ExportView.html`.
-  - `QuickEntryDialog.html`: HTML user interface for the Quick sticker entry dialog.
-  - `QuickEntryView.html`: HTML view and javascript functions used by Quick entry service (desktop and mobile). Used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
-  - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryView.html`.
-  - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryView.html`.
-  - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
-  - `MobileHome.html`: Mobile entry point which includes navigation drawer, view switching system, injected view via include. It loads all the mobile styles files and mobile view files.
-  - `MobileImportView.html`: Simplified view for mobile import service.
-  - `MobileExportView.html`: View for both export services. It acts as a wrapper of `ExportView.html`.
-  - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper of `QuickEntryView.html`.
-  - `MobileLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project.
-  - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
-  - `MobileImportStyles.html`: CCS specific styles for mobile import service.
-  - `MobileExportStyles.html`: CCS specific styles for mobile export service.
 
 - Under the `test/` folder:
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
