@@ -14,3 +14,4 @@
 - [x] Include Coca-Cola stickers
 - [ ] Reuse functions in `ImportHelper.html` in `MobileImportView.html` since some of the services are the same. Do it with caution since now it is it working as expected.
 - [x] Allow to search by sticker number in Quick Entry service.
+- [x] Show product version for gsheet template and for Apps Script project.

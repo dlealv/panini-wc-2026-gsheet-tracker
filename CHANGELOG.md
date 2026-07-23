@@ -7,59 +7,137 @@ project structure, and documentation.
 
 ---
 
-## [1.1.2] 2026-07-XX
+## [1.1.2] 2026-07-22
 
 ### Overview
-Quick entry service now allows to search by sticker number too in the search box. Refactor import services splitting responsibilities by `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html`, now it uses the helper functions from `ImportHelpers.html`.
+The Quick Entry service now supports searching by sticker number in addition to country/team search using the search box. Refactored the Import service by splitting responsibilities into dedicated `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html` by reusing helper functions from `ImportHelpers.html`. Refactored all `*View.html` and `MobileHome.html` files to use Immediately Invoked Function Expressions (IIFE), exposing only the required public functions through the global scope (`window.*`). Using font-size variables defined in `CommonStyles.html` and `MobileStyles.html` across all `*Styles.html` files.
 
-### Added
+### Google Spreadsheet template
+- Added sheet `About` to provide information about the template versioning and version documentation.
+
+### Apps Script
+
+#### Added
+- Under `images` folder:
+  - `aboutTabView.jpg`: Show the version information the Google Spreadsheet template in the `About` tab.
+  - `aboutView.jpg`: Show the about screen in the Apps Script project.
 - Under `src/html` folder:
-  - `ImportView.html`: Moved the view portion of the `ImportDialog.html` to this file. This view is still specific for desktop version only.
-  - `ImportHelp.html`: The guide modal portion (detail format help) from `ImportDialog.html` was moved to this file along with specific javascript functions: `openHelpModal()` and `closeHelpModal()`.
+  - `AboutView.html`: About view to apps script metadata information including the version.
+  - `AboutDialog.html`: Dialog for the About page, to follow the same pattern.
+  - `ImportView.html`: Extracted the view portion from `ImportDialog.html`. This view remains specific to the desktop version.
+  - `ImportHelp.html`: Extracted the format help modal from `ImportDialog.html`, including the related JavaScript functions: `openHelpModal()` and `closeHelpModal()`.
+  - `MobileAboutView.html`: Wrapper for about screen for mobile services.
 
-### Changes
+#### Changes
 
 - Under the `doc` folder:
-  - `FAQ.md`: Added the question: Can I search by sticker number in the Quick sticker entry service?.
-  - `TechnicalArchitecture.md`: 
-    - Update the sections: `4. UI Layer Engineering Rules` and ` 5. System Architecture` to include the import refactor with the new files: `ImportView.html` and `ImportHelp.html`.
-    - Minor improvements in `7. Continuous Integration (CI) Deployment Blueprint` section.
+  - `FAQ.md`:
+    - Added the question: "Can I search by sticker number in the Quick Entry service?".
+    - Added the question: "How can I identify the version of the template or the Apps Script project?".
+    - Added the question: "Why are the template version and the Apps Script version different?".
+  - `TechnicalArchitecture.md`:
+    - Updated sections *4. UI Layer Engineering Rules* and *5. System Architecture* to document the Import service refactor with the new files: `ImportView.html` and `ImportHelp.html`. Documented the use of Immediately Invoked Function Expressions (IIFE) to expose only required functions.
+    - Applied minor wording improvements in section *7. Continuous Integration (CI) Deployment Blueprint*.
+- Under `images` folder:
+  - `mobileWebAppLinkDeployView.jpg` renamed to `webAppLinkInstructionsView.jpg`. Updated the image, now the `Close` button was removed.
+  - `mobileWebAppLinkURLView.jpg` renamed to `webAppLinkDeployedView.jpg`. Updated the image, now the `Close` button was removed.
+  - `managePaniniMenuView.jpg`: Update the screenshot to show `About` menu item.
 
 - Under `src/html` folder:
-  - `ImportDialog.html`: 
-    - Moved the view portion and the javascript functions to `ImportView.html` following the same pattern of other similar services. 
-    - Moved the help modal dialog to a separated file: `ImportHelp.html` for a better maintenance.
-    - Defined `defaultMode` now the import mode is controlled via javascript functions to keep the view clean.
-    - Moved specific help modal specific functions to `ImportHelp.html` file.
-  - `ExportHelpers.html`: Removed the method `applyModeUI()` since it is not in use any more (probably in use by some previous version).
-
-  - `MobileQuickEntryView.html`: Adjusted the place holder message to indicate the user can also search by sticker number.
-  - `QuickEntryRender.html`: Correct the name of the source file on top of the file.
+  - `CommonStyles.html`: 
+    - Added the style for the About screen.
+    - Added font-size variables based on T-shirt size.
+    - Added `dialog-actions` to have a common styles for actions buttons.
+  - `ExportHelpers.html`:
+    - Removed the `setMessage()` function because it was not used internally and was no longer used by `ExportView.html`.
+    - Removed the `applyModeUI()` method because it is no longer used (dead code).
+  - `ExportView.html`:
+    - Moved functions exposed through the global scope (`window.*`) to the top of the controller section.
+    - Refactored the `setMessage()` function by defining the `messageEl` DOM reference explicitly.
+    - Added the `exportCloseButtonEl` DOM reference to control the visibility of the Close button. The button is displayed only in the desktop dialog version.
+  - `ImportExportStyles.html`: 
+    - Now using the font-size variables defined in `CommonStyles.html`. 
+  - `ImportDialog.html`:
+    - Moved the view markup and JavaScript controller logic to `ImportView.html`, following the same structure used by other shared services.
+    - Moved the help format modal and related javascript functions into the dedicated `ImportHelp.html` file to improve maintainability.
+    - Added `defaultMode` configuration injection so the import mode is controlled through JavaScript instead of being embedded in the view.
+  - `ImportView.html`:
+    - Standardized DOM variable names by adding the `El` suffix.
+    - Added IIFE encapsulation and exposed only public functions required by HTML bindings through `window.*`.
+    - Moved on top the public functions (`window.*`).
+  - `MobileExportView.html`:
+    - Added IIFE encapsulation and exposed only the public functions required by `MobileHome.html` through `window.*`.
+  - `MobileHome.html`:
+    - Added IIFE encapsulation and exposed only the functions required by HTML bindings through `window.*`.
+    - Added `About` menu item, injected `AboutView.html`.
+  - `MobileImportStyles.html`: 
+    - Now the property: `#view-import .format-hint` used the font-size defined in the `MobileStyles.html`.
+  - `MobileImportView.html`:
+    - Removed the Cancel button because it does not apply to the mobile design approach.
+    - Standardize DOM variables adding the `El` suffix.
+    - Added a wrapper `setMessage()` for `Import.setMessage`.
+    - Moved public functions (`window.*`) on top.
+  - `MobileQuickEntryStyles.html`: Now using font-size variables defined in `MobileStyles.html`.
+  - `MobileQuickEntryView.html`:
+    - Updated the placeholder message to indicate that the search box also supports sticker number searches.
+    - Added IIFE encapsulation and exposed only the public functions required by `MobileHome.html` through `window.*`.
+  - `MobileStyles.html`: 
+    - Added mobile specific style for about screen for mobile service.
+    - Added new font-size variables (`--text-4xs`, `--text-3xs`) to ensure all style definitions the general font-size variables.
+  - `MobileLinkDialog.html`:
+    - Renamed to: `WebAppLinkDialog.html` since `Mobile` prefix is used for mobile service, this is a desktop dialog.
+    - Removed the `Close` button at the button since the x on top-right is enough and there is no other action at the bottom to do.
+  - `QuickEntryDialog.html`:
+    - Renamed: `initializeQuickEntry()` to `initializeQuickEntryView()` so all `initialize*` functions follow the same naming convention, having the `View` suffix.
+  - `QuickEntryHelpers.html`:
+    - Updated the search logic to support both country/team searches and numeric sticker searches.
+    - Replaced the state property `teamSearchText` with `searchText`.
+    - Replaced `_matchesTeamSearch()` with `_applySearch()`, which now handles both country/team and sticker number search logic.
+    - Added `_isNumericSearch()` to identify numeric search input.
+    - Updated `getVisibleCountries()` to adjust the filtering and search pipeline.
+    - Renamed `_filterCountryStickers` to `_filterByStickerStatus` because the function only filters by sticker status and does not perform searching.
+    - Removed `_matchesTeamSearch()` because search handling is now centralized in `_applySearch()`.
+    - Added `_applySearch()` to process both numeric and team/country search cases.
+  - `QuickEntryRender.html`:
+    - Corrected the source file name reference in the file header.
+  - `QuickEntryStyles.html`:
+    - Adjusted the width of the `filters` property to accommodate the longer search box placeholder text.
+    - Now using font-size variable defined in `CommonStyles.html`.
   - `QuickEntryView.html`:
-    - Adjusted the placeholder text search to indicate the user can also search by sticker number.
-    - Changed the state property `teamSearchText` to `searchText`, since it now allows to search by sticker number too.
-    - `handleStatusFilterChange`: Clear the info message.
-    - `handleFiltersChange`: Clear the info message.
-    - Renamed `showMessage()` function `setMessage()` to be consistent with the rest of the services.
-    - Documented the HTML code.
-    - Renamed the document variables and updated the rest of the code.
-    - Moved some functions to the end following step-down rule.
-  - `QuickEntryHelpers.html`: Adjusted the logic to enable the search by sticker number.
-    - Replaced the state property `teamSearchText` by `searchText`.
-    - Replaced `_matchesTeamSearch()` by `_applySearch()` now this method implements the logic for search by country or by sticker number.
-    - Added the method: `_isNumericSearch` to identify the type of search.
-    - `getVisibleCountries`: Updated the return statement to adjust the filter/search pipeline with the new changes.
-    - `_filterCountryStickers` renamed to `_filterByStickerStatus` (more representative of what the function does, it doesn't do any search).
-    - Removed the function `_matchesTeamSearch()` since now the search logic is handled by `_applySearch()` method.
-    - Added the method `_applySearch()` to handle numeric and team search.
-  - `QuickEntryStyles.html` adjusted width of the property `filters` to make room for an extended placeholder text in the search box.
+    - Updated the search placeholder text to indicate sticker number search support.
+    - Renamed the state property `teamSearchText` to `searchText` because the search now supports sticker numbers.
+    - Updated `handleStatusFilterChange()` to clear the informational message.
+    - Updated `handleFiltersChange()` to clear the informational message.
+    - Renamed `showMessage()` to `setMessage()` for consistency with the other services.
+    - Added documentation comments for the HTML code.
+    - Standardized DOM variable names by adding the `El` suffix.
+    - Organize the functions to follow the step-down rule organization.
+    - Added IIFE encapsulation and exposed only public functions required by HTML bindings through `window.*`.
+
+- Under `src` folder:
+  - `Code.gs`: 
+    - Added the logic for the About screen.
+    - Updated the window dimensions of Mobile Web App link window to adjust them depending on the text shown.
 
 - Under `test` folder:
-  - `QuickEntryHelpers.unit.test.js`: 
-    - Adjusted the tests to the renamed functions. 
-    - `getVisibleCountries` suit added the tests for testing numeric search.
+  - `ExportHelpers.unit.test.js`:
+    - Removed the test suite for `setMessage()` because the function was removed from the source code.
+  - `QuickEntryHelpers.unit.test.js`:
+    - Updated tests to reflect renamed functions.
+    - Added numeric search coverage to the `getVisibleCountries()` test suite.
 
-### Fix
+- Under the root folder:
+  - `CHANGELOG.md`: Changed the reporting format. Now there are two dedicated sections: Google Spreadsheet template and Apps Script, so it is clear the changes on specific artifacts and they are treated as two products. This new structure was propagated to the entire document (previous changelog entries).
+  - `README.md`:
+    - Added a new section: *Product version information* to indicate how the version information is provided for Google Spreadsheet template and for Apps Script project.
+  - `TODO.md`: 
+    - Check: Search by sticker number
+    - Check: Show product version
+
+#### Fix
+- Removed Close/Cancel buttons from the mobile Import and Export implementations because these actions do not apply to the mobile navigation model.
+
+---
 
 ## [1.1.1] 2026-07-19
 
@@ -67,7 +145,50 @@ Quick entry service now allows to search by sticker number too in the search box
 
 The Google Sheets Panini template now supports Coca-Cola stickers. The template and backend were updated to handle Coca-Cola stickers using the country code `CC`. For `*Helpers.html` and `*Render.html` files, an underscore prefix was added to private functions. The corresponding tests were updated to reflect the renamed functions. Fixed an issue in the Quick Entry service where the mobile layout rendered stickers in a single column instead of the configured five-column layout.
 
-### Added
+### Google Spreadsheet template
+
+- `Sticker` tab:
+  - Renamed the Numbers columns to Stickers.
+  - Added a new row at the end to include Coca-Cola stickers.
+  - The Country column now uses the `COUNTRIES` named range.
+  - The calculation of the **Done** column now uses the `COUNTS` named range.
+  - The calculation of the **%** column now uses the `DONE` and `P_COMPLETION` named ranges to calculate the correct completion percentage based on the maximum number of stickers for each country.
+  - The calculation of the **Miss** column now considers `MAX_STICKERS` for a more precise calculation based on the maximum number of stickers for each country.
+  - The calculation of the **Rep** column now uses the `COUNTS` named range.
+  - Adjusted conditional formatting for **Done**, **%**, **Miss**, and **Rep** to include the Coca-Cola row.
+  - Adjusted conditional formatting for count values to prevent expansion to additional rows in the future and adjusted the range to include Coca-Cola sticker counts.
+  - Added the `MISSING` named range for the **Miss** column.
+  - Added the `P_COMPLETION` named range for the completion percentage of each country. It is now calculated considering the maximum possible stickers for each country.
+  - Adjusted the named ranges `TOTAL_*_STICKERS` to point to the correct cells after adding the Coca-Cola row. Adjusted the formulas to use the new named ranges.
+  - Added the `REPEATS` named range for the **Rep** column.
+  - All calculations in the `Stickers` tab now use the defined named ranges.
+
+- `Reports` tab:
+  - Added a drop-down under the metrics section to allow users to decide whether to include Coca-Cola stickers, since not all users collect them. Most calculated fields in the metrics section now depend on this selection.
+  - Adjusted conditional formatting.
+  - Adjusted the chart range to include Coca-Cola stickers.
+  - Adjusted the pivot table range to include Coca-Cola stickers.
+  - Adjusted the formula for missing stickers to use the `COUNTRIES` and `FLAG_ICONS` named ranges.
+  - Team Completed now uses `P_COMPLETION` to correctly calculate completed teams considering that not all teams have `20` stickers.
+
+- `Trade` tab:
+  - Adjusted the formulas so both input columns derive from a common input range to avoid inconsistencies caused by different row counts. Both inputs now derive from the `input` let variable.
+  - Adjusted the formula for TOTAL in the **INPUT** section to calculate correctly using the `CLEAN_STICKER_LINE` named function.
+
+- Named functions:
+  - `CLEAN_STICKER_LINE`: Extended the function to remove `A-B(X)` ranges as well.
+
+- `Conf` tab (hidden):
+  - Added a new row with Coca-Cola information.
+  - Adjusted the named range to include Coca-Cola.
+  - Adjusted the formula that generates flags to ensure the Coca-Cola flag appears as a square.
+  - The `GROUPS` named range now points to the `Conf` tab instead of the `Sticker` tab.
+  - Added the **Max Stickers** column, representing the maximum number of possible stickers for each country.
+  - Added the `MAX_STICKERS` named range for the **Max Stickers** column.
+
+### Apps Script
+
+#### Added
 
 - Under the `examples` folder: Added more specific sample files for the Export all stickers and Export shared stickers services:
   - `panini-stickers-all.txt`: Sample output of the Export all stickers service.
@@ -75,47 +196,7 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
   - `panini-stickers-shared.txt`: Sample output of the Export shared stickers service.
   - `panini-stickers-shared_flagTrue_compactTrue.txt`: Sample output of the Export shared stickers service with the **Flag** and **Compact (using ranges)** checkboxes activated.
 
-### Changes
-
-- Under the GSheet template:
-  - `Sticker` tab:
-    - Renamed the Numbers columns to Stickers.
-    - Added a new row at the end to include Coca-Cola stickers.
-    - The Country column now uses the `COUNTRIES` named range.
-    - The calculation of the **Done** column now uses the `COUNTS` named range.
-    - The calculation of the **%** column now uses the `DONE` and `P_COMPLETION` named ranges to calculate the correct completion percentage based on the maximum number of stickers for each country.
-    - The calculation of the **Miss** column now considers `MAX_STICKERS` for a more precise calculation based on the maximum number of stickers for each country.
-    - The calculation of the **Rep** column now uses the `COUNTS` named range.
-    - Adjusted conditional formatting for **Done**, **%**, **Miss**, and **Rep** to include the Coca-Cola row.
-    - Adjusted conditional formatting for count values to prevent expansion to additional rows in the future and adjusted the range to include Coca-Cola sticker counts.
-    - Added the `MISSING` named range for the **Miss** column.
-    - Added the `P_COMPLETION` named range for the completion percentage of each country. It is now calculated considering the maximum possible stickers for each country.
-    - Adjusted the named ranges `TOTAL_*_STICKERS` to point to the correct cells after adding the Coca-Cola row. Adjusted the formulas to use the new named ranges.
-    - Added the `REPEATS` named range for the **Rep** column.
-    - All calculations in the `Stickers` tab now use the defined named ranges.
-
-  - `Reports` tab:
-    - Added a drop-down under the metrics section to allow users to decide whether to include Coca-Cola stickers, since not all users collect them. Most calculated fields in the metrics section now depend on this selection.
-    - Adjusted conditional formatting.
-    - Adjusted the chart range to include Coca-Cola stickers.
-    - Adjusted the pivot table range to include Coca-Cola stickers.
-    - Adjusted the formula for missing stickers to use the `COUNTRIES` and `FLAG_ICONS` named ranges.
-    - Team Completed now uses `P_COMPLETION` to correctly calculate completed teams considering that not all teams have `20` stickers.
-
-  - `Trade` tab:
-    - Adjusted the formulas so both input columns derive from a common input range to avoid inconsistencies caused by different row counts. Both inputs now derive from the `input` let variable.
-    - Adjusted the formula for TOTAL in the **INPUT** section to calculate correctly using the `CLEAN_STICKER_LINE` named function.
-
-  - Named functions:
-    - `CLEAN_STICKER_LINE`: Extended the function to remove `A-B(X)` ranges as well.
-
-  - `Conf` tab (hidden):
-    - Added a new row with Coca-Cola information.
-    - Adjusted the named range to include Coca-Cola.
-    - Adjusted the formula that generates flags to ensure the Coca-Cola flag appears as a square.
-    - The `GROUPS` named range now points to the `Conf` tab instead of the `Sticker` tab.
-    - Added the **Max Stickers** column, representing the maximum number of possible stickers for each country.
-    - Added the `MAX_STICKERS` named range for the **Max Stickers** column.
+#### Changes
 
 - Under the `docs` folder:
   - `ImportServiceRequirements.md`: 
@@ -250,10 +331,9 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
   - `TODO.md`:
     - Marked "Include Coca-Cola stickers" as completed.
 
-### Fix
+#### Fix
 
 - Fixed an issue in the Quick Entry mobile service where stickers were rendered in a single column. The `applyLayout()` function was added to the `QuickEntry` namespace in `QuickEntryHelpers.html`, restoring the configured five-column mobile layout.
-- In the `Trades` tab, corrected the formulas used to calculate the TOTAL in the **INPUT** section to correctly handle ranges and repeats using the `CLEAN_STICKER_LINE` named function.
 
 ---
 
@@ -262,7 +342,13 @@ The Google Sheets Panini template now supports Coca-Cola stickers. The template 
 ### Overview
 Mayor version. Implemented mobile services, including all services available in the desktop version: import/export and quick entry. Fixed an issue in Quick Entry where, after clicking Update, the card changes were not persisted. Fixed an issue in Quick Entry where reducing a count to zero was saving a zero value instead of an empty cell in `Stickers` tab.
 
-### Added
+### Google Spreadsheet template
+
+No significant changes.
+
+### Apps Script
+
+#### Added
 
 - Under the `.github` folder:
   - `actions` folder added
@@ -321,7 +407,7 @@ Mayor version. Implemented mobile services, including all services available in 
     - Increased legend font size while preserving the responsive layout.
     - Added documentation describing the shared sticker grid sizing behavior.
 
-### Changes
+#### Changes
 
 - Under the `.github/workflows` folder:
   - `deploy.yml`: 
@@ -449,7 +535,7 @@ Mayor version. Implemented mobile services, including all services available in 
     - Added Coca-Cola stickers to the roadmap.
     - Added refactor `MobileImportView.html` to use `ImportHelpers.html` functions.
 
-### Fix
+#### Fix
 
 - Under Quick sticker entry service, when a sticker count was positive and then reduced to zero before updating, the sticker was saved with a zero value instead of an empty cell value. This issue was fixed.
 
@@ -462,7 +548,13 @@ Mayor version. Implemented mobile services, including all services available in 
 ### Overview
 Implemented a mobile services, including all services the desktop version provides: import/export and quick entry. Fixed the issue in Quick Entry that after click on Update, the card change didn't persist. Fixed in Quick entry service when the count is reduced to zero to save empty cell instead of zero value.
 
-### Added
+### Google Spreadsheet template
+
+No significant changes.
+
+### Apps Script
+
+#### Added
 
 - Under the `image` folder:
   - `mobileQuickentryView.jpg`: Mobile view of the quick entry service.
@@ -501,7 +593,7 @@ Implemented a mobile services, including all services the desktop version provid
     - Increased legend font size while preserving the responsive layout.
     - Added documentation describing the shared sticker grid sizing behavior.
 
-### Changes
+#### Changes
 
 - Under the `.github/workflows` folder:
   - `deploy.yml`: Updated to include the deploy of the Web app to enable mobile services.
@@ -596,8 +688,8 @@ Implemented a mobile services, including all services the desktop version provid
     - Added a new section **Mobile services** to cover mobile services.
     - Sorted file section in alphabetical order
 
-### Fix
-- Under Quick sticker entry When sticker count is positive and then reduce the count to zero and update, then sticker is updated to zero value, instead it should be updated to empty cell value. It was fixed.
+#### Fix
+- Under Quick sticker entry when sticker count is positive and then reduce the count to zero and update, then sticker is updated to zero value, instead it should be updated to empty cell value. It was fixed.
 - Under Quick sticker entry the when changing the sticker count the change propagated to the `Stickers` tab, but after click on Update button, the sticker count restored the previous value. Now the count is correct after update.
 
 
@@ -606,18 +698,19 @@ Implemented a mobile services, including all services the desktop version provid
 ### Overview
 Minor corrections in the documentation (documents and source code). Added CI github integration. Updated the documentation of `TechnicalArchitecture.md` to include CI github integration.
 
-### Added
-- `.github` folder used to store workflow and deployment process
-- `.github/workflows` where to store the `*.yml` files.
-- `.github/workflows/deploy.yml`: CI deployment file using Github secrets.
-
-### Changes
-- Google sheet tracker:
-  - `Reports` tab: 
+### Google Spreadsheet template
+ - `Reports` tab: 
     - Reported repeated stickers and unique repeated stickers in the same cell. Unique in parenthesis.
     - Now stickers bought the number of stickers and cost are reported in a single cell to make space for other variables.
     - Adjusted conditional formatting for repeated stickers, to check for repeated stickers greater than zero (red) and equal to zero (green).
     - Reordered the columns of the pivot table to mach the same order as in `Stickers` tab.
+
+#### Added
+- `.github` folder used to store workflow and deployment process
+- `.github/workflows` where to store the `*.yml` files.
+- `.github/workflows/deploy.yml`: CI deployment file using Github secrets.
+
+#### Changes
 
 - Under the `src` folder:
   - `ImportService.gs`: Removed unnecessary attributes, added `getRepo()` to lazy initialize `this.repo`. Removed `_getCountryMap()` the same can be achieved with `this.getRepo().getCountryMap()`.
@@ -646,7 +739,7 @@ Minor corrections in the documentation (documents and source code). Added CI git
     - Minor corrections in Import/Export services and in **Input format** section.
   - `CHANGELOG.md`: Added the changes for version `1.0.6`.
 
-  ### Fixed
+  #### Fixed
 - No fixes addressed.
 
 ---
@@ -656,11 +749,13 @@ Minor corrections in the documentation (documents and source code). Added CI git
 ### Overview
 No new functionality was added. Optimized the backend code. Split responsibilities across source files in both the front-end and back-end. Refactored the `StickerSheetRepository` class to implement lazy initialization through getters. The Import service now supports colon (`:`) and whitespace as a delimiter and converts them to a comma (`,`) delimiter as part of the pre-normalization process.
 
-### Added
+### Google Spreadsheet template
+ - Added sort criteria in `Swap Compact View` tab for needed stickers in a similar way the `Trade` tab has.
+ - Added the Team Completed information to the `Reports` tab.
 
-- Google sheet tracker: 
-  - Added sort criteria in `Swap Compact View` tab for needed stickers in a similar way the `Trade` tab has.
-  - Added the Team Completed information to the `Reports` tab.
+### Apps Script
+
+#### Added
 
 - Under the `src` folder:
   - `ImportService.gs`: Backend of the Import service as part of `ImportExportService.gs` split.
@@ -676,7 +771,7 @@ No new functionality was added. Optimized the backend code. Split responsibiliti
   - `ImportDialogHelpers.unit.test.js`: test file for `ImportDialogHelpers.gs` as part of `ImportExportDialogHelpers.unit.test.js` split.
   - `ExportDialogHelpers.unit.test.js`: test file for `ExportDialogHelpers.gs` as part of `ImportExportDialogHelpers.unit.test.js` split.
 
-### Changed
+#### Changed
 
 - Under the `src` folder:
   - `ImportExportService.gs`: 
@@ -720,7 +815,7 @@ No new functionality was added. Optimized the backend code. Split responsibiliti
     - Adjusted the list of files in **Files** section.
   - `TODO.md`: Remove the item related to include Google form, since after analysis it is not possible due to the way the Gsheet tracker is distributed.
 
-### Fixed
+#### Fixed
 - No fixes addressed.
 
 ---
@@ -730,7 +825,13 @@ No new functionality was added. Optimized the backend code. Split responsibiliti
 ### Overview
 Added a new export service, `Export shared stickers`, inside **Panini Manage**. Renamed the previous service, `Export Stickers`, to `Export all stickers`. The new service facilitates sticker swapping among collectors by generating a list of repeated stickers and missing (needed) stickers. `ImportExportService` now uses `StickerSheetRepository`, removing duplicated functionality.
 
-### Added
+### Google Spreadsheet template
+
+No significant changes.
+
+### Apps Script
+
+#### Added
 
 - `src/html/ImportExportDialogStyles.html`: Extracted from `src/html/ImportExportDialog.html` the `<style>` block into a dedicated file. Centralizes dialog-specific styling and improves maintainability.
 
@@ -738,7 +839,7 @@ Added a new export service, `Export shared stickers`, inside **Panini Manage**. 
 
 - `src/html/CommonDialogStyles.html`: Extracted shared styles used across dialogs into a single file. Centralized theme variables, form controls, messages, and button styling. Standardized use of `.btn` across dialogs.
 
-### Changes
+#### Changes
 - Google sheet tracker:
   - Improved `CLEAN_STICKER_LINE` named function to expand numeric ranges (e.g. `1-3 → 1,2,3`, `1-3-5 → 1,2,3,4,5`) for better trade input handling.
   - Added conditional formatting to highlight invalid or ranged input in the `Trades` tab.
@@ -804,7 +905,7 @@ Added a new export service, `Export shared stickers`, inside **Panini Manage**. 
 - `.gitignore`: Added `.vscode/`
 - `CHANGELOG.md`: Corrected the release date from previous release `1.0.3` from `2027-06-01` to `2026-05-29`. Included the Added section to release `1.0.2` with the new files added related to the testing process.
 
-### Fixed
+#### Fixed
 
 - `QuickEntryDialogRender.html`: Restored rendering of special sticker labels (`CREST` for sticker 1 and `TEAM` for sticker 13). Backend already provided `iconLabel`, but UI no longer rendered it due to missing badge injection in `buildStickerCard`.
 
@@ -816,15 +917,18 @@ Added a new export service, `Export shared stickers`, inside **Panini Manage**. 
 ### Overview
 This release refactors and rebrand the `ImportExportService` to introduce a more flexible and resilient input parsing pipeline. The system now supports multiple input formats, exclusion operators (to handle missing stickers), improved repeat representations, and structured warnings to inform users about the interpretation and transformation of inputs. Additionally, a new named function `CLEAN_STICKER_LINE` in Google Sheet tracker has been added to support the `GET_TRADES` named function, which extracts the list of stickers from the `INPUT` section in the `Trade` tab. 
 
+### Google Spreadsheet template
+- Added a named function `CLEAN_STICKER_LINE` to simplify the process of cleaning the sticker line. This function is used in the named function `GET_TRADES` within the `Trade` tab. Previously, the cleanup process was minimal. Now, instead of just cleaning, the function extracts unique stickers delimited by commas or semi-colons from a raw string input data that contains commas, semi-colons, spaces, repeats notations (`N(X)`, `NxX`, `N(xX)`), and additional noise. This allows users to paste a more flexible input data in the `Stickers` column in the `INPUT` section from the `Trade` tab and still receive the correct list of stickers to be used in the `OUTPUT` section.
+- Spreadsheet formulas remain consistent and unaffected when non-valid values are normalized to zero.
 
-### Added
+### Apps Script
+
+#### Added
 - No new files were introduced in this release.
 - Existing modules were enhanced with improved parsing, normalization, and expanded test coverage.
 
 
-### Changes
-
-- Google Sheet tracker: added a named function `CLEAN_STICKER_LINE` to simplify the process of cleaning the sticker line. This function is used in the named function `GET_TRADES` within the `Trade` tab. Previously, the cleanup process was minimal. Now, instead of just cleaning, the function extracts unique stickers delimited by commas or semi-colons from a raw string input data that contains commas, semi-colons, spaces, repeats notations (`N(X)`, `NxX`, `N(xX)`), and additional noise. This allows users to paste a more flexible input data in the `Stickers` column in the `INPUT` section from the `Trade` tab and still receive the correct list of stickers to be used in the `OUTPUT` section.
+#### Changes
 
 - `build/build.js`:
   Refactored build logic to remove hardcoded file and class mappings. Export handling is now driven by `@export` annotations at the class level. This change applies to `*.gs` files. `*.html` export behavior remains unchanged, still relying on explicit function extraction. Reorganized to comply with the `the-step-down-rule` ESLint rule.
@@ -881,14 +985,13 @@ This release refactors and rebrand the `ImportExportService` to introduce a more
 -  `CHANGELOG.md`: Corrected tne numbers of previous releases.
 
 
-### Fixed
+#### Fixed
 - Fixed incorrect handling of out-of-album stickers (`FWC-20`, non-`FWC-0`) across all import modes.
   Previously, such stickers were not populated as `0` values after import operations.
   The updated implementation ensures:
   - Valid stickers retain their parsed values.
   - Out-of-album stickers are consistently stored as `0`.
   - This process is silent and does not require user input.
-  - Spreadsheet formulas remain consistent and unaffected when non-valid values are normalized to zero.
 
 ---
 
@@ -899,7 +1002,13 @@ Refactored and extended the `ImportExportService` with a more flexible and resil
 The system now supports multiple input formats and provides structured warnings to inform users about how inputs
 were interpreted and transformed. Added a testing framework of the Apps script source code.
 
-### Added
+### Google Spreadsheet template
+
+No significant changes.
+
+### Apps Script
+
+#### Added
 - Created the `test` folder.
 - Created the `test/fixtures` folder.
 - Created the `test/utils` folder.
@@ -932,7 +1041,7 @@ were interpreted and transformed. Added a testing framework of the Apps script s
   - `.eslintrc.js`: ESLint configuration file containing project-specific rules.
   - `.gitignore`: Files and folders excluded from version control.
 
-### Changes
+#### Changes
 - `src/ImportExportService.gs`: Major refactor of the service architecture:
   - Introduced `InputLineNormalize`, responsible for transforming raw user input into canonical Format 1.
   - Expanded normalization capabilities: range expansion (`A-B`, `A-B(N)`), removal of consecutive delimiters,
@@ -948,7 +1057,7 @@ were interpreted and transformed. Added a testing framework of the Apps script s
 - `docs/ImportExportServiceRequirements.md`: Expanded specification — additional input formats, clarified
   warning semantics and parser behavior, improved error handling definitions and service contracts.
 
-### Fixed
+#### Fixed
 - Incorrect handling of non-valid sticker positions (`FWC` sticker `20`, non-`FWC` sticker `0`) in all
   import modes (`Import data`, `Update counts`, `Update counts clearing country counts`). Non-valid positions
   are now always written as `0` when the row is touched. Valid stickers retain their parsed values, the
@@ -964,25 +1073,32 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 
 ## [1.0.1] - 2026-05-20
 
-### Added
+### Overview
+Improved Google Spreadsheet template adding flag icons in different tabs. Sorting the output in `Trade` tab. Added the possibility to include flag icons in the export services. Import services, now can handle sticker ranges and flag icons. Quick sticker entry service now include pending action filter. Improve error/warning message to add country context.
+
+### Google Spreadsheet template
+- `Conf` (hidden tab)
+  - Removed the `TB_COUNTRY` table object because Apps Script doesn’t handle it properly. Instead, defined the columns that are referred to as named ranges.
+  - Added flag icons, which are useful when sharing the information in text format. Associated a `FLAG_ICONS` named range.
+- `Stickers` tab now refers to the columns from the `Conf` tab.
+- `Report` tab added flag icons for each country.
+- `Compact Swap View` tab added flag icons for each country.
+- `Trade` tab
+  - Added flag icons in the **INPUT** and **OUTPUT** sections.
+  - The formulas used in the **OUTPUT** section clean the icons portions for the country before calculation.
+  - Added a `Cnt` in the **OUTPUT** section for sending stickers, since it is required when there are more matches in the other direction.
+  - The conditional formatting for the `Cnt` column now takes the minimum of both `TOTAL`.
+  - Optionally allow the user to sort the output based on %-completion (prioritize complete teams first) or by Panini album order (easier to find the sticker).
+  - Option to sort the output for Receive Stickers in the `OUTPUT` section.
+- The `GET_TRADE` named function doesn’t sort the input data anymore. Now, in the `Trade` tab, the user can sort the result. To find the match, there’s no need to sort the data; the sorting should come after the output.
+
+### Apps Script
+
+#### Added
 - `docs/FAQ.md` moved related questions to Google Access/Security for Apps Script
  
-### Changes
-- Modified Google Sheet tracker
-  - `Conf` (hidden tab)
-    - Removed the `TB_COUNTRY` table object because Apps Script doesn’t handle it properly. Instead, defined the columns that are referred to as named ranges.
-    - Added flag icons, which are useful when sharing the information in text format. Associated a `FLAG_ICONS` named range.
-  - `Stickers` tab now refers to the columns from the `Conf` tab.
-  - `Report` tab added flag icons for each country.
-  - `Compact Swap View` tab added flag icons for each country.
-  - `Trade` tab
-    - Added flag icons in the **INPUT** and **OUTPUT** sections.
-    - The formulas used in the **OUTPUT** section clean the icons portions for the country before calculation.
-    - Added a `Cnt` in the **OUTPUT** section for sending stickers, since it is required when there are more matches in the other direction.
-    - The conditional formatting for the `Cnt` column now takes the minimum of both `TOTAL`.
-    - Optionally allow the user to sort the output based on %-completion (prioritize complete teams first) or by Panini album order (easier to find the sticker).
-    - Option to sort the output for Receive Stickers in the `OUTPUT` section.
-  - The `GET_TRADE` named function doesn’t sort the input data anymore. Now, in the `Trade` tab, the user can sort the result. To find the match, there’s no need to sort the data; the sorting should come after the output.
+#### Changes
+  
 - `Code.gs` The wrapper for calling import/export services now includes the information to enable or disable the display of flag icons in the export service.
 - The `Commons.gs` module has removed the requirement that `COUNTRIES` and `COUNT` should be part of the same tab. 
 - The `ImportExportService.gs` file now includes the logic for parsing sticker ranges, such as 1-4 and 1-(2). Additionally, it has been updated to optionally export flag icons and allow the import parser to skip flag icons.
@@ -992,7 +1108,7 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 - `docs/QuickEntryServiceMockDesign.md` has been updated to include the design of the `Pending` filter.
 - `README.md` has been updated to document the input range in the import service and flag icons for input and export services, the Pending action in Quick Sticker Entry, and to move significant security/access information for Apps Script to the `FAQ.md` document.
 
-### Fixed
+#### Fixed
 - When an error is raised during the Import process, the program now provides the country code as a reference instead of a line number when the country code is valid. If the country code is invalid, the line number is referenced in the error message.
 - The constraint that the `COUNTRIES` named range has to be defined in `Stickers` tab was removed because it was unnecessary.
 
@@ -1000,7 +1116,25 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 
 ## [1.0.0] - 2026-05-17
 
-### Added
+### Overview
+First version of the Apps Script project in Github. Added Quick entry service, previously it only included import/export services as part of the Apps Script project.
+
+### Google Spreadsheet template
+
+#### Existing in this release
+- Stickers track
+- Trade comparison support
+- Compact Swap view to facilitate sharing information with other collectors
+- Reports and pivot-based progress summaries
+- Compact swap view
+
+#### Changes
+- Now the `Conf` tab (`TB_COUNTRY`) is used to populate `Ctry`, `Flag`, and `Group` columns in `Stickers` tab.
+- Removed unnecessary hidden columns in `Stickers` tab: Country Code, kept only Group as hidden since it is required for the Pivot table in `Reports`.
+
+### Apps Script
+
+#### Added
 - Added the **Quick Sticker Entry** service with a visual dialog for updating sticker counts.
   - Added search by team code and country name in Quick Sticker Entry.
   - Added group filtering in Quick Sticker Entry.
@@ -1027,7 +1161,7 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
   - `FLAGS_URL`
   - `COUNTRY_NAMES` 
 
-### Changed
+#### Changed
 - Moved technical documentation and requirements documents into the `docs/` folder.
 - Renamed and organized the import/export requirements documentation from the previous general requirements file into `docs/ImportExportServiceRequirements.md`.
 - Updated `README.md` so the documentation goes by services and uses cases, before it was based on template tabs.
@@ -1039,17 +1173,6 @@ flag icon and the country code. Fixed to match the specification: the delimiter 
 - Updated `Code.gs` to remove specific Import/Export functionalities and moved to `ImportExportService.gs` or to `Commons.gs`.
 - Updated `ImportDialog.html` renamed as `ImportExportDialog.html` since it includes both services.
 - Reorganized the files to separate responsibilities based on the service provided and to keep `Code.gs` for the menu options and wrappers.
-- Changed in the template file (Google Sheet)
-  - Now the `Conf` tab (`TB_COUNTRY`) is used to populate `Ctry`, `Flag`, and `Group` columns in `Stickers` tab.
-  - Removed unnecessary hidden columns in `Stickers` tab: Country Code, kept only Group as hidden since it is required for the Pivot table in `Reports`.
 
-### Existing in this release
-- Stickers track
-- Import and export service with preview support
-- Trade comparison support
-- Compact Swap view to facilitate sharing information with other collectors
-- Reports and pivot-based progress summaries
-- Compact swap view
-
-### Fixed
+#### Fixed
 - Fixed export behavior so only valid sticker positions are exported for each country code

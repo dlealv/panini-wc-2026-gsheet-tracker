@@ -55,7 +55,7 @@
   <div class="actions">
     <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
     <button class="btn" onclick="copyExport()">Copy</button>
-    <button class="btn" onclick="google.script.host.close()">Close</button>
+    <button id="exportCloseButton" class="btn" onclick="closeExportView()">Close</button>
   </div>
 </div>
 
@@ -85,7 +85,82 @@
     const exportWarningsEl = document.getElementById('export-warnings')
     const sortByDoneContainerEl = document.getElementById('sortByDoneContainer')
     const exportHintEl = document.getElementById('exportHint')
+    const exportCloseButtonEl = document.getElementById('exportCloseButton')
+    const messageEl = isDesktopDialogHost()
+      ? document.getElementById('export-message')
+      : document.getElementById('mobileMessage')
+
     let currentExportMode = 'export_all'
+
+    /**Reloads the export output for current mode and current checkbox options.*/
+    window.refreshExportData = function () {
+      loadExportData(currentExportMode)
+    }
+
+    /**Copies the exported sticker data to the clipboard.*/
+    window.copyExport = function () {
+      if (!exportTextEl || !exportTextEl.value) {
+        setMessage('There is no exported content to copy.', 'error')
+        return
+      }
+      Export.copyToClipboard(exportTextEl.value)
+        .then(() => setMessage('Export copied to clipboard.', 'success'))
+        .catch(() => setMessage('Failed to copy export.', 'error'))
+    }
+
+    /**Downloads the exported sticker data as a local file.*/
+    window.downloadExport = function () {
+      if (!exportTextEl || !exportTextEl.value) {
+        setMessage('There is no exported content to download.', 'error')
+        return
+      }
+      try {
+        const type = currentExportMode === 'export_shared' ? 'shared' : 'all'
+        const fileName = Export.buildExportFileName(type)
+        Export.triggerDownload(exportTextEl.value, fileName)
+        setMessage(`Download started: ${fileName}`, 'success')
+      } catch (error) {
+        setMessage(`Could not start download.\n${error.message || error}`, 'error')
+      }
+    }
+
+    /**
+     * Initializes the export view for the selected mode.
+     * Called by desktop and mobile containers.
+     */
+    window.initializeExportView = function (mode) {
+      currentExportMode = getEffectiveExportMode(mode)
+      if (includeFlagsCheckboxEl) {
+        includeFlagsCheckboxEl.checked = false
+      }
+      if (isCompactCheckboxEl) {
+        isCompactCheckboxEl.checked = false
+      }
+      if (sortByDoneCheckboxEl) {
+        sortByDoneCheckboxEl.checked = false
+      }
+      if (sortByDoneContainerEl) {
+        sortByDoneContainerEl.style.display = currentExportMode === 'export_shared' ? 'flex' : 'none'
+      }
+      if (exportHintEl) {
+        exportHintEl.innerHTML = getExportHintText(currentExportMode)
+      }
+      if (exportCloseButtonEl) {
+        exportCloseButtonEl.style.display = isDesktopDialogHost() ? '' : 'none'
+      }
+      loadExportData(currentExportMode)
+    }
+
+    /**
+     * Closes the export container when supported.
+     * Desktop dialogs are closed through Apps Script.
+     * Mobile views have no close action, so the button is hidden.
+     */
+    window.closeExportView = function () {
+      if (isDesktopDialogHost()) {
+        google.script.host.close()
+      }
+    }
 
     /** Returns a valid export mode using explicit argument, window state, then local fallback. */
     function getEffectiveExportMode(mode) {
@@ -118,16 +193,10 @@
      * Displays a status message to the user.
      * @param {string} text Message to display.
      * @param {string} type Message type (info, success, warning or error).
-     * @param {object} options Optional parameters.
      */
-    function setMessage(text, type, options = {}) {
-      const messageEl = options.messageEl || (
-        isDesktopDialogHost()
-          ? document.getElementById('export-message')
-          : document.getElementById('mobileMessage')
-      )
+    function setMessage(text, type) {
       if (!messageEl) { return }
-      messageEl.className = 'message ' + (type || 'info')
+      messageEl.className = `message ${type || 'info'}`
       messageEl.textContent = text || ''
     }
 
@@ -183,9 +252,8 @@
           const messageEl = isDesktopDialogHost()
             ? document.getElementById('export-message')
             : document.getElementById('mobileMessage')
-          setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`, 'success', {
-            messageEl
-          })
+          setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`,
+            'success')
           if (messageEl) {
             messageEl.scrollIntoView({ block: 'start', behavior: 'smooth' })
           }
@@ -202,62 +270,6 @@
       } else {
         request.exportAllStickerData(payload)
       }
-    }
-
-    /**Reloads the export output for current mode and current checkbox options.*/
-    window.refreshExportData = function () {
-      loadExportData(currentExportMode)
-    }
-
-    /**Copies the exported sticker data to the clipboard.*/
-    window.copyExport = function () {
-      if (!exportTextEl || !exportTextEl.value) {
-        setMessage('There is no exported content to copy.', 'error')
-        return
-      }
-      Export.copyToClipboard(exportTextEl.value)
-        .then(() => setMessage('Export copied to clipboard.', 'success'))
-        .catch(() => setMessage('Failed to copy export.', 'error'))
-    }
-
-    /**Downloads the exported sticker data as a local file.*/
-    window.downloadExport = function () {
-      if (!exportTextEl || !exportTextEl.value) {
-        setMessage('There is no exported content to download.', 'error')
-        return
-      }
-      try {
-        const type = currentExportMode === 'export_shared' ? 'shared' : 'all'
-        const fileName = Export.buildExportFileName(type)
-        Export.triggerDownload(exportTextEl.value, fileName)
-        setMessage(`Download started: ${fileName}`, 'success')
-      } catch (error) {
-        setMessage(`Could not start download.\n${error.message || error}`, 'error')
-      }
-    }
-
-    /**
-     * Initializes the export view for the selected mode.
-     * Called by desktop and mobile containers.
-     */
-    window.initializeExportView = function (mode) {
-      currentExportMode = getEffectiveExportMode(mode)
-      if (includeFlagsCheckboxEl) {
-        includeFlagsCheckboxEl.checked = false
-      }
-      if (isCompactCheckboxEl) {
-        isCompactCheckboxEl.checked = false
-      }
-      if (sortByDoneCheckboxEl) {
-        sortByDoneCheckboxEl.checked = false
-      }
-      if (sortByDoneContainerEl) {
-        sortByDoneContainerEl.style.display = currentExportMode === 'export_shared' ? 'flex' : 'none'
-      }
-      if (exportHintEl) {
-        exportHintEl.innerHTML = getExportHintText(currentExportMode)
-      }
-      loadExportData(currentExportMode)
     }
 
     /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/

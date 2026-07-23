@@ -13,12 +13,12 @@
 
   h2 {
     margin: 0 0 12px 0;
-    font-size: 22px;
+    font-size: var(--text-2xl);
   }
 
   .section-title {
     margin: 0 0 10px 0;
-    font-size: 14px;
+    font-size: var(--text-md);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -52,7 +52,7 @@
     padding: 10px;
     resize: vertical;
     font-family: var(--font-mono);
-    font-size: 13px;
+   font-size: var(--text-sm);
     border: 1px solid var(--border);
     border-radius: 6px;
     background: #fff;
@@ -113,7 +113,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+     font-size: var(--text-xs);
     font-weight: 700;
     color: var(--muted);
   }
@@ -127,7 +127,7 @@
   /* small secondary button used inline next to a label */
   .btn-inline {
     padding: 3px 10px;
-    font-size: 12px;
+     font-size: var(--text-xs);
   }
 
   .preview {
@@ -139,7 +139,7 @@
     max-height: 260px;
     overflow: auto;
     font-family: var(--font-mono);
-    font-size: 12px;
+     font-size: var(--text-xs);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -151,7 +151,7 @@
     background: none;
     color: var(--primary);
     cursor: pointer;
-    font-size: 15px;
+     font-size: var(--text-lg);
     padding: 0 2px;
     font-weight: 700;
     line-height: 1;
@@ -166,7 +166,7 @@
   .format-card {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+     font-size: var(--text-xs);
     margin-top: 4px;
   }
 
@@ -186,7 +186,7 @@
   /* tip row inside actions section */
   .tip-row {
     margin-top: 10px;
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--muted);
   }
 
@@ -206,7 +206,7 @@
   .help-header h3 {
     margin: 0;
     line-height: 1.1;
-    font-size: 18px;
+    font-size: var(--text-xl);
     /* optional slight reduction */
   }
 
@@ -217,7 +217,7 @@
     padding: 20px;
     max-width: 500px;
     width: 95%;
-    font-size: 13px;
+    font-size: var(--text-sm);
     color: var(--text);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
@@ -228,12 +228,12 @@
 
   dialog h3 {
     margin: 0 0 12px 0;
-    font-size: 16px;
+    font-size: var(--text-lg);
   }
 
   /* general note shown above all format sections */
   dialog .modal-note {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--muted);
     margin-bottom: 12px;
     line-height: 1.6;
@@ -256,7 +256,7 @@
   /* custom triangle for summary */
   dialog summary::before {
     content: '▶';
-    font-size: 10px;
+   font-size: var(--text-2xs);
     color: var(--muted);
     transition: transform 0.15s;
   }

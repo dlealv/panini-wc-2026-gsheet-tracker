@@ -207,39 +207,53 @@ panini-wc-2026-gsheet-tracker/
 To ensure local testability while maintaining cross-platform consistency and synchronization safety, the user interface is organized into three distinct layers:
 
 ### Layer 1: Dialog Orchestration Framework (`*Dialog.html`)
-* **Responsibility**: Defines the desktop dialog structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`. When the UI is shared with the mobile application, this file becomes a thin desktop wrapper around the shared `*View.html`, retaining only desktop-specific initialization and configuration.
+* **Responsibility**: Defines the desktop dialog structure and lifecycle entry point. It initializes desktop-specific configuration, provides the dialog shell when required, and loads the corresponding view. When the UI is shared with the mobile application, this file becomes a thin desktop wrapper around the shared `*View.html`, retaining only desktop-specific initialization and configuration. It may provide the outer container when the desktop dialog requires one, but it should not contain feature-specific UI logic.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 #### Layer 1.1: Shared View (`*View.html`)
-* **Responsibility**: When the UI is shared between the desktop and mobile applications, the common implementation is moved from `*Dialog.html` into `*View.html`. This layer defines the shared UI structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`.
+* **Responsibility**: Contains the shared feature implementation when the same UI is used by desktop and mobile applications. Common markup and controller logic are moved from `*Dialog.html` into this layer. The View owns the feature lifecycle, user interactions, UI state coordination, and asynchronous backend calls through `google.script.run`.  
+  A View must not assume that its host provides a layout container. If the host already provides the required container, the View reuses it. Otherwise, the View is responsible for providing its own container.
+* **Implementation Rules**:
+    * ✔ View controllers must be encapsulated to avoid leaking internal variables and functions into the global browser scope.
+    * ✔ View-specific DOM references should remain local to the view controller.
+    * ✔ Shared view functions exposed globally should only be those required by the host container or HTML event handlers.
+    * ❌ A View should not contain duplicated platform-specific implementations when the behavior can be controlled through configuration or wrapper initialization.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 > The Import service is the only exception. `ImportView.html` is not shared with the mobile application because the mobile import workflow is intentionally simplified and optimized for smaller screens.
 
 #### Layer 1.2: Mobile Home (`MobileHome.html`)
-* **Responsibility**: Entry point for the mobile web application. It provides the navigation drawer, manages view switching, and loads the feature views using HTML includes.
+* **Responsibility**: Entry point for the mobile web application. It provides the application shell, navigation drawer, manages view switching, and loads feature views using HTML includes.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 #### Layer 1.3: Mobile-Specific View (`Mobile*View.html`)
-* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization or configuration when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated implementation. This is the case for `MobileImportView.html`, which provides a simplified import interface optimized for mobile devices.
+* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization, configuration, or layout adjustments when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated mobile implementation.  
+  This is the case for `MobileImportView.html`, which provides a simplified import interface optimized for mobile devices.
+* **Implementation Rules**:
+    * ✔ Owns mobile navigation sections, visibility management, and feature initialization when required.
+    * ✔ May configure shared views through parameters or exposed initialization functions.
+    * ❌ Must not duplicate shared feature logic unnecessarily.
+    * ❌ Must not create additional page containers when the host already provides the required container.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 ### Layer 2: Functional Logic Helpers (`*Helpers.html`)
-* **Responsibility**: Manages state, data transformation, filtering, pending update calculations, and summary calculations. Helper files are consumed by the view layer.
+* **Responsibility**: Contains reusable functional logic consumed by the view layer, including state calculations, data transformation, filtering, pending update calculations, and summary calculations.
 * **Constraints**:
     * ✔ Must remain pure and deterministic; should not depend on DOM APIs or browser runtime state.
     * ❌ Must not reference browser objects such as `document`, `window`, or UI elements.
     * ❌ Must not execute `google.script.run` calls.
+    * ❌ Must not directly update the user interface.
 * **Test Status**: Extensively tested locally with Jest using extracted artifacts from the `build/` directory for functions marked with the `@export` tag.
 
 ### Layer 3: Visual Render Factories (`*Render.html`)
 * **Responsibility**: Handles DOM construction, visual component creation, and layout assembly (e.g., `buildCountrySection`, `buildStickerCard`). Render files are consumed by the view layer.
 * **Constraints**:
     * ✔ Responsible for generating UI components and performing DOM updates.
-    * ❌ Must not contain business logic, calculations, or backend service definitions.
+    * ❌ Must not contain business logic, calculations, state management, or backend service definitions.
+    * ❌ Must not depend on feature lifecycle orchestration.
 * **Test Status**: Partially tested locally using mocked DOM environments for functions marked with the `@export` tag.
 
-> Functions defined in `*Helpers.html` and `*Render.html` files are encapsulated in namespaces to avoid polluting the browser's global scope.
+> Functions defined in `*Helpers.html` and `*Render.html` files are encapsulated in namespaces to avoid polluting the browser's global scope. View controllers use local closures (IIFE pattern) to keep DOM references, state, and internal functions isolated while exposing only the required public interface.
 
 ---
 
@@ -327,9 +341,11 @@ The application provides two user interfaces:
 
 Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper become thin containers responsible only for platform-specific initialization.
 
+Shared view controllers use an IIFE-based structure to isolate internal state, DOM references, and implementation details. Only functions required by the host container or HTML event bindings are exposed through the global scope.
+
 Examples:
 
-- `ExportView.html`: Single export implementation shared by `ExportDialog.html` and `MobileExportView.html`.
+- `ExportView.html`: Shared export implementation used by `ExportDialog.html` and `MobileExportView.html`.
   - Owns:
     - Export toolbar.
     - Export text area.
@@ -339,7 +355,7 @@ Examples:
   - The active export mode is supplied by the parent wrapper instead of relying on duplicated global state.
   - Loads `ExportHelpers.html`.
 
-- `QuickEntryView.html`: Single Quick Entry implementation shared by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
+- `QuickEntryView.html`: Shared Quick Entry implementation used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
   - Owns:
     - The toolbar, filters, legend, message area, and country list.
     - Shared helpers and rendering modules.

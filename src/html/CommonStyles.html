@@ -4,6 +4,7 @@
    * Contains:
    * - Theme variables
    * - Typography
+   * - Font sizes
    * - Layout primitives
    * - Buttons
    * - Messages
@@ -14,7 +15,6 @@
    * - QuickEntryStyles.html
  */
   :root {
-    /*--border: #dadce0;*/
     --border: #c6cacc;
     /*darker border for better contrast*/
     --text: #202124;
@@ -26,6 +26,13 @@
     --error: #c5221f;
     --warning: #b06000;
     --font-mono: Consolas, "Courier New", monospace;
+    --text-2xs: 10px;
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-md: 14px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+    --text-2xl: 22px;
   }
 
   * {
@@ -95,7 +102,7 @@
   /* status messages (single line feedback) */
   .message {
     min-height: 20px;
-    font-size: 13px;
+    font-size: var(--text-sm);
     white-space: pre-wrap;
     margin-top: 4px;
   }
@@ -137,7 +144,7 @@
 
   /* secondary informational text, used for hints and messages,etc. */
   .hint {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--muted);
     line-height: 1.5;
   }
@@ -159,5 +166,35 @@
     padding: 8px;
     border: 1px solid var(--border);
     border-radius: 6px;
+  }
+
+  /* About view content */
+  .about-card {
+    padding: 10px 16px;
+  }
+
+  .about-table {
+    border-collapse: collapse;
+    margin: 0;
+  }
+
+  .about-table th {
+    text-align: left;
+    vertical-align: top;
+    font-weight: 600;
+    padding: 4px 8px 4px 0;
+    white-space: nowrap;
+    width: 120px;
+  }
+
+  .about-table td {
+    padding: 4px 0;
+    text-align: left;
+    font-size: var(--text-sm);
+  }
+
+  /* Links in the About view table should break if they are too long. */
+  .about-table a {
+    word-break: break-word;
   }
 </style>

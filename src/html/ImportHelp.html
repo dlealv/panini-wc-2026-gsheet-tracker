@@ -98,13 +98,19 @@
 </dialog>
 
 <script>
-  /**Opens the full format guide modal. */
-  function openHelpModal() {
-    document.getElementById('helpModal').showModal()
-  }
 
-  /**Closes the full format guide modal. */
-  function closeHelpModal() {
-    document.getElementById('helpModal').close()
-  }
+  (function () {
+
+    /**Opens the full format guide modal. */
+    window.openHelpModal = function () {
+      document.getElementById('helpModal').showModal()
+    }
+
+    /**Closes the full format guide modal. */
+    window.closeHelpModal = function () {
+      document.getElementById('helpModal').close()
+    }
+
+  })();
+
 </script>

@@ -51,7 +51,6 @@
       <button class="btn" onclick="clearForm()">Clear</button>
     </div>
     <button class="btn btn-primary" onclick="importData()">Import</button>
-    <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
   </div>
 
   <!-- Feedback areas -->
@@ -75,74 +74,18 @@
    */
 
   (function () {
-    /* ── Element references ──────────────────────────────────────────────── */
-    const textInput = document.getElementById('textInput')
-    const modeInput = document.getElementById('mode')
+
+    /* Element references */
+    const textInputEl = document.getElementById('textInput')
+    const modeInputEl = document.getElementById('mode')
     const messageEl = document.getElementById('import-message')
     const warningsEl = document.getElementById('import-warnings')
     const previewEl = document.getElementById('import-preview')
 
-    /* ── View helpers ───────────────────────────── */
-
-    /* Wrapper functions around shared Import helpers.
-     * Wrappers keep platform-specific DOM handling inside this view.
+     /* Service actions
+      * These functions are called by the view buttons and invoke the backend services.
+      * They have global scope so they can be called from the HTML onclick attributes.
      */
-    function setMessage(text, type) {
-      Import.setMessage(text, type, { messageEl })
-    }
-
-    /** Renders the import preview returned by the backend. 
-     * Wrapper for shared Import.renderPreview that requires a DOM element.
-    */
-    function renderPreview(result) {
-      Import.renderPreview(result, { previewEl })
-      if (result && result.countries && result.countries.length) {
-        previewEl.classList.remove('hidden')
-      } else {
-        previewEl.classList.add('hidden')
-      }
-    }
-
-    /**
-      * Enables or disables all controls in the import view.
-      * @param {boolean} isBusy Whether the view is busy.
-      * Note: kept local because mobile controls and layout differ from desktop.
-      */
-    function setBusy(isBusy) {
-      const viewEl = document.getElementById('view-import')
-      if (viewEl) {
-        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
-      }
-      if (textInput) { textInput.disabled = isBusy }
-      if (modeInput) { modeInput.disabled = isBusy }
-    }
-
-    /** Renders the warnings list returned by the backend. 
-     * Note: this function is not part of the shared Import helpers because it requires a DOM element.
-    */
-    function renderWarnings(warnings) {
-      warningsEl.textContent = ''
-      if (!warnings || !warnings.length) {
-        warningsEl.classList.add('hidden')
-        return
-      }
-      warningsEl.classList.remove('hidden')
-      warnings.forEach(w => {
-        const p = document.createElement('p')
-        p.textContent = '⚠ ' + w
-        warningsEl.appendChild(p)
-      })
-    }
-
-    /** Clears the preview panel. 
-     * Note: kept local because mobile controls and layout differ from desktop.
-    */
-    function clearPreview() {
-      previewEl.textContent = ''
-      previewEl.classList.add('hidden')
-    }
-
-    /* ── Service actions ───────────────────────── */
 
     /** Validates the current import data and displays the preview. */
     window.previewData = function () {
@@ -188,8 +131,8 @@
     /** Resets the form to its initial state. */
     window.clearForm = function () {
       setBusy(false)
-      if (textInput) { textInput.value = ''; textInput.focus() }
-      if (modeInput) { modeInput.value = 'update' }
+      if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
+      if (modeInputEl) { modeInputEl.value = 'update' }
       clearPreview()
       renderWarnings([])
       setMessage('Cleared.', 'info')
@@ -212,12 +155,73 @@
         previewEl.textContent = ''
         previewEl.classList.add('hidden')
       }
-      if (textInput) {
-        textInput.value = ''
+      if (textInputEl) {
+        textInputEl.value = ''
       }
-      if (modeInput) {
-        modeInput.value = 'update'
+      if (modeInputEl) {
+        modeInputEl.value = 'update'
       }
     }
+
+    /* View helpers */
+
+    /* Wrapper functions around shared Import helpers.
+     * Wrappers keep platform-specific DOM handling inside this view.
+     */
+    function setMessage(text, type) {
+      Import.setMessage(text, type, { messageEl })
+    }
+
+    /** Renders the import preview returned by the backend. 
+     * Wrapper for shared Import.renderPreview that requires a DOM element.
+    */
+    function renderPreview(result) {
+      Import.renderPreview(result, { previewEl })
+      if (result && result.countries && result.countries.length) {
+        previewEl.classList.remove('hidden')
+      } else {
+        previewEl.classList.add('hidden')
+      }
+    }
+
+    /**
+      * Enables or disables all controls in the import view.
+      * @param {boolean} isBusy Whether the view is busy.
+      * Note: kept local because mobile controls and layout differ from desktop.
+      */
+    function setBusy(isBusy) {
+      const viewEl = document.getElementById('view-import')
+      if (viewEl) {
+        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+      }
+      if (textInputEl) { textInputEl.disabled = isBusy }
+      if (modeInputEl) { modeInputEl.disabled = isBusy }
+    }
+
+    /** Renders the warnings list returned by the backend. 
+     * Note: this function is not part of the shared Import helpers because it requires a DOM element.
+    */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
+        return
+      }
+      warningsEl.classList.remove('hidden')
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.textContent = '⚠ ' + w
+        warningsEl.appendChild(p)
+      })
+    }
+
+    /** Clears the preview panel. 
+     * Note: kept local because mobile controls and layout differ from desktop.
+    */
+    function clearPreview() {
+      previewEl.textContent = ''
+      previewEl.classList.add('hidden')
+    }
+
   })();
 </script>

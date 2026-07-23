@@ -269,10 +269,23 @@ The custom **Manage Panini** spreadsheet menu is added by the Apps Script projec
 - Import or export (all stickers or shared stickers) collection data.
 - Open the Quick Sticker Entry dialog.
 - Instructions on how to deploy the Web app for mobile services.
+- About screen with Apps Script product version information.
 
 ![Manage Panini menu](images/managePaniniMenuView.jpg)
 
 ---
+
+### Product Version Information
+
+Starting from version `1.1.2` the Google Spreadsheet template provides product version information, so the users know the specific version they are using. The information is provided in `About` tab.
+
+![gsheet template About](images/aboutTabView.jpg)
+
+In a similar way for Apps Script project, click on **Manage Panini** then **About**:
+
+![Apps Script About](images/aboutView.jpg)
+
+> Template Version and Apps Script version don't need to match. Template version will be updated only if the release has changes impacting the template.
 
 ## Import format
 
@@ -568,6 +581,8 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
 
 - Under the `src/html` folder:
+  - `AboutView.html`: HTML user interface for providing Apps Script version information. The properties of this file needs to be updated every time a new version of the Apps Script project is released.
+  - `AboutViewDialog.html`: wrapper for desktop version of the `AboutView.html` view.
   - `CommonsStyles.html`: Common style definitions to ensure consistency across all dialog services (desktop).
   - `ImportDialog.html`: HTML user interface for the import dialog shown inside Google Sheets.
   - `ImportHelp.html`:  Import format guide component via modal dialog. Used by `ImportView.html`.

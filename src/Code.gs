@@ -21,7 +21,9 @@ function onOpen() {
     .addSeparator()
     .addItem('Quick sticker entry', 'showQuickStickerEntryDialog')
     .addSeparator()
-    .addItem('Mobile web app link', 'showMobileLink')
+    .addItem('Mobile Web app link', 'showWebAppLink')
+    .addSeparator()
+    .addItem('About', 'showAboutDialog')
     .addToUi()
 }
 
@@ -209,13 +211,19 @@ function importStickerDataMobile(payload) {
 }
 
 /** Opens a dialog showing the mobile web app URL so the user can copy and bookmark it. */
-function showMobileLink() {
+function showWebAppLink() {
   const webAppUrl = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL') || ''
-  const template = HtmlService.createTemplateFromFile('MobileLinkDialog')
+  const template = HtmlService.createTemplateFromFile('WebAppLinkDialog')
   template.webAppUrl = webAppUrl
   template.isDeployed = Boolean(webAppUrl)
-  SpreadsheetApp.getUi().showModalDialog(template.evaluate().setWidth(500).setHeight(320),
-    'Mobile Web App Link')
+  //template.isDeployed = false // 🔥 TEMP: force false to test the "not deployed" message
+  const height = template.isDeployed ? 200 : 280
+  SpreadsheetApp.getUi().showModalDialog(
+    template.evaluate().
+      setWidth(500)
+      .setHeight(height),
+    'Mobile Web App Link'
+  )
 }
 
 /**
@@ -287,6 +295,24 @@ function _getMobileSpreadsheet() {
 
 // #endregion Mobile
 
+
+// #region About
+//==============================================================================
+// About Dialog
+//==============================================================================
+
+/** Opens the About dialog. */
+function showAboutDialog() {
+  const html = HtmlService
+    .createTemplateFromFile('AboutDialog')
+    .evaluate()
+    .setWidth(465)
+    .setHeight(200)
+
+  SpreadsheetApp.getUi().showModalDialog(html, 'About')
+}
+
+// #endregion About
 
 //==============================================================================
 // Helpers

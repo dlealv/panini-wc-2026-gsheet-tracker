@@ -178,105 +178,113 @@
    *   - updating UI state.
    */
 
-  const fileInput = document.getElementById('fileInput')
-  const textInput = document.getElementById('textInput')
-  const modeInput = document.getElementById('mode')
-  const messageEl = document.getElementById('import-message')
-  const previewEl = document.getElementById('preview')
-  const warningsEl = document.getElementById('import-warnings')
+  (function () {
 
-  if (modeInput && window.importConfig) {
-    modeInput.value = window.importConfig.defaultMode || 'update'
-  }
+    const fileInputEl = document.getElementById('fileInput')
+    const textInputEl = document.getElementById('textInput')
+    const modeInputEl = document.getElementById('mode')
+    const messageEl = document.getElementById('import-message')
+    const previewEl = document.getElementById('preview')
+    const warningsEl = document.getElementById('import-warnings')
 
-  if (fileInput) {
-    fileInput.addEventListener('change', async (event) => {
-      const file = event.target.files && event.target.files[0]
-      if (!file) return
-      try {
-        Import.setBusy(true)
-        Import.setMessage(`Reading file: ${file.name}...`, 'info')
-        const text = await file.text()
-        textInput.value = text
-        Import.setMessage(`Loaded file: ${file.name}`, 'success')
-      } catch (error) {
-        Import.setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
-      } finally {
-        Import.setBusy(false)
-      }
-    })
-  }
-
-  /**
-   * Renders backend warnings using the desktop warning layout.
-   * Warning rendering remains local because desktop and mobile
-   * use different visual treatments.
-   */
-  function renderWarnings(warnings) {
-    warningsEl.textContent = ''
-    if (!warnings || !warnings.length) {
-      warningsEl.classList.add('hidden')
-      return
+    if (modeInputEl && window.importConfig) {
+      modeInputEl.value = window.importConfig.defaultMode || 'update'
     }
-    warningsEl.classList.remove('hidden')
-    warnings.forEach(w => {
-      const p = document.createElement('p')
-      p.style.margin = '2px 0'
-      p.textContent = `⚠ ${w}`
-      warningsEl.appendChild(p)
-    })
-  }
 
-  /**Validates the current import input and renders a preview without writing data. */
-  function previewData() {
-    Import.clearPreview()
-    renderWarnings([]) // clear previous warnings immediately
-    Import.setBusy(true)
-    Import.setMessage('Validating input...', 'info')
-    google.script.run
-      .withSuccessHandler((result) => {
-        Import.setBusy(false)
-        Import.setMessage('Validation successful.', 'success')
-        renderWarnings(result.warnings)
-        Import.renderPreview(result, { previewEl })
+    if (fileInputEl) {
+      fileInputEl.addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0]
+        if (!file) return
+        try {
+          Import.setBusy(true)
+          setMessage(`Reading file: ${file.name}...`, 'info')
+          const text = await file.text()
+          textInputEl.value = text
+          setMessage(`Loaded file: ${file.name}`, 'success')
+        } catch (error) {
+          setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
+        } finally {
+          Import.setBusy(false)
+        }
       })
-      .withFailureHandler((error) => {
-        Import.setBusy(false)
-        Import.clearPreview()
-        renderWarnings([]) // clear previous warnings immediately
-        Import.setMessage(error && error.message ? error.message : String(error), 'error')
-      })
-      .previewStickerData(Import.getPayload())
-  }
+    }
 
-  /**Imports the current sticker payload into the spreadsheet. */
-  function importData() {
-    Import.clearPreview()
-    renderWarnings([]) // clear previous warnings immediately
-    Import.setBusy(true)
-    Import.setMessage('Importing data...', 'info')
-    google.script.run
-      .withSuccessHandler((result) => {
-        Import.setBusy(false)
-        Import.setMessage(result && result.message ? result.message : 'Import completed.', 'success')
-        renderWarnings(result.warnings)
-      })
-      .withFailureHandler((error) => {
-        Import.setBusy(false)
-        Import.setMessage(error && error.message ? error.message : String(error), 'error')
-      })
-      .importStickerData(Import.getPayload())
-  }
+    /**Resets the import form inputs, preview, and warnings areas. */
+    window.clearInput = function () {
+      Import.setBusy(false)
+      if (fileInputEl) fileInputEl.value = ''
+      if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
+      if (modeInputEl) modeInputEl.value = 'update'
+      Import.clearPreview()
+      renderWarnings([]) // clear previous warnings immediately
+      setMessage('Input cleared.', 'info')
+    }
 
-  /**Resets the import form inputs, preview, and warnings areas. */
-  function clearInput() {
-    Import.setBusy(false)
-    if (fileInput) fileInput.value = ''
-    if (textInput) { textInput.value = ''; textInput.focus() }
-    if (modeInput) modeInput.value = 'update'
-    Import.clearPreview()
-    renderWarnings([]) // clear previous warnings immediately
-    Import.setMessage('Input cleared.', 'info')
-  }
+    /**Validates the current import input and renders a preview without writing data. */
+    window.previewData = function () {
+      Import.clearPreview()
+      renderWarnings([]) // clear previous warnings immediately
+      Import.setBusy(true)
+      setMessage('Validating input...', 'info')
+      google.script.run
+        .withSuccessHandler((result) => {
+          Import.setBusy(false)
+          setMessage('Validation successful.', 'success')
+          renderWarnings(result.warnings)
+          Import.renderPreview(result, { previewEl })
+        })
+        .withFailureHandler((error) => {
+          Import.setBusy(false)
+          Import.clearPreview()
+          renderWarnings([]) // clear previous warnings immediately
+          setMessage(error && error.message ? error.message : String(error), 'error')
+        })
+        .previewStickerData(Import.getPayload())
+    }
 
+    /**Imports the current sticker payload into the spreadsheet. */
+    window.importData = function () {
+      Import.clearPreview()
+      renderWarnings([]) // clear previous warnings immediately
+      Import.setBusy(true)
+      setMessage('Importing data...', 'info')
+      google.script.run
+        .withSuccessHandler((result) => {
+          Import.setBusy(false)
+          setMessage(result && result.message ? result.message : 'Import completed.', 'success')
+          renderWarnings(result.warnings)
+        })
+        .withFailureHandler((error) => {
+          Import.setBusy(false)
+          setMessage(error && error.message ? error.message : String(error), 'error')
+        })
+        .importStickerData(Import.getPayload())
+    }
+
+    /* Wrapper for setMessage to keep the messageEl reference local to this view. */
+    function setMessage(text, type) {
+      Import.setMessage(text, type, { messageEl })
+    }
+
+    /**
+     * Renders backend warnings using the desktop warning layout.
+     * Warning rendering remains local because desktop and mobile
+     * use different visual treatments.
+     */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
+        return
+      }
+      warningsEl.classList.remove('hidden')
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.style.margin = '2px 0'
+        p.textContent = `⚠ ${w}`
+        warningsEl.appendChild(p)
+      })
+    }
+
+  })();
 </script>

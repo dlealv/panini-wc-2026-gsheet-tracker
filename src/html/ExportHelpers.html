@@ -49,16 +49,6 @@
       return _getUIState(deps)
     }
 
-    /** Displays a message in the dialog UI.
-     * @export
-     */
-    function setMessage(text, type, deps = {}) {
-      const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
-      if (!el) { return }
-      el.className = `message ${type || 'info'}`
-      el.textContent = text || ''
-    }
-
     /** Enables/disables UI during async operations. 
      * @export
      */

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--
+  src/html/WebAppLinkDialog.html
+
+  Small dialog opened by showWebAppLink() from the Manage Panini menu.
+  Shows the deployed web app URL so the user can copy it and bookmark it
+  on a mobile device.
+
+  Template variables injected from Code.gs showWebAppLink():
+    webAppUrl  {string}  — The deployed web app URL, or empty string.
+    isDeployed {boolean} — Whether the web app has been deployed.
+-->
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('CommonStyles') ?>
+
+  <style>
+    body {
+      padding: 16px;
+    }
+
+    .dialog-text {
+      font-size: var(--text-sm);
+      line-height: 1.5;
+    }
+
+    .dialog-title {
+      margin: 0 0 12px;
+      font-size: var(--text-lg);
+    }
+
+    .url-input {
+      background: var(--bg-soft);
+      cursor: text;
+      font-size: var(--text-sm);
+    }
+
+    .deploy-steps {
+      font-size: var(--text-xs);
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 6px;
+    }
+
+    .deploy-steps strong {
+      color: var(--text);
+    }
+  </style>
+</head>
+
+<body>
+  <h3 class="dialog-title">📱 Mobile Web App</h3>
+
+  <? if (isDeployed) { ?>
+  <p class="dialog-text">
+    Copy this URL and bookmark it on your phone for quick access to the tracker.
+  </p>
+  <input id="webAppUrl" class="form-control url-input" type="text" value="<?= webAppUrl ?>" readonly
+    onclick="this.select()">
+
+  <div style="margin-top:10px;">
+    <button class="btn" onclick="copyUrl(this)">Copy URL</button>
+  </div>
+  <p class="hint">
+    Tip: bookmark the URL on your phone for quick access at swap events.
+  </p>
+  <? } else { ?>
+  <p class="message error">The web app has not been deployed yet.</p>
+  <p class="deploy-steps">To deploy:</p>
+  <ol style="margin:6px 0 0 16px;padding:0;">
+    <li>Open <strong>Extensions → Apps Script</strong>.</li>
+    <li>Click <strong>Deploy → New deployment</strong>.</li>
+    <li>Select type: <strong>Web app</strong>.</li>
+    <li>Set <em>Description</em>: <strong>Enter the name of the deployment</strong>.</li>
+    <li>Set <em>Execute as</em>: <strong>Me</strong>.</li>
+    <li>Set <em>Who has access</em>: <strong>Anyone</strong>.</li>
+    <li>Click <strong>Deploy</strong> and optionally copy the URL.</li>
+    <li>Return here: the URL will appear automatically.</li>
+  </ol>
+  <? } ?>
+
+  <script>
+    async function copyUrl(button) {
+      const input = document.getElementById('webAppUrl');
+      const url = input.value;
+      try {
+        await navigator.clipboard.writeText(url);
+        const btn = button;
+        const original = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1200);
+      } catch (err) {
+        input.select();
+        document.execCommand('copy');
+      }
+    }
+  </script>
+
+</body>
+
+</html>

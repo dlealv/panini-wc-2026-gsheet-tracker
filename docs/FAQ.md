@@ -68,6 +68,31 @@ Yes. Starting with release `1.1.2`, this feature was introduced. You can now sea
 
 If the search text is numeric, it is interpreted as a sticker number search. Otherwise, it is treated as a country code or country name search.
 
+### How can I identify the version of the template or the Apps Script project?
+
+Starting with release `1.1.2`, version information is available directly from both products:
+
+- **Google Spreadsheet template:** Open the `About` sheet to view the current template version and the corresponding GitHub release information.
+- **Apps Script project:** From the **Manage Panini** custom menu, select **About** to view the current Apps Script version and related project information.
+
+### Why are the template version and the Apps Script version different?
+
+Starting with release `1.1.2`, both the Google Spreadsheet template and the Apps Script project are versioned independently, and each version is displayed within its respective product:
+
+- **Google Spreadsheet template:** **About** sheet.
+- **Apps Script project:** **About** menu item.
+
+Both version numbers follow the GitHub release sequence, but they are tracked independently because the Google Spreadsheet template and the Apps Script project evolve separately.
+
+- *Template version:* Updated only when a GitHub release includes changes to the Google Spreadsheet template.
+- *Apps Script version:* Updated only when a GitHub release includes changes to the Apps Script source code.
+
+As a result, several version combinations are possible:
+
+1. **Template and Apps Script versions are the same**: The GitHub release contains changes to both the spreadsheet template and the Apps Script project.
+2. **The template version is behind the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the Apps Script project.
+3. **The template version is ahead of the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the spreadsheet template.
+4. **Both versions are behind the latest GitHub release**: One or more GitHub releases only introduced documentation, build, or other project-related improvements that did not affect either the spreadsheet template or the Apps Script project.
 
 ## Google Access/Security Questions
 

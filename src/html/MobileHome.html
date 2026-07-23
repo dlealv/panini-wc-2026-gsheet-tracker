@@ -58,6 +58,9 @@
       <div class="drawer-item" onclick="showQuickEntryView()">
         Quick Entry
       </div>
+      <div class="drawer-item" onclick="showAboutView()">
+        About
+      </div>
     </div>
 
     <!-- Overlay shown while the navigation drawer is open. -->
@@ -70,6 +73,8 @@
       <?!= include('MobileImportView') ?>
       <?!= include('MobileExportView') ?>
       <?!= include('MobileQuickEntryView') ?>
+      <?!= include('MobileAboutView') ?>
+
 
       <script>
         window.addEventListener('load', () => {
@@ -85,52 +90,56 @@
   </div>
 
   <script>
-    /* ── Navigation ─────────────────────────────────────────────────────────[...] */
 
-    /**
-     * Switches the visible service view in the main content area.
-     * Hides all other service views.
-     * @param {string} view Service identifier (for example, "import").
-     */
-    function showView(view) {
-      if (typeof clearViewMessages === 'function') {
-        clearViewMessages()
-      }
-      document.querySelectorAll('.view').forEach(v => {
-        v.classList.add('hidden')
-      })
-      const selected = document.getElementById('view-' + view)
-      if (selected) {
-        selected.classList.remove('hidden')
-      }
-      if (view === 'import' && typeof clearImportViewState === 'function') {
-        clearImportViewState()
-      }
-      toggleMenu()
-    }
+      /*  Navigation */
 
-    /** Toggles the visibility of the navigation drawer and its overlay. */
-    function toggleMenu() {
-      const drawer = document.getElementById('drawer')
-      const overlay = document.getElementById('overlay')
-      drawer.classList.toggle('hidden')
-      overlay.classList.toggle('hidden')
-    }
+      (function () {
 
-    /** Clears all messages and warnings from the import and export views. */
-    function clearViewMessages() {
-      const importMessageEl = document.getElementById('import-message')
-      const exportMessageEl = document.getElementById('mobileMessage')
-      if (importMessageEl) {
-        importMessageEl.textContent = ''
-        importMessageEl.className = 'message info'
-      }
-      if (exportMessageEl) {
-        exportMessageEl.textContent = ''
-        exportMessageEl.className = 'message info'
-      }
-    }
+        /**
+         * Switches the visible service view in the main content area.
+         * Hides all other service views.
+         * @param {string} view Service identifier (for example, "import").
+         */
+        window.showView = function(view) {
+          if (typeof clearViewMessages === 'function') {
+            clearViewMessages()
+          }
+          document.querySelectorAll('.view').forEach(v => {
+            v.classList.add('hidden')
+          })
+          const selected = document.getElementById('view-' + view)
+          if (selected) {
+            selected.classList.remove('hidden')
+          }
+          if (view === 'import' && typeof clearImportViewState === 'function') {
+            clearImportViewState()
+          }
+          toggleMenu()
+        }
 
+        /** Toggles the visibility of the navigation drawer and its overlay. */
+        window.toggleMenu = function() {
+          const drawer = document.getElementById('drawer')
+          const overlay = document.getElementById('overlay')
+          drawer.classList.toggle('hidden')
+          overlay.classList.toggle('hidden')
+        }
+
+        /** Clears all messages and warnings from the import and export views. */
+        function clearViewMessages() {
+          const importMessageEl = document.getElementById('import-message')
+          const exportMessageEl = document.getElementById('mobileMessage')
+          if (importMessageEl) {
+            importMessageEl.textContent = ''
+            importMessageEl.className = 'message info'
+          }
+          if (exportMessageEl) {
+            exportMessageEl.textContent = ''
+            exportMessageEl.className = 'message info'
+          }
+        }
+
+      })();
   </script>
 </body>
 
