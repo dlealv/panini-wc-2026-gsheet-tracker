@@ -1,0 +1,38 @@
+<!--
+  src/html/MobileAboutView.html
+
+  Mobile about view wrapper for the web application.
+
+  This template is injected into MobileHome.html and provides the mobile
+  about interface.
+
+  Responsibilities:
+  - Render the mobile about container.
+  - Include shared about view.
+  - Initialize the shared about view when selected.
+
+Shared about logic belongs to AboutView.html.
+Shared navigation belongs to MobileHome.html.
+-->
+
+<section id="view-about" class="view hidden">
+  <?!= include('AboutView') ?>
+</section>
+
+<script>
+
+  (function () {
+
+    /**
+     * Displays the about view and initializes it.
+     * Called by mobile navigation.
+     * Note: Used by MobileHome.html.
+     */
+    window.showAboutView = function () {
+      showView('about')
+      if (typeof initializeAboutView === 'function') {
+        initializeAboutView()
+      }
+    }
+  })()
+</script>

@@ -207,37 +207,53 @@ panini-wc-2026-gsheet-tracker/
 To ensure local testability while maintaining cross-platform consistency and synchronization safety, the user interface is organized into three distinct layers:
 
 ### Layer 1: Dialog Orchestration Framework (`*Dialog.html`)
-* **Responsibility**: Defines the desktop dialog structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`. When the UI is shared with the mobile application, this file becomes a thin desktop wrapper around the shared `*View.html`, retaining only desktop-specific initialization and services.
+* **Responsibility**: Defines the desktop dialog structure and lifecycle entry point. It initializes desktop-specific configuration, provides the dialog shell when required, and loads the corresponding view. When the UI is shared with the mobile application, this file becomes a thin desktop wrapper around the shared `*View.html`, retaining only desktop-specific initialization and configuration. It may provide the outer container when the desktop dialog requires one, but it should not contain feature-specific UI logic.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 #### Layer 1.1: Shared View (`*View.html`)
-* **Responsibility**: When the UI is shared between the desktop and mobile applications, the common implementation is moved from `*Dialog.html` into `*View.html`. This layer defines the shared UI structure, initializes the UI lifecycle, connects view events, and executes asynchronous backend calls via `google.script.run`.
+* **Responsibility**: Contains the shared feature implementation when the same UI is used by desktop and mobile applications. Common markup and controller logic are moved from `*Dialog.html` into this layer. The View owns the feature lifecycle, user interactions, UI state coordination, and asynchronous backend calls through `google.script.run`.  
+  A View must not assume that its host provides a layout container. If the host already provides the required container, the View reuses it. Otherwise, the View is responsible for providing its own container.
+* **Implementation Rules**:
+    * ✔ View controllers must be encapsulated to avoid leaking internal variables and functions into the global browser scope.
+    * ✔ View-specific DOM references should remain local to the view controller.
+    * ✔ Shared view functions exposed globally should only be those required by the host container or HTML event handlers.
+    * ❌ A View should not contain duplicated platform-specific implementations when the behavior can be controlled through configuration or wrapper initialization.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
+> The Import service is the only exception. `ImportView.html` is not shared with the mobile application because the mobile import workflow is intentionally simplified and optimized for smaller screens.
+
 #### Layer 1.2: Mobile Home (`MobileHome.html`)
-* **Responsibility**: Entry point for the mobile web application. It provides the navigation drawer, view switching mechanism, and loads feature views using HTML includes.
+* **Responsibility**: Entry point for the mobile web application. It provides the application shell, navigation drawer, manages view switching, and loads feature views using HTML includes.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 #### Layer 1.3: Mobile-Specific View (`Mobile*View.html`)
-* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization or configuration when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated implementation. For example, `MobileImportView.html` provides a simplified import interface optimized for mobile devices.
+* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization, configuration, or layout adjustments when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated mobile implementation.  
+  This is the case for `MobileImportView.html`, which provides a simplified import interface optimized for mobile devices.
+* **Implementation Rules**:
+    * ✔ Owns mobile navigation sections, visibility management, and feature initialization when required.
+    * ✔ May configure shared views through parameters or exposed initialization functions.
+    * ❌ Must not duplicate shared feature logic unnecessarily.
+    * ❌ Must not create additional page containers when the host already provides the required container.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 ### Layer 2: Functional Logic Helpers (`*Helpers.html`)
-* **Responsibility**: Manages data filtering, pending update calculations, state management, summary calculations, and data transformation logic.
+* **Responsibility**: Contains reusable functional logic consumed by the view layer, including state calculations, data transformation, filtering, pending update calculations, and summary calculations.
 * **Constraints**:
     * ✔ Must remain pure and deterministic; should not depend on DOM APIs or browser runtime state.
     * ❌ Must not reference browser objects such as `document`, `window`, or UI elements.
     * ❌ Must not execute `google.script.run` calls.
+    * ❌ Must not directly update the user interface.
 * **Test Status**: Extensively tested locally with Jest using extracted artifacts from the `build/` directory for functions marked with the `@export` tag.
 
 ### Layer 3: Visual Render Factories (`*Render.html`)
-* **Responsibility**: Handles DOM construction, visual component creation, and layout assembly (e.g., `buildCountrySection`, `buildStickerCard`).
+* **Responsibility**: Handles DOM construction, visual component creation, and layout assembly (e.g., `buildCountrySection`, `buildStickerCard`). Render files are consumed by the view layer.
 * **Constraints**:
     * ✔ Responsible for generating UI components and performing DOM updates.
-    * ❌ Must not contain business logic, calculations, or backend service definitions.
+    * ❌ Must not contain business logic, calculations, state management, or backend service definitions.
+    * ❌ Must not depend on feature lifecycle orchestration.
 * **Test Status**: Partially tested locally using mocked DOM environments for functions marked with the `@export` tag.
 
-> Functions defined `*[Helpers|Render].html` files are encapsulated in namespaces to avoid browser's global scope pollution.
+> Functions defined in `*Helpers.html` and `*Render.html` files are encapsulated in namespaces to avoid polluting the browser's global scope. View controllers use local closures (IIFE pattern) to keep DOM references, state, and internal functions isolated while exposing only the required public interface.
 
 ---
 
@@ -249,7 +265,7 @@ The Google Apps Script spreadsheet application provides two user interfaces:
 - Desktop UI through Google Sheets dialogs.
 - Mobile UI through a Web app (`doGet()`).
 
-The mobile implementation is built on top of the same backend services used by the desktop application. Both platforms share the same business logic and repository layer, while providing platform-specific views and styling where necessary.
+The mobile implementation is built on top of the same backend services used by the desktop application. Both platforms share the same business logic and repository layer while providing platform-specific views and styling where necessary.
 
 ### Backend
 - `Code.gs`
@@ -272,8 +288,8 @@ Responsibilities:
 
 This constructor parameter is a key part of the mobile architecture because:
 - Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
-- Mobile Web app cannot rely on `getActiveSpreadsheet()`.
-- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and passes it to the constructors of the classes: `ImportService`, `ExportService`, and `QuickEntryService`.
+- The mobile Web app cannot rely on `getActiveSpreadsheet()`.
+- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and pass it to the constructors of `ImportService`, `ExportService`, and `QuickEntryService`.
 
 This design allows the same repository implementation to operate correctly in both execution environments without duplicating business logic.
 
@@ -282,7 +298,7 @@ This design allows the same repository implementation to operate correctly in bo
 - Validate the spreadsheet structure.
 - Read country and sticker data.
 - Update sticker counts in batches.
-- Provide reusable lookup helpers for the Import, Export, and Quick entry services.
+- Provide reusable lookup helpers for the Import, Export, and Quick Entry services.
 - Lazily initialize internal attributes through getters to reduce execution time.
 
 ### UI
@@ -293,35 +309,43 @@ The application provides two user interfaces:
 
 ### Desktop UI
 
-- `ImportDialog.html`: Desktop dialog for importing sticker data into Google Sheets.
-  - Load styles: `CommonStyles.html` and `ImportExportStyles.html`.
-  - Load `ImportHelper.html`.
-  - Load data from text or CSV files.
-  - Paste sticker data manually.
-  - Validate and preview imported data.
-  - Import sticker counts into the spreadsheet.
+- `ImportDialog.html`: Desktop host page for the Import service.
+  - Loads `CommonStyles.html` and `ImportExportStyles.html`.
+  - Injects desktop configuration values (`defaultMode`).
+  - Loads `ImportView.html`.
+
+- `ImportView.html`: Owns the complete desktop user interface for the Import service.
+  - File upload.
+  - Manual text input.
+  - Import mode selection.
+  - Validation and preview.
+  - Warning rendering.
+  - Import actions.
+  - Format guide.
+  - Help dialog (`ImportHelp.html`).
+  - Loads `ImportHelpers.html`.
 
 - `ExportDialog.html`: Desktop dialog used by both export services.
-  - Load styles: `CommonStyles.html` and `ImportExportStyles.html`.
+  - Loads `CommonStyles.html` and `ImportExportStyles.html`.
   - Provides the desktop dialog shell.
   - Injects `dialogMode`.
-  - Loads `ExportView.html` (the view file loads the `ExportHelpers.html`)
+  - Loads `ExportView.html` (which loads `ExportHelpers.html`).
   - Initializes the shared view.
   - Supports both `export_all` and `export_shared` modes.
 
 - `QuickEntryDialog.html`: Desktop dialog for Quick Entry.
-  - Load styles: `CommonStyles.html` and `QuickEntryStyles.html`.
+  - Loads `CommonStyles.html` and `QuickEntryStyles.html`.
   - Provides the desktop dialog shell.
-  - Includes desktop styles.
-  - Loads `QuickEntryView.html` (The view file, loads the `QuickEntryHelpers.html` and `QuickEntryRender.html`)
+  - Loads `QuickEntryView.html` (which loads `QuickEntryHelpers.html` and `QuickEntryRender.html`).
   - Initializes the shared Quick Entry view.
 
-Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper then become thin containers responsible only for platform-specific initialization.
+Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper become thin containers responsible only for platform-specific initialization.
+
+Shared view controllers use an IIFE-based structure to isolate internal state, DOM references, and implementation details. Only functions required by the host container or HTML event bindings are exposed through the global scope.
 
 Examples:
 
-- `ExportView.html`
-  - Single export implementation shared by `ExportDialog.html` and `MobileExportView.html`.
+- `ExportView.html`: Shared export implementation used by `ExportDialog.html` and `MobileExportView.html`.
   - Owns:
     - Export toolbar.
     - Export text area.
@@ -329,14 +353,15 @@ Examples:
     - Export hints and warnings.
     - Mode-driven export routing.
   - The active export mode is supplied by the parent wrapper instead of relying on duplicated global state.
-  - Loads `ExportHelpers.html`
+  - Loads `ExportHelpers.html`.
 
-- `QuickEntryView.html`
-  - Displays the toolbar, filters, legend, message area, and country list.
-  - Includes the shared helpers and rendering modules.
-  - Manages view state and user interactions.
-  - Calls the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web app.
-  - Loads `QuickEntryHelpers.html` and `QuickEntryViewRender.html` files.
+- `QuickEntryView.html`: Shared Quick Entry implementation used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
+  - Owns:
+    - The toolbar, filters, legend, message area, and country list.
+    - Shared helpers and rendering modules.
+    - View state and user interactions.
+    - Calls to the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web app.
+    - Loads `QuickEntryHelpers.html` and `QuickEntryRender.html`.
 
 > `ImportDialog.html` is the only desktop dialog that does not share its view with the mobile application. The mobile import workflow is intentionally simplified to better fit smaller screens.
 
@@ -347,11 +372,14 @@ Examples:
   - Implements the navigation drawer.
   - Handles view switching.
   - Clears messages when navigating between services.
-  - Loads the mobile styles: `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html` and `MobileQuickEntryStyles.html`.
-  - Loads the views: `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntryView.html`.
+  - Loads `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html`, and `MobileQuickEntryStyles.html`.
+  - Loads `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntryView.html`.
 
 - Mobile views:
-  - `MobileImportView.html`: Simplified mobile implementation of the import service.
+  - `MobileImportView.html`:
+    - Simplified mobile implementation of the Import service.
+    - Loads `ImportHelpers.html` and reuses selected utility functions.
+    - Does not use `ImportView.html`.
   - `MobileExportView.html`: Mobile wrapper around `ExportView.html`.
     - Provides the mobile layout.
     - Sets the page title and export hint.
@@ -380,7 +408,7 @@ Examples:
 5. `ExportView.html` initializes the shared export interface.
 6. Export data is generated using the selected mode.
 
-### Mobile quick entry flow
+### Mobile Quick Entry flow
 
 1. The user opens the navigation drawer.
 2. Selects **Quick Entry**.
@@ -399,13 +427,13 @@ Examples:
   - Messages.
   - Form controls.
 
-- `ImportExportDialogStyles.html`: Desktop styles shared by the Import and Export dialogs.
+- `ImportExportStyles.html`: Desktop styles shared by the Import and Export dialogs.
   - Shared layouts.
   - Forms.
   - Buttons.
   - Message components.
 
-- `QuickEntryDialogStyles.html`: Desktop-specific styles for the Quick Entry dialog.
+- `QuickEntryStyles.html`: Desktop-specific styles for the Quick Entry dialog.
   - Sticker grid layout.
   - Country sections.
   - Sticker cards.
@@ -420,14 +448,14 @@ Examples:
   - Messages.
   - Form controls.
 
-- `MobileImportStyles.html`: Mobile-specific styles for the import service.
+- `MobileImportStyles.html`: Mobile-specific styles for the Import service.
   - Import card layout.
   - Buttons.
   - Preview panel.
   - Warning panel.
   - Format hints.
 
-- `MobileExportStyles.html`: Mobile-specific styles for the export service.
+- `MobileExportStyles.html`: Mobile-specific styles for the Export service.
   - Export card layout.
   - Toolbar alignment.
   - Button sizing.
@@ -524,7 +552,9 @@ git checkout -b add-country-filter              # short branch name
 
 #### 3. Make changes locally
 
-Implement the required changes in the project.
+Implement the required changes in the project. 
+
+> Do frequent commits to remote repository to the new created branch, to backup the current changes.
 
 #### 4. Run local validation
 
@@ -575,7 +605,7 @@ Two independent workflows are defined:
 
 ##### Validation Workflow
 
-**Workflow file**
+###### Workflow file
 
 ```text
 .github/workflows/validate.yml
@@ -608,7 +638,7 @@ The workflow performs the following actions:
 
 ##### Production Deployment Workflow
 
-**Workflow file**
+###### Workflow file
 
 ```text
 .github/workflows/deploy.yml

@@ -26,8 +26,9 @@
       </div>
 
       <div class="filters">
+        <!-- Layout is adapted to desktop or mobile through CSS. -->
         <input type="text" id="qe-teamSearchInput" class="filter-input"
-          placeholder="Search by team code or country name" oninput="handleFiltersChange()">
+          placeholder="Search by country code/name or sticker #" oninput="handleFiltersChange()">
         <div class="filter-row">
           <select id="qe-groupFilterSelect" class="filter-select" onchange="handleFiltersChange()">
             <option value="all">All groups</option>
@@ -48,7 +49,7 @@
           onclick="setStatusFilter('repeated')">Repeated</button>
         <button class="btn btn-filter filter-btn-desktop" data-filter="pending"
           onclick="setStatusFilter('pending')">Pending</button>
-      </div>
+      </div> <!-- /filters -->
 
       <div class="legend">
         <span class="legend-item">
@@ -83,234 +84,255 @@
           <span class="legend-swatch completed"></span>
           <span>Complete team</span>
         </span>
-      </div>
-    </div>
-  </div>
+      </div> <!-- /legend -->
+
+    </div> <!-- /top-bar -->
+  </div> <!-- /section -->
 
   <div id="qe-message" class="message info"></div>
 
   <div class="section country-list-wrapper">
     <div id="qe-countryList" class="country-list"></div>
   </div>
-</div>
+</div> <!-- /container -->
 
+<!-- Include shared helpers (QuickEntry namespace) and render logic (QuickEntryRender namespace)-->
 <?!= include('QuickEntryHelpers') ?>
 <?!= include('QuickEntryRender') ?>
 
 <script>
-  const FILTERS = Object.freeze({ ALL: 'all', MISSING: 'missing', REPEATED: 'repeated', PENDING: 'pending' })
-  const GROUP_FILTERS = Object.freeze({ ALL: 'all' })
-  const state = {
-    countries: [], groupCodes: [], selectedStatusFilter: FILTERS.ALL,
-    selectedGroupFilter: GROUP_FILTERS.ALL, teamSearchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
-  }
 
-  const teamSearchInput = document.getElementById('qe-teamSearchInput')
-  const groupFilterSelect = document.getElementById('qe-groupFilterSelect')
-  const statusFilterSelect = document.getElementById('qe-statusFilterSelect')
-  const messageEl = document.getElementById('qe-message')
-  const countryListEl = document.getElementById('qe-countryList')
-  const applyChangesButton = document.getElementById('qe-applyChangesButton')
+  /* 
+   * View controller
+   *
+   * Coordinates the Quick Entry view by:
+   *   - handling user interactions,
+   *   - invoking backend services,
+   *   - updating UI state.
+   */
 
-  /** Returns the current layout configuration. */
-  function getLayout() {
-    return window.quickEntryLayout || { stickersPerRow: 8 }
-  }
+  (function () {
 
-  /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
-  function isDesktopDialogHost() {
-    return Boolean(window.google && google.script && google.script.host && google.script.host.close)
-  }
-
-  /**Initializes the Quick Entry view and loads initial data.*/
-  function initializeQuickEntry() {
-    const layout = getLayout()
-    showBusyState(true)
-    showMessage('Loading countries...', 'info')
-    if (typeof QuickEntry.applyLayout === 'function') {
-      QuickEntry.applyLayout(layout.stickersPerRow)
+    /** Quick Entry view state and constants. */
+    const FILTERS = Object.freeze({ ALL: 'all', MISSING: 'missing', REPEATED: 'repeated', PENDING: 'pending' })
+    const GROUP_FILTERS = Object.freeze({ ALL: 'all' })
+    const state = {
+      countries: [], groupCodes: [], selectedStatusFilter: FILTERS.ALL,
+      selectedGroupFilter: GROUP_FILTERS.ALL, searchText: '', pendingUpdates: {}, isBusy: false, isLoaded: false
     }
-    const backendMethod = isDesktopDialogHost()
-      ? 'getQuickEntryInitialData'
-      : 'getQuickEntryInitialDataMobile'
-    google.script.run
-      .withSuccessHandler(result => {
-        try {
-          state.countries = result.countries || []
-          state.groupCodes = result.groupCodes || []
-          state.selectedStatusFilter = result.selectedStatusFilter || FILTERS.ALL
-          state.selectedGroupFilter = result.selectedGroupFilter || GROUP_FILTERS.ALL
-          state.isLoaded = true
+
+    const searchInputEl = document.getElementById('qe-teamSearchInput')
+    const groupFilterEl = document.getElementById('qe-groupFilterSelect')
+    const statusFilterEl = document.getElementById('qe-statusFilterSelect')
+    const messageEl = document.getElementById('qe-message')
+    const countryListEl = document.getElementById('qe-countryList')
+    const applyButtonEl = document.getElementById('qe-applyChangesButton')
+
+    /**Initializes the Quick Entry view and loads initial data.*/
+    window.initializeQuickEntryView = function () {
+      const layout = getLayout()
+      showBusyState(true)
+      setMessage('Loading countries...', 'info')
+      if (typeof QuickEntry.applyLayout === 'function') {
+        QuickEntry.applyLayout(layout.stickersPerRow)
+      }
+      const backendMethod = isDesktopDialogHost()
+        ? 'getQuickEntryInitialData'
+        : 'getQuickEntryInitialDataMobile'
+      google.script.run
+        .withSuccessHandler(result => {
+          try {
+            state.countries = result.countries || []
+            state.groupCodes = result.groupCodes || []
+            state.selectedStatusFilter = result.selectedStatusFilter || FILTERS.ALL
+            state.selectedGroupFilter = result.selectedGroupFilter || GROUP_FILTERS.ALL
+            state.isLoaded = true
+            showBusyState(false)
+            renderAll()
+            setMessage('Ready.', 'success')
+          } catch (e) {
+            showBusyState(false)
+            setMessage('Render failed: ' + (e.message || e), 'error')
+          }
+        })
+        .withFailureHandler(err => {
+          showBusyState(false)
+          setMessage(err && err.message ? err.message : 'Init failed', 'error')
+        })
+      [backendMethod]()
+    }
+
+    /**Updates the selected status filter (desktop buttons and mobile compatibility).*/
+    window.setStatusFilter = function (filterName) {
+      state.selectedStatusFilter = filterName
+      if (statusFilterEl) {
+        statusFilterEl.value = filterName
+      }
+      renderFilterButtons()
+      renderCountryList()
+    }
+
+    /**Applies pending sticker updates to the backend in the front-end just the local state is updated immediately.*/
+    window.applyChanges = function () {
+      const pending = QuickEntry.getPendingUpdates(state.pendingUpdates)
+      if (!pending.length) {
+        setMessage('There are no pending changes to update.', 'info')
+        return
+      }
+      showBusyState(true)
+      setMessage('Updating sticker data...', 'info')
+      const backendMethod = isDesktopDialogHost()
+        ? 'applyQuickEntryUpdates'
+        : 'applyQuickEntryUpdatesMobile'
+      google.script.run
+        .withSuccessHandler(result => {
+          QuickEntry.commitPendingUpdates(state, pending)
+          state.pendingUpdates = {}
           showBusyState(false)
           renderAll()
-          showMessage('Ready.', 'success')
-        } catch (e) {
-          showBusyState(false)
-          showMessage('Render failed: ' + (e.message || e), 'error')
-        }
-      })
-      .withFailureHandler(err => {
-        showMessage(err && err.message ? err.message : 'Init failed', 'error')
-      })
-    [backendMethod]()
-  }
-
-  /**Updates filters and refreshes the country list.*/
-  function handleFiltersChange() {
-    state.teamSearchText = teamSearchInput.value.trim().toLowerCase()
-    state.selectedGroupFilter = groupFilterSelect.value
-    renderCountryList()
-  }
-
-  /**Updates the selected status filter from dropdown (mobile).*/
-  function handleStatusFilterChange() {
-    state.selectedStatusFilter = statusFilterSelect.value
-    renderCountryList()
-  }
-
-  /**Updates the selected status filter (desktop buttons and mobile compatibility).*/
-  function setStatusFilter(filterName) {
-    state.selectedStatusFilter = filterName
-    if (statusFilterSelect) {
-      statusFilterSelect.value = filterName
+          setMessage(result.message || 'Updated', 'success')
+        })
+        .withFailureHandler(handleFailure)
+      [backendMethod]({ pendingUpdates: pending })
     }
-    renderFilterButtons()
-    renderCountryList()
-  }
 
-  /**Renders all UI sections (filters, buttons, list).*/
-  function renderAll() {
-    try {
-      renderGroupFilterOptions()
-      renderStatusFilterSelect()
-      renderFilterButtons()
-      renderApplyButton()
+    /**Updates filters and refreshes the country list.*/
+    window.handleFiltersChange = function () {
+      setMessage('', 'info') // Clear any previous messages
+      state.searchText = searchInputEl.value.trim().toLowerCase()
+      state.selectedGroupFilter = groupFilterEl.value
       renderCountryList()
-    } catch (e) {
-      QuickEntry.setMessage('Render error: ' + (e.message || e), 'error')
     }
-  }
 
-  /**Renders the group filter dropdown options.*/
-  function renderGroupFilterOptions() {
-    const currentValue = state.selectedGroupFilter
-    groupFilterSelect.innerHTML = ''
-    const allOption = document.createElement('option')
-    allOption.value = 'all'
-    allOption.textContent = 'All groups'
-    groupFilterSelect.appendChild(allOption)
-    state.groupCodes.forEach(code => {
-      const opt = document.createElement('option')
-      opt.value = code
-      opt.textContent = code
-      groupFilterSelect.appendChild(opt)
-    })
-    groupFilterSelect.value = currentValue
-  }
-
-  /**Syncs the status filter dropdown with current state.*/
-  function renderStatusFilterSelect() {
-    if (statusFilterSelect) {
-      statusFilterSelect.value = state.selectedStatusFilter
-      statusFilterSelect.disabled = state.isBusy
+    /**Updates the selected status filter from dropdown (mobile).*/
+    window.handleStatusFilterChange = function () {
+      setMessage('', 'info') // Clear any previous messages
+      state.selectedStatusFilter = statusFilterEl.value
+      renderCountryList()
     }
-  }
 
-  /**Renders filter button states using helper logic.*/
-  function renderFilterButtons() {
-    document.querySelectorAll('[data-filter]').forEach(button => {
-      const filter = button.dataset.filter
-      const isActive = (state.selectedStatusFilter === filter)
-      button.classList.toggle('active', isActive)
-      button.disabled = state.isBusy
-    })
-    teamSearchInput.disabled = state.isBusy
-    groupFilterSelect.disabled = state.isBusy
-    if (statusFilterSelect) {
-      statusFilterSelect.disabled = state.isBusy
-    }
-  }
-
-  /**Enables or disables the Update button.*/
-  function renderApplyButton() {
-    applyChangesButton.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
-  }
-
-  /**Renders the visible country cards.*/
-  function renderCountryList() {
-    const layout = getLayout()
-    const visibleCountries = QuickEntry.getVisibleCountries(state)
-    countryListEl.innerHTML = ''
-    if (!visibleCountries.length) {
-      countryListEl.appendChild(QuickEntry.buildEmptyState(getEmptyStateMessage()))
-      return
-    }
-    visibleCountries.forEach(country => {
-      countryListEl.appendChild(QuickEntryRender.buildCountrySection(country, state, layout, queueStickerChangeHandler))
-    })
-  }
-
-  /**Returns the empty-state message text.*/
-  function getEmptyStateMessage() {
-    if (!state.isLoaded) return 'Loading countries...'
-    return 'No countries match the selected filters.'
-  }
-
-  /**Queues a sticker count change locally.*/
-  function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
-    const result = QuickEntry.queueStickerChange(state, countryCode, stickerNumber, nextCount)
-    state.pendingUpdates = result.pendingUpdates
-    QuickEntry.updatePendingChangesMessage(state, showMessage)
-    renderAll()
-  }
-
-  /**Applies pending sticker updates to the backend in the front-end just the local state is updated immediately.*/
-  function applyChanges() {
-    const pending = QuickEntry.getPendingUpdates(state.pendingUpdates)
-    if (!pending.length) {
-      showMessage('There are no pending changes to update.', 'info')
-      return
-    }
-    showBusyState(true)
-    showMessage('Updating sticker data...', 'info')
-    const backendMethod = isDesktopDialogHost()
-      ? 'applyQuickEntryUpdates'
-      : 'applyQuickEntryUpdatesMobile'
-    google.script.run
-      .withSuccessHandler(result => {
-        QuickEntry.commitPendingUpdates(state, pending)
-        state.pendingUpdates = {}
-        showBusyState(false)
-        renderAll()
-        showMessage(result.message || 'Updated', 'success')
-      })
-      .withFailureHandler(handleFailure)
-    [backendMethod]({ pendingUpdates: pending })
-  }
-
-  /**Displays a status message in the dialog.*/
-  function showMessage(text, type) {
-    QuickEntry.setMessage(messageEl, text, type)
-  }
-
-  /**Updates the busy state safely without helper dependencies.*/
-  function showBusyState(isBusy) {
-    try {
-      state.isBusy = Boolean(isBusy)
-      applyChangesButton.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
-      teamSearchInput.disabled = state.isBusy
-      groupFilterSelect.disabled = state.isBusy
-      if (statusFilterSelect) {
-        statusFilterSelect.disabled = state.isBusy
+    /**Renders all UI sections (filters, buttons, list).*/
+    function renderAll() {
+      try {
+        renderGroupFilterOptions()
+        renderStatusFilterSelect()
+        renderFilterButtons()
+        renderApplyButton()
+        renderCountryList()
+      } catch (e) {
+        setMessage('Render error: ' + (e.message || e), 'error')
       }
-    } catch (error) {
-      console.error('showBusyState failed:', error)
     }
-  }
 
-  /**Handles backend request failures.*/
-  function handleFailure(error) {
-    showBusyState(false)
-    showMessage(error && error.message ? error.message : 'Unexpected error.', 'error')
-  }
+    /**Renders the group filter dropdown options.*/
+    function renderGroupFilterOptions() {
+      const currentValue = state.selectedGroupFilter
+      groupFilterEl.innerHTML = ''
+      const allOption = document.createElement('option')
+      allOption.value = 'all'
+      allOption.textContent = 'All groups'
+      groupFilterEl.appendChild(allOption)
+      state.groupCodes.forEach(code => {
+        const opt = document.createElement('option')
+        opt.value = code
+        opt.textContent = code
+        groupFilterEl.appendChild(opt)
+      })
+      groupFilterEl.value = currentValue
+    }
+
+    /**Syncs the status filter dropdown with current state.*/
+    function renderStatusFilterSelect() {
+      if (statusFilterEl) {
+        statusFilterEl.value = state.selectedStatusFilter
+        statusFilterEl.disabled = state.isBusy
+      }
+    }
+
+    /**Renders filter button states using helper logic.*/
+    function renderFilterButtons() {
+      document.querySelectorAll('[data-filter]').forEach(button => {
+        const filter = button.dataset.filter
+        const isActive = (state.selectedStatusFilter === filter)
+        button.classList.toggle('active', isActive)
+        button.disabled = state.isBusy
+      })
+      searchInputEl.disabled = state.isBusy
+      groupFilterEl.disabled = state.isBusy
+      if (statusFilterEl) {
+        statusFilterEl.disabled = state.isBusy
+      }
+    }
+
+    /**Enables or disables the Update button.*/
+    function renderApplyButton() {
+      applyButtonEl.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
+    }
+
+    /**Renders the visible country cards.*/
+    function renderCountryList() {
+      const layout = getLayout()
+      const visibleCountries = QuickEntry.getVisibleCountries(state)
+      countryListEl.innerHTML = ''
+      if (!visibleCountries.length) {
+        countryListEl.appendChild(QuickEntry.buildEmptyState(getEmptyStateMessage()))
+        return
+      }
+      visibleCountries.forEach(country => {
+        countryListEl.appendChild(QuickEntryRender.buildCountrySection(country, state, layout, queueStickerChangeHandler))
+      })
+    }
+
+    /**Returns the empty-state message text.*/
+    function getEmptyStateMessage() {
+      if (!state.isLoaded) return 'Loading countries...'
+      return 'No countries match the selected filters.'
+    }
+
+    /**Queues a sticker count change locally.*/
+    function queueStickerChangeHandler(countryCode, stickerNumber, nextCount) {
+      const result = QuickEntry.queueStickerChange(state, countryCode, stickerNumber, nextCount)
+      state.pendingUpdates = result.pendingUpdates
+      QuickEntry.updatePendingChangesMessage(state, setMessage)
+      renderAll()
+    }
+
+    /**Updates the busy state safely without helper dependencies.*/
+    function showBusyState(isBusy) {
+      try {
+        state.isBusy = Boolean(isBusy)
+        applyButtonEl.disabled = state.isBusy || QuickEntry.getPendingUpdates(state.pendingUpdates).length === 0
+        searchInputEl.disabled = state.isBusy
+        groupFilterEl.disabled = state.isBusy
+        if (statusFilterEl) {
+          statusFilterEl.disabled = state.isBusy
+        }
+      } catch (error) {
+        console.error('showBusyState failed:', error)
+      }
+    }
+
+    /**Displays a status message in the view.*/
+    function setMessage(text, type) {
+      QuickEntry.setMessage(messageEl, text, type)
+    }
+
+    /**Handles backend request failures.*/
+    function handleFailure(error) {
+      showBusyState(false)
+      setMessage(error && error.message ? error.message : 'Unexpected error.', 'error')
+    }
+
+    /** Returns the current layout configuration. */
+    function getLayout() {
+      return window.quickEntryLayout || { stickersPerRow: 8 }
+    }
+
+    /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
+    function isDesktopDialogHost() {
+      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
+    }
+
+  })();
+  
 </script>

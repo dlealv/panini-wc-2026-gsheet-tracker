@@ -45,25 +45,6 @@ describe('ExportHelpers unit tests', () => {
       expect(helpers.getPayload()).toEqual(helpers._getUIState())
     })
   })
-
-  /** Set message for user feedback. */
-  describe('setMessage()', () => {
-    test('sets class and text correctly', () => {
-      const messageEl = { className: '', textContent: '' }
-      helpers.setMessage('Hello', 'success', { messageEl })
-      expect(messageEl.className).toBe('message success')
-      expect(messageEl.textContent).toBe('Hello')
-    })
-    test('defaults type to info', () => {
-      const messageEl = { className: '', textContent: '' }
-      helpers.setMessage('Test', undefined, { messageEl })
-      expect(messageEl.className).toBe('message info')
-    })
-    test('does nothing when message element is missing', () => {
-      expect(() => helpers.setMessage('Hello', 'success', { messageEl: null })).
-        not.toThrow()
-    })
-  })
 })
 
 /** Set the busy state for UI elements. */

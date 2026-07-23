@@ -61,7 +61,7 @@
 
   .filters {
     display: grid;
-    grid-template-columns: minmax(260px, 1.7fr) minmax(150px, 0.85fr) auto auto auto auto;
+    grid-template-columns: minmax(290px, 2fr) minmax(110px, 0.5fr) auto auto auto auto;
     gap: 8px;
     align-items: center;
   }
@@ -79,7 +79,7 @@
     flex-wrap: wrap;
     gap: 10px 14px;
     align-items: center;
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--muted);
   }
 
@@ -216,7 +216,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 18px;
+   font-size: var(--text-xl);
     font-weight: 700;
   }
 
@@ -235,7 +235,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    font-size: 14px;
+    font-size: var(--text-md);
   }
 
   .summary-value {
@@ -344,7 +344,7 @@
 
   /* The label element on each sticker card, used to display the sticker number or label. */
   .sticker-label {
-    font-size: 14px;
+    font-size: var(--text-md);
     font-weight: 700;
   }
 
@@ -362,7 +362,7 @@
     min-width: 26px;
     border-width: 2px;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: var(--text-lg);
     line-height: 1;
   }
 
@@ -376,7 +376,7 @@
     position: absolute;
     top: 3px;
     left: 4px;
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 700;
     color: var(--muted);
     letter-spacing: 0.3px;
@@ -384,7 +384,7 @@
 
   .empty-state {
     color: var(--muted);
-    font-size: 14px;
+    font-size: var(--text-md);
   }
 
   @media (max-width: 600px) {

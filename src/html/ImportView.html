@@ -1,0 +1,290 @@
+<!--
+  src/html/ImportView.html
+
+  Desktop Import view.
+
+  Owns the complete desktop user interface for the Import service,
+  including:
+
+    - File upload
+    - Manual text input
+    - Import mode selection
+    - Validation and preview
+    - Warning rendering
+    - Import actions
+    - Format guide
+    - Help dialog (ImportHelp.html)
+
+  Includes:
+    - ImportHelp.html
+    - ImportHelpers.html
+
+  This view is included by ImportDialog.html to keep the desktop
+  wrapper small and focused.
+
+  Unlike the Export and Quick Entry services, the Import service
+  intentionally uses a separate mobile view because the mobile
+  workflow is significantly simplified for smaller screens.
+
+  The desktop and mobile views share reusable helper functions
+  through ImportHelpers.html, but keep separate layouts and
+  interaction flows.
+
+  Shared client-side logic is provided by ImportHelpers.html.
+-->
+
+<div id="import-view" class="import-view container">
+
+  <!-- Header Section -->
+  <div>
+    <h2>Sticker data</h2>
+    <div class="hint">
+      Load a text/CSV file or paste its content. Data will be written to the
+      <span class="inline-code">COUNTS</span> named range in the
+      <span class="inline-code">Stickers</span> tab, preserving formatting.
+    </div>
+  </div>
+
+  <div id="importModeWrapper">
+
+    <!-- Section 1) Import using a file upload -->
+    <div class="section">
+      <div class="section-title">1) Upload file</div>
+      <label for="fileInput">Select a .txt or .csv file</label>
+      <input type="file" id="fileInput" accept=".txt,.csv,text/plain">
+      <div class="hint" style="margin-top:8px;">
+        When a file is selected, its content will be loaded into the text area below.
+      </div>
+    </div>
+
+    <!-- Section 2) Import via paste data content -->
+    <div class="section">
+      <div class="section-title">2) Or paste content</div>
+      <!-- Clear button sits inline with the label for immediate discoverability -->
+      <div class="label-row">
+        <label for="textInput">Input data</label>
+        <button class="btn btn-inline" onclick="clearInput()">Clear</button>
+      </div>
+      <!-- placeholder shows one example per format for an immediate hint -->
+      <textarea id="textInput" placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
+    </div>
+
+    <!-- Import format: table with different formats and examples + ⓘ info icon -->
+    <div class="section">
+      <?!= include('ImportHelp') ?>
+      <div class="section-title">
+        Input format
+        <button class="help-btn" onclick="openHelpModal()" title="Open full format guide">&#x24D8;</button>
+      </div>
+      <table class="format-card hint">
+        <thead>
+          <tr>
+            <th>Format</th>
+            <th>Example</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Format 1</td>
+            <td><span class="inline-code">MEX,1,3-7,10(2)</span></td>
+            <td>Country code once; comma-separated stickers, ranges (<span class="inline-code">3-7</span>),
+              repeats (<span class="inline-code">10(2)</span>)</td>
+          </tr>
+          <tr>
+            <td>Format 2</td>
+            <td><span class="inline-code">MEX-1,MEX-5(2),MEX3</span></td>
+            <td>Country prefix per sticker; dash is optional (as in <span class="inline-code">MEX3</span>)</td>
+          </tr>
+          <tr>
+            <td>Exclusion</td>
+            <td><span class="inline-code">&lt;&gt;MEX,1,2,3</span></td>
+            <td>Imports all stickers <em>except</em> those listed; use
+              <span class="inline-code">!=</span> or <span class="inline-code">^</span>
+              instead of <span class="inline-code">&lt;&gt;</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 3) Import modes-->
+    <div class="section">
+      <div class="section-title">3) Loading mode</div>
+      <label for="mode">Choose how to apply the load</label>
+      <select id="mode">
+        <option value="clean_all">Import data</option>
+        <option value="replace_countries">Update counts
+          clearing country counts</option>
+        <option value="update">Update counts</option>
+      </select>
+      <ul class="actions-help hint">
+        <li><strong>Import data</strong>: clears all values in <span class="inline-code">COUNTS</span>, then loads
+          the input.</li>
+        <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries in the input,
+          then loads those countries.</li>
+        <li><strong>Update counts</strong>: overwrites only the sticker positions explicitly provided; all other
+          values remain unchanged.</li>
+      </ul>
+    </div>
+
+    <!-- Actions -->
+    <div class="section">
+      <div class="section-title">Actions</div>
+      <div class="actions">
+        <button class="btn" onclick="previewData()">Validate / Preview</button>
+        <button class="btn" onclick="clearInput()">Clear</button>
+        <button class="btn btn-primary" onclick="importData()">Import</button>
+        <button class="btn" onclick="google.script.host.close()">Cancel</button>
+      </div>
+      <ul class="actions-help hint">
+        <li><strong>Validate / Preview</strong>: checks syntax and shows how values will be mapped without writing to
+          the sheet.</li>
+        <li><strong>Clear</strong>: removes the selected file, clears the pasted input, clears the preview, and
+          resets the message.</li>
+        <li><strong>Import</strong>: writes the validated values to the sheet using the selected loading mode.
+          Validation runs automatically before writing.</li>
+        <li><strong>Cancel</strong>: closes the dialog without importing anything.</li>
+      </ul>
+      <!-- tip promoted from footer into the actions section for better visibility -->
+      <div class="tip-row">
+        📌 <strong>Tip:</strong> use <em>Validate / Preview</em> first to confirm how counts will be mapped before
+        importing.
+      </div>
+    </div>
+
+  </div> <!-- /importModeWrapper -->
+
+
+  <div id="import-message" class="message info"></div>
+  <!-- warnings shown below the status message in amber, populated after preview or import -->
+  <div id="import-warnings" class="message warning hidden"></div>
+  <div id="preview" class="preview"></div>
+
+</div> <!-- /import-view -->
+
+<!-- Include shared helpers logic (under Import namespace) -->
+<?!= include('ImportHelpers') ?>
+
+<script>
+
+  /*
+   * View controller
+   *
+   * Coordinates the Import view by:
+   *   - handling user interactions,
+   *   - invoking backend services,
+   *   - rendering validation results,
+   *   - updating UI state.
+   */
+
+  (function () {
+
+    const fileInputEl = document.getElementById('fileInput')
+    const textInputEl = document.getElementById('textInput')
+    const modeInputEl = document.getElementById('mode')
+    const messageEl = document.getElementById('import-message')
+    const previewEl = document.getElementById('preview')
+    const warningsEl = document.getElementById('import-warnings')
+
+    if (modeInputEl && window.importConfig) {
+      modeInputEl.value = window.importConfig.defaultMode || 'update'
+    }
+
+    if (fileInputEl) {
+      fileInputEl.addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0]
+        if (!file) return
+        try {
+          Import.setBusy(true)
+          setMessage(`Reading file: ${file.name}...`, 'info')
+          const text = await file.text()
+          textInputEl.value = text
+          setMessage(`Loaded file: ${file.name}`, 'success')
+        } catch (error) {
+          setMessage(`Could not read the selected file.\n${error.message || error}`, 'error')
+        } finally {
+          Import.setBusy(false)
+        }
+      })
+    }
+
+    /**Resets the import form inputs, preview, and warnings areas. */
+    window.clearInput = function () {
+      Import.setBusy(false)
+      if (fileInputEl) fileInputEl.value = ''
+      if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
+      if (modeInputEl) modeInputEl.value = 'update'
+      Import.clearPreview({ previewEl })
+      renderWarnings([]) // clear previous warnings immediately
+      setMessage('Input cleared.', 'info')
+    }
+
+    /**Validates the current import input and renders a preview without writing data. */
+    window.previewData = function () {
+      Import.clearPreview({ previewEl })
+      renderWarnings([]) // clear previous warnings immediately
+      Import.setBusy(true)
+      setMessage('Validating input...', 'info')
+      google.script.run
+        .withSuccessHandler((result) => {
+          Import.setBusy(false)
+          setMessage('Validation successful.', 'success')
+          renderWarnings(result.warnings)
+          Import.renderPreview(result, { previewEl })
+        })
+        .withFailureHandler((error) => {
+          Import.setBusy(false)
+          Import.clearPreview({ previewEl })
+          renderWarnings([]) // clear previous warnings immediately
+          setMessage(error && error.message ? error.message : String(error), 'error')
+        })
+        .previewStickerData(Import.getPayload())
+    }
+
+    /**Imports the current sticker payload into the spreadsheet. */
+    window.importData = function () {
+      Import.clearPreview({ previewEl })
+      renderWarnings([]) // clear previous warnings immediately
+      Import.setBusy(true)
+      setMessage('Importing data...', 'info')
+      google.script.run
+        .withSuccessHandler((result) => {
+          Import.setBusy(false)
+          setMessage(result && result.message ? result.message : 'Import completed.', 'success')
+          renderWarnings(result.warnings)
+        })
+        .withFailureHandler((error) => {
+          Import.setBusy(false)
+          setMessage(error && error.message ? error.message : String(error), 'error')
+        })
+        .importStickerData(Import.getPayload())
+    }
+
+    /* Wrapper for setMessage to keep the messageEl reference local to this view. */
+    function setMessage(text, type) {
+      Import.setMessage(text, type, { messageEl })
+    }
+
+    /**
+     * Renders backend warnings using the desktop warning layout.
+     * Warning rendering remains local because desktop and mobile
+     * use different visual treatments.
+     */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
+        return
+      }
+      warningsEl.classList.remove('hidden')
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.style.margin = '2px 0'
+        p.textContent = `⚠ ${w}`
+        warningsEl.appendChild(p)
+      })
+    }
+
+  })();
+</script>

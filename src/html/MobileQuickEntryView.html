@@ -20,17 +20,22 @@
 </section>
 
 <script>
-  // mobile-specific layout configuration.
-  window.quickEntryLayout = { stickersPerRow: 5 }
 
-  /**
-   * Displays the quick entry view and initializes it.
-   * Called by mobile navigation.
-   */
-  function showQuickEntryView() {
-    showView('quickentry')
-    if (typeof initializeQuickEntry === 'function') {
-      initializeQuickEntry()
+  (function () {
+
+    // mobile-specific layout configuration.
+    window.quickEntryLayout = { stickersPerRow: 5 }
+
+    /**
+     * Displays the quick entry view and initializes it.
+     * Called by mobile navigation.
+     * Note: Used by MobileHome.html.
+     */
+    window.showQuickEntryView = function () {
+      showView('quickentry')
+      if (typeof initializeQuickEntryView === 'function') {
+        initializeQuickEntryView()
+      }
     }
-  }
+  })()
 </script>

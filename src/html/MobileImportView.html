@@ -19,11 +19,13 @@
 <section id="view-import" class="view card">
   <div class="section-title">Import Sticker Counts</div>
 
+  <!-- Input sticker data -->
   <div class="field">
     <label for="textInput">Sticker data</label>
     <textarea id="textInput" placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
   </div>
 
+  <!-- Import Mode selector -->
   <div class="field">
     <label for="mode">Import mode</label>
     <select id="mode">
@@ -42,107 +44,53 @@
     listed
   </div>
 
-  <!-- ── Action buttons ──────────────────────────────────────────────── -->
+  <!-- Action buttons -->
   <div class="actions">
     <div class="btn-row">
       <button class="btn" onclick="previewData()">Validate / Preview</button>
       <button class="btn" onclick="clearForm()">Clear</button>
     </div>
     <button class="btn btn-primary" onclick="importData()">Import</button>
-    <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
   </div>
 
-  <!-- ── Feedback areas ──────────────────────────────────────────────── -->
+  <!-- Feedback areas -->
   <div id="import-message" class="message info"></div>
   <div id="import-warnings" class="warnings hidden"></div>
   <pre id="import-preview" class="preview hidden"></pre>
 </section>
 
+<!-- shared helper functions for the Import view (Import namespace) -->
+<?!= include('ImportHelpers') ?>
 
 <script>
+  /*
+   * View controller
+   *
+   * Coordinates the Import view by:
+   *   - handling user interactions,
+   *   - invoking backend services,
+   *   - rendering validation results,
+   *   - updating UI state.
+   */
+
   (function () {
-    /* ── Element references ──────────────────────────────────────────────── */
-    const textInput = document.getElementById('textInput')
-    const modeInput = document.getElementById('mode')
+
+    /* Element references */
+    const textInputEl = document.getElementById('textInput')
+    const modeInputEl = document.getElementById('mode')
     const messageEl = document.getElementById('import-message')
     const warningsEl = document.getElementById('import-warnings')
     const previewEl = document.getElementById('import-preview')
 
-    /* ── View helpers ───────────────────────────── */
-
-    /** Builds the backend payload from the current form state. */
-    function getImportPayload() {
-      return {
-        text: textInput ? textInput.value : '',
-        mode: modeInput ? modeInput.value : 'update'
-      }
-    }
-
-    /**
-     * Displays a status message to the user.
-     * @param {string} text Message to display.
-     * @param {string} type Message type (info, success, warning or error).
+     /* Service actions
+      * These functions are called by the view buttons and invoke the backend services.
+      * They have global scope so they can be called from the HTML onclick attributes.
      */
-    function setMessage(text, type) {
-      if (!messageEl) { return }
-      messageEl.className = 'message ' + (type || 'info')
-      messageEl.textContent = text || ''
-    }
-
-    /**
-      * Enables or disables all controls in the import view.
-      * @param {boolean} isBusy Whether the view is busy.
-      */
-    function setBusy(isBusy) {
-      const viewEl = document.getElementById('view-import')
-      if (viewEl) {
-        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
-      }
-      if (textInput) { textInput.disabled = isBusy }
-      if (modeInput) { modeInput.disabled = isBusy }
-    }
-
-    /** Renders the warnings list returned by the backend. */
-    function showWarnings(warnings) {
-      warningsEl.textContent = ''
-      if (!warnings || !warnings.length) {
-        warningsEl.classList.add('hidden')
-        return
-      }
-      warningsEl.classList.remove('hidden')
-      warnings.forEach(w => {
-        const p = document.createElement('p')
-        p.textContent = '⚠ ' + w
-        warningsEl.appendChild(p)
-      })
-    }
-
-    /** Renders the import preview returned by the backend. */
-    function showPreview(result) {
-      if (!result || !result.countries || !result.countries.length) {
-        previewEl.classList.add('hidden')
-        return
-      }
-      const text = result.countries.map(c => {
-        const stickers = (c.stickers || []).map(s => s.number + ':' + s.count).join(', ')
-        return c.code + ' -> ' + stickers
-      }).join('\n')
-      previewEl.textContent = text
-      previewEl.classList.remove('hidden')
-    }
-
-    /** Clears the preview panel. */
-    function clearPreview() {
-      previewEl.textContent = ''
-      previewEl.classList.add('hidden')
-    }
-
-    /* ── Service actions ───────────────────────── */
 
     /** Validates the current import data and displays the preview. */
     window.previewData = function () {
       clearPreview()
-      showWarnings([])
+      renderWarnings([])
       setBusy(true)
       setMessage('Validating...', 'info')
 
@@ -150,43 +98,43 @@
         .withSuccessHandler(result => {
           setBusy(false)
           setMessage('Validation successful.', 'success')
-          showWarnings(result.warnings)
-          showPreview(result)
+          renderWarnings(result.warnings)
+          renderPreview(result)
         })
         .withFailureHandler(err => {
           setBusy(false)
           clearPreview()
           setMessage(err && err.message ? err.message : String(err), 'error')
         })
-        .previewStickerDataMobile(getImportPayload())
+        .previewStickerDataMobile(Import.getPayload())
     }
 
     /** Imports the current sticker data into the spreadsheet. */
     window.importData = function () {
       clearPreview()
-      showWarnings([])
+      renderWarnings([])
       setBusy(true)
       setMessage('Importing...', 'info')
       google.script.run
         .withSuccessHandler(result => {
           setBusy(false)
           setMessage(result && result.message ? result.message : 'Import completed.', 'success')
-          showWarnings(result.warnings)
+          renderWarnings(result.warnings)
         })
         .withFailureHandler(err => {
           setBusy(false)
           setMessage(err && err.message ? err.message : String(err), 'error')
         })
-        .importStickerDataMobile(getImportPayload())
+        .importStickerDataMobile(Import.getPayload())
     }
 
     /** Resets the form to its initial state. */
     window.clearForm = function () {
       setBusy(false)
-      if (textInput) { textInput.value = ''; textInput.focus() }
-      if (modeInput) { modeInput.value = 'update' }
+      if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
+      if (modeInputEl) { modeInputEl.value = 'update' }
       clearPreview()
-      showWarnings([])
+      renderWarnings([])
       setMessage('Cleared.', 'info')
     }
 
@@ -207,12 +155,73 @@
         previewEl.textContent = ''
         previewEl.classList.add('hidden')
       }
-      if (textInput) {
-        textInput.value = ''
+      if (textInputEl) {
+        textInputEl.value = ''
       }
-      if (modeInput) {
-        modeInput.value = 'update'
+      if (modeInputEl) {
+        modeInputEl.value = 'update'
       }
     }
+
+    /* View helpers */
+
+    /* Wrapper functions around shared Import helpers.
+     * Wrappers keep platform-specific DOM handling inside this view.
+     */
+    function setMessage(text, type) {
+      Import.setMessage(text, type, { messageEl })
+    }
+
+    /** Renders the import preview returned by the backend. 
+     * Wrapper for shared Import.renderPreview that requires a DOM element.
+    */
+    function renderPreview(result) {
+      Import.renderPreview(result, { previewEl })
+      if (result && result.countries && result.countries.length) {
+        previewEl.classList.remove('hidden')
+      } else {
+        previewEl.classList.add('hidden')
+      }
+    }
+
+    /**
+      * Enables or disables all controls in the import view.
+      * @param {boolean} isBusy Whether the view is busy.
+      * Note: kept local because mobile controls and layout differ from desktop.
+      */
+    function setBusy(isBusy) {
+      const viewEl = document.getElementById('view-import')
+      if (viewEl) {
+        viewEl.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
+      }
+      if (textInputEl) { textInputEl.disabled = isBusy }
+      if (modeInputEl) { modeInputEl.disabled = isBusy }
+    }
+
+    /** Renders the warnings list returned by the backend. 
+     * Note: this function is not part of the shared Import helpers because it requires a DOM element.
+    */
+    function renderWarnings(warnings) {
+      warningsEl.textContent = ''
+      if (!warnings || !warnings.length) {
+        warningsEl.classList.add('hidden')
+        return
+      }
+      warningsEl.classList.remove('hidden')
+      warnings.forEach(w => {
+        const p = document.createElement('p')
+        p.textContent = '⚠ ' + w
+        warningsEl.appendChild(p)
+      })
+    }
+
+    /** Clears the preview panel. 
+     * Note: kept local because mobile controls and layout differ from desktop.
+    */
+    function clearPreview() {
+      previewEl.textContent = ''
+      previewEl.classList.add('hidden')
+    }
+
   })();
 </script>

@@ -1,0 +1,83 @@
+<!--
+  src/html/AboutView.html
+
+  About view
+
+  Displays application metadata and useful project links.
+
+  Notes:
+    - Metadata is maintained locally in APP_INFO.
+    - Update this file when publishing a new release.
+-->
+
+<div class="section">
+  <div class="about-card">
+    <table class="about-table">
+      <tbody>
+        <tr>
+          <th>Application</th>
+          <td id="aboutAppName"></td>
+        </tr>
+        <tr>
+          <th>Version</th>
+          <td id="aboutVersion"></td>
+        </tr>
+        <tr>
+          <th>Release date</th>
+          <td id="aboutReleaseDate"></td>
+        </tr>
+        <tr>
+          <th>Project</th>
+          <td><a id="aboutProjectLink" target="_blank"></a></td>
+        </tr>
+        <tr>
+          <th>Release notes</th>
+          <td><a id="aboutReleaseLink" target="_blank"></a></td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div><!-- /about-card -->
+</div> <!-- /section-->
+
+<script>
+
+  /*
+   * View controller
+   *
+   * Renders static application metadata.
+   */
+
+  (function () {
+
+    const APP_INFO = Object.freeze({
+      NAME: 'Panini WC 2026 Google Spreadsheet Tracker',
+      VERSION: '1.1.2',
+      RELEASE_DATE: '2026-07-23',
+      PROJECT_URL: 'https://github.com/dlealv/panini-wc-2026-gsheet-tracker',
+      RELEASE_URL: 'https://github.com/dlealv/panini-wc-2026-gsheet-tracker/releases#release-v.1.1.2',
+    })
+
+    const appNameEl = document.getElementById('aboutAppName')
+    const versionEl = document.getElementById('aboutVersion')
+    const releaseDateEl = document.getElementById('aboutReleaseDate')
+    const projectLinkEl = document.getElementById('aboutProjectLink')
+    const releaseLinkEl = document.getElementById('aboutReleaseLink')
+
+    /** Populates the About view with application metadata. */
+    window.initializeAboutView = function () {
+      appNameEl.textContent = APP_INFO.NAME
+      versionEl.textContent = APP_INFO.VERSION
+      releaseDateEl.textContent = APP_INFO.RELEASE_DATE
+
+      projectLinkEl.href = APP_INFO.PROJECT_URL
+      projectLinkEl.textContent = 'GitHub Project'
+
+      releaseLinkEl.href = APP_INFO.RELEASE_URL
+      releaseLinkEl.textContent = `Version ${APP_INFO.VERSION}`
+
+    }
+
+  })();
+
+</script>
