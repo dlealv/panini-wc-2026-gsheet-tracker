@@ -75,6 +75,10 @@ Starting with release `1.1.2`, version information is available directly from bo
 - **Google Spreadsheet template:** Open the `About` sheet to view the current template version and the corresponding GitHub release information.
 - **Apps Script project:** From the **Manage Panini** custom menu, select **About** to view the current Apps Script version and related project information.
 
+### I don't see the About item in **Manage Panini** custom menu?
+
+If a new release updated the **Manage Panini** menu, you need to refresh your Google Spreadsheet template in order to see it.
+
 ### Why are the template version and the Apps Script version different?
 
 Starting with release `1.1.2`, both the Google Spreadsheet template and the Apps Script project are versioned independently, and each version is displayed within its respective product:

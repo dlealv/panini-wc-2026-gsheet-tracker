@@ -215,14 +215,14 @@
       if (fileInputEl) fileInputEl.value = ''
       if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
       if (modeInputEl) modeInputEl.value = 'update'
-      Import.clearPreview()
+      Import.clearPreview({ previewEl })
       renderWarnings([]) // clear previous warnings immediately
       setMessage('Input cleared.', 'info')
     }
 
     /**Validates the current import input and renders a preview without writing data. */
     window.previewData = function () {
-      Import.clearPreview()
+      Import.clearPreview({ previewEl })
       renderWarnings([]) // clear previous warnings immediately
       Import.setBusy(true)
       setMessage('Validating input...', 'info')
@@ -235,7 +235,7 @@
         })
         .withFailureHandler((error) => {
           Import.setBusy(false)
-          Import.clearPreview()
+          Import.clearPreview({ previewEl })
           renderWarnings([]) // clear previous warnings immediately
           setMessage(error && error.message ? error.message : String(error), 'error')
         })
@@ -244,7 +244,7 @@
 
     /**Imports the current sticker payload into the spreadsheet. */
     window.importData = function () {
-      Import.clearPreview()
+      Import.clearPreview({ previewEl })
       renderWarnings([]) // clear previous warnings immediately
       Import.setBusy(true)
       setMessage('Importing data...', 'info')

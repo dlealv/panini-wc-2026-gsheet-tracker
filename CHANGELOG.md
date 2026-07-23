@@ -10,7 +10,7 @@ project structure, and documentation.
 ## [1.1.2] 2026-07-22
 
 ### Overview
-The Quick Entry service now supports searching by sticker number in addition to country/team search using the search box. Refactored the Import service by splitting responsibilities into dedicated `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html` by reusing helper functions from `ImportHelpers.html`. Refactored all `*View.html` and `MobileHome.html` files to use Immediately Invoked Function Expressions (IIFE), exposing only the required public functions through the global scope (`window.*`). Using font-size variables defined in `CommonStyles.html` and `MobileStyles.html` across all `*Styles.html` files.
+The Quick Entry service now supports searching by sticker number in addition to country/team search using the search box. Refactored the Import service by splitting responsibilities into dedicated `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html` by reusing helper functions from `ImportHelpers.html`. Refactored all `*View.html` and `MobileHome.html` files to use Immediately Invoked Function Expressions (IIFE), exposing only the required public functions through the global scope (`window.*`). Using font-size variables defined in `CommonStyles.html` and `MobileStyles.html` across all `*Styles.html` files. Import service now clears any previous validation output while doing the next validation.
 
 ### Google Spreadsheet template
 - Added sheet `About` to provide information about the template versioning and version documentation.
@@ -35,6 +35,7 @@ The Quick Entry service now supports searching by sticker number in addition to 
     - Added the question: "Can I search by sticker number in the Quick Entry service?".
     - Added the question: "How can I identify the version of the template or the Apps Script project?".
     - Added the question: "Why are the template version and the Apps Script version different?".
+    - Added the question: "I don't see the About item in **Manage Panini** custom menu?".
   - `TechnicalArchitecture.md`:
     - Updated sections *4. UI Layer Engineering Rules* and *5. System Architecture* to document the Import service refactor with the new files: `ImportView.html` and `ImportHelp.html`. Documented the use of Immediately Invoked Function Expressions (IIFE) to expose only required functions.
     - Applied minor wording improvements in section *7. Continuous Integration (CI) Deployment Blueprint*.
@@ -136,6 +137,7 @@ The Quick Entry service now supports searching by sticker number in addition to 
 
 #### Fix
 - Removed Close/Cancel buttons from the mobile Import and Export implementations because these actions do not apply to the mobile navigation model.
+- In import service while doing a validation the previous output was not cleared, now after successive validation when the validation starts it clears the previous validation output, once the validation is finished, the generates the new validation output.
 
 ---
 

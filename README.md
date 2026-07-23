@@ -574,7 +574,7 @@ In alphabetical order and organized by folders:
   - `panini-stickers-shared.txt`: Sample of Export shared stickers service output.
   - `panini-stickers-shared_flagTrue_compactTrue.txt`: Sample of Export shared stickers service with **Flag** and **Compact (using ranges)** checkboxes activated.
  
-- Under the `images` folder: Images used in the `README.md` file and `doc` folder documents.
+- Under the `images` folder: Images used in the `README.md` file and `docs` folder documents.
 
 - Under the `scripts` folder:
   - `build.js`: Prepares the `src/*.gs` and `src/html/*[Helpers|Render].html` files to be tested with Jest. It moves the files to `build` folder, change extension `.gs` $\rightarrow$ `.js`, add export module with classes and functions with `@export` tag and indicate the source file on top.
