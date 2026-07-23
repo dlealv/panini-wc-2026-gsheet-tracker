@@ -7,7 +7,7 @@ project structure, and documentation.
 
 ---
 
-## [1.1.2] 2026-07-22
+## [1.1.2] 2026-07-23
 
 ### Overview
 The Quick Entry service now supports searching by sticker number in addition to country/team search using the search box. Refactored the Import service by splitting responsibilities into dedicated `ImportView.html` and `ImportHelp.html` files. Simplified `MobileImportView.html` by reusing helper functions from `ImportHelpers.html`. Refactored all `*View.html` and `MobileHome.html` files to use Immediately Invoked Function Expressions (IIFE), exposing only the required public functions through the global scope (`window.*`). Using font-size variables defined in `CommonStyles.html` and `MobileStyles.html` across all `*Styles.html` files. Import service now clears any previous validation output while doing the next validation.
