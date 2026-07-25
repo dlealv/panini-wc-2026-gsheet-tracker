@@ -31,6 +31,9 @@ Google Spreadsheet tracker: implemented a roster lookup feature based on the Pan
 
 #### Changes
 
+- Under the `Reports` tab:
+  - Now the calculation of percentage of repeats is based on total repeats, before it was based on unique repeats. It makes more sense to calculate total repeats and its percentage based on total repeats.
+
 - Under the `images` folder: Standardized image file names related to the Google Spreadsheet template by consistently including `Tab` in the file names:
   - `aboutTabView.jpg`: Updated the screenshot to show the corresponding tab.
   - `reportsView.jpg`: Renamed to `reportsTabView.jpg` and updated the screenshot to show the corresponding tab.
@@ -52,6 +55,11 @@ Google Spreadsheet tracker: implemented a roster lookup feature based on the Pan
     - Added the *Google Spreadsheet Tables* section documenting the spreadsheet tables used by the template.
     - Updated the *Named functions* section to include the `NORMALIZE` named function.
   - `TODO.md`: Added the Panini sticker roster repository and roster lookup feature, and marked both tasks as completed.
+
+#### Fixed
+
+- In `Reports` tab:
+  - The calculation of repeats and it percentage didn't take into account the decision `INCLUDE CC` value. Now the formula considers the value selected by the user.
 
 ### Apps Script
 
