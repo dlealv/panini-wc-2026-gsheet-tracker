@@ -155,49 +155,54 @@ At startup, the script prints the active configuration, for example:
 
 ```text
 panini-wc-2026-gsheet-tracker/
-├── .clasp.json.template         # Template clasp configuration file, used in 'clasp.zsh'.
-|── .claspignore                 # Indicates folders/files to ignore by clasp.
-|── .eslintignore                # Indicates folders/files to ignore by ESLint (code analysis).
-|── .eslintrc.js                 # ESLint configuration file with customized rules.
-|── .gitignore                   # Folders/files to ignore by git (repository).
-├── package.json                 # Node project descriptors, dependencies, and pipeline bindings.
-├── package-lock.json            # Generated, lock to exact version. Required for CI.
-├── jsconfig.json                # VS Code config file to specify JavaScript project's configuration.      
-├── .github/                     # GitHub-specific configurations, automation workflows, CI project setup.
-│    ├── actions/                # Standard folder for CI project setup.
-│    │   └── setup-project/      # Standard folder for CI actions.
-│    │       └── action.yml      # CI project common setup to both workflows.
-│    └── workflows/              # Dedicated directory used exclusively to store GitHub Actions workflow files
-│        ├── deploy.yml          # CI deploy of the project to GAS
-│        └── validate.yml        # CI validation, i.e. ESLint and test
-├── scripts/                     # Folder for utility scripts.
-│   ├── build.js                 # JavaScript bridge extracting HTML blocks for local unit tests.
-│   ├── clasp.zsh                # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository).
-|   ├── fix-jsdoc.js             # Fit short JSDOC comments into a single line.
-├── src/                         # MUTABLE LOCAL SOURCE OF TRUTH.
-│   ├── appscript.json           # Project manifest. Central configuration file for a Google Apps Script project.
-│   ├── Code.gs                  # Structural GAS cloud UI generation menu bindings.
-│   ├── Commons.gs               # General runtime utilities and global system declarations.
-│   ├── *Service.gs              # Modular system business data service providers.
-│   └── html/                    # User Interface markup layouts and layer scripts.
-│       ├── *Dialog.html         # Desktop dialog containers handling events and cloud calls.
-|       |── *View.html           # View services used by *Dialog.html and Mobile*.html services.
-│       ├── *Helpers.html        # Extracted browser-independent pure processing logic.
-│       └── *Render.html         # Dedicated UI factory components building visual DOM structures.
-│       └── MobileHome.html      # Mobile entry point (navigation drawer, view switching, injected view via include).
-│       └── Mobile*View.html     # Wrapper views for mobile services or simplified implementation of the service.
-│       └── *Styles.html         # Styles files, i.e. CSS configuration.
-├── build/                       # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS).
-│   ├── *.js                     # Code blocks compiled into common JS specifications.
-│   └── *.html.js                # Extracted helpers and render algorithms wrapped for mock evaluation.
-├── test/                        # ISOLATED JEST UNIT TESTING GRID.
-│   ├── *.unit.test.js           # Target test cases checking functional service compliance.
-│   ├── jest.config.js           # Jest configuration file.
-│   ├── utils/
-│       └── testKernel.js        # Main environment emulation stubbing global Google objects.
-└── backup/                      # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED).
-    ├── [TIMESTAMP]_src.zip      # Rollback snapshots of local 'src' right before a pull merge.
-    └── [TIMESTAMP]_gas.zip      # Rollback snapshots of cloud remote code right before a push deploy.
+├── .clasp.json.template          # Template clasp configuration file, used in 'clasp.zsh'.
+|── .claspignore                  # Indicates folders/files to ignore by clasp.
+|── .cspell.json                  # Code Spell Checker extension configuration file (folder/files to exclude).
+|── .eslintignore                 # Indicates folders/files to ignore by ESLint (code analysis).
+|── .eslintrc.js                  # ESLint configuration file with customized rules.
+|── .gitignore                    # Folders/files to ignore by git (repository).
+├── package.json                  # Node project descriptors, dependencies, and pipeline bindings.
+├── package-lock.json             # Generated, lock to exact version. Required for CI.
+├── jsconfig.json                 # VS Code config file to specify JavaScript project's configuration. 
+├── .vscode/                      # VS Code project settings.
+│    ├── settings.json            # VS Code project file configuration.
+├── .github/                      # GitHub-specific configurations, automation workflows, CI project setup.
+│    ├── actions/                 # Standard folder for CI project setup.
+│    │   └── setup-project/       # Standard folder for CI actions.
+│    │       └── action.yml       # CI project common setup to both workflows.
+│    └── workflows/               # Dedicated directory used exclusively to store GitHub Actions workflow files
+│        ├── deploy.yml           # CI deploy of the project to GAS
+│        └── validate.yml         # CI validation, i.e. ESLint and test
+├── data/                         # Static datasets associated to the project.
+│   └── panini_fwc2026_roster.csv # Panini sticker cards roster.
+├── scripts/                      # Folder for utility scripts.
+│   ├── build.js                  # JavaScript bridge extracting HTML blocks for local unit tests.
+│   ├── clasp.zsh                 # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository).
+|   ├── fix-jsdoc.js              # Fit short JSDOC comments into a single line.
+├── src/                          # MUTABLE LOCAL SOURCE OF TRUTH.
+│   ├── appscript.json            # Project manifest. Central configuration file for a Google Apps Script project.
+│   ├── Code.gs                   # Structural GAS cloud UI generation menu bindings.
+│   ├── Commons.gs                # General runtime utilities and global system declarations.
+│   ├── *Service.gs               # Modular system business data service providers.
+│   └── html/                     # User Interface markup layouts and layer scripts.
+│       ├── *Dialog.html          # Desktop dialog containers handling events and cloud calls.
+|       |── *View.html            # View services used by *Dialog.html and Mobile*.html services.
+│       ├── *Helpers.html         # Extracted browser-independent pure processing logic.
+│       └── *Render.html          # Dedicated UI factory components building visual DOM structures.
+│       └── MobileHome.html       # Mobile entry point (navigation drawer, view switching, injected view via include).
+│       └── Mobile*View.html      # Wrapper views for mobile services or simplified implementation of the service.
+│       └── *Styles.html          # Styles files, i.e. CSS configuration.
+├── build/                        # AUTOMATED TARGET CACHE (BLOCK MANUAL MUTATIONS).
+│   ├── *.js                      # Code blocks compiled into common JS specifications.
+│   └── *.html.js                 # Extracted helpers and render algorithms wrapped for mock evaluation.
+├── test/                         # ISOLATED JEST UNIT TESTING GRID.
+│   ├── *.unit.test.js            # Target test cases checking functional service compliance.
+│   ├── jest.config.js            # Jest configuration file.
+│   ├── utils/                    # Folder with test utility files for testing.
+│       └── testKernel.js         # Main environment emulation stubbing global Google objects.
+└── backup/                       # LOCAL ZIP HISTORY STORAGE (AUTO-GENERATED).
+    ├── [TIMESTAMP]_src.zip       # Rollback snapshots of local 'src' right before a pull merge.
+    └── [TIMESTAMP]_gas.zip       # Rollback snapshots of cloud remote code right before a push deploy.
 ```
 
 ---

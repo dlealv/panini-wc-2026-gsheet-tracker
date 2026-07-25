@@ -33,9 +33,76 @@ Starting with release `1.1.0`, the Google Sheet Tracker includes a mobile web ap
 
 Yes, since release `1.1.1` it is possible to collect Coca-Cola stickers. The **Manage Panini** services were also adjusted to include such stickers.
 
+### Can I search by sticker number in the Quick sticker entry service?
+
+Yes. Starting with release `1.1.2`, this feature was introduced. You can now search for popular sticker numbers such as `1` or `13` across all country teams using the search box.
+
+If the search text is numeric, it is interpreted as a sticker number search. Otherwise, it is treated as a country code or country name search.
+
+### How can I identify the version of the template or the Apps Script project?
+
+Starting with release `1.1.2`, version information is available directly from both products:
+
+- **Google Spreadsheet template:** Open the `About` sheet to view the current template version and the corresponding GitHub release information.
+- **Apps Script project:** From the **Manage Panini** custom menu, select **About** to view the current Apps Script version and related project information.
+
+### Why are the template version and the Apps Script version different?
+
+Starting with release `1.1.2`, both the Google Spreadsheet template and the Apps Script project are versioned independently, and each version is displayed within its respective product:
+
+- **Google Spreadsheet template:** **About** sheet.
+- **Apps Script project:** **About** menu item.
+
+Both version numbers follow the GitHub release sequence, but they are tracked independently because the Google Spreadsheet template and the Apps Script project evolve separately.
+
+- *Template version:* Updated only when a GitHub release includes changes to the Google Spreadsheet template.
+- *Apps Script version:* Updated only when a GitHub release includes changes to the Apps Script source code.
+
+As a result, several version combinations are possible:
+
+1. **Template and Apps Script versions are the same**: The GitHub release contains changes to both the spreadsheet template and the Apps Script project.
+2. **The template version is behind the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the Apps Script project.
+3. **The template version is ahead of the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the spreadsheet template.
+4. **Both versions are behind the latest GitHub release**: One or more GitHub releases only introduced documentation, build, or other project-related improvements that did not affect either the spreadsheet template or the Apps Script project.
+
+
+### How can I look up the name of a player or sticker?
+
+The Google Sheets template is designed to help collectors track and complete the album. It is **not** intended to be a comprehensive player database. Starting with release `1.1.3`, a lightweight lookup feature was added to help collectors identify the player or item associated with a sticker ID.
+
+A new folder, `data`, was added to the project and contains the file `panini_fwc2026_roster.csv`. This file serves as the roster database for all stickers, including player stickers and special stickers such as `FWC` and `CC`. Each record contains the following information:
+
+- `Sticker ID`
+- `Type`
+- `Name/Description`
+- `Country/Category`
+- `Club`
+- `Position` (player position)
+
+There is no need to open or inspect this file directly. The template provides a lookup interface in the `Lookup` tab. The roster is automatically loaded into the `Roster` tab from the GitHub repository, so any updates made to the repository will be reflected in the template after Google Sheets refreshes the imported data.
+
+### Why do sticker IDs `MAR*` in `data/panini_fwc2026_roster.csv` start with an apostrophe (`'`)?
+
+Google Sheets automatically interprets values such as `MAR3` as dates (for example, **Mar 3**) when importing CSV files. Prefixing the value with an apostrophe (for example, `'MAR3`) forces Google Sheets to treat it as plain text, preserving the original sticker ID.
+
+The apostrophe is only an import safeguard. It is **not** part of the sticker ID and is not displayed or used by the template.
+
+### Can I search using non-ASCII characters in roster lookup service?
+
+Yes. The lookup service in the `Lookup` tab normalizes the lookup values for `Name`, `Country/Category`, and `Club`, as well as the corresponding columns in the `Roster` tab, to their ASCII equivalents before performing the search. This normalization is performed using the `NORMALIZE` named function and is completely transparent to the user.
+
+For example, if you search for the player `Staněk` (Jindřich Staněk from Czechia), the lookup converts both the search term and the roster data to `Stanek`, allowing the match to succeed while still returning the player's name in its original form with non-ASCII characters.
+
+The roster file `data/panini_fwc2026_roster.csv` always stores player names, countries/categories, and club names in their canonical form. ASCII normalization is applied only during the lookup process to make searches easier, so you do not need to know or type language-specific characters. For example, searching for `Stanek` will correctly find `Staněk`, `Curacao` will match `Curaçao`, and `Club America` will match `Club América`.
+
+
 ### After copying the Panini template, I don't see the **Manage Panini** menu?
 
 This is usually a timing issue. It may take a few moments for the menu to appear. Simply refresh the page, and the **Manage Panini** menu should become available.
+
+### I don't see a new menu item in **Manage Panini** custom menu?
+
+If a new release updated the **Manage Panini** menu, you need to refresh your Google Spreadsheet template in order to see it.
 
 ### After copying the Panini template and granting access, I don't see the `appsscript.json` file?
 
@@ -61,42 +128,6 @@ The purpose of this step is simply to provide you with the Web App URL. Alternat
 ### After deploying the Web App, I don't see the application listed?
 
 This is usually a timing issue. Refresh the Apps Script page, then open the **Deploy** drop-down menu in the upper-right corner and select **Manage deployments**. The newly deployed Web App should appear in the list.
-
-### Can I search by sticker number in the Quick sticker entry service?
-
-Yes. Starting with release `1.1.2`, this feature was introduced. You can now search for popular sticker numbers such as `1` or `13` across all country teams using the search box.
-
-If the search text is numeric, it is interpreted as a sticker number search. Otherwise, it is treated as a country code or country name search.
-
-### How can I identify the version of the template or the Apps Script project?
-
-Starting with release `1.1.2`, version information is available directly from both products:
-
-- **Google Spreadsheet template:** Open the `About` sheet to view the current template version and the corresponding GitHub release information.
-- **Apps Script project:** From the **Manage Panini** custom menu, select **About** to view the current Apps Script version and related project information.
-
-### I don't see the About item in **Manage Panini** custom menu?
-
-If a new release updated the **Manage Panini** menu, you need to refresh your Google Spreadsheet template in order to see it.
-
-### Why are the template version and the Apps Script version different?
-
-Starting with release `1.1.2`, both the Google Spreadsheet template and the Apps Script project are versioned independently, and each version is displayed within its respective product:
-
-- **Google Spreadsheet template:** **About** sheet.
-- **Apps Script project:** **About** menu item.
-
-Both version numbers follow the GitHub release sequence, but they are tracked independently because the Google Spreadsheet template and the Apps Script project evolve separately.
-
-- *Template version:* Updated only when a GitHub release includes changes to the Google Spreadsheet template.
-- *Apps Script version:* Updated only when a GitHub release includes changes to the Apps Script source code.
-
-As a result, several version combinations are possible:
-
-1. **Template and Apps Script versions are the same**: The GitHub release contains changes to both the spreadsheet template and the Apps Script project.
-2. **The template version is behind the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the Apps Script project.
-3. **The template version is ahead of the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the spreadsheet template.
-4. **Both versions are behind the latest GitHub release**: One or more GitHub releases only introduced documentation, build, or other project-related improvements that did not affect either the spreadsheet template or the Apps Script project.
 
 ## Google Access/Security Questions
 

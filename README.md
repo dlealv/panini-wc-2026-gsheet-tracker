@@ -51,7 +51,7 @@ The `Stickers` tab also includes calculated fields such as `Done`, `%`, `Rep`, a
 
 One support column is hidden in the `Stickers` tab: `AD`, which stores the country group. This column is required for the Pivot Table in the `Reports` tab. Since a Pivot Table's range input requires a single range, it needs to be part of the `Stickers` tab range.
 
-![Stickers tab](images/stickersView.jpg)
+![Stickers tab](images/stickersTabView.jpg)
 
 **Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC` and `CC`. This applies throughout the tracker.
 
@@ -174,7 +174,7 @@ This service is enabled mainly through the `Compact Swap View` tab. The informat
 
 It is especially useful when sharing your collection status through messaging apps or social media, where a compact and readable summary is more practical than a full tracker view focused on repeated and missing stickers for trading purposes.
 
-![Compact Swap View tab](images/swapCompactView.jpg)
+![Compact Swap View tab](images/swapCompactTabView.jpg)
 
 The output of Need Stickers can be sorted, look for the drop-down value to the right of `SORT`:
 
@@ -193,7 +193,7 @@ This service is enabled mainly through the `Reports` tab, which generates report
 
 It helps you identify which teams are closest to completion and review your overall progress from a reporting perspective rather than by album order as shown in the `Stickers` tab.
 
-![Reports tab](images/reportsView.jpg)
+![Reports tab](images/reportsTabView.jpg)
 
 ### Trade with another collector
 
@@ -203,7 +203,7 @@ This service is enabled through the `Trade` tab. Paste the other collector's dat
 
 Review the generated **OUTPUT** section to see what you can offer and what you may receive.
 
-![Trade tab](images/tradeView.jpg)
+![Trade tab](images/tradeTabView.jpg)
 
 > Note: As you can see from the image it accepts different delimiters, flag icons, repeats and interprets correctly ranges in both forms: `A-B` and `A-B(X)`.
 
@@ -224,6 +224,27 @@ For example, Korea is closer to completion than Mexico, so obtaining a missing s
 > The main advantage of this tab is that it finds matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available repeats, but it does not identify matches with another collector.
 
 📌 This entire process is significantly simplified by the information provided in this tab.
+
+### Roster lookup service
+
+Starting with version `1.1.3`, collectors have access to the sticker roster through the `Roster` tab:
+
+![Roster tab](images/rosterTabView.jpg)
+
+The information displayed is loaded from `data/panini_fwc2026_roster.csv` in the GitHub repository and is refreshed whenever the file is updated. This file serves as the roster database for all stickers, including player stickers and special stickers such as `FWC` and `CC`. Each record contains the following information:
+
+- `Sticker ID`
+- `Type`
+- `Name/Description`
+- `Country/Category`
+- `Club`
+- `Position` (player position)
+
+The roster is stored in its canonical form. This means that `Name/Description`, `Country/Category`, and `Club` values preserve their original non-ASCII characters.
+
+Collectors can perform lookups using the service provided in the `Lookup` tab. This is particularly useful during sticker trading, when other collectors share only the front side of a sticker. The lookup service helps identify the corresponding sticker ID based on the available information.
+
+![Lookup tab](images/lookupTabView.jpg)
 
 ### Mobile Services
 
@@ -472,6 +493,16 @@ The Gsheet tracker has defined some custom functions to simplify the calculation
 
 - `GET_TRADES(octry,ovals,ctry,vals,isget)`: This function takes an array of countries (`octry`) and sticker values (`ovals`) from another collector and countries (`ctry`) and values (`vals`) from the collector (owner of the tracker). It returns the matches (country and stickers) between the collectors. If the input argument `isget` is `TRUE/1`, it returns the matches of the countries and stickers that the collector will receive from another collector. In this case, the values of `octry` and `ovals` represent repeated stickers from another collector. If `isget` is `FALSE/0`, it returns the matches of the countries and stickers that the collector will send to another collector. In this case, the values of `octry` and `ovals` represent missing stickers from another collector. This named function is used in the `Trade` tab, specifically in the **OUTPUT** section.
 
+- `NORMALIZE(txt,non_ascii_arr,ascii_arr)`: Normalizes a string (`txt`) by replacing non-ASCII characters with their ASCII equivalents while preserving the original upper/lower case. `non_ascii_arr` is the array containing the non-ASCII characters to replace. Each element may contain multiple comma-separated non-ASCII characters that map to the same ASCII character. `ascii_arr` contains the corresponding replacement ASCII characters. Both arrays must have the same shape, with each element in `non_ascii_arr` mapped to the corresponding element in `ascii_arr`. This named function is used by the `Lookup` tab.
+
+---
+
+## Google Spreadsheet Tables
+
+The template primarily uses named ranges. However, in a few cases, Google Spreadsheet tables are used only within the template because they are a relatively recent feature and are still gradually gaining Apps Script API support.
+
+- `TB_ASCII`: Table that maps non-ASCII characters to their equivalent ASCII characters. The columns associated with this table, as well as the supporting columns in the `Roster` tab, are hidden.
+
 ---
 
 ## Hidden tabs
@@ -555,10 +586,16 @@ The project was initially announced on Reddit, but GitHub is now the primary loc
 ## Files
 In alphabetical order and organized by folders:
 
+- Under the `.vscode` folder:
+  - `settings.json`: VSCode project configuration file. Contains words to ignore by Code Spell Checker extension.
+
 - Under the `.github` folder:
   - `action/setup-project/action.yml`: Common CI setup project.
   - `workflows/deploy.yml`: CI deployment file using Github secrets, to be executed when changes in `src/` folder, `deploy.yml` and `action.yml` files.
   - `workflows/validation.yml`: CI project validation, i.e. runs EsLint and tests.
+
+- Under the `data` folder:
+  - `panini_fwc2026_roster.csv`: panini sticker roster file.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
