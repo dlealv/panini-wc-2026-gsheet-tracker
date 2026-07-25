@@ -10,7 +10,7 @@ project structure, and documentation.
 
 ### Overview
 
-Google Spreadsheet tracker: implemented a roster lookup feature based on the Panini FIFA World Cup 2026 roster file. Updated the project documentation to include the new lookup functionality. Minor project configuration changes were also made to include configuration files in the GitHub repository. Fixed repeated and %-repeats in `Reports` tab, to include user selection value in INCLUDE CC.
+Google Spreadsheet tracker: implemented a roster lookup feature based on the Panini FIFA World Cup 2026 roster file. Updated the project documentation to include the new lookup functionality. Minor project configuration changes were also made to include configuration files in the GitHub repository. Fixed repeated and %-repeats calculation in `Reports` tab, to include user selection value in INCLUDE CC.
 
 ### Google Spreadsheet template
 
