@@ -1,0 +1,9 @@
+/*
+ * This project stores the panini sticker roster in canonical form.
+ * The file is intentionally excluded from spell checking.
+ */
+{
+  "ignorePaths": [
+    "data/panini_fwc2026_roster.csv"
+  ]
+}

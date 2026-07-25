@@ -6,6 +6,58 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 project structure, and documentation.
 
 ---
+## [1.1.3] 2026-07-25
+
+### Overview
+
+Google Spreadsheet tracker: implemented a roster lookup feature based on the Panini FIFA World Cup 2026 roster file. Updated the project documentation to include the new lookup functionality. Minor project configuration changes were also made to include configuration files in the GitHub repository.
+
+### Google Spreadsheet template
+
+#### Added
+
+- `Roster` tab to the Google Spreadsheet template to load the Panini sticker roster file from the GitHub repository.
+- `Lookup` tab to the Google Spreadsheet template to perform lookup searches against the data loaded in the `Roster` tab.
+
+- Under the `data` folder:
+  - `panini_fwc2026_roster.csv`: Roster file containing detailed information for each sticker, including player name, country, club, and position. It also includes information for special stickers (`FWC` and `CC`). This file is used to populate the `Roster` tab and provides the data used by the `Lookup` tab.
+
+- Under the `images` folder:
+  - `lookupTabView.jpg`: Screenshot of the `Lookup` tab.
+  - `rosterTabView.jpg`: Screenshot of the `Roster` tab.
+
+- Under the root folder:
+  - Added the `data` folder to store static project data.
+
+#### Changes
+
+- Under the `images` folder: Standardized image file names related to the Google Spreadsheet template by consistently including `Tab` in the file names:
+  - `aboutTabView.jpg`: Updated the screenshot to show the corresponding tab.
+  - `reportsView.jpg`: Renamed to `reportsTabView.jpg` and updated the screenshot to show the corresponding tab.
+  - `stickersView.jpg`: Renamed to `stickersTabView.jpg`.
+  - `swapCompactView.jpg`: Renamed to `swapCompactTabView.jpg` and updated the screenshot to show the corresponding tab.
+  - `tradeTabView.jpg`: Updated the screenshot to show the corresponding tab.
+
+- Under the `docs` folder:
+  - `FAQ.md`: 
+    - Added questions related to the roster lookup functionality.
+    - Reorganized some question, in a way it makes more sense for the reader.
+  - `TechnicalArchitecture.md`: Updated the folder structure to include the `data` and `.vscode` folders.
+
+- Under the root folder:
+  - `.gitignore`: Removed the `.vscode/` entry because `settings.json` is now part of the project configuration.
+  - `cspell.json`: Added the Code Spell Checker (ID: `streetsidesoftware.code-spell-checker`) configuration file to exclude `panini_fwc2026_roster.csv` from spell checking because it contains many non-ASCII characters.
+  - `README.md`:
+    - Added the *Roster Lookup Service* section describing the new lookup functionality in the Google Spreadsheet template.
+    - Added the *Google Spreadsheet Tables* section documenting the spreadsheet tables used by the template.
+    - Updated the *Named functions* section to include the `NORMALIZE` named function.
+  - `TODO.md`: Added the Panini sticker roster repository and roster lookup feature, and marked both tasks as completed.
+
+### Apps Script
+
+No changes were made to the Apps Script source code. This release only includes updates to the GitHub project (documentation, configuration files, and static data) plus changes in the Google Spreadsheet template. Therefore, the Apps Script release version remains unchanged.
+
+---
 
 ## [1.1.2] 2026-07-23
 
