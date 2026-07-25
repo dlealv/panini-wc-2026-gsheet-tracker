@@ -246,6 +246,10 @@ Collectors can perform lookups using the service provided in the `Lookup` tab. T
 
 ![Lookup tab](images/lookupTabView.jpg)
 
+The lookup service uses the data in the `Roster` tab including the hidden columns (helpers for drop-down) and `TB_ASCII` Google Spreadsheet table for doing the mapping of the non-ASCII characters.
+
+For more information check the [FAQ.md](docs/FAQ.md) document.
+
 ### Mobile Services
 
 Starting with release `1.1.0`, the Google Spreadsheet Tracker includes a mobile web application that allows users to manage their album from a mobile device.
@@ -287,6 +291,8 @@ Tap the hamburger menu (&#9776;) in the upper-left corner to access the availabl
 **The deployment process only needs to be completed once.** After that, you can use the same Web App URL whenever you want to access the tracker from your mobile device.
 
 Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web App provides a practical and secure solution for accessing the Google Spreadsheet Tracker from smartphones and tablets.
+
+For more information check the [FAQ.md](docs/FAQ.md) document.
 
 ---
 
