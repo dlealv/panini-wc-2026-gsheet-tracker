@@ -6,6 +6,44 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 project structure, and documentation.
 
 ---
+
+## [1.1.4] 20206-07-XX
+
+### Overview
+
+Implemented Trade service for Apps Script.
+
+### Google Spreadsheet template
+
+No changes were made to the template, so the version number remains.
+
+### Apps Script
+
+#### Added
+
+- Under the `docs` folder:
+  - `TradeServiceMockDesign.md`: Mock UI design of the Trade service.
+  - `TradeServiceRequirements.md`: Trade service specification.
+
+- Under the `src/html` folder:
+  - `TradeDialog.html`: Desktop dialog for Trade service.
+  - `TradeStyles.html`: Specific CSS styles for trading services.
+  - `TradeView.html`: Shared view of the trade service.
+
+- Under `src` folder:
+  - `Trade.gs`: Files with classes for managing sticker trades.
+
+#### Changes
+
+- Under the `src` folder:
+  - `Code.gs`: Added GAS entry points for Trade service.
+  - `ExportService.gs`: 
+    - `filterStickerNumbersBy()` renamed to `_filterStickerNumbersBy()` since it is public and now used by trade services too.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`: Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
+
+
 ## [1.1.3] 2026-07-25
 
 ### Overview

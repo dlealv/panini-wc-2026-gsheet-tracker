@@ -1,0 +1,87 @@
+<script>
+  // src/html/TradeHelpers.html
+
+  /**
+   * Pure functions (testable) related to trade dialog logic.
+   *
+   * This helper supports TradeDialog.html and contains:
+   * - trade payload generation
+   * - UI state extraction
+   * - message handling
+   *
+   * NOTE: the export tag in comments indicates methods that are intended to be
+   * testable and exposed for external use, so they should not be removed or
+   * altered without consideration of their role in the overall application
+   * architecture.
+   */
+
+  /** 
+   * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global 
+   * scope and to provide a clear structure for export-related functions.
+   * Functions exported from the namespace are tagged with @public to easy identification and documentation.
+   */
+  window.Trade = (function () {
+
+    /**
+     * Builds the backend payload from the current UI state.
+     * @export
+     * @public
+     */
+    function getPayload(deps = {}) {
+      return _getUIState(deps)
+    }
+
+    /**
+     * Enables/disables UI during async operations.
+     * @export
+     * @public
+     */
+    function setBusy(isBusy, deps = {}) {
+      const doc = deps.document || document
+      doc.querySelectorAll('button').forEach(btn => {
+        btn.disabled = isBusy
+      })
+
+      const controls = deps.controls || [
+        ...(typeof sortMissingCheckbox !== 'undefined'
+          ? [sortMissingCheckbox]
+          : []),
+        ...(typeof receiveLimitSelect !== 'undefined'
+          ? [receiveLimitSelect]
+          : []),
+        ...(typeof sendLimitSelect !== 'undefined'
+          ? [sendLimitSelect]
+          : [])
+      ]
+
+      controls.forEach(control => {
+        if (control) {
+          control.disabled = isBusy
+        }
+      })
+    }
+
+    /**
+     * Reads the current trade options from the UI.
+     * @returns {{sortMissing:boolean, maxStickerReceive:number,maxStickerSend:number}}
+     */
+    function _getUIState(deps = {}) {
+      const sortCheckbox =
+        deps.sortMissingCheckbox || sortMissingCheckbox
+      const receiveSelect =
+        deps.receiveLimitSelect || receiveLimitSelect
+      const sendSelect =
+        deps.sendLimitSelect || sendLimitSelect
+
+      return {
+        sortMissing: !!sortCheckbox.checked,
+        maxStickerReceive: Number(receiveSelect.value),
+        maxStickerSend: Number(sendSelect.value)
+      }
+    }
+
+    return { getPayload, setBusy }
+
+  })()
+
+</script>

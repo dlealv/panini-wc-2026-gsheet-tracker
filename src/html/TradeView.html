@@ -1,0 +1,115 @@
+<!--
+  src/html/TradeView.html
+
+  Shared Trade interface used by:
+    - TradeDialog.html (desktop)
+    - MobileTradeView.html (mobile web app)
+
+  Purpose:
+    - Render the Trade workflow.
+    - Coordinate user interactions.
+    - Invoke backend services.
+    - Keep the Trade workflow consistent across desktop and mobile.
+
+  Notes:
+    - Parent containers provide platform-specific configuration.
+    - The Trade workflow is implemented as multiple views within the same page.
+-->
+
+<div id="tradeInputView">
+
+  <div class="section">
+    <div class="section-title">Generate trade QR code</div>
+    <div class="trade-toolbar">
+      <button id="generateQrButton" class="btn btn-primary">Generate my QR code</button>
+    </div>
+  </div><!-- /section -->
+  <div class="section">
+    <div class="label-row">
+      <div class="section-title">Trade information</div>
+      <div class="trade-information-actions">
+        <button id="uploadQrButton" class="btn btn-inline">Upload QR image</button>
+        <button id="captureQrButton" class="btn btn-inline">Capture QR code</button>
+      </div>
+    </div>
+    <div class="hint trade-import-hint">
+      Enter or paste another collector's missing and repeated stickers using the same format supported by the Import
+      service.
+    </div>
+
+    <label for="missingText">Missing</label>
+    <textarea id="missingText" class="form-control trade-textarea" spellcheck="false"
+      placeholder="MEX,1,5,12-13&#10;FWC,2,8,17-18"></textarea>
+
+    <label for="repeatsText">Repeats</label>
+    <textarea id="repeatsText" class="form-control trade-textarea" spellcheck="false"
+      placeholder="MEX,4(2),8-9(3),17(5)&#10;FWC,6(2),14(4)"></textarea>
+  </div><!-- /section -->
+
+  <div id="tradeMessageSection" class="section" style="display:none;">
+    <div class="section-title">Messages</div>
+    <div id="tradeMessage" class="message info"></div>
+  </div><!-- /section -->
+
+  <div class="section">
+    <div class="section-title">Actions</div>
+    <div class="actions">
+      <button id="validateButton" class="btn btn-primary"> Validate </button>
+      <button id="continueButton" class="btn btn-primary"> Continue </button>
+      <button id="closeTradeButton" class="btn"> Close </button>
+    </div><!-- /actions -->
+  </div><!-- /section -->
+</div><!-- /tradeInputView -->
+
+<?!= include('TradeHelpers') ?>
+
+<script>
+
+  /*
+   * View controller
+   *
+   * Coordinates the Trade view by:
+   *   - handling user interactions,
+   *   - invoking backend services,
+   *   - updating UI state.
+   */
+
+  (function () {
+
+    const uploadQrButtonEl = document.getElementById('uploadQrButton')
+    const captureQrButtonEl = document.getElementById('captureQrButton')
+    const closeTradeButtonEl = document.getElementById('closeTradeButton')
+
+    let platform = 'desktop'
+
+    /**
+     * Initializes the Trade view. Called by desktop and mobile containers.
+     * @param {{platform:string}} config View configuration.
+     */
+    window.initializeTradeView = function (config = {}) {
+      platform = config.platform || 'desktop'
+      uploadQrButtonEl.style.display = platform === 'desktop' ? '' : 'none'
+      captureQrButtonEl.style.display = platform === 'mobile' ? '' : 'none'
+      closeTradeButtonEl.style.display =
+        isDesktopDialogHost() ? '' : 'none'
+    }
+
+    /** Closes the Trade container when supported. */
+    window.closeTradeView = function () {
+      if (isDesktopDialogHost()) {
+        google.script.host.close()
+      }
+    }
+
+    closeTradeButtonEl.addEventListener('click', closeTradeView)
+
+    /**
+     * Returns true when running inside a spreadsheet dialog.
+     */
+    function isDesktopDialogHost() {
+      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
+    }
+
+  })()
+
+</script>

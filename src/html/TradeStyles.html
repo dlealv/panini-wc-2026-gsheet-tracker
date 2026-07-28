@@ -1,0 +1,67 @@
+<style>
+  /*
+   src/html/TradeStyles.html
+
+   Styles specific to Trade dialogs.
+   Contains:
+   - Trade toolbar
+   - Trade import row
+   - Trade text areas
+   - Trade actions
+
+   Common styles belong in:
+   - CommonStyles.html
+ */
+
+
+  .trade-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+
+  .trade-import {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: var(--text-sm);
+    color: var(--muted);
+  }
+
+
+  .trade-upload {
+    font-size: var(--text-sm);
+  }
+
+
+  .trade-textarea {
+    min-height: 160px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+
+  .trade-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .trade-textarea {
+    min-height: 120px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .trade-import-hint {
+    margin-bottom: 10px;
+  }
+</style>

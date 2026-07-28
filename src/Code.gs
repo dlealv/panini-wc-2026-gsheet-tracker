@@ -21,6 +21,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Quick sticker entry', 'showQuickStickerEntryDialog')
     .addSeparator()
+    .addItem('Trade stickers', 'showTradeDialog')
+    .addSeparator()
     .addItem('Mobile Web app link', 'showWebAppLink')
     .addSeparator()
     .addItem('About', 'showAboutDialog')
@@ -147,6 +149,54 @@ function applyQuickEntryUpdates(payload) {
 
 // #endregion QuickEntry
 
+// #region Trade
+//==============================================================================
+// Trade Dialog
+//==============================================================================
+
+// #region Trade
+//==============================================================================
+// Trade Dialog
+//==============================================================================
+
+/** Opens the Trade dialog. */
+function showTradeDialog() {
+  _showTradeDialog('desktop')
+}
+
+/** Returns a preview of another collector's trade information. */
+function previewTradeInformation(payload) {
+  const service = new TradeService()
+  return service.previewOtherTradeInfo(
+    payload && payload.text ? payload.text : ''
+  )
+}
+
+/** Generates the initial trade proposal. */
+function refreshTradeProposal(payload) {
+  return TradeService.refreshStickerTradeProposal(payload)
+}
+
+/** Applies the confirmed trade. */
+function executeTrade(payload) {
+  return TradeService.executeStickerTrades(payload)
+}
+
+/** Generates the current collector QR payload. */
+function generateTradeQr() {
+  return TradeService.generateStickerTradeQr()
+}
+
+/** Opens the Trade dialog with the provided platform configuration. */
+function _showTradeDialog(platform) {
+  const template = HtmlService.createTemplateFromFile('TradeDialog')
+  template.platform = platform || 'desktop'
+  const html = template.evaluate().setWidth(760).setHeight(760)
+
+  SpreadsheetApp.getUi().showModalDialog(html, 'Trade stickers')
+}
+
+// #endregion Trade
 
 // #region Mobile
 //==============================================================================

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+  src/html/TradeDialog.html
+
+  Provides the desktop dialog used by the Trade service.
+
+  This HTML file is a thin adapter over TradeView.html.
+  It is responsible only for:
+  - Loading shared styles.
+  - Loading Trade-specific styles.
+  - Providing desktop configuration.
+  - Initializing the shared Trade view.
+
+  Mobile uses MobileTradeView.html, which loads the same TradeView.html
+  with mobile-specific configuration.
+-->
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('CommonStyles') ?>
+  <?!= include('ImportExportStyles') ?>
+  <?!= include('TradeStyles') ?>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <?!= include('TradeView') ?>
+
+  </div><!-- /container -->
+
+  <script>
+    window.addEventListener('load', () => {
+      initializeTradeView({
+        platform: '<?= platform ?>'
+      })
+    })
+  </script>
+
+</body>
+
+</html>

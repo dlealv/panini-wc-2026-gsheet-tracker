@@ -97,6 +97,17 @@ class MockStickerSheetRepository {
   getStartCol() { return this.startCol }
   getNumRows() { return this.numRows }
   getNumStickerCols() { return this.numStickerCols }
+
+  getStickerCount(countryCode, stickerNumber) {
+    const country = TEST_DATA.countries.find(
+      item => item.code === countryCode
+    )
+    if (!country) {
+      throw new Error(`Country ${countryCode} not found`)
+    }
+    return Number(country.counts[stickerNumber] || 0)
+  }
+
   updateStickerCounts(updates) { // extending it to record the last updates for testing purposes
     this.lastUpdates = updates
     return true
