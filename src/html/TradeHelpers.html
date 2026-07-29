@@ -62,16 +62,126 @@
     }
 
     /**
+     * Displays a message in the Trade dialog UI.
+     * @export
+     * @public
+     */
+    function setMessage(text, type, deps = {}) {
+      const el = deps.messageEl || (typeof tradeMessageEl !== 'undefined' ? tradeMessageEl : null)
+      if (!el) return
+      el.className = `message ${type || 'info'}`
+      el.textContent = text || ''
+    }
+
+    /**
+     * Shows or hides the Trade message section.
+     * @export
+     * @public
+     */
+    function showMessage(show, deps = {}) {
+      const el = deps.messageSectionEl || (typeof tradeMessageSectionEl !== 'undefined' ? tradeMessageSectionEl : null)
+      if (!el) return
+      el.style.display = show ? '' : 'none'
+    }
+
+    /**
+     * Builds the backend payload from the Trade input fields.
+     * @export
+     * @public
+     */
+    function getValidationPayload(deps = {}) {
+      const missingEl = deps.missingText || (typeof missingTextEl !== 'undefined' ? missingTextEl : null)
+      const repeatsEl = deps.repeatsText || (typeof repeatsTextEl !== 'undefined' ? repeatsTextEl : null)
+      return {
+        missingText: missingEl ? missingEl.value.trim() : '',
+        repeatsText: repeatsEl ? repeatsEl.value.trim() : ''
+      }
+    }
+
+    /**
+    * Renders a preview of the trade info in the UI.
+    * @param {{tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
+    * @param {Object} deps
+    * @param {HTMLElement} deps.previewEl - The element to render the preview into.
+    * @export
+    * @public
+    */
+    function renderPreview(result, deps = {}) {
+      const el = deps.previewEl
+      if (!el) return
+      el.className = 'preview'
+      el.textContent = _formatTradeInfo(result.tradeInfo || {})
+      el.style.display = 'block'
+    }
+
+    /**
+     * Clears the trade preview display.
+     * @param {Object} deps
+     * @param {HTMLElement} deps.previewEl - The element to clear the preview from.
+     * @export
+     * @public
+     */
+    function clearPreview(deps = {}) {
+      const el = deps.previewEl
+      if (!el) return
+      el.style.display = 'none'
+      el.textContent = ''
+    }
+
+    /**
+     * Clears the QR code preview display.
+     * @param {Object} deps
+     * @param {HTMLImageElement} deps.qrEl - The image element to clear the QR code from.
+     * @param {HTMLElement} deps.messageEl - The element to clear the trade info message from.
+     * @export
+     * @public
+     */
+    function clearQrPreview(elements = {}) {
+      if (!elements.qrEl || !elements.messageEl) {
+        return
+      }
+      elements.qrEl.src = ''
+      elements.qrEl.style.display = 'none'
+      elements.messageEl.textContent = ''
+      elements.messageEl.className = ''
+      elements.messageEl.style.display = 'none'
+    }
+
+    /**
+     * Renders a QR code preview for the trade info in the UI.
+     * @param {{qrData:string,tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
+     * @param {Object} deps
+     * @param {HTMLImageElement} deps.qrEl - The image element to render the QR code into.
+     * @param {HTMLElement} deps.messageEl - The element to render the trade info message into.
+     * @export
+     * @public
+     */
+    function renderQrPreview(result, elements) {
+      if (!elements.qrEl || !elements.messageEl) {
+        return
+      }
+      elements.qrEl.src = _buildQrImageUrl(result.qrData)
+      elements.qrEl.style.display = 'block'
+      elements.messageEl.textContent = _formatTradeInfo(result.tradeInfo)
+    }
+
+    /**
+     * Builds the QR image URL from encoded trade data.
+     * @param {string} qrData
+     * @returns {string}
+     */
+    function _buildQrImageUrl(qrData) {
+      return `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}`
+    }
+
+    /**
      * Reads the current trade options from the UI.
      * @returns {{sortMissing:boolean, maxStickerReceive:number,maxStickerSend:number}}
      */
     function _getUIState(deps = {}) {
-      const sortCheckbox =
-        deps.sortMissingCheckbox || sortMissingCheckbox
-      const receiveSelect =
-        deps.receiveLimitSelect || receiveLimitSelect
-      const sendSelect =
-        deps.sendLimitSelect || sendLimitSelect
+      const sortCheckbox = deps.sortMissingCheckbox || sortMissingCheckbox
+      const receiveSelect = deps.receiveLimitSelect || receiveLimitSelect
+      const sendSelect = deps.sendLimitSelect || sendLimitSelect
 
       return {
         sortMissing: !!sortCheckbox.checked,
@@ -80,7 +190,38 @@
       }
     }
 
-    return { getPayload, setBusy }
+    /**
+     * Formats TradeInfo into a readable message.
+     * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
+     * @returns {string}
+     */
+    function _formatTradeInfo(tradeInfo) {
+      const lines = []
+      const appendSection = (title, data) => {
+        lines.push(title)
+        const countries = Object.keys(data || {})
+        if (!countries.length) {
+          lines.push('(none)')
+          return
+        }
+        countries.forEach(country => {
+          lines.push(`${country} -> ${data[country].join(', ')}`)
+        })
+      }
+      appendSection('Repeats:', tradeInfo.repeats)
+      appendSection('Missing:', tradeInfo.missing)
+      return lines.join('\n')
+    }
+
+    return { // namespace export
+      getPayload,
+      setBusy,
+      setMessage,
+      showMessage,
+      getValidationPayload,
+      renderPreview,
+      clearPreview
+    }
 
   })()
 

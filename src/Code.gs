@@ -165,11 +165,13 @@ function showTradeDialog() {
 }
 
 /** Returns a preview of another collector's trade information. */
-function previewTradeInformation(payload) {
-  const service = new TradeService()
-  return service.previewOtherTradeInfo(
-    payload && payload.text ? payload.text : ''
-  )
+function previewOtherTradeInfo(payload) {
+  return TradeService.previewOtherStickerTradeInfo(payload || {})
+}
+
+/** Finds all possible trade matches with another collector. */
+function findTradeMatches(payload) {
+  return TradeService.findStickerTradeMatches(payload)
 }
 
 /** Generates the initial trade proposal. */

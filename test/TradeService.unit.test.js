@@ -22,15 +22,20 @@ describe('TradeService (unit)', () => {
   const { ImportStickers } = require('../build/ImportService.js')
 
   /** Initializes a TradeService instance with optional spreadsheet and dependencies. */
-  function initService(ss = null) {
-    return new TradeService(ss, {
+
+  function initStaticDeps() {
+    return {
       ExportService,
       ExportStickers,
       ImportStickers,
-      TradeCalculation
-    })
+      TradeCalculation,
+      TradeQrHelper
+    }
   }
-
+  function initService(ss = null) {
+    const deps = initStaticDeps()
+    return new TradeService(ss, deps)
+  }
   let service
 
   beforeEach(() => {
@@ -85,14 +90,27 @@ describe('TradeService (unit)', () => {
     })
   })
 
+  /** getTradeInfo() */
+  describe('getTradeInfo()', () => {
+    test('returns trade information object', () => {
+      const result = service.getTradeInfo()
+      expect(result).toHaveProperty('missing')
+      expect(result).toHaveProperty('repeats')
+    })
+    test('returns cached trade information instance', () => {
+      const first = service.getTradeInfo()
+      const second = service.getTradeInfo()
+      expect(first).toBe(second)
+    })
+  })
+
   /** getOtherTradeInfo() */
   describe('getOtherTradeInfo()', () => {
     test('returns null before external trade information is set', () => {
       expect(service.getOtherTradeInfo()).toBeNull()
     })
     test('returns stored external trade information', () => {
-      const parsed = { countries: [{ code: 'MEX', counts: { 1: 0, 2: 1 } }] }
-      service.setOtherTradeInfo(parsed)
+      service.setOtherTradeInfo({ missing: { MEX: [1] }, repeats: { MEX: [2] } })
       expect(service.getOtherTradeInfo()).toEqual({ missing: { MEX: [1] }, repeats: { MEX: [2] } })
     })
   })
@@ -149,108 +167,165 @@ describe('TradeService (unit)', () => {
   /** setOtherTradeInfo() */
   describe('setOtherTradeInfo()', () => {
     test('builds trade information from parsed input', () => {
-      service.setOtherTradeInfo({
-        countries: [{ code: 'MEX', counts: { 1: 0, 2: 1, 3: 2 } }]
-      })
+      service.setOtherTradeInfo({ missing: { MEX: [1] }, repeats: { MEX: [2, 3] } })
       expect(service.getOtherTradeInfo()).toEqual({ missing: { MEX: [1] }, repeats: { MEX: [2, 3] } })
     })
     test('handles empty countries list', () => {
-      service.setOtherTradeInfo({ countries: [] })
+      service.setOtherTradeInfo({ missing: {}, repeats: {} })
       expect(service.getOtherTradeInfo()).toEqual({ missing: {}, repeats: {} })
+    })
+  })
+
+  /** static previewOtherStickerTradeInfo() */
+  describe('static previewOtherStickerTradeInfo()', () => {
+    test('parses payload and returns TradeInfo contract', () => {
+      const result = TradeService.previewOtherStickerTradeInfo({
+        missingText: 'MEX,1,5',
+        repeatsText: 'MEX,7(2),8(3)'
+      }, null, initStaticDeps())
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual({ missing: [], repeats: [] })
+      expect(result.tradeInfo).toHaveProperty('missing')
+      expect(result.tradeInfo).toHaveProperty('repeats')
+    })
+    test('returns warnings from both payload sections', () => {
+      const result = TradeService.previewOtherStickerTradeInfo({
+        missingText: 'XXX,1',
+        repeatsText: 'MEX,99'
+      }, null, initStaticDeps())
+      expect(result.success).toBe(true)
+      expect(result.warnings.missing.length).toBeGreaterThan(0)
+      expect(result.warnings.repeats.length).toBeGreaterThan(0)
+    })
+    test('keeps valid stickers while reporting invalid stickers', () => {
+      const result = TradeService.previewOtherStickerTradeInfo({
+        missingText: 'MEX,1,99',
+        repeatsText: 'MEX,7,88'
+      }, null, initStaticDeps())
+      expect(result.success).toBe(true)
+      expect(result.warnings.missing.some(w => w.includes('99'))).toBe(true)
+      expect(result.warnings.repeats.some(w => w.includes('88'))).toBe(true)
     })
   })
 
   /** previewOtherTradeInfo() */
   describe('previewOtherTradeInfo()', () => {
     test('parses external collector input and stores trade information', () => {
-      const result = service.previewOtherTradeInfo('MEX,1,2(2),3')
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2(2),3' })
       expect(result.success).toBe(true)
-      expect(Array.isArray(result.warnings)).toBe(true)
+      expect(result.warnings).toEqual({ missing: [], repeats: [] })
       expect(result.tradeInfo).toEqual({ missing: {}, repeats: { MEX: [1, 2, 3] } })
     })
     test('returns parser warnings', () => {
-      const result = service.previewOtherTradeInfo('XXX,1')
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'XXX,1' })
       expect(result.success).toBe(true)
-      expect(result.warnings.length).toBeGreaterThan(0)
+      expect(result.warnings.missing).toEqual([])
+      expect(result.warnings.repeats.length).toBeGreaterThan(0)
     })
     test('handles valid and invalid countries in external input', () => {
-      const result = service.previewOtherTradeInfo('MEX,1,2\nXXX,5\nCC,3')
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2\nXXX,5\nCC,3' })
       expect(result.success).toBe(true)
       expect(result.tradeInfo.repeats).toHaveProperty('MEX')
       expect(result.tradeInfo.repeats).toHaveProperty('CC')
-      expect(result.warnings.length).toBeGreaterThan(0)
-      expect(result.warnings.some(w => w.includes('XXX'))).toBe(true)
+      expect(result.warnings.repeats.length).toBeGreaterThan(0)
+      expect(result.warnings.repeats.some(w => w.includes('XXX'))).toBe(true)
     })
     test('preserves valid stickers and reports skipped stickers', () => {
-      const result = service.previewOtherTradeInfo(
-        'MEX,1,2,22,99'
-      )
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2,22,99' })
       expect(result.success).toBe(true)
       expect(result.tradeInfo.repeats.MEX).toEqual([1, 2])
-      expect(result.warnings.some(w => w.includes('22'))).toBe(true)
-      expect(result.warnings.some(w => w.includes('99'))).toBe(true)
+      expect(result.warnings.repeats.some(w => w.includes('22'))).toBe(true)
+      expect(result.warnings.repeats.some(w => w.includes('99'))).toBe(true)
     })
     test('returns all warnings while keeping valid trade data', () => {
-      const result = service.previewOtherTradeInfo('MEX,1,1,25\nXXX,3\nCC,2')
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,1,25\nXXX,3\nCC,2' })
       expect(result.success).toBe(true)
       expect(result.tradeInfo.repeats).toHaveProperty('MEX')
       expect(result.tradeInfo.repeats).toHaveProperty('CC')
-      expect(result.warnings.length).toBeGreaterThan(1)
+      expect(result.warnings.repeats.length).toBeGreaterThan(1)
     })
     test('skips duplicate country lines and keeps first valid country data only', () => {
       const input = ['MEX,1,2', 'XXX,5', 'CC,3', 'MEX,3,4'].join('\n')
-      const result = service.previewOtherTradeInfo(input)
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: input })
       expect(result.success).toBe(true)
       expect(result.tradeInfo.repeats).toEqual({ MEX: [1, 2], CC: [3] })
       expect(result.tradeInfo.repeats.MEX).not.toContain(3)
       expect(result.tradeInfo.repeats.MEX).not.toContain(4)
-      expect(result.warnings.some(w => w.includes('XXX'))).toBe(true)
+      expect(result.warnings.repeats.some(w => w.includes('XXX'))).toBe(true)
     })
-
-    /** getTradeInfo() */
-    describe('getTradeInfo()', () => {
-      test('returns trade information object', () => {
-        const result = service.getTradeInfo()
-        expect(result).toHaveProperty('missing')
-        expect(result).toHaveProperty('repeats')
-      })
-      test('returns cached trade information instance', () => {
-        const first = service.getTradeInfo()
-        const second = service.getTradeInfo()
-        expect(first).toBe(second)
-      })
+    test('returns warnings independently for missing and repeats', () => {
+      const result = service.previewOtherTradeInfo({ missingText: 'XXX,1', repeatsText: 'MEX,99' })
+      expect(result.success).toBe(true)
+      expect(result.warnings.missing.length).toBeGreaterThan(0)
+      expect(result.warnings.repeats.length).toBeGreaterThan(0)
+      expect(result.warnings.missing.some(w => w.includes('XXX'))).toBe(true)
+      expect(result.warnings.repeats.some(w => w.includes('99'))).toBe(true)
     })
+    test('accepts empty missing or repeats sections', () => {
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2' })
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual({ missing: [], repeats: [] })
+      expect(result.tradeInfo).toEqual({ missing: {}, repeats: { MEX: [1, 2] } })
+    })
+    test('rejects invalid missing stickers while preserving warnings', () => {
+      const result = service.previewOtherTradeInfo({ missingText: 'MEX,99', repeatsText: '' })
+      expect(result.success).toBe(true)
+      expect(result.warnings.missing.length).toBeGreaterThan(0)
+      expect(result.warnings.missing.some(w => w.includes('99'))).toBe(true)
+      expect(result.tradeInfo.missing).toEqual({})
+    })
+  })
 
-    /** calculateMatches() */
-    describe('findTradeMatches()', () => {
-      test('throws when external collector information is missing', () => {
-        expect(() => service.findTradeMatches({})).
-          toThrow('External collector information is required before calculating trades.')
-      })
-      test('delegates calculation after external information exists', () => {
-        service.setOtherTradeInfo({ countries: [{ code: 'MEX', counts: { 1: 1 } }] })
-        const calculationMock = jest.
-          spyOn(service.getTradeCalculation(), 'calculate').
-          mockReturnValue({
-            receive: [],
-            send: []
-          })
-        const result = service.findTradeMatches()
-        expect(calculationMock).toHaveBeenCalledTimes(1)
-        expect(calculationMock).toHaveBeenCalledWith(service.getTradeInfo(), service.getOtherTradeInfo())
-        expect(result).toEqual({ receive: [], send: [] })
-      })
-      test('returns calculation result from TradeCalculation', () => {
-        service.setOtherTradeInfo({ countries: [{ code: 'MEX', counts: { 1: 1 } }] })
-        jest.spyOn(service, 'getTradeInfo').mockReturnValue({
-          missing: { BRA: [5] },
-          repeats: {}
+  /** getTradeProposalOptions() */
+  describe('generateStickerTradeQr()', () => {
+    test('generates QR trade information from current trade data', () => {
+      const service = initService()
+      const mockTradeInfo = { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
+      service.tradeInfo = mockTradeInfo
+      const encode = jest.spyOn(service.getTradeQrHelper(), 'encode').mockReturnValue('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
+      const result = service.getTradeQrHelper().encode(service.getTradeInfo())
+      expect(encode).toHaveBeenCalledWith(mockTradeInfo)
+      expect(result).toBe('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
+    })
+    test('generates QR trade information using empty trade data', () => {
+      const service = initService()
+      const encode = jest.spyOn(service.getTradeQrHelper(), 'encode').mockReturnValue('{}')
+      service.tradeInfo = { missing: {}, repeats: {} }
+      const result = service.getTradeQrHelper().encode(service.getTradeInfo())
+      expect(encode).toHaveBeenCalledWith({ missing: {}, repeats: {} })
+      expect(result).toBe('{}')
+    })
+  })
+
+  /** calculateMatches() */
+  describe('findTradeMatches()', () => {
+    test('throws when external collector information is missing', () => {
+      expect(() => service.findTradeMatches({})).
+        toThrow('External collector information is required before calculating trades.')
+    })
+    test('delegates calculation after external information exists', () => {
+      service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
+      const calculationMock = jest.
+        spyOn(service.getTradeCalculation(), 'calculate').
+        mockReturnValue({
+          receive: [],
+          send: []
         })
-        jest.spyOn(service.getTradeCalculation(), 'calculate').
-          mockReturnValue({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
-        const result = service.findTradeMatches({ countries: ['BRA'] })
-        expect(result).toEqual({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
+      const result = service.findTradeMatches()
+      expect(calculationMock).toHaveBeenCalledTimes(1)
+      expect(calculationMock).toHaveBeenCalledWith(service.getTradeInfo(), service.getOtherTradeInfo())
+      expect(result).toEqual({ receive: [], send: [] })
+    })
+    test('returns calculation result from TradeCalculation', () => {
+      service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
+      jest.spyOn(service, 'getTradeInfo').mockReturnValue({
+        missing: { BRA: [5] },
+        repeats: {}
       })
+      jest.spyOn(service.getTradeCalculation(), 'calculate').
+        mockReturnValue({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
+      const result = service.findTradeMatches({ countries: ['BRA'] })
+      expect(result).toEqual({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
     })
   })
 
@@ -264,7 +339,7 @@ describe('TradeService (unit)', () => {
         }
       }
       const result = TradeService.findStickerTradeMatches({
-        otherTradeInfo: { countries: [{ code: 'MEX', counts: { 1: 1 } }] }
+        otherTradeInfo: { missing: {}, repeats: { MEX: [1] } }
       }, null, {
         ExportService,
         ExportStickers,

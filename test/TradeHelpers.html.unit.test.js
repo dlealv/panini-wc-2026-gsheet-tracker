@@ -4,6 +4,14 @@
 
 const { helpers } = require('../build/TradeHelpers.html.js')
 
+/** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
+global.document = {
+  createElement: () => ({
+    className: '',
+    textContent: ''
+  })
+}
+
 describe('TradeHelpers unit tests', () => {
   /** Builds backend payload from current trade UI state. */
   describe('getPayload()', () => {
@@ -22,6 +30,121 @@ describe('TradeHelpers unit tests', () => {
         sendLimitSelect: { value: '0' }
       })
       expect(result).toEqual({ sortMissing: false, maxStickerReceive: 0, maxStickerSend: 0 })
+    })
+  })
+
+  /** Builds validation payload from trade input fields. */
+  describe('getValidationPayload()', () => {
+    test('returns missing and repeats text separately', () => {
+      const result = helpers.getValidationPayload({
+        missingText: { value: 'MEX,1,5,12-13' },
+        repeatsText: { value: 'FWC,6(2),14(4)' }
+      })
+      expect(result).toEqual({ missingText: 'MEX,1,5,12-13', repeatsText: 'FWC,6(2),14(4)' })
+    })
+    test('returns only missing text when repeats is empty', () => {
+      const result = helpers.getValidationPayload({
+        missingText: { value: 'MEX,1,5' },
+        repeatsText: { value: '' }
+      })
+      expect(result).toEqual({ missingText: 'MEX,1,5', repeatsText: '' })
+    })
+    test('returns only repeats text when missing is empty', () => {
+      const result = helpers.getValidationPayload({
+        missingText: { value: '' },
+        repeatsText: { value: 'FWC,2(3)' }
+      })
+      expect(result).toEqual({ missingText: '', repeatsText: 'FWC,2(3)' })
+    })
+    test('trims empty spaces from input fields', () => {
+      const result = helpers.getValidationPayload({
+        missingText: { value: '  MEX,1  ' },
+        repeatsText: { value: '  FWC,2(2)  ' }
+      })
+      expect(result).toEqual({ missingText: 'MEX,1', repeatsText: 'FWC,2(2)' })
+    })
+    test('returns empty payload when both inputs are empty', () => {
+      const result = helpers.getValidationPayload({
+        missingText: { value: '' },
+        repeatsText: { value: '' }
+      })
+      expect(result).toEqual({ missingText: '', repeatsText: '' })
+    })
+  })
+
+  /** Renders trade info preview in the trade dialog. */
+  describe('renderPreview()', () => {
+    test('renders missing and repeats trade info', () => {
+      const previewEl = { textContent: '', className: '', style: {} }
+      const result = { tradeInfo: { missing: { MEX: [1, 2, 3], BRA: [5] }, repeats: { FWC: [6, 14] } } }
+      helpers.renderPreview(result, { previewEl })
+      expect(previewEl.className).toBe('preview')
+      expect(previewEl.textContent).toBe('Repeats:\nFWC -> 6, 14\nMissing:\nMEX -> 1, 2, 3\nBRA -> 5')
+      expect(previewEl.style.display).toBe('block')
+    })
+    test('renders empty sections when no trade data exists', () => {
+      const previewEl = { textContent: 'old content', className: '', style: {} }
+      helpers.renderPreview({ tradeInfo: { missing: {}, repeats: {} } }, { previewEl })
+      expect(previewEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
+      expect(previewEl.style.display).toBe('block')
+    })
+    test('renders none for an empty missing section', () => {
+      const previewEl = { textContent: '', className: '', style: {} }
+      helpers.renderPreview({ tradeInfo: { missing: {}, repeats: { MEX: [7] } } }, { previewEl })
+      expect(previewEl.textContent).toBe('Repeats:\nMEX -> 7\nMissing:\n(none)')
+    })
+    test('renders none for an empty repeats section', () => {
+      const previewEl = { textContent: '', className: '', style: {} }
+      helpers.renderPreview({ tradeInfo: { missing: { MEX: [1] }, repeats: {} } }, { previewEl })
+      expect(previewEl.textContent).toBe('Repeats:\n(none)\nMissing:\nMEX -> 1')
+    })
+    test('does nothing when preview element is missing', () => {
+      expect(() => {
+        helpers.renderPreview({ tradeInfo: { missing: { MEX: [1] }, repeats: {} } })
+      }).not.toThrow()
+    })
+  })
+
+  /** Tests for clearPreview() and renderPreview() */
+  describe('clearPreview()', () => {
+    test('clears and hides existing preview', () => {
+      const previewEl = { style: { display: 'block' }, textContent: 'old preview' }
+      helpers.clearPreview({ previewEl })
+      expect(previewEl.textContent).toBe('')
+      expect(previewEl.style.display).toBe('none')
+    })
+    test('does nothing when preview element is missing', () => {
+      expect(() => { helpers.clearPreview({}) }).not.toThrow()
+    })
+  })
+
+  /** Sets message content and style in the trade dialog. */
+  describe('setMessage()', () => {
+    test('sets message text and type', () => {
+      const messageEl = { className: '', textContent: '' }
+      helpers.setMessage('Validation warning', 'warning', { messageEl })
+      expect(messageEl.className).toBe('message warning')
+      expect(messageEl.textContent).toBe('Validation warning')
+    })
+    test('clears message content when empty values are provided', () => {
+      const messageEl = { className: '', textContent: '' }
+      helpers.setMessage('', 'info', { messageEl })
+      expect(messageEl.className).toBe('message info')
+      expect(messageEl.textContent).toBe('')
+    })
+  })
+
+  /** Shows or hides the trade message section. */
+  describe('showMessage()', () => {
+    test('shows message section', () => {
+      const messageSectionEl = { style: { display: 'none' } }
+      helpers.showMessage(true, { messageSectionEl })
+      expect(messageSectionEl.style.display).toBe('')
+    })
+    test('hides message section', () => {
+      const messageSectionEl = { style: { display: '' } }
+      helpers.showMessage(false, { messageSectionEl })
+      expect(messageSectionEl.style.display).toBe('none')
     })
   })
 
@@ -54,6 +177,66 @@ describe('TradeHelpers unit tests', () => {
       const docMock = { querySelectorAll: jest.fn(() => buttons) }
       helpers.setBusy(true, { document: docMock, controls: [null, { disabled: false }] })
       expect(buttons[0].disabled).toBe(true)
+    })
+  })
+
+  /** Renders QR preview and trade information in the trade dialog. */
+  describe('renderQrPreview()', () => {
+    test('renders QR preview with trade information', () => {
+      const qrEl = { src: '', style: {} }
+      const messageEl = { textContent: '', className: '', style: {} }
+      const result = { success: true, qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}', tradeInfo: { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } } }
+      helpers.renderQrPreview(result, { qrEl, messageEl })
+      expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent(result.qrData)}`)
+      expect(qrEl.style.display).toBe('block')
+      expect(messageEl.textContent).toBe('Repeats:\nFWC -> 6, 14\nMissing:\nMEX -> 1, 5')
+    })
+    test('renders empty trade information', () => {
+      const qrEl = { src: '', style: {} }
+      const messageEl = { textContent: '', className: '', style: {} }
+      const result = { success: true, qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }
+      helpers.renderQrPreview(result, { qrEl, messageEl })
+      expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent('{}')}`)
+      expect(qrEl.style.display).toBe('block')
+      expect(messageEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
+    })
+    test('does nothing when qr element is missing', () => {
+      const messageEl = { textContent: '', className: '', style: {} }
+      expect(() => {
+        helpers.renderQrPreview({ success: true, qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }, { messageEl })
+      }).not.toThrow()
+    })
+    test('does nothing when message element is missing', () => {
+      const qrEl = { src: '', style: {} }
+      expect(() => {
+        helpers.renderQrPreview({ success: true, qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }, { qrEl })
+      }).not.toThrow()
+    })
+  })
+
+  /** Clears QR preview display. */
+  describe('clearQrPreview()', () => {
+    test('clears QR image and message elements', () => {
+      const qrEl = { src: 'https://quickchart.io/qr?text=data', style: { display: 'block' } }
+      const messageEl = { textContent: 'Repeats:\nFWC -> 6, 14', className: 'preview', style: { display: 'block' } }
+      helpers.clearQrPreview({ qrEl, messageEl })
+      expect(qrEl.src).toBe('')
+      expect(qrEl.style.display).toBe('none')
+      expect(messageEl.textContent).toBe('')
+      expect(messageEl.className).toBe('')
+      expect(messageEl.style.display).toBe('none')
+    })
+    test('does nothing when QR element is missing', () => {
+      const messageEl = { textContent: 'message', className: 'preview', style: { display: 'block' } }
+      expect(() => {
+        helpers.clearQrPreview({ messageEl })
+      }).not.toThrow()
+    })
+    test('does nothing when message element is missing', () => {
+      const qrEl = { src: 'data', style: { display: 'block' } }
+      expect(() => {
+        helpers.clearQrPreview({ qrEl })
+      }).not.toThrow()
     })
   })
 })

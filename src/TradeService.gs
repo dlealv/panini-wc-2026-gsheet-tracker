@@ -53,27 +53,52 @@ class TradeService {
     this.tradeQrHelper = null
 
     // injectable classes
-    this.ExportService = deps.ExportService || null
-    this.ExportStickers = deps.ExportStickers || null
-    this.ImportStickers = deps.ImportStickers || null
-    this.TradeCalculation = deps.TradeCalculation || null
+    this.ExportService = deps.ExportService || ExportService
+    this.ExportStickers = deps.ExportStickers || ExportStickers
+    this.ImportStickers = deps.ImportStickers || ImportStickers
+    this.TradeCalculation = deps.TradeCalculation || TradeCalculation
     this.TradeQrHelper = deps.TradeQrHelper || TradeQrHelper
+
   }
 
   // static GAS entry points
 
   /**
+   * GAS entry point for validating external collector sticker information.
+   * Parses Missing and Repeats independently and returns normalized trade data.
+   * @param {{missingText:string,repeatsText:string}} payload Raw trade input.
+   * Example:
+   * {
+   *   missingText:"MEX,1,5\nFWC,10",
+   *   repeatsText:"MEX,7(2)\nBRA,15"
+   * }
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
+   * @param {Object} [deps] Optional dependency injection for testing.
+   * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:TradeInfo}}
+   */
+  static previewOtherStickerTradeInfo(payload, ss = null, deps = {}) {
+    const service = new TradeService(ss, deps)
+    return service.previewOtherTradeInfo(payload)
+  }
+
+  /**
    * Generates QR encoded trade information for the current collector.
    * Uses the current collector trade information as the source data and delegates
    * QR serialization to TradeQrHelper.
+   * Returns both the encoded QR payload and the original TradeInfo so the UI
+   * can display the generated trade summary without decoding the QR content.
    * This method only generates QR data and does not modify spreadsheet data.
-   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
-   * @param {Object} [deps] Optional dependency injection for testing.
-   * @returns {string} QR encoded trade information.
-   */
+   * @returns {{success:boolean,qrData:string,tradeInfo:TradeInfo}}
+ */
   static generateStickerTradeQr(ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
-    return service.getTradeQrHelper().encode(service.getTradeInfo())
+    const tradeInfo = service.getTradeInfo()
+
+    return {
+      success: true,
+      qrData: service.getTradeQrHelper().encode(tradeInfo),
+      tradeInfo
+    }
   }
 
   /**
@@ -141,7 +166,7 @@ class TradeService {
    * options before returning the updated proposal.
    * @param {{otherTradeInfo:TradeInfo,sortMissing:boolean,
    * maxStickerReceive:number,maxStickerSend:number}} payload 
-   *  Trade proposal options and external collector information.
+   * Trade proposal options and external collector information.
    * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
    * @param {Object} [deps] Optional dependency injection for testing.
    * @returns {{receive:Object<string,number[]>, send:Object<string,number[]>}}
@@ -199,17 +224,12 @@ class TradeService {
   }
 
   /**
-   * Stores the external collector trade information.
-   * Builds the trade representation from the validated canonical import
-   * structure and stores it for subsequent trade calculations.
-   * The input is expected to come from previewOtherTradeInfo(), which
-   * guarantees that it has already been normalized and validated by
-   * ImportStickers.
-   * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} parsed
-   *   Parsed canonical import structure.
-   */
-  setOtherTradeInfo(parsed) {
-    this.otherTradeInfo = this._buildOtherTradeInfo(parsed)
+ * Stores validated external collector trade information.
+ * Input is already normalized TradeInfo.
+ * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
+ */
+  setOtherTradeInfo(tradeInfo) {
+    this.otherTradeInfo = tradeInfo
   }
 
   /**
@@ -259,25 +279,32 @@ class TradeService {
 
   /**
    * Previews external collector input before using it in trade calculations.
-   * Parses and normalizes raw user-provided input using ImportStickers.
-   * The same validation rules and warning consolidation behavior used by
-   * ImportService are reused here.
-   * The resulting trade information is stored only after successful parsing.
-   * The returned data represents the canonical information that will be used
-   * during trade calculations.
-   * @param {string} text Raw collector input.
-   * @returns {{success:boolean, warnings:string[], tradeInfo:{missing:Object<string,number[]>, 
-   *  repeats:Object<string,number[]> }}}
+   * Missing and Repeats are parsed independently so warnings can be reported
+   * for each section separately.
+   * @param {{missingText:string,repeatsText:string}} payload Raw collector input.
+   * @returns {{success:boolean,warnings:Object<string,string[]>,tradeInfo:TradeInfo}}
    */
-  previewOtherTradeInfo(text) {
-    const parsed = this._parseStickerInput(text)
-    this.setOtherTradeInfo(parsed)
+  previewOtherTradeInfo(payload) {
+    const missingParsed = payload.missingText
+      ? this._parseStickerInput(payload.missingText)
+      : { countries: [], warnings: [] }
+    const repeatsParsed = payload.repeatsText
+      ? this._parseStickerInput(payload.repeatsText)
+      : { countries: [], warnings: [] }
+    this.otherTradeInfo = this._buildOtherTradeInfo(
+      missingParsed,
+      repeatsParsed
+    )
     return {
       success: true,
-      warnings: parsed.warnings,
+      warnings: {
+        missing: missingParsed.warnings || [],
+        repeats: repeatsParsed.warnings || []
+      },
       tradeInfo: this.otherTradeInfo
     }
   }
+
 
   /**
    * Calculates all possible trade matches between two collectors.
@@ -382,41 +409,45 @@ class TradeService {
   }
 
   /**
-   * Builds the external collector trade information.
-   * Converts imported canonical sticker counts into the trade matching model.
-   * Sticker quantities are intentionally reduced to sticker numbers because
-   * trade matching only determines compatible stickers. Quantity selection is
-   * handled later by the proposal/helper layer.
-   * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} parsed 
-   *  Parsed canonical import structure.
-   * @returns {{missing:Object<string,number[]>,repeats:Object<string,number[]>}}
-   */
-  _buildOtherTradeInfo(parsed) {
+    * Builds the external collector trade information.
+    * Converts parsed sticker input from the Trade view into the internal
+    * trade matching model.
+    *
+    * Missing and Repeats are parsed separately because they have different
+    * meanings:
+    *  - missing input represents stickers the external collector needs.
+    *  - repeats input represents stickers the external collector can trade.
+    *
+    * The returned structure contains only sticker numbers because trade matching
+    * determines compatible stickers, while quantity selection is handled later
+    * by the proposal/helper layer.
+    *
+    * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} missingParsed
+    *  Parsed canonical import structure for missing stickers.
+    * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} repeatsParsed
+    *  Parsed canonical import structure for repeated stickers.
+    * @returns {{missing:Object<string,number[]>,repeats:Object<string,number[]>}}
+    */
+  _buildOtherTradeInfo(missingParsed = {}, repeatsParsed = {}) {
     const missing = {}
     const repeats = {}
-    const countries = parsed.countries || []
-    // Convert imported country counts into trade information
-    for (let i = 0; i < countries.length; i++) {
-      const country = countries[i]
-      const missingStickers = []
-      const repeatStickers = []
-      Object.keys(country.counts).forEach(key => {
-        const sticker = Number(key)
-        const count = Number(country.counts[key] || 0)
-        if (count === 0) {
-          missingStickers.push(sticker)
-        }
-        else if (count >= 1) {
-          repeatStickers.push(sticker)
-        }
-      })
-      if (missingStickers.length) {
-        missing[country.code] = missingStickers
+    const missingCountries = missingParsed.countries || []
+    missingCountries.forEach(country => {
+      const stickers = Object.keys(country.counts).map(Number)
+      if (stickers.length) {
+        missing[country.code] = stickers
       }
-      if (repeatStickers.length) {
-        repeats[country.code] = repeatStickers
+    })
+    const repeatCountries = repeatsParsed.countries || []
+    repeatCountries.forEach(country => {
+      const stickers = Object.keys(country.counts)
+        .filter(key => Number(country.counts[key]) > 0)
+        .map(Number)
+
+      if (stickers.length) {
+        repeats[country.code] = stickers
       }
-    }
+    })
     return { missing, repeats }
   }
 
@@ -551,7 +582,6 @@ class TradeService {
  * Finds compatible sticker exchanges between two collectors.
  * Quantity selection, sorting, and proposal presentation are handled
  * by the UI helper layer.
- *
  * @export
  */
 class TradeCalculation {
