@@ -18,10 +18,20 @@ const writeRangeMock = {
 }
 
 /** Shared deterministic dataset. */
+/*
 const TEST_DATA = {
   countries: [
     { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 2: 0, 3: 2 } },
     { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 17: 1, 18: 0, 20: 2 } },
+    { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
+  ],
+  groupCodes: ['A', 'B', 'C']
+}
+*/
+const TEST_DATA = {
+  countries: [
+    { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 3: 2 } },
+    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 18: 1, 20: 2 } },
     { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
   ],
   groupCodes: ['A', 'B', 'C']
@@ -127,15 +137,23 @@ function initTestKernel() {
 function initializeSpreadsheetAppMock() {
   const MAX_ROWS = 50
   const STICKER_COLS = 21
-  const fwcCounts = Array(STICKER_COLS).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
-  const mexCounts = Array(STICKER_COLS).fill('')
-  const ccCounts = Array(STICKER_COLS).fill('')
-  const countriesValues = [['FWC'], ['MEX'], ['CC'], ...Array.from({ length: MAX_ROWS - 3 }, () => [''])]
+  const buildCountsRow = (country) => {
+    const row = Array(STICKER_COLS).fill('')
+    Object.entries(country.counts).forEach(([sticker, count]) => {
+      row[Number(sticker)] = count
+    })
+    return row
+  }
+  const countriesValues = [
+    ...TEST_DATA.countries.map(country => [country.code]),
+    ...Array.from({ length: MAX_ROWS - TEST_DATA.countries.length }, () => [''])
+  ]
   const countsValues = [
-    fwcCounts,
-    mexCounts,
-    ccCounts,
-    ...Array.from({ length: MAX_ROWS - 3 }, () => Array(STICKER_COLS).fill(''))]
+    ...TEST_DATA.countries.map(buildCountsRow),
+    ...Array.from(
+      { length: MAX_ROWS - TEST_DATA.countries.length }, () => Array(STICKER_COLS).fill('')
+    )
+  ]
 
   const getRangeMock = jest.fn((row, col, numRows, numCols) => {
     if (row == null || col == null || numRows == null || numCols == null) {

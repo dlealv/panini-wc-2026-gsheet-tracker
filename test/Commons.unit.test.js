@@ -238,7 +238,9 @@ describe('StickerSheetRepository unit tests', () => {
     })
     test('normalizes country code before lookup', () => {
       expect(repo.getCountryCounts(' fwc ')[1]).toBe(1)
-      expect(repo.getCountryCounts('mex')).toEqual(Array(21).fill(0))
+      const mexCounts = repo.getCountryCounts('mex')
+      expect(mexCounts[18]).toBe(1)
+      expect(mexCounts[20]).toBe(2)
     })
     test('throws when country code does not exist', () => {
       expect(() => repo.getCountryCounts('ARG')).

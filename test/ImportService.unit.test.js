@@ -242,7 +242,7 @@ describe('ImportService (unit)', () => {
     })
     test('export contains no zero values', () => {
       const result = exportService.exportAllStickerData({ includeFlags: false })
-      expect(result.text).not.toMatch(/0\(/)
+      expect(result.text).not.toMatch(/\(\s*0\s*\)/)
     })
     test('update mode preserves existing valid sticker values not in the import payload', () => {
       const existingRow = Array(21).fill(0)

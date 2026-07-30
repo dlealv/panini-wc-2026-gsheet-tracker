@@ -85,19 +85,19 @@ class TradeService {
    * Generates QR encoded trade information for the current collector.
    * Uses the current collector trade information as the source data and delegates
    * QR serialization to TradeQrHelper.
-   * Returns both the encoded QR payload and the original TradeInfo so the UI
+   * Returns both the encoded QR payload and the original TradeInfo (serialized) so the UI
    * can display the generated trade summary without decoding the QR content.
    * This method only generates QR data and does not modify spreadsheet data.
    * @returns {{success:boolean,qrData:string,tradeInfo:TradeInfo}}
- */
+   */
   static generateStickerTradeQr(ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
     const tradeInfo = service.getTradeInfo()
-
+    const qrData = service.getTradeQrHelper().encode(tradeInfo)
     return {
       success: true,
-      qrData: service.getTradeQrHelper().encode(tradeInfo),
-      tradeInfo
+      qrData: qrData,
+      tradeInfo: JSON.stringify(tradeInfo)
     }
   }
 
@@ -354,28 +354,25 @@ class TradeService {
 
   /**
    * Builds the current user's trade information.
-   *
    * Reuses ExportService row generation and ExportStickers filtering rules
    * to obtain the current user's missing and repeated stickers.
-   *
    * The export layer provides the canonical sticker availability data, while
    * this method adapts it into the trade domain structure:
    *  - missing stickers are stored as unavailable sticker entries.
-   *  - repeated stickers are converted into tradable units, where each sticker
-   *    has a count of 1 because trades exchange individual stickers, not total
-   *    collection quantities.
+   *  - repeated stickers are converted into tradable sticker entries, where each
+   *    sticker represents one available trade unit.
+   * The returned structure intentionally uses arrays instead of objects.
+   * This preserves the original album order provided by ExportService.getRows().
+   * Using objects keyed by country code can lose the expected display order when
+   * the data is later serialized or iterated.
    * The returned structure is consumed by trade calculation logic and does not
    * contain export formatting such as text tokens, flags, or repeat notation.
    *
    * @returns {{missing:Object<string,number[]>, repeats:Object<string,number[]>}}
    * Example:
    * {
-   *   missing: {
-   *     MEX: [2, 5]
-   *   },
-   *   repeats: {
-   *     ARG: [7, 8]
-   *   }
+   *   missing:[{code:'MEX',stickers:[2,5]}],
+   *   repeats:[{code:'ARG',stickers:[7,8]}]
    * }
    */
   _buildTradeInfo() {
@@ -385,27 +382,24 @@ class TradeService {
 
     const buildStickerData = (type) => {
       const data = {}
+      // rows comes from ExportService in album order.
+      // Assigning properties in this iteration order preserves the album order
+      // when the trade information is later serialized.
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
         const items = exporter.filterStickerNumbersBy(row, type)
         if (!items.length) { continue }
-
-        if (type === 'missing') {
-          const formatted = exporter._formatStickerNumbers(items)
-          data[row.code] = formatted.map(Number)
-        }
-
-        if (type === 'repeats') {
-          data[row.code] = items.map(item => Number(item))
-        }
+        data[row.code] = items
+          .map(item => Number(item.sticker))
+          .filter(Number.isFinite)
       }
       return data
     }
-
-    return {
-      missing: buildStickerData('missing'),
-      repeats: buildStickerData('repeats')
+    const result = {
+      repeats: buildStickerData('repeats'),
+      missing: buildStickerData('missing')
     }
+    return result
   }
 
   /**
@@ -724,7 +718,7 @@ class TradeQrHelper {
   /**
    * Converts trade information into a compact QR payload string.
    * Empty missing or repeated collections are omitted from the payload.
-   * @param {Object} tradeInfo Trade information containing missing and repeats.
+   * @param {TradeInfo} tradeInfo Trade information to encode.
    * @returns {string} Compact JSON string ready to be stored in a QR code.
    */
   encode(tradeInfo) {
@@ -736,7 +730,6 @@ class TradeQrHelper {
     if (tradeInfo.repeats && Object.keys(tradeInfo.repeats).length) {
       payload.r = tradeInfo.repeats
     }
-
     return JSON.stringify(payload)
   }
 

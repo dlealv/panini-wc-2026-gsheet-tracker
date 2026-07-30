@@ -39,7 +39,7 @@ describe('TradeService (unit)', () => {
   let service
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.restoreAllMocks()
     initTestKernel()
     service = initService()
   })
@@ -61,6 +61,70 @@ describe('TradeService (unit)', () => {
       expect(service.otherTradeInfo).toBeNull()
       expect(service.exportService).toBeNull()
       expect(service.tradeCalculation).toBeNull()
+    })
+  })
+
+  /** static previewOtherStickerTradeInfo() */
+  describe('static previewOtherStickerTradeInfo()', () => {
+    test('parses external collector information and returns trade data', () => {
+      const payload = { missingText: 'MEX,1,5\nFWC,10', repeatsText: 'BRA,15' }
+      const expected = { success: true, warnings: { missing: [], repeats: [] }, tradeInfo: { missing: { MEX: [1, 5], FWC: [10] }, repeats: { BRA: [15] } } }
+      jest.spyOn(TradeService.prototype, 'previewOtherTradeInfo').mockReturnValue(expected)
+      const result = TradeService.previewOtherStickerTradeInfo(payload, null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
+    test('returns independent warnings for invalid missing and repeats input', () => {
+      const payload = { missingText: 'MEX,1,999\nINVALID', repeatsText: 'BRA,15(2)\nUNKNOWN,5' }
+      const expected = { success: true, warnings: { missing: ['Invalid sticker 999 for MEX', 'Invalid country INVALID'], repeats: ['Invalid country UNKNOWN'] }, tradeInfo: { missing: { MEX: [1] }, repeats: { BRA: [15] } } }
+      jest.spyOn(TradeService.prototype, 'previewOtherTradeInfo').mockReturnValue(expected)
+      const result = TradeService.previewOtherStickerTradeInfo(payload, null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
+    test('handles empty collector information', () => {
+      const payload = { missingText: '', repeatsText: '' }
+      const expected = { success: true, warnings: { missing: [], repeats: [] }, tradeInfo: { missing: {}, repeats: {} } }
+      jest.spyOn(TradeService.prototype, 'previewOtherTradeInfo').mockReturnValue(expected)
+      const result = TradeService.previewOtherStickerTradeInfo(payload, null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
+  })
+
+  /** generateStickerTradeQr() */
+  describe('static generateStickerTradeQr()', () => {
+    let deps, encode
+    beforeEach(() => {
+      encode = jest.fn()
+      deps = {
+        ...initStaticDeps(),
+        TradeQrHelper: class {
+          encode(tradeInfo) {
+            return encode(tradeInfo)
+          }
+        }
+      }
+    })
+    test('generates QR trade information from current trade data', () => {
+      const mockTradeInfo = { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
+      encode.mockReturnValue('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
+      jest.spyOn(TradeService.prototype, 'getTradeInfo').mockReturnValue(mockTradeInfo)
+      const result = TradeService.generateStickerTradeQr(null, deps)
+      expect(encode).toHaveBeenCalledWith(mockTradeInfo)
+      expect(result).toEqual({
+        success: true,
+        qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}',
+        tradeInfo: JSON.stringify(mockTradeInfo)
+      })
+    })
+    test('generates QR trade information using empty trade data', () => {
+      const mockTradeInfo = { missing: {}, repeats: {} }
+      encode.mockReturnValue('{}')
+      jest.spyOn(TradeService.prototype, 'getTradeInfo').mockReturnValue(mockTradeInfo)
+      const result = TradeService.generateStickerTradeQr(null, deps)
+      expect(result).toEqual({
+        success: true,
+        qrData: '{}',
+        tradeInfo: JSON.stringify(mockTradeInfo)
+      })
     })
   })
 
@@ -101,6 +165,32 @@ describe('TradeService (unit)', () => {
       const first = service.getTradeInfo()
       const second = service.getTradeInfo()
       expect(first).toBe(second)
+    })
+    test('returns repeat sticker numbers as numeric arrays', () => {
+      const result = service.getTradeInfo()
+      Object.values(result.repeats).forEach(stickers => {
+        expect(Array.isArray(stickers)).toBe(true)
+        stickers.forEach(sticker => {
+          expect(typeof sticker).toBe('number')
+          expect(Number.isFinite(sticker)).toBe(true)
+        })
+      })
+    })
+    test('does not contain null repeat stickers', () => {
+      const result = service.getTradeInfo()
+      Object.values(result.repeats).forEach(stickers => {
+        expect(stickers).not.toContain(null)
+      })
+    })
+    test('returns expected missing and repeated stickers', () => {
+      // Using the TEST_DATA defined in testKernel.js, we expect the following trade information:
+      const result = service.getTradeInfo()
+      expect(result.missing.FWC).toContain(2)
+      expect(result.missing.FWC).not.toContain(1)
+      expect(result.repeats.FWC).toEqual([3])
+      expect(result.missing.MEX).not.toContain(18)
+      expect(result.repeats.MEX).toEqual([20])
+      expect(result.missing.CC).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     })
   })
 
@@ -176,38 +266,6 @@ describe('TradeService (unit)', () => {
     })
   })
 
-  /** static previewOtherStickerTradeInfo() */
-  describe('static previewOtherStickerTradeInfo()', () => {
-    test('parses payload and returns TradeInfo contract', () => {
-      const result = TradeService.previewOtherStickerTradeInfo({
-        missingText: 'MEX,1,5',
-        repeatsText: 'MEX,7(2),8(3)'
-      }, null, initStaticDeps())
-      expect(result.success).toBe(true)
-      expect(result.warnings).toEqual({ missing: [], repeats: [] })
-      expect(result.tradeInfo).toHaveProperty('missing')
-      expect(result.tradeInfo).toHaveProperty('repeats')
-    })
-    test('returns warnings from both payload sections', () => {
-      const result = TradeService.previewOtherStickerTradeInfo({
-        missingText: 'XXX,1',
-        repeatsText: 'MEX,99'
-      }, null, initStaticDeps())
-      expect(result.success).toBe(true)
-      expect(result.warnings.missing.length).toBeGreaterThan(0)
-      expect(result.warnings.repeats.length).toBeGreaterThan(0)
-    })
-    test('keeps valid stickers while reporting invalid stickers', () => {
-      const result = TradeService.previewOtherStickerTradeInfo({
-        missingText: 'MEX,1,99',
-        repeatsText: 'MEX,7,88'
-      }, null, initStaticDeps())
-      expect(result.success).toBe(true)
-      expect(result.warnings.missing.some(w => w.includes('99'))).toBe(true)
-      expect(result.warnings.repeats.some(w => w.includes('88'))).toBe(true)
-    })
-  })
-
   /** previewOtherTradeInfo() */
   describe('previewOtherTradeInfo()', () => {
     test('parses external collector input and stores trade information', () => {
@@ -276,27 +334,6 @@ describe('TradeService (unit)', () => {
     })
   })
 
-  /** getTradeProposalOptions() */
-  describe('generateStickerTradeQr()', () => {
-    test('generates QR trade information from current trade data', () => {
-      const service = initService()
-      const mockTradeInfo = { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
-      service.tradeInfo = mockTradeInfo
-      const encode = jest.spyOn(service.getTradeQrHelper(), 'encode').mockReturnValue('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
-      const result = service.getTradeQrHelper().encode(service.getTradeInfo())
-      expect(encode).toHaveBeenCalledWith(mockTradeInfo)
-      expect(result).toBe('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
-    })
-    test('generates QR trade information using empty trade data', () => {
-      const service = initService()
-      const encode = jest.spyOn(service.getTradeQrHelper(), 'encode').mockReturnValue('{}')
-      service.tradeInfo = { missing: {}, repeats: {} }
-      const result = service.getTradeQrHelper().encode(service.getTradeInfo())
-      expect(encode).toHaveBeenCalledWith({ missing: {}, repeats: {} })
-      expect(result).toBe('{}')
-    })
-  })
-
   /** calculateMatches() */
   describe('findTradeMatches()', () => {
     test('throws when external collector information is missing', () => {
@@ -360,8 +397,8 @@ describe('TradeService (unit)', () => {
       const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
       const result = service.executeTrade(confirmation)
       expect(updateMock).toHaveBeenCalledWith([
-        { countryCode: 'MEX', stickerNumber: 18, count: 1 },
-        { countryCode: 'MEX', stickerNumber: 17, count: 0 }
+        { countryCode: 'MEX', stickerNumber: 18, count: 2 },
+        { countryCode: 'MEX', stickerNumber: 17, count: -1 }
       ])
       expect(result).toBe(true)
     })

@@ -69,7 +69,7 @@
     function setMessage(text, type, deps = {}) {
       const el = deps.messageEl || (typeof tradeMessageEl !== 'undefined' ? tradeMessageEl : null)
       if (!el) return
-      el.className = `message ${type || 'info'}`
+      el.className = 'message ' + (type || 'info') // avoid using ${} notation
       el.textContent = text || ''
     }
 
@@ -137,14 +137,20 @@
      * @public
      */
     function clearQrPreview(elements = {}) {
-      if (!elements.qrEl || !elements.messageEl) {
+      if (!elements.qrEl) {
         return
       }
       elements.qrEl.src = ''
       elements.qrEl.style.display = 'none'
-      elements.messageEl.textContent = ''
-      elements.messageEl.className = ''
-      elements.messageEl.style.display = 'none'
+      if (elements.messageEl) {
+        elements.messageEl.textContent = ''
+        elements.messageEl.className = ''
+        elements.messageEl.style.display = 'none'
+      }
+      if (elements.infoEl) {
+        elements.infoEl.textContent = ''
+        elements.infoEl.style.display = 'none'
+      }
     }
 
     /**
@@ -152,18 +158,27 @@
      * @param {{qrData:string,tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
      * @param {Object} deps
      * @param {HTMLImageElement} deps.qrEl - The image element to render the QR code into.
-     * @param {HTMLElement} deps.messageEl - The element to render the trade info message into.
+     * @param {HTMLElement} deps.infoEl - The element to render the trade info message into.
      * @export
      * @public
      */
     function renderQrPreview(result, elements) {
-      if (!elements.qrEl || !elements.messageEl) {
-        return
+      if (!elements.qrEl) { return }
+      elements.qrEl.onload = function () {
+        elements.qrEl.style.display = 'block'
+        if (elements.hintEl) {
+          elements.hintEl.style.display = 'block'
+        }
       }
       elements.qrEl.src = _buildQrImageUrl(result.qrData)
-      elements.qrEl.style.display = 'block'
-      elements.messageEl.textContent = _formatTradeInfo(result.tradeInfo)
+      if (elements.infoEl) {
+        elements.infoEl.className = 'preview'
+        elements.infoEl.textContent = _formatTradeInfo(result.tradeInfo || {})
+        elements.infoEl.style.display = 'block'
+      }
     }
+
+    // Private helper functions (not exported) for internal use within the Trade namespace.
 
     /**
      * Builds the QR image URL from encoded trade data.
@@ -171,7 +186,8 @@
      * @returns {string}
      */
     function _buildQrImageUrl(qrData) {
-      return `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}`
+      let url = 'https://quickchart.io/qr?text=' + encodeURIComponent(qrData) // avoid using ${} notation
+      return url
     }
 
     /**
@@ -205,7 +221,7 @@
           return
         }
         countries.forEach(country => {
-          lines.push(`${country} -> ${data[country].join(', ')}`)
+          lines.push(country + ' -> ' + data[country].join(', ')) // avoid using ${} notation
         })
       }
       appendSection('Repeats:', tradeInfo.repeats)
@@ -220,7 +236,9 @@
       showMessage,
       getValidationPayload,
       renderPreview,
-      clearPreview
+      clearPreview,
+      clearQrPreview,
+      renderQrPreview
     }
 
   })()

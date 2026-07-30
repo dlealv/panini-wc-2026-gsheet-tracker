@@ -183,22 +183,33 @@ describe('TradeHelpers unit tests', () => {
   /** Renders QR preview and trade information in the trade dialog. */
   describe('renderQrPreview()', () => {
     test('renders QR preview with trade information', () => {
+      const result = {
+        qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}',
+        tradeInfo: { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
+      }
       const qrEl = { src: '', style: {} }
-      const messageEl = { textContent: '', className: '', style: {} }
-      const result = { success: true, qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}', tradeInfo: { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } } }
-      helpers.renderQrPreview(result, { qrEl, messageEl })
+      const hintEl = { style: {} }
+      const infoEl = { textContent: '', className: '', style: {} }
+      helpers.renderQrPreview(result, { qrEl, hintEl, infoEl })
       expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent(result.qrData)}`)
+      expect(infoEl.className).toBe('preview')
+      expect(infoEl.style.display).toBe('block')
+      expect(infoEl.textContent).toBe('Repeats:\nFWC -> 6, 14\nMissing:\nMEX -> 1, 5')
+      qrEl.onload()
       expect(qrEl.style.display).toBe('block')
-      expect(messageEl.textContent).toBe('Repeats:\nFWC -> 6, 14\nMissing:\nMEX -> 1, 5')
+      expect(hintEl.style.display).toBe('block')
     })
     test('renders empty trade information', () => {
+      const result = { qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }
       const qrEl = { src: '', style: {} }
-      const messageEl = { textContent: '', className: '', style: {} }
-      const result = { success: true, qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }
-      helpers.renderQrPreview(result, { qrEl, messageEl })
+      const hintEl = { style: {} }
+      const infoEl = { textContent: '', className: '', style: {} }
+      helpers.renderQrPreview(result, { qrEl, hintEl, infoEl })
       expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent('{}')}`)
+      expect(infoEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
+      qrEl.onload()
       expect(qrEl.style.display).toBe('block')
-      expect(messageEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
+      expect(hintEl.style.display).toBe('block')
     })
     test('does nothing when qr element is missing', () => {
       const messageEl = { textContent: '', className: '', style: {} }

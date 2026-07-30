@@ -41,7 +41,14 @@ No changes were made to the template, so the version number remains.
     - `filterStickerNumbersBy()` renamed to `_filterStickerNumbersBy()` since it is public and now used by trade services too.
 
 - Under the `test/utils` folder:
-  - `testKernel.js`: Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
+  - `testKernel.js`: 
+    - Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
+    - Adjusted the `TEST_DATA` to represent the same data as in `initializeSpreadsheetAppMock()` so `TEST_DATA` is the source of truth.
+
+- Under the `test` folder: Adjusted the regression tests failing after the change in `testKernel.js` to use `TEST_DATA` as the source of truth.
+  - `Commons.unit.test.js`: Updated the suite `getCountryCounts()` for the test `normalizes country code before lookup`.
+  - `ImportService.unit.test.js`: 
+    - Updated the suite `sheet writes` for the test `export contains no zero values`.
 
 
 ## [1.1.3] 2026-07-25

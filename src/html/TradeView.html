@@ -73,29 +73,27 @@
 <div id="generateQrView" style="display:none;">
   <div class="section">
     <div class="section-title">Generate trade QR code</div>
-    <div class="trade-toolbar">
-      <button id="closeQrButton" class="btn btn-inline">Close</button>
-    </div>
   </div>
 
   <div class="section">
-    <div class="hint">
-      Scan this QR code to import my trade information
+    <div id="tradeQrHint" class="hint" style="display:none;">
+      Scan this QR code to import my trade information (repeats and missing stickers)
     </div>
-
     <div class="qr-container">
-      <img id="tradeQrImage" alt="Trade QR code">
+      <img id="tradeQrImage" class="trade-qr-image" alt="Trade QR code" style="display:none;">
     </div>
   </div>
 
   <div class="section">
     <div class="section-title">Messages</div>
     <div id="tradeQrMessage" class="message info"></div>
+    <div id="tradeQrInfo" class="preview"></div>
   </div>
 
   <div class="section">
     <div class="actions">
-      <button id="backQrButton" class="btn">Back</button>
+      <button id="backQrButton" class="btn btn-primary">Back</button>
+      <button id="closeQrButton" class="btn btn">Close</button>
     </div>
   </div>
 </div><!-- /generateQrView -->
@@ -126,7 +124,6 @@
     const tradeMessageSectionEl = document.getElementById('tradeMessageSection')
     const tradeMessageEl = document.getElementById('trade-message')
     const previewEl = document.getElementById('trade-preview')
-    const clearTradeButtonEl = document.getElementById('clearTradeButton')
 
     // Generate My QR code variables:
     const generateQrButtonEl = document.getElementById('generateQrButton')
@@ -134,6 +131,8 @@
     const generateQrViewEl = document.getElementById('generateQrView')
     const tradeQrImageEl = document.getElementById('tradeQrImage')
     const tradeQrMessageEl = document.getElementById('tradeQrMessage')
+    const tradeQrHintEl = document.getElementById('tradeQrHint')
+    const tradeQrInfoEl = document.getElementById('tradeQrInfo')
     const backQrButtonEl = document.getElementById('backQrButton')
     const closeQrButtonEl = document.getElementById('closeQrButton')
 
@@ -144,18 +143,17 @@
     continueButtonEl.disabled = true
     tradeMessageSectionEl.style.display = 'none'
 
+    // Note: Below function must be place before // Wiring events because it is called by the event handlers.
 
-    // Wire events
-    validateButtonEl.addEventListener('click', validateOtherTradeInfo)
-    generateQrButtonEl.addEventListener('click', showGenerateQrView)
-    backQrButtonEl.addEventListener('click', hideGenerateQrView)
-    closeQrButtonEl.addEventListener('click', closeTradeView)
-    //continueButtonEl.addEventListener('click', continueTrade) // removed until proposal view is implemented
+    /** Returns true when running inside a spreadsheet dialog. */
+    function isDesktopDialogHost() {
+      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
+    }
 
     /**
-     * Initializes the Trade view. Called by desktop and mobile containers.
-     * @param {{platform:string}} config View configuration.
-     */
+    * Initializes the Trade view. Called by desktop and mobile containers.
+    * @param {{platform:string}} config View configuration.
+    */
     window.initializeTradeView = function (config = {}) {
       platform = config.platform || 'desktop'
       uploadQrButtonEl.style.display = platform === 'desktop' ? '' : 'none'
@@ -169,6 +167,13 @@
         google.script.host.close()
       }
     }
+
+    // Wire events
+    validateButtonEl.addEventListener('click', validateOtherTradeInfo)
+    generateQrButtonEl.addEventListener('click', showGenerateQrView)
+    backQrButtonEl.addEventListener('click', hideGenerateQrView)
+    closeQrButtonEl.addEventListener('click', closeTradeView)
+    //continueButtonEl.addEventListener('click', continueTrade) // removed until proposal view is implemented
 
     closeTradeButtonEl.addEventListener('click', closeTradeView)
     const warningsEl = document.getElementById('trade-warnings')
@@ -204,7 +209,6 @@
 
     /** Handles successful trade validation. */
     function onOtherTradeInfoValidated(result) {
-      console.log(JSON.stringify(result))
       Trade.setBusy(false)
       state.validatedTradeInfo = result.tradeInfo
       state.warnings = result.warnings || {}
@@ -234,38 +238,35 @@
     function showGenerateQrView() {
       tradeInputViewEl.style.display = 'none'
       generateQrViewEl.style.display = ''
+      tradeQrImageEl.style.display = 'none'
+      tradeQrHintEl.style.display = 'none'
       Trade.setBusy(true)
+      Trade.setMessage('Generating QR code...', 'info', { messageEl: tradeQrMessageEl })
       google.script.run
         .withSuccessHandler(onQrGenerated)
         .withFailureHandler(onQrGenerationFailed)
-        .generateStickerTradeQr()
+        .generateTradeQr()
     }
 
     /** Handles successful QR generation. */
     function onQrGenerated(result) {
+      const tradeInfo = JSON.parse(result.tradeInfo)
+      // Construct the object for Trade.renderQrPreview()
+      const obj = { qrData: result.qrData, tradeInfo: tradeInfo }
       Trade.setBusy(false)
-      Trade.renderQrPreview(result, {
-        qrEl: tradeQrImageEl,
-        messageEl: tradeQrMessageEl
-      })
+      Trade.renderQrPreview(obj, { qrEl: tradeQrImageEl, hintEl: tradeQrHintEl, infoEl: tradeQrInfoEl })
+      Trade.setMessage('QR code generated successfully.', 'success', { messageEl: tradeQrMessageEl })
     }
 
     /** Handles QR generation failure. */
     function onQrGenerationFailed(error) {
       Trade.setBusy(false)
-      Trade.setMessage(
-        error.message || String(error),
-        'error',
-        { messageEl: tradeQrMessageEl }
-      )
+      Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeQrMessageEl })
     }
 
     /** Hides the Generate QR view and returns to the Trade input view. */
     function hideGenerateQrView() {
-      Trade.clearQrPreview({
-        qrEl: tradeQrImageEl,
-        messageEl: tradeQrMessageEl
-      })
+      Trade.clearQrPreview({ qrEl: tradeQrImageEl, messageEl: tradeQrMessageEl, infoEl: tradeQrInfoEl })
       generateQrViewEl.style.display = 'none'
       tradeInputViewEl.style.display = ''
     }
@@ -324,16 +325,9 @@
       messages.forEach(message => {
         const p = document.createElement('p')
         p.style.margin = '2px 0'
-        p.textContent = `⚠ ${message}`
+        p.textContent = '⚠ ' + message // avoid using ${} notation
         warningsEl.appendChild(p)
       })
-    }
-
-    /**
-     * Returns true when running inside a spreadsheet dialog.
-     */
-    function isDesktopDialogHost() {
-      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
     }
 
     /**

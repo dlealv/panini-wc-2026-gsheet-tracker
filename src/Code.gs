@@ -154,11 +154,6 @@ function applyQuickEntryUpdates(payload) {
 // Trade Dialog
 //==============================================================================
 
-// #region Trade
-//==============================================================================
-// Trade Dialog
-//==============================================================================
-
 /** Opens the Trade dialog. */
 function showTradeDialog() {
   _showTradeDialog('desktop')
