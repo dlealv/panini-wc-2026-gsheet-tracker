@@ -10,6 +10,8 @@
  *    and spreadsheet updates.
  *  - TradeCalculation, a pure business-logic class responsible for
  *    comparing sticker collections and finding compatible trade matches.
+ * Shared trade information structure used by trade workflow methods.
+ * @typedef {{missing:Object<string,number[]>, repeats:Object<string,number[]>}} TradeInfo
  * NOTE: the export tag in comments indicates classes or methods that are intended
  * to be testable and exposed for external use, so they should not be removed or
  * altered without consideration of their role in the overall application architecture.
@@ -19,7 +21,6 @@
 
 /**
  * Handles trade workflow operations for the Panini tracker.
- *
  * This class is the GAS-facing application service responsible for:
  *  - receiving trade requests from the client layer.
  *  - preparing sticker data required for trade calculations.
@@ -27,11 +28,8 @@
  *  - coordinating ImportStickers and LineNormalize when raw sticker input is provided.
  *  - invoking TradeCalculation for business decisions.
  *  - applying confirmed spreadsheet updates through StickerSheetRepository.
- *
  * Spreadsheet access and persistence logic should remain in this class.
  * Trade calculation logic should be delegated to TradeCalculation.
- * payload definition used on several GAS entry pont methods.
- * @typedef {{missing:Object<string,number[]>, repeats:Object<string,number[]>}} TradeInfo
  *
  * @export
  */
@@ -82,23 +80,37 @@ class TradeService {
   }
 
   /**
-   * Generates QR encoded trade information for the current collector.
-   * Uses the current collector trade information as the source data and delegates
-   * QR serialization to TradeQrHelper.
-   * Returns both the encoded QR payload and the original TradeInfo (serialized) so the UI
-   * can display the generated trade summary without decoding the QR content.
-   * This method only generates QR data and does not modify spreadsheet data.
-   * @returns {{success:boolean,qrData:string,tradeInfo:TradeInfo}}
+   * GAS entry point for generating the current collector's sticker trade QR data.
+   * Generates compact QR payload data and serialized trade information
+   * for sharing with another collector.
+   * This method only prepares trade information.
+   * It does not calculate matches or modify spreadsheet data.
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
+   * @param {Object} [deps] Optional dependency injection for testing.
+   * @returns {{success:boolean,qrData:string,tradeInfo:string}}
    */
-  static generateStickerTradeQr(ss = null, deps = {}) {
+  static generateStickerTradeInfoQr(ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
-    const tradeInfo = service.getTradeInfo()
-    const qrData = service.getTradeQrHelper().encode(tradeInfo)
-    return {
-      success: true,
-      qrData: qrData,
-      tradeInfo: JSON.stringify(tradeInfo)
-    }
+    return service.generateTradeInfoQr()
+  }
+
+  /**
+   * GAS entry point for validating external collector sticker information
+   * from an uploaded QR image.
+   * Decodes the QR image into trade payload data, converts the payload into
+   * normalized trade information, and returns the same response structure used
+   * by previewOtherStickerTradeInfo().
+   * This method only prepares external collector trade information.
+   * It does not calculate matches or modify spreadsheet data.
+   * @param {{imageData:string}} payload Uploaded QR image data.
+   * Example: {imageData:"data:image/png;base64,iVBORw0..."}
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
+   * @param {Object} [deps] Optional dependency injection for testing.
+   * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:string}}
+   */
+  static previewOtherStickerTradeInfoFromQr(payload, ss = null, deps = {}) {
+    const service = new TradeService(ss, deps)
+    return service.previewOtherTradeInfoFromQr(payload)
   }
 
   /**
@@ -154,6 +166,7 @@ class TradeService {
    * GAS entry point for executing a confirmed trade.
    * Validates the confirmation and applies spreadsheet updates.
    * @param {{receive:Object<string,number[]>, send:Object<string,number[]>}} payload Confirmed trade information.
+   * @returns {boolean|Object} Result returned by StickerSheetRepository.updateStickerCounts().
    */
   static executeStickerTrades(payload, ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
@@ -210,7 +223,11 @@ class TradeService {
     return this.tradeInfo
   }
 
-  /** Gets the sticker sheet repository instance. Lazy initializes the repository on first access.*/
+  /**
+   * Returns the StickerSheetRepository instance.
+   * Lazy initializes the repository on first access.
+   * @returns {StickerSheetRepository}
+   */
   getRepo() {
     if (!this.repo) {
       this.repo = new StickerSheetRepository()
@@ -227,6 +244,7 @@ class TradeService {
  * Stores validated external collector trade information.
  * Input is already normalized TradeInfo.
  * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
+ * @returns {void}
  */
   setOtherTradeInfo(tradeInfo) {
     this.otherTradeInfo = tradeInfo
@@ -236,6 +254,7 @@ class TradeService {
    * Loads external trade information from QR payload data.
    * The decoded QR data is converted into the TradeInfo model.
    * @param {string} qrData QR encoded trade information.
+   * @returns {void}
    */
   setOtherTradeInfoFromQr(qrData) {
     const tradeInfo = this.getTradeQrHelper().decode(qrData)
@@ -267,7 +286,7 @@ class TradeService {
     this.tradeProposal = tradeProposal
   }
 
-  /** Returns the QR helper instance */
+  /** Returns the QR helper instance. */
   getTradeQrHelper() {
     if (!this.tradeQrHelper) {
       this.tradeQrHelper = new this.TradeQrHelper()
@@ -302,6 +321,50 @@ class TradeService {
         repeats: repeatsParsed.warnings || []
       },
       tradeInfo: this.otherTradeInfo
+    }
+  }
+
+  /**
+   * Generates QR encoded trade information for the current collector.
+   * Retrieves the current collector trade information and delegates encoding
+   * to TradeQrHelper.
+   * This method only generates QR data and does not modify spreadsheet data.
+   * @returns {{success:boolean,qrData:string,tradeInfo:string}} tradeInfo is serialized as JSON 
+   *  to preserve sticker order of the album.
+   * Note:
+   * Unlike previewOtherTradeInfo(), this method returns tradeInfo serialized
+   * as JSON because the QR workflow transfers data through the client layer,
+   * where object property ordering must be preserved.
+   */
+  generateTradeInfoQr() {
+    const tradeInfo = this.getTradeInfo()
+    const qrData = this.getTradeQrHelper().encode(tradeInfo)
+
+    return {
+      success: true,
+      qrData: qrData,
+      tradeInfo: JSON.stringify(tradeInfo)
+    }
+  }
+
+  /**
+   * Previews external collector trade information from QR payload data.
+   * Decodes QR payload data into TradeInfo, stores the external collector
+   * information, and returns the trade information serialized as JSON (required to keep album order).
+   * @param {{qrData:string}} payload Decoded QR payload data.
+   * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:string}}
+   * Note:
+   * Unlike previewOtherTradeInfo(), this method returns tradeInfo serialized
+   * as JSON because the QR workflow transfers data through the client layer,
+   * where object property ordering must be preserved.
+   */
+  previewOtherTradeInfoFromQr(payload) {
+    const tradeInfo = this.getTradeQrHelper().decode(payload.qrData)
+    this.otherTradeInfo = tradeInfo
+    return {
+      success: true,
+      warnings: { missing: [], repeats: [] },
+      tradeInfo: JSON.stringify(this.otherTradeInfo)
     }
   }
 
@@ -371,8 +434,8 @@ class TradeService {
    * @returns {{missing:Object<string,number[]>, repeats:Object<string,number[]>}}
    * Example:
    * {
-   *   missing:[{code:'MEX',stickers:[2,5]}],
-   *   repeats:[{code:'ARG',stickers:[7,8]}]
+   *   missing:{MEX:[2,5]},
+   *   repeats:{ARG:[7,8]}
    * }
    */
   _buildTradeInfo() {
@@ -403,62 +466,62 @@ class TradeService {
   }
 
   /**
-    * Builds the external collector trade information.
-    * Converts parsed sticker input from the Trade view into the internal
-    * trade matching model.
-    *
-    * Missing and Repeats are parsed separately because they have different
-    * meanings:
-    *  - missing input represents stickers the external collector needs.
-    *  - repeats input represents stickers the external collector can trade.
-    *
-    * The returned structure contains only sticker numbers because trade matching
-    * determines compatible stickers, while quantity selection is handled later
-    * by the proposal/helper layer.
-    *
-    * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} missingParsed
-    *  Parsed canonical import structure for missing stickers.
-    * @param {{countries:Array<{code:string, counts:Object<number,number>}>}} repeatsParsed
-    *  Parsed canonical import structure for repeated stickers.
-    * @returns {{missing:Object<string,number[]>,repeats:Object<string,number[]>}}
-    */
+   * Parses raw sticker input when trade data is provided as text.
+   * Uses ImportStickers and LineNormalize to convert raw user input
+   * into canonical sticker data.
+   * The parser is configured to preserve the original sticker order
+   * because trade input order is meaningful for preview operations.
+   * Warning consolidation behavior is inherited from ImportStickers.
+   * @param {string} text Raw sticker input.
+   * @returns {{sortStickers:boolean,countries:Array<{code:string, counts:Object<number,number>, stickerOrder?:number[]}>,warnings:string[]}}
+   */
+  _parseStickerInput(text) {
+    const importStickers = new this.ImportStickers(
+      this.getRepo().getCountryMap(),
+      { sortStickers: false }
+    )
+    return importStickers.parse(text)
+  }
+
+    /**
+     * Builds the external collector trade information.
+     * Converts parsed sticker input from the Trade view into the internal trade information structure.
+     * Missing and Repeats are parsed separately because they have different meanings:
+     *  - missing input represents stickers the external collector needs.
+     *  - repeats input represents stickers the external collector can trade.
+     * When sortStickers is disabled, ImportStickers provides stickerOrder with the original normalized input order.
+     * @param {{sortStickers:boolean,countries:Array<{code:string,counts:Object<string,number>,
+     *  stickerOrder?:number[]}>}} missingParsed
+     *  Parsed canonical import structure for missing stickers.
+     * @param {{sortStickers:boolean,countries:Array<{code:string,counts:Object<string,number>,
+     *  stickerOrder?:number[]}>}} repeatsParsed
+     *  Parsed canonical import structure for repeated stickers.
+     * @returns {{missing:Object<string,number[]>,repeats:Object<string,number[]>}}
+     */
   _buildOtherTradeInfo(missingParsed = {}, repeatsParsed = {}) {
     const missing = {}
     const repeats = {}
+    const getStickerOrder = (parsed, country) => {
+      return parsed.sortStickers === false
+        ? country.stickerOrder
+        : Object.keys(country.counts).map(Number)
+    }
     const missingCountries = missingParsed.countries || []
     missingCountries.forEach(country => {
-      const stickers = Object.keys(country.counts).map(Number)
+      const stickers = getStickerOrder(missingParsed, country)
       if (stickers.length) {
         missing[country.code] = stickers
       }
     })
     const repeatCountries = repeatsParsed.countries || []
     repeatCountries.forEach(country => {
-      const stickers = Object.keys(country.counts)
-        .filter(key => Number(country.counts[key]) > 0)
-        .map(Number)
-
+      const stickers = getStickerOrder(repeatsParsed, country)
+        .filter(sticker => Number(country.counts[sticker]) > 0)
       if (stickers.length) {
         repeats[country.code] = stickers
       }
     })
     return { missing, repeats }
-  }
-
-  /**
-  * Parses raw sticker input when trade data is provided as text.
-  * Uses ImportStickers and LineNormalize to convert raw user input
-  * into canonical sticker data.
-  * The parser is responsible for validation and warning generation.
-  * Warning consolidation behavior is inherited from ImportStickers.
-  * @param {string} text Raw sticker input.
-  * @returns {{countries:Array<{code:string, counts:Object<number,number>}>,warnings:string[]}}
-  */
-  _parseStickerInput(text) {
-    const importStickers = new this.ImportStickers(
-      this.getRepo().getCountryMap()
-    )
-    return importStickers.parse(text)
   }
 
   /**

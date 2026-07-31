@@ -229,6 +229,19 @@
       return lines.join('\n')
     }
 
+    /**
+     * Formats trade input data into a string suitable for display in text areas.
+     * @param {Object<string,number[]>} data
+     * @returns {string}
+     * @export
+     * @public
+     */
+    function formatTradeInput(data) {
+      return Object.keys(data || {})
+        .map(country => country + ',' + data[country].join(','))
+        .join('\n')
+    }
+
     return { // namespace export
       getPayload,
       setBusy,
@@ -238,7 +251,8 @@
       renderPreview,
       clearPreview,
       clearQrPreview,
-      renderQrPreview
+      renderQrPreview,
+      formatTradeInput
     }
 
   })()

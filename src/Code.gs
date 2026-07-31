@@ -164,6 +164,16 @@ function previewOtherTradeInfo(payload) {
   return TradeService.previewOtherStickerTradeInfo(payload || {})
 }
 
+/** Returns a preview of another collector's trade information from QR image data. */
+function previewOtherTradeInfoFromQr(payload) {
+  return TradeService.previewOtherStickerTradeInfoFromQr(payload || {})
+}
+
+/** Generates the current collector QR payload. */
+function generateTradeInfoQr() {
+  return TradeService.generateStickerTradeInfoQr()
+}
+
 /** Finds all possible trade matches with another collector. */
 function findTradeMatches(payload) {
   return TradeService.findStickerTradeMatches(payload)
@@ -177,11 +187,6 @@ function refreshTradeProposal(payload) {
 /** Applies the confirmed trade. */
 function executeTrade(payload) {
   return TradeService.executeStickerTrades(payload)
-}
-
-/** Generates the current collector QR payload. */
-function generateTradeQr() {
-  return TradeService.generateStickerTradeQr()
 }
 
 /** Opens the Trade dialog with the provided platform configuration. */

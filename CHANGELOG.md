@@ -35,20 +35,40 @@ No changes were made to the template, so the version number remains.
 
 #### Changes
 
+- Under the `data` folder:
+  - `panini_fwc2026_roster.csv`: Updated France team, the information was not accurate.
+
 - Under the `src` folder:
   - `Code.gs`: Added GAS entry points for Trade service.
   - `ExportService.gs`: 
     - `filterStickerNumbersBy()` renamed to `_filterStickerNumbersBy()` since it is public and now used by trade services too.
+    - `ImportService.gs`: Updated `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the options argument.
+      - `LineNormalize`: 
+        - Added optional `options` constructor argument to support configurable normalization behavior.
+        - Added support to propagate sorting configuration while keeping the default behavior unchanged.
+        - Added support to preserve normalized sticker input order when sorting is disabled.
+      - `ImportStickers`:
+        - Added optional `options` constructor argument to support configurable parsing behavior.
+        - Added `sortStickers` output property in `parse()` to indicate whether sticker data is already sorted.
+        - Added conditional `stickerOrder` output per country when `sortStickers` is disabled, preserving the normalized input order that is not guaranteed by the `counts` object.
+        - Kept the default `sortStickers: true` behavior unchanged to avoid impacting existing import flows.
+        - This change enables consumers such as `TradeService` to opt into preserving sticker order when required.
+  - `TradeService.gs`:
+    - Pending update to consume the preserved sticker order from `ImportStickers` for `otherInfoTrade` processing without applying automatic sticker sorting.
 
 - Under the `test/utils` folder:
-  - `testKernel.js`: 
+  - `testKernel.js`:
     - Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
     - Adjusted the `TEST_DATA` to represent the same data as in `initializeSpreadsheetAppMock()` so `TEST_DATA` is the source of truth.
 
-- Under the `test` folder: Adjusted the regression tests failing after the change in `testKernel.js` to use `TEST_DATA` as the source of truth.
-  - `Commons.unit.test.js`: Updated the suite `getCountryCounts()` for the test `normalizes country code before lookup`.
-  - `ImportService.unit.test.js`: 
+- Under the `test` folder:
+  - Adjusted regression tests failing after the change in `testKernel.js` to use `TEST_DATA` as the source of truth.
+  - `Commons.unit.test.js`:
+    - Updated the suite `getCountryCounts()` for the test `normalizes country code before lookup`.
+  - `ImportService.unit.test.js`:
     - Updated the suite `sheet writes` for the test `export contains no zero values`.
+    - Added specific suites for `LineNormalize` and `ImportStickers` to validate behavior when the `options` input argument is provided.
+    - Added coverage for `sortStickers` behavior, including conditional `stickerOrder` output and preservation of input order when sorting is disabled.
 
 
 ## [1.1.3] 2026-07-25

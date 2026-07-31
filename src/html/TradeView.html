@@ -11,9 +11,17 @@
     - Invoke backend services.
     - Keep the Trade workflow consistent across desktop and mobile.
 
+  Host integration:
+    - This view is loaded by platform-specific containers.
+    - Parent containers provide configuration through initializeTradeView().
+    - The platform configuration controls host-specific behavior only
+      (for example, QR upload vs camera capture and dialog closing).
+    - Business logic and Trade workflow remain shared here.
+
   Notes:
-    - Parent containers provide platform-specific configuration.
-    - The Trade workflow is implemented as multiple views within the same page.
+    - TradeDialog.html acts as the desktop adapter.
+    - MobileTradeView.html acts as the mobile adapter.
+    - Parent containers should not implement Trade workflow logic.
 -->
 
 <div id="tradeInputView">
@@ -31,6 +39,7 @@
         <button class="btn btn-inline" onclick="clearTradeInput()">Clear</button>
         <button id="uploadQrButton" class="btn btn-inline">Upload QR image</button>
         <button id="captureQrButton" class="btn btn-inline" style="display:none;">Capture QR code</button>
+        <input id="tradeQrFileInput" type="file" accept="image/*" style="display:none;">
       </div>
     </div>
     <div class="hint trade-import-hint">
@@ -58,14 +67,10 @@
   <div class="section">
     <div class="section-title">Actions</div>
     <div class="actions">
-      <div class="actions">
-        <div class="actions">
-          <button id="validateButton" class="btn btn-primary">Validate</button>
-          <button class="btn" onclick="clearTradeInput()">Clear</button>
-          <button id="continueButton" class="btn btn-primary">Continue</button>
-          <button id="closeTradeButton" class="btn">Close</button>
-        </div>
-      </div>
+      <button id="validateButton" class="btn btn-primary">Validate</button>
+      <button class="btn" onclick="clearTradeInput()">Clear</button>
+      <button id="continueButton" class="btn btn-primary">Continue</button>
+      <button id="closeTradeButton" class="btn">Close</button>
     </div><!-- /actions -->
   </div><!-- /section -->
 </div><!-- /tradeInputView -->
@@ -98,17 +103,24 @@
   </div>
 </div><!-- /generateQrView -->
 
+<!--JS library to read QR codes -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
 <?!= include('TradeHelpers') ?>
 
 <script>
 
   /*
-   * View controller
+   * View controller.
    *
-   * Coordinates the Trade view by:
+   * Coordinates the Trade workflow by:
    *   - handling user interactions,
-   *   - invoking backend services,
-   *   - updating UI state.
+   *   - invoking GAS backend entry points,
+   *   - maintaining client-side workflow state,
+   *   - rendering validation, QR, and preview results.
+   *
+   * The controller does not perform trade calculations.
+   * Business logic remains in TradeService/TradeCalculation.
    */
 
   (function () {
@@ -116,6 +128,7 @@
     // Trade input variables:
     const uploadQrButtonEl = document.getElementById('uploadQrButton')
     const captureQrButtonEl = document.getElementById('captureQrButton')
+    const tradeQrFileInputEl = document.getElementById('tradeQrFileInput')
     const closeTradeButtonEl = document.getElementById('closeTradeButton')
     const missingTextEl = document.getElementById('missingText')
     const repeatsTextEl = document.getElementById('repeatsText')
@@ -125,7 +138,7 @@
     const tradeMessageEl = document.getElementById('trade-message')
     const previewEl = document.getElementById('trade-preview')
 
-    // Generate My QR code variables:
+    // Generate trade QR view variables:
     const generateQrButtonEl = document.getElementById('generateQrButton')
     const tradeInputViewEl = document.getElementById('tradeInputView')
     const generateQrViewEl = document.getElementById('generateQrView')
@@ -137,7 +150,13 @@
     const closeQrButtonEl = document.getElementById('closeQrButton')
 
     let platform = 'desktop'
-    const state = { platform: 'desktop', validatedTradeInfo: null, tradeMatches: null, warnings: {} }
+    /**
+     * Client-side Trade workflow state.
+     * validatedTradeInfo: Normalized external collector trade information after validation.
+     * tradeMatches: Calculated trade matches after continuing to proposal.
+     * warnings: Validation warnings grouped by missing/repeats.
+     */
+    const state = { validatedTradeInfo: null, tradeMatches: null, warnings: {} }
 
     // When the dialog opens, the Continue button is disabled until the user validates the trade information.
     continueButtonEl.disabled = true
@@ -151,9 +170,13 @@
     }
 
     /**
-    * Initializes the Trade view. Called by desktop and mobile containers.
-    * @param {{platform:string}} config View configuration.
-    */
+     * Initializes the shared Trade view.
+     * Called by host containers after TradeView.html is loaded.
+     * The host provides the platform configuration; the Trade view
+     * uses it only for platform-specific UI behavior.
+     * @param {{platform:string}} config Host configuration.
+     * @param {'desktop'|'mobile'} config.platform Running platform.
+     */
     window.initializeTradeView = function (config = {}) {
       platform = config.platform || 'desktop'
       uploadQrButtonEl.style.display = platform === 'desktop' ? '' : 'none'
@@ -171,6 +194,8 @@
     // Wire events
     validateButtonEl.addEventListener('click', validateOtherTradeInfo)
     generateQrButtonEl.addEventListener('click', showGenerateQrView)
+    uploadQrButtonEl.addEventListener('click', () => { tradeQrFileInputEl.click() })
+    tradeQrFileInputEl.addEventListener('change', onQrImageSelected)
     backQrButtonEl.addEventListener('click', hideGenerateQrView)
     closeQrButtonEl.addEventListener('click', closeTradeView)
     //continueButtonEl.addEventListener('click', continueTrade) // removed until proposal view is implemented
@@ -231,6 +256,95 @@
       Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeMessageEl })
     }
 
+
+    /** Reads a selected QR image and sends it to the backend QR preview service. */
+    function onQrImageSelected(event) {
+      const file = event.target.files[0]
+      if (!file) { return }
+      const reader = new FileReader()
+      reader.onload = function () {
+        decodeQrImage(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+
+    /**
+     * Decodes a QR image locally using jsQR and sends the QR payload to Apps Script.
+     * @param {string} imageData Data URL of the uploaded image.
+     */
+    function decodeQrImage(imageData) {
+      const img = new Image()
+      img.onload = function () {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const qr = jsQR(image.data, image.width, image.height, { inversionAttempts: 'attemptBoth' })
+        if (!qr) {
+          onReadFromQrFailed(new Error('No QR code found in the selected image.'))
+          return
+        }
+        previewOtherTradeInfoFromQr(qr.data)
+      }
+      img.onerror = function () { onReadFromQrFailed(new Error('Unable to read the selected image.')) }
+      img.src = imageData
+    }
+
+    /**
+     * Validates external collector information from decoded QR payload data.
+     * The QR image is decoded locally using jsQR. This function sends only
+     * the QR payload string to Apps Script.
+     * @param {string} qrData Decoded QR payload.
+     */
+    function previewOtherTradeInfoFromQr(qrData) {
+      Trade.setBusy(true)
+      tradeMessageSectionEl.style.display = ''
+      Trade.setMessage('Reading QR code...', 'info', { messageEl: tradeMessageEl })
+      renderWarnings([])
+      Trade.clearPreview({ previewEl })
+      google.script.run
+        .withSuccessHandler(onReadFromQrValidated)
+        .withFailureHandler(onReadFromQrFailed)
+        .previewOtherTradeInfoFromQr({
+          qrData: qrData
+        })
+    }
+
+    /**
+     * Handles successful QR trade information validation.
+     * Converts serialized trade information returned by the backend
+     * into the client-side TradeInfo object used by the view.
+     * @param {{tradeInfo:string,warnings:Object<string,string[]>}} result Backend QR validation response.
+     */
+    function onReadFromQrValidated(result) {
+      Trade.setBusy(false)
+      const tradeInfo = JSON.parse(result.tradeInfo)
+      const previewResult = { ...result, tradeInfo: tradeInfo }
+      state.validatedTradeInfo = tradeInfo
+      state.warnings = result.warnings || {}
+      continueButtonEl.disabled = false
+      tradeMessageSectionEl.style.display = ''
+      Trade.setMessage('QR code read successfully.', 'success', { messageEl: tradeMessageEl })
+      renderWarnings(state.warnings)
+      missingTextEl.value = Trade.formatTradeInput(tradeInfo.missing)
+      repeatsTextEl.value = Trade.formatTradeInput(tradeInfo.repeats)
+      Trade.clearPreview({ previewEl })
+      Trade.renderPreview(previewResult, { previewEl })
+    }
+
+    /** Handles QR image read failure. */
+    function onReadFromQrFailed(error) {
+      Trade.setBusy(false)
+      tradeMessageSectionEl.style.display = ''
+      Trade.setMessage(
+        error.message || String(error),
+        'error',
+        { messageEl: tradeMessageEl }
+      )
+    }
+
     /**
      * Shows the Generate QR view and generates a QR code for 
      * the current collector trade information.
@@ -245,10 +359,15 @@
       google.script.run
         .withSuccessHandler(onQrGenerated)
         .withFailureHandler(onQrGenerationFailed)
-        .generateTradeQr()
+        .generateTradeInfoQr()
     }
 
-    /** Handles successful QR generation. */
+    /**
+     * Handles successful QR generation.
+     * Converts serialized trade information returned by the backend
+     * into an object required by the QR preview renderer.
+     * @param {{qrData:string,tradeInfo:string}} result
+     */
     function onQrGenerated(result) {
       const tradeInfo = JSON.parse(result.tradeInfo)
       // Construct the object for Trade.renderQrPreview()
@@ -271,7 +390,10 @@
       tradeInputViewEl.style.display = ''
     }
 
-    /** Finds trade matches and opens the proposal view. */
+    /**
+     * Requests trade match calculation using validated external collector data.
+     * This is the transition point between validation and proposal generation.
+     */
     function continueTrade() {
       if (!state.validatedTradeInfo) { return }
       Trade.setBusy(true)
@@ -288,10 +410,9 @@
       showProposalView(matches)
     }
 
-    /*
-     * Renders a list of warnings in the Trade view.
-     * The warnings are grouped by type (missing or repeats).
-     * @param {string[]} warnings List of warning messages.
+    /**
+     * Renders validation warnings grouped by category.
+     * @param {{missing:string[],repeats:string[]}} warnings Warning groups.
      */
     function renderWarnings(warnings) {
       warningsEl.textContent = ''
@@ -332,7 +453,7 @@
 
     /**
      * Displays the trade proposal view.
-     * @param {Array<{receive:string[],send:string[]}>} matches Trade matches.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Trade matches.
      */
     function showProposalView(matches) {
       alert('Proposal screen not implemented yet.')

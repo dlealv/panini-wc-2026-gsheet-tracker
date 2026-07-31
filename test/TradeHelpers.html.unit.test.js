@@ -250,4 +250,19 @@ describe('TradeHelpers unit tests', () => {
       }).not.toThrow()
     })
   })
+
+  /** Formats trade information into textarea input format. */
+  describe('formatTradeInput()', () => {
+    test('formats trade information into textarea input format', () => {
+      const data = { MEX: [1, 5, 12], FWC: [2, 8] }
+      const result = helpers.formatTradeInput(data)
+      expect(result).toBe('MEX,1,5,12\nFWC,2,8')
+    })
+    test('returns empty string for empty data', () => {
+      expect(helpers.formatTradeInput({})).toBe('')
+    })
+    test('returns empty string for missing data', () => {
+      expect(helpers.formatTradeInput()).toBe('')
+    })
+  })
 })

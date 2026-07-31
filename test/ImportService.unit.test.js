@@ -434,6 +434,28 @@ describe('ImportStickers (unit)', () => {
       expect(result.countries.length).toBeLessThanOrEqual(1)
     })
   })
+
+  /** Tests for parse() options handling */
+  describe('parse() options handling', () => {
+    test('sortStickers false preserves sticker order for multiple countries', () => {
+      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: false })
+      const result = parser.parse('MEX,3,1,2\nFWC,5,4,6\nCC,9,7,8')
+      expect(result.sortStickers).toBe(false)
+      expect(result.countries).toHaveLength(3)
+      expect(result.countries[0].stickerOrder).toEqual([3, 1, 2])
+      expect(result.countries[1].stickerOrder).toEqual([5, 4, 6])
+      expect(result.countries[2].stickerOrder).toEqual([9, 7, 8])
+    })
+    test('sortStickers true does not include stickerOrder property', () => {
+      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: true })
+      const result = parser.parse('MEX,3,1,2\nFWC,5,4,6\nCC,9,7,8')
+      expect(result.sortStickers).toBe(true)
+      expect(result.countries).toHaveLength(3)
+      expect(result.countries[0]).not.toHaveProperty('stickerOrder')
+      expect(result.countries[1]).not.toHaveProperty('stickerOrder')
+      expect(result.countries[2]).not.toHaveProperty('stickerOrder')
+    })
+  })
 })
 
 /** LineNormalizer (unit) */
@@ -639,6 +661,11 @@ describe('LineNormalizer (unit)', () => {
     })
   })
 
+  /**
+   * Tests for normalizeLine() method focusing on warnings and error handling,
+   * ensuring that invalid inputs and edge cases produce appropriate warnings without
+   * breaking the normalization process.
+   */
   describe('normalizeLine() warnings and errors', () => {
     test('invalid country returns warning', () => {
       const result = normalize.normalizeLine('XXX-1,2,3')
@@ -710,6 +737,41 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('MEX-1,ARG-2,ARG-3')
       expect(result.line).toBe('MEX,1')
       expect(result.warnings).toHaveLength(2)
+    })
+  })
+
+  /**
+   * Tests for normalizeLine() method with options, specifically focusing on the
+   * sortStickers option and its impact on output order and behavior.
+   */
+  describe('normalizeLine() with options', () => {
+    test('preserves sticker input order when sortStickers is false', () => {
+      const normalizeNoSort = new LineNormalize(
+        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
+      )
+      const result = normalizeNoSort.normalizeLine('MEX,15,1,10')
+      expect(result.line).toBe('MEX,15,1,10')
+    })
+    test('preserves first occurrence order after deduplication when sortStickers is false', () => {
+      const normalizeNoSort = new LineNormalize(
+        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
+      )
+      const result = normalizeNoSort.normalizeLine('MEX,15,1,15,10,1')
+      expect(result.line).toBe('MEX,15,1,10')
+    })
+    test('default sorting behavior remains unchanged when options are not provided', () => {
+      const normalizeDefault = new LineNormalize(
+        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }
+      )
+      const result = normalizeDefault.normalizeLine('MEX,15,1,10')
+      expect(result.line).toBe('MEX,1,10,15')
+    })
+    test('sortStickers option applies after range expansion', () => {
+      const normalizeNoSort = new LineNormalize(
+        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
+      )
+      const result = normalizeNoSort.normalizeLine('MEX,15,3-5,1')
+      expect(result.line).toBe('MEX,15,3,4,5,1')
     })
   })
 })
