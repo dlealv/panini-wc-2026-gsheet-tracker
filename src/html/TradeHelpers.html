@@ -41,7 +41,6 @@
       doc.querySelectorAll('button').forEach(btn => {
         btn.disabled = isBusy
       })
-
       const controls = deps.controls || [
         ...(typeof sortMissingCheckbox !== 'undefined'
           ? [sortMissingCheckbox]
@@ -53,7 +52,6 @@
           ? [sendLimitSelect]
           : [])
       ]
-
       controls.forEach(control => {
         if (control) {
           control.disabled = isBusy
@@ -178,6 +176,74 @@
       }
     }
 
+    /**
+     * Renders receive/send match previews.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
+     * @param {Object} deps
+     * @param {HTMLElement} deps.receivePreviewEl
+     * @param {HTMLElement} deps.sendPreviewEl
+     * @export
+     * @public
+     */
+    function renderMatches(matches, deps = {}) {
+      if (!matches) { return }
+      const receiveEl = deps.receivePreviewEl
+      const sendEl = deps.sendPreviewEl
+      if (receiveEl) {
+        receiveEl.className = 'preview'
+        receiveEl.textContent = _formatMatches(matches.receive)
+        receiveEl.style.display = 'block'
+      }
+      if (sendEl) {
+        sendEl.className = 'preview'
+        sendEl.textContent = _formatMatches(matches.send)
+        sendEl.style.display = 'block'
+      }
+    }
+
+    /**
+    * Formats trade input data into a string suitable for display in text areas.
+    * @param {Object<string,number[]>} data
+    * @returns {string}
+    * @export
+    * @public
+    */
+    function formatTradeInput(data) {
+      return Object.keys(data || {})
+        .map(country => country + ',' + data[country].join(','))
+        .join('\n')
+    }
+
+    /**
+     * Formats a sticker map into a readable string.
+     * @param {Object<string,number[]>} data
+     * @returns {string}
+     * @public
+     * @export
+     */
+    function formatStickerMap(data) {
+      const lines = []
+      const countries = Object.keys(data || {})
+      if (!countries.length) { return '(none)' }
+      countries.forEach(country => {
+        lines.push(country + ' -> ' + data[country].join(', '))
+      })
+
+      return lines.join('\n')
+    }
+
+    /**
+     * Counts the total number of sticker matches in a trade direction.
+     * @param {Object<string,number[]>} matches
+     * @returns {number}
+     * @export
+     * @public
+     */
+    function countMatches(matches) {
+      return Object.values(matches || {})
+        .reduce((total, stickers) => total + stickers.length, 0)
+    }
+
     // Private helper functions (not exported) for internal use within the Trade namespace.
 
     /**
@@ -195,19 +261,19 @@
      * @returns {{sortMissing:boolean, maxStickerReceive:number,maxStickerSend:number}}
      */
     function _getUIState(deps = {}) {
-      const sortCheckbox = deps.sortMissingCheckbox || sortMissingCheckbox
-      const receiveSelect = deps.receiveLimitSelect || receiveLimitSelect
-      const sendSelect = deps.sendLimitSelect || sendLimitSelect
-
+      const sortCheckbox = deps.sortByCompletionCheckbox || document.getElementById('sortByCompletionCheckbox')
+      const receiveSelect = deps.receiveLimitSelect || document.getElementById('receiveLimitSelect')
+      const sendSelect = deps.sendLimitSelect || document.getElementById('sendLimitSelect')
       return {
-        sortMissing: !!sortCheckbox.checked,
-        maxStickerReceive: Number(receiveSelect.value),
-        maxStickerSend: Number(sendSelect.value)
+        sortMissing: !!(sortCheckbox && sortCheckbox.checked),
+        maxStickerReceive: Number(receiveSelect ? receiveSelect.value : 0),
+        maxStickerSend: Number(sendSelect ? sendSelect.value : 0)
       }
     }
 
     /**
-     * Formats TradeInfo into a readable message.
+     * Formats TradeInfo into a readable message. 
+     * Used to format other trade info (missing/repeats from another collector)
      * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
      * @returns {string}
      */
@@ -230,17 +296,55 @@
     }
 
     /**
-     * Formats trade input data into a string suitable for display in text areas.
-     * @param {Object<string,number[]>} data
+     * Formats trade matches for preview.
+     * @param {Object<string,number[]>} matches
      * @returns {string}
+     */
+    function _formatMatches(matches) {
+      const countries = Object.keys(matches || {})
+      if (!countries.length) {
+        return '(none)'
+      }
+      return countries
+        .map(country => country + ' -> ' + matches[country].join(', '))
+        .join('\n')
+    }
+
+    /**
+     * Applies user-selected trade limits to calculated matches.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
+     * @param {{maxStickerReceive:number,maxStickerSend:number}} options
+     * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>}}
      * @export
      * @public
      */
-    function formatTradeInput(data) {
-      return Object.keys(data || {})
-        .map(country => country + ',' + data[country].join(','))
-        .join('\n')
+    function applyTradeSelectionLimits(matches, options) {
+      return {
+        receive: _limitTradeStickers(matches.receive, options.maxStickerReceive),
+        send: _limitTradeStickers(matches.send, options.maxStickerSend)
+      }
     }
+
+    /**
+     * Limits the number of stickers per limit provided.
+     * @param {Object<string,number[]>} stickers Stickers grouped by country code.
+     * @param {number} limit Maximum number of stickers to include per country.
+     * @returns {Object<string,number[]>} Limited stickers grouped by country code.
+     */
+    function _limitTradeStickers(stickers, limit) {
+      const result = {}
+      let remaining = limit
+      Object.keys(stickers || {}).forEach(countryCode => {
+        if (remaining <= 0) return
+        const selected = stickers[countryCode].slice(0, remaining)
+        if (selected.length) {
+          result[countryCode] = selected
+          remaining -= selected.length
+        }
+      })
+      return result
+    }
+
 
     return { // namespace export
       getPayload,
@@ -252,7 +356,11 @@
       clearPreview,
       clearQrPreview,
       renderQrPreview,
-      formatTradeInput
+      formatTradeInput,
+      countMatches,
+      formatStickerMap,
+      renderMatches,
+      applyTradeSelectionLimits
     }
 
   })()

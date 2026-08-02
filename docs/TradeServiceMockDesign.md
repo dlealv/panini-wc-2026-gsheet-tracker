@@ -42,15 +42,14 @@ When the dialog is first displayed, the **Missing** and **Repeats** sections are
 Example layout:
 
 ```text
-+----------------------------------------------------------------+
-| Trade stickers                                        [ Close ]|
+ Trade stickers                                        [ Close ] 
 +----------------------------------------------------------------+
 |                                                                |
 | [ Generate my QR code ]                                        |
 |                                                                |
-| ------------------------------------------------------------   |
-| Import another collector's information      [ Upload QR image ]|
-| ------------------------------------------------------------   |
++----------------------------------------------------------------+
++----------------------------------------------------------------+
+| Import another collector's information    [ Upload QR image ]  |
 |                                                                |
 | Missing                                                        |
 | +------------------------------------------------------------+ |
@@ -68,8 +67,13 @@ Example layout:
 | +------------------------------------------------------------+ |
 | | No validation messages.                                    | |
 | +------------------------------------------------------------+ |
-|                                                                |
-|                [ Validate ] [ Continue ]                       |
++----------------------------------------------------------------+
+
++----------------------------------------------------------------+
+| Actions                                                        |
+| +------------------------------------------------------------+ |
+| |  [ Validate ] [ Continue ]                                 | |
+| +------------------------------------------------------------+ |
 +----------------------------------------------------------------+
 ```
 
@@ -80,15 +84,14 @@ After the user enters trade information manually or imports it from a QR code im
 Example layout:
 
 ```text
-+----------------------------------------------------------------+
-| Trade stickers                                        [ Close ]|
+ Trade stickers                                          [ Close ]
 +----------------------------------------------------------------+
 |                                                                |
 | [ Generate my QR code ]                                        |
 |                                                                |
-| ------------------------------------------------------------   |
++----------------------------------------------------------------+
++----------------------------------------------------------------+
 | Import another collector's information      [ Upload QR image ]|
-| ------------------------------------------------------------   |
 |                                                                |
 | Missing                                                        |
 | +------------------------------------------------------------+ |
@@ -107,8 +110,11 @@ Example layout:
 | +------------------------------------------------------------+ |
 | | Information, warnings, and errors are displayed here.      | |
 | +------------------------------------------------------------+ |
++----------------------------------------------------------------+
++----------------------------------------------------------------|
+| Actions                                                        |
 |                                                                |
-|                [ Validate ] [ Continue ]                       |
+| [ Validate ] [ Continue ]                                      |
 +----------------------------------------------------------------+
 ```
 
@@ -162,8 +168,7 @@ This view allows the user to share their trade information with another collecto
 Example layout:
 
 ```text
-+----------------------------------------------------------------+
-| Generate trade QR code                                [ Close ]|
+ Generate trade QR code                       [ Back ]  [ Close ]
 +----------------------------------------------------------------+
 |                                                                |
 | Scan this QR code to import my trade information               |
@@ -181,9 +186,11 @@ Example layout:
 | | Missing: XX                                                | |
 | | Repeats: XX                                                | |
 | +------------------------------------------------------------+ |
-|                                                                |
-|                                      [ Back ]                  |
 +----------------------------------------------------------------+
++----------------------------------------------------------------+
+|  Actions                                                       |
+| [ Back ] [ Close ]                                             |
++----------------------------------------------------------------+ 
 ```
 
 User interface elements:
@@ -218,31 +225,31 @@ The sticker lists displayed in the proposal are read-only. The user cannot direc
 Example layout:
 
 ```text
-+----------------------------------------------------------------+
-| Trade proposal                                       [ Close ] |
-+----------------------------------------------------------------+
-|                                                    [ Refresh ] |
-| Stickers to receive (4)                                        |
-| [ ] Sort by album completion                                   |
-| +------------------------------------------------------------+ |
-| | MEX,1,5                                                    | |
-| | FWC,2,8                                                    | |
-| +------------------------------------------------------------+ |
-|                                                                |
-| Stickers to send (2)                                           |
-| +------------------------------------------------------------+ |
-| | MEX,4,8                                                    | |
-| +------------------------------------------------------------+ |
-|                                                                |
-| Stickers to receive: [ 2 ▼ ]   Stickers to send: [ 2 ▼ ]       |
-|                                                                |
-| Messages                                                       |
-| +------------------------------------------------------------+ |
-| | Information, warnings, and errors are displayed here.      | |
-| +------------------------------------------------------------+ |
-|                                                                |
-|                  [ Back ]   [ Confirm trade]                   |
-+----------------------------------------------------------------+
+ Trade proposal                                       [ Close ]                                                       
+ +-------------------------------------------------------------+    
+ |                                                 [ Refresh ] |
+ |   Stickers to receive (4) [ ] Sort by album completion      |
+ |  +----------------------------------------------------+     |  
+ |  | MEX,1,5                                            |     |
+ |  | FWC,2,8                                            |     |
+ |  +----------------------------------------------------+     |
+ |                                                             |
+ |  Stickers to send (2)                                       |
+ |  +-----------------------------------------------------+    |
+ |  | MEX,4,8                                             |    | 
+ |  +-----------------------------------------------------+    |
+ |                                                             |
+ |  Stickers to receive: [ 2 ▼ ]  Stickers to send: [ 2 ▼ ]    |
+ |                                                             |
+ | Messages                                                    |
+ |  +-----------------------------------------------------+    |
+ |  | Information, warnings, and errors.                  |    | 
+ |  +-----------------------------------------------------+    |
+ +-------------------------------------------------------------+
+ +-------------------------------------------------------------+ 
+ |  Actions                                                    | 
+ |  [ Back ]  [ Refresh ] [ Confirm trade]  [ Close ]          | 
+ +-------------------------------------------------------------+ 
 ```
 
 The default values for **Stickers to receive** and **Stickers to send** are calculated using the minimum number of available matches between both trade directions.
@@ -298,6 +305,7 @@ This creates an equal trade by default while allowing the user to select an unba
 - **Messages**
   - Displays information, warnings, and errors related to the current trade proposal.
   - Displays the result of the trade operation after selecting **Confirm trade**.
+  - Only visible if there is an error or no matches before **Confirm trade**.
 
 - **Refresh**
   - Updates the **Stickers to receive (X)** and **Stickers to send (X)** lists based on the selected **Sort by album completion** option and the selected trade quantities.

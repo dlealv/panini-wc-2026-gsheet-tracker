@@ -2,60 +2,85 @@
   /*
    src/html/TradeStyles.html
 
-   Styles specific to Trade dialogs.
-   Contains:
-   - Trade toolbar
-   - Trade import row
-   - Trade text areas
-   - Trade actions
+  Styles specific to the Trade workflow.
+  Contains:
+    - Trade toolbar and import hint
+    - Trade text areas
+    - Trade QR display
+    - Trade proposal layout and controls
 
-   Common styles belong in:
-   - CommonStyles.html
+  Common UI styles belong in:
+    - CommonStyles.html
+
+  This file should only contain styles required by Trade views:
+    - TradeDialog.html
+    - MobileTradeView.html
  */
 
+  /* Adds consistent padding around every logical section of the Trade view. */
+  .section {
+    padding: 18px;
+  }
 
+  /* Layout for the Generate QR button row. */
   .trade-toolbar {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-
-  .trade-import {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: var(--text-sm);
-    color: var(--muted);
-  }
-
+  /* Standard height for the Missing and Repeats text areas. */
   .trade-textarea {
     min-height: 120px;
   }
 
-
-  .trade-upload {
-    font-size: var(--text-sm);
-  }
-
-  .trade-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-
+  /* Adds spacing below the Trade information help text. */
   .trade-import-hint {
     margin-bottom: 10px;
   }
 
+  /* Fixed display size for generated QR code. */
   .trade-qr-image {
     width: 280px;
     height: 280px;
     max-width: 100%;
     display: none;
   }
-  
+
+  /* Centers the generated QR code horizontally. */
+  .qr-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Card-like container that groups the trade proposal controls. */
+  .proposal-container {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 24px;
+  }
+
+  /* Displays the quantity selectors side-by-side. */
+  .proposal-limits {
+    display: flex;
+    gap: 20px;
+  }
+
+  /* Allows each quantity selector column to occupy half of the available width. */
+  .proposal-limit {
+    flex: 1;
+  }
+
+  /* Gives the quantity dropdowns a compact width. */
+  .proposal-limits select {
+    width: 70px;
+  }
+
+  /* Right-aligns the Refresh button above the proposal. */
+  .proposal-refresh-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
 </style>

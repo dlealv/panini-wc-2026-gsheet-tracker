@@ -455,6 +455,11 @@ describe('ImportStickers (unit)', () => {
       expect(result.countries[1]).not.toHaveProperty('stickerOrder')
       expect(result.countries[2]).not.toHaveProperty('stickerOrder')
     })
+    test('preserves country input order regardless of sticker sorting option', () => {
+      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: true })
+      const result = parser.parse('CC,9,7,8\nMEX,3,1,2\nFWC,5,4,6')
+      expect(result.countries.map(c => c.code)).toEqual(['CC', 'MEX', 'FWC'])
+    })
   })
 })
 

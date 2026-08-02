@@ -252,5 +252,6 @@ function initializeSpreadsheetAppMock() {
 }
 
 module.exports = {
-  initTestKernel
+  initTestKernel,
+  TEST_DATA
 }

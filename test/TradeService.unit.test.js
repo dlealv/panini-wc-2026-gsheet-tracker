@@ -17,7 +17,7 @@
 const { TradeService, TradeCalculation, TradeQrHelper } = require('../build/TradeService.js')
 
 describe('TradeService (unit)', () => {
-  const { initTestKernel } = require('./utils/testKernel.js')
+  const { initTestKernel, TEST_DATA } = require('./utils/testKernel.js')
   const { ExportService, ExportStickers } = require('../build/ExportService.js')
   const { ImportStickers } = require('../build/ImportService.js')
 
@@ -36,6 +36,7 @@ describe('TradeService (unit)', () => {
     const deps = initStaticDeps()
     return new TradeService(ss, deps)
   }
+
   let service
 
   beforeEach(() => {
@@ -68,29 +69,34 @@ describe('TradeService (unit)', () => {
   describe('static previewOtherStickerTradeInfo()', () => {
     test('delegates to previewOtherTradeInfo()', () => {
       const payload = { missingText: 'MEX,1,5\nFWC,10', repeatsText: 'BRA,15' }
-      const expected = {
-        success: true,
-        warnings: { missing: [], repeats: [] },
-        tradeInfo: { missing: { MEX: [1, 5], FWC: [10] }, repeats: { BRA: [15] } }
-      }
+      const tradeInfo = { missing: { MEX: [1, 5], FWC: [10] }, repeats: { BRA: [15] } }
+      const expected = { success: true, warnings: { missing: [], repeats: [] }, tradeInfo }
       const previewMock = jest.spyOn(TradeService.prototype, 'previewOtherTradeInfo').mockReturnValue(expected)
       const result = TradeService.previewOtherStickerTradeInfo(payload, null, initStaticDeps())
       expect(previewMock).toHaveBeenCalledWith(payload)
-      expect(result).toBe(expected)
+      expect(result).toEqual({
+        success: true,
+        warnings: { missing: [], repeats: [] },
+        tradeInfo: JSON.stringify(tradeInfo)
+      })
     })
   })
 
   /** static generateStickerTradeInfoQr() */
   describe('static generateStickerTradeInfoQr()', () => {
     test('creates service and delegates QR generation', () => {
-      const expected = {
+      const tradeInfo = { missing: {}, repeats: {} }
+      jest.spyOn(TradeService.prototype, 'generateTradeInfoQr').mockReturnValue({
         success: true,
         qrData: '{}',
-        tradeInfo: '{}'
-      }
-      jest.spyOn(TradeService.prototype, 'generateTradeInfoQr').mockReturnValue(expected)
+        tradeInfo
+      })
       const result = TradeService.generateStickerTradeInfoQr(null, initStaticDeps())
-      expect(result).toEqual(expected)
+      expect(result).toEqual({
+        success: true,
+        qrData: '{}',
+        tradeInfo: JSON.stringify(tradeInfo)
+      })
     })
   })
 
@@ -98,15 +104,55 @@ describe('TradeService (unit)', () => {
   describe('static previewOtherStickerTradeInfoFromQr()', () => {
     test('delegates to previewOtherTradeInfoFromQr()', () => {
       const payload = { imageData: 'data:image/png;base64,test' }
-      const expected = {
-        success: true,
-        warnings: { missing: [], repeats: [] },
-        tradeInfo: { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
-      }
+      const tradeInfo = { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
+      const expected = { success: true, warnings: { missing: [], repeats: [] }, tradeInfo }
       const previewMock = jest.spyOn(TradeService.prototype, 'previewOtherTradeInfoFromQr').mockReturnValue(expected)
       const result = TradeService.previewOtherStickerTradeInfoFromQr(payload, null, initStaticDeps())
       expect(previewMock).toHaveBeenCalledWith(payload)
-      expect(result).toBe(expected)
+      expect(result).toEqual({
+        success: true,
+        warnings: { missing: [], repeats: [] },
+        tradeInfo: JSON.stringify(tradeInfo)
+      })
+    })
+  })
+
+  /** static refreshStickerTradeProposal() */
+  describe('static refreshStickerTradeProposal()', () => {
+    test('delegates to refreshTradeProposal()', () => {
+      const expected = { receive: { MEX: [1, 5] }, send: { BRA: [8] } }
+      const refreshMock = jest.spyOn(TradeService.prototype, 'refreshTradeProposal').mockReturnValue(expected)
+      const result = TradeService.refreshStickerTradeProposal({
+        otherTradeInfo: { missing: {}, repeats: {} },
+        sortMissing: true,
+        maxStickerReceive: 2,
+        maxStickerSend: 2
+      }, null, initStaticDeps())
+      expect(refreshMock).toHaveBeenCalledWith({ sortMissing: true, maxStickerReceive: 2, maxStickerSend: 2 })
+      expect(result).toEqual({ receive: JSON.stringify(expected.receive), send: JSON.stringify(expected.send) })
+    })
+  })
+
+  /** static findStickerTradeMatches() */
+  describe('static findStickerTradeMatches()', () => {
+    test('creates service and delegates calculateMatches', () => {
+      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [] })
+      class MockTradeCalculation {
+        calculate() {
+          return calculateMock()
+        }
+      }
+      const result = TradeService.findStickerTradeMatches({
+        otherTradeInfo: { missing: {}, repeats: { MEX: [1] } }
+      }, null, {
+        ...initStaticDeps(),
+        TradeCalculation: MockTradeCalculation
+      })
+      expect(result).toEqual({
+        receive: JSON.stringify([]),
+        send: JSON.stringify([])
+      })
+      expect(calculateMock).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -246,25 +292,32 @@ describe('TradeService (unit)', () => {
       service.setOtherTradeInfo({ missing: {}, repeats: {} })
       expect(service.getOtherTradeInfo()).toEqual({ missing: {}, repeats: {} })
     })
+    test('preserves country order from external trade information', () => {
+      service.setOtherTradeInfo({
+        missing: { MEX: [1], FWC: [2], CC: [3] }, repeats: { MEX: [10], FWC: [20], CC: [30] }
+      })
+      expect(Object.keys(service.getOtherTradeInfo().repeats)).toEqual(['MEX', 'FWC', 'CC'])
+    })
   })
 
   /** previewOtherTradeInfo() */
   describe('previewOtherTradeInfo()', () => {
+    function getTradeInfo(result) {
+      return result.tradeInfo
+    }
     test('parses external collector input and stores trade information', () => {
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2(2),3' })
       expect(result.success).toBe(true)
       expect(result.warnings).toEqual({ missing: [], repeats: [] })
-      expect(result.tradeInfo).toEqual({ missing: {}, repeats: { MEX: [1, 2, 3] } })
+      expect(getTradeInfo(result)).toEqual({ missing: {}, repeats: { MEX: [1, 2, 3] } })
     })
     test('parses external collector information and returns trade data', () => {
       const result = service.previewOtherTradeInfo({ missingText: 'MEX,1,5\nFWC,10', repeatsText: 'MEX,15' })
-      expect(result).toEqual({
-        success: true,
-        warnings: { missing: [], repeats: [] },
-        tradeInfo: {
-          missing: { MEX: [1, 5], FWC: [10] },
-          repeats: { MEX: [15] }
-        }
+      expect(result.success).toBe(true)
+      expect(result.warnings).toEqual({ missing: [], repeats: [] })
+      expect(getTradeInfo(result)).toEqual({
+        missing: { MEX: [1, 5], FWC: [10] },
+        repeats: { MEX: [15] }
       })
     })
     test('returns parser warnings', () => {
@@ -282,37 +335,40 @@ describe('TradeService (unit)', () => {
       expect(result.warnings.missing.some(w => w.includes('999'))).toBe(true)
       expect(result.warnings.missing.some(w => w.includes('XXX'))).toBe(true)
       expect(result.warnings.repeats.some(w => w.includes('XXX'))).toBe(true)
-      expect(result.tradeInfo).toEqual({ missing: { MEX: [1] }, repeats: { MEX: [15] } })
+      expect(getTradeInfo(result)).toEqual({ missing: { MEX: [1] }, repeats: { MEX: [15] } })
     })
     test('handles valid and invalid countries in external input', () => {
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2\nXXX,5\nCC,3' })
+      const tradeInfo = getTradeInfo(result)
       expect(result.success).toBe(true)
-      expect(result.tradeInfo.repeats).toHaveProperty('MEX')
-      expect(result.tradeInfo.repeats).toHaveProperty('CC')
+      expect(tradeInfo.repeats).toHaveProperty('MEX')
+      expect(tradeInfo.repeats).toHaveProperty('CC')
       expect(result.warnings.repeats.length).toBeGreaterThan(0)
       expect(result.warnings.repeats.some(w => w.includes('XXX'))).toBe(true)
     })
     test('preserves valid stickers and reports skipped stickers', () => {
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2,22,99' })
       expect(result.success).toBe(true)
-      expect(result.tradeInfo.repeats.MEX).toEqual([1, 2])
+      expect(getTradeInfo(result).repeats.MEX).toEqual([1, 2])
       expect(result.warnings.repeats.some(w => w.includes('22'))).toBe(true)
       expect(result.warnings.repeats.some(w => w.includes('99'))).toBe(true)
     })
     test('returns all warnings while keeping valid trade data', () => {
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,1,25\nXXX,3\nCC,2' })
+      const tradeInfo = getTradeInfo(result)
       expect(result.success).toBe(true)
-      expect(result.tradeInfo.repeats).toHaveProperty('MEX')
-      expect(result.tradeInfo.repeats).toHaveProperty('CC')
+      expect(tradeInfo.repeats).toHaveProperty('MEX')
+      expect(tradeInfo.repeats).toHaveProperty('CC')
       expect(result.warnings.repeats.length).toBeGreaterThan(1)
     })
     test('skips duplicate country lines and keeps first valid country data only', () => {
       const input = ['MEX,1,2', 'XXX,5', 'CC,3', 'MEX,3,4'].join('\n')
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: input })
+      const tradeInfo = getTradeInfo(result)
       expect(result.success).toBe(true)
-      expect(result.tradeInfo.repeats).toEqual({ MEX: [1, 2], CC: [3] })
-      expect(result.tradeInfo.repeats.MEX).not.toContain(3)
-      expect(result.tradeInfo.repeats.MEX).not.toContain(4)
+      expect(tradeInfo.repeats).toEqual({ MEX: [1, 2], CC: [3] })
+      expect(tradeInfo.repeats.MEX).not.toContain(3)
+      expect(tradeInfo.repeats.MEX).not.toContain(4)
       expect(result.warnings.repeats.some(w => w.includes('XXX'))).toBe(true)
     })
     test('returns warnings independently for missing and repeats', () => {
@@ -327,14 +383,38 @@ describe('TradeService (unit)', () => {
       const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'MEX,1,2' })
       expect(result.success).toBe(true)
       expect(result.warnings).toEqual({ missing: [], repeats: [] })
-      expect(result.tradeInfo).toEqual({ missing: {}, repeats: { MEX: [1, 2] } })
+      expect(getTradeInfo(result)).toEqual({ missing: {}, repeats: { MEX: [1, 2] } })
     })
     test('rejects invalid missing stickers while preserving warnings', () => {
       const result = service.previewOtherTradeInfo({ missingText: 'MEX,99', repeatsText: '' })
       expect(result.success).toBe(true)
       expect(result.warnings.missing.length).toBeGreaterThan(0)
       expect(result.warnings.missing.some(w => w.includes('99'))).toBe(true)
-      expect(result.tradeInfo.missing).toEqual({})
+      expect(getTradeInfo(result).missing).toEqual({})
+    })
+    test('preserves country order from external trade input', () => {
+      const result = service.previewOtherTradeInfo({
+        missingText: '',
+        repeatsText: 'CC,5\nMEX,15\nFWC,10'
+      })
+      expect(result.success).toBe(true)
+      expect(Object.keys(getTradeInfo(result).repeats)).toEqual(['CC', 'MEX', 'FWC'])
+    })
+    test('preserves country order from external trade information', () => {
+      const originalCountries = TEST_DATA.countries
+      TEST_DATA.countries = [...originalCountries, { code: 'RSA' }]
+      try {
+        const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'FWC,10\nMEX,5,4\nRSA,1,2,3' })
+        expect(result.success).toBe(true)
+        expect(result.warnings.repeats).toEqual([])
+        expect(JSON.stringify(getTradeInfo(result).repeats)).toBe(JSON.stringify({
+          FWC: [10],
+          MEX: [5, 4],
+          RSA: [1, 2, 3]
+        }))
+      } finally {
+        TEST_DATA.countries = originalCountries
+      }
     })
   })
 
@@ -362,7 +442,7 @@ describe('TradeService (unit)', () => {
       expect(result).toEqual({
         success: true,
         qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}',
-        tradeInfo: JSON.stringify(mockTradeInfo)
+        tradeInfo: mockTradeInfo
       })
     })
     test('generates QR trade information using empty trade data', () => {
@@ -372,11 +452,7 @@ describe('TradeService (unit)', () => {
       jest.spyOn(svc, 'getTradeInfo').mockReturnValue(mockTradeInfo)
       const result = svc.generateTradeInfoQr()
       expect(encode).toHaveBeenCalledWith(mockTradeInfo)
-      expect(result).toEqual({
-        success: true,
-        qrData: '{}',
-        tradeInfo: JSON.stringify(mockTradeInfo)
-      })
+      expect(result).toEqual({ success: true, qrData: '{}', tradeInfo: mockTradeInfo })
     })
   })
 
@@ -392,11 +468,7 @@ describe('TradeService (unit)', () => {
       }
       const svc = new TradeService(null, { ...initStaticDeps(), TradeQrHelper: MockTradeQrHelper })
       const result = svc.previewOtherTradeInfoFromQr({ qrData: 'qr-data' })
-      expect(result).toEqual({
-        success: true,
-        warnings: { missing: [], repeats: [] },
-        tradeInfo: JSON.stringify(tradeInfo)
-      })
+      expect(result).toEqual({ success: true, warnings: { missing: [], repeats: [] }, tradeInfo })
       expect(svc.getOtherTradeInfo()).toEqual(tradeInfo)
     })
     test('uses decoded QR payload to create trade information', () => {
@@ -412,7 +484,7 @@ describe('TradeService (unit)', () => {
       const svc = new TradeService(null, { ...initStaticDeps(), TradeQrHelper: MockTradeQrHelper })
       const result = svc.previewOtherTradeInfoFromQr({ qrData: 'qr-data' })
       expect(result.success).toBe(true)
-      expect(JSON.parse(result.tradeInfo)).toEqual({ missing: {}, repeats: {} })
+      expect(result.tradeInfo).toEqual({ missing: {}, repeats: {} })
     })
   })
 
@@ -442,31 +514,89 @@ describe('TradeService (unit)', () => {
         repeats: {}
       })
       jest.spyOn(service.getTradeCalculation(), 'calculate').
-        mockReturnValue({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
+        mockReturnValue({
+          receive: { BRA: [5] },
+          send: {}
+        })
       const result = service.findTradeMatches({ countries: ['BRA'] })
-      expect(result).toEqual({ proposals: [{ give: 'MEX-1', receive: 'BRA-5' }], warnings: [] })
+      expect(result).toEqual({ receive: { BRA: [5] }, send: {} })
+    })
+    test('returns matches preserving trade info country order', () => {
+      service.setOtherTradeInfo({
+        missing: { MEX: [3, 2, 1] },
+        repeats: { FWC: [10], MEX: [5, 4], RSA: [1, 2, 3] }
+      }, {})
+      jest.spyOn(service, 'getTradeInfo').mockReturnValue({
+        missing: { FWC: [10], MEX: [4, 5] },
+        repeats: { MEX: [2, 3] }
+      })
+      const result = service.findTradeMatches()
+      expect(result).toEqual({ receive: { FWC: [10], MEX: [4, 5] }, send: { MEX: [2, 3] } })
+    })
+    test('returns empty matches when no matches exist', () => {
+      service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
+      jest.spyOn(service, 'getTradeInfo').mockReturnValue({ missing: { MEX: [1] }, repeats: { BRA: [8] } })
+      jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({ receive: {}, send: {} })
+      const result = service.findTradeMatches()
+      expect(result).toEqual({ receive: {}, send: {} })
     })
   })
 
-  /** static findStickerTradeMatches() */
-  describe('static findStickerTradeMatches()', () => {
-    test('creates service and delegates calculateMatches', () => {
-      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [] })
-      class MockTradeCalculation {
-        calculate() {
-          return calculateMock()
-        }
-      }
-      const result = TradeService.findStickerTradeMatches({
-        otherTradeInfo: { missing: {}, repeats: { MEX: [1] } }
-      }, null, {
-        ExportService,
-        ExportStickers,
-        ImportStickers,
-        TradeCalculation: MockTradeCalculation
+  /** refreshTradeProposal() */
+  describe('refreshTradeProposal()', () => {
+    test('builds trade proposal using user options', () => {
+      const service = initService()
+      jest.spyOn(service, 'findTradeMatches').mockReturnValue({ receive: {}, send: {} })
+      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 2, maxStickerSend: 2 })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('keeps sticker preference order from trade matches', () => {
+      const service = initService()
+      jest.spyOn(service, 'findTradeMatches').mockReturnValue({ receive: { MEX: [15, 1, 5] }, send: {} })
+      const result = service.refreshTradeProposal({ sortMissing: false, maxStickerReceive: 2, maxStickerSend: 2 })
+      expect(result.receive.MEX).toEqual([15, 1])
+    })
+    test('restores original match order when missing sort is disabled after refresh', () => {
+      const service = initService()
+      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
+        receive: { BRA: [3, 4], MEX: [15, 1, 5] },
+        send: {}
       })
-      expect(result).toEqual({ receive: [], send: [] })
-      expect(calculateMock).toHaveBeenCalledTimes(1)
+      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 90, BRA: 50 })
+      const sortedProposal = service.refreshTradeProposal({
+        sortMissing: true, maxStickerReceive: 5,
+        maxStickerSend: 2
+      })
+      const unsortedProposal = service.refreshTradeProposal({
+        sortMissing: false, maxStickerReceive: 5,
+        maxStickerSend: 2
+      })
+      expect(Object.keys(unsortedProposal.receive)).toEqual(['BRA', 'MEX'])
+      expect(unsortedProposal.receive.BRA).toEqual([3, 4])
+      expect(unsortedProposal.receive.MEX).toEqual([15, 1, 5])
+    })
+    test('sorts receive matches by album completion when missing sort is enabled', () => {
+      const service = initService()
+      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
+        receive: { FWC: [10], MEX: [4, 5, 6] },
+        send: { MEX: [2, 3] }
+      })
+      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 95, FWC: 60 })
+      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 4, maxStickerSend: 2 })
+      expect(Object.keys(result.receive)).toEqual(['MEX', 'FWC'])
+      expect(result.receive.MEX).toEqual([4, 5, 6])
+      expect(result.receive.FWC).toEqual([10])
+      expect(result.send).toEqual({ MEX: [2, 3] })
+    })
+    test('limits receive stickers globally after sorting countries', () => {
+      const service = initService()
+      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
+        receive: { FWC: [10], MEX: [4, 5, 6] },
+        send: {}
+      })
+      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 95, FWC: 60 })
+      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 3, maxStickerSend: 2 })
+      expect(result.receive).toEqual({ MEX: [4, 5, 6] })
     })
   })
 
@@ -483,117 +613,6 @@ describe('TradeService (unit)', () => {
         { countryCode: 'MEX', stickerNumber: 17, count: -1 }
       ])
       expect(result).toBe(true)
-    })
-  })
-
-  /** refreshStickerTradeProposal() */
-  describe('static refreshStickerTradeProposal()', () => {
-    test('builds trade proposal using user options', () => {
-      class MockTradeCalculation {
-        calculate() {
-          return { receive: {}, send: {} }
-        }
-      }
-      const proposal = TradeService.refreshStickerTradeProposal({
-        otherTradeInfo: { countries: [] },
-        sortMissing: true,
-        maxStickerReceive: 2,
-        maxStickerSend: 2
-      }, null, { ExportService, ExportStickers, ImportStickers, TradeCalculation: MockTradeCalculation })
-      expect(proposal).toEqual({ receive: expect.any(Object), send: expect.any(Object) })
-    })
-    test('keeps sticker preference order from trade matches', () => {
-      class MockTradeCalculation {
-        calculate() {
-          return {
-            receive: { MEX: [15, 1, 5] },
-            send: {}
-          }
-        }
-      }
-      const service = new TradeService(null, {
-        ExportService,
-        ExportStickers,
-        ImportStickers,
-        TradeCalculation: MockTradeCalculation
-      })
-      service.setOtherTradeInfo({ countries: [] })
-      const result = service.refreshTradeProposal({ sortMissing: false, maxStickerReceive: 2, maxStickerSend: 2 })
-      expect(result.receive.MEX).toEqual([15, 1])
-    })
-    test('restores original match order when missing sort is disabled after refresh', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').
-        mockReturnValue({ receive: { BRA: [3, 4], MEX: [15, 1, 5] }, send: {} })
-      jest.spyOn(service, '_getCountryDoneMap').
-        mockReturnValue({
-          MEX: 90,
-          BRA: 50
-        })
-      const sortedProposal = service.refreshTradeProposal({
-        sortMissing: true,
-        maxStickerReceive: 3,
-        maxStickerSend: 2
-      })
-      expect(Object.keys(sortedProposal.receive)).toEqual(['MEX', 'BRA'])
-      const unsortedProposal = service.refreshTradeProposal({
-        sortMissing: false,
-        maxStickerReceive: 3,
-        maxStickerSend: 2
-      })
-      expect(Object.keys(unsortedProposal.receive)).toEqual(['BRA', 'MEX'])
-      expect(unsortedProposal.receive.BRA).toEqual([3, 4])
-      expect(unsortedProposal.receive.MEX).toEqual([15, 1, 5])
-    })
-  })
-
-  /** setOtherTradeInfoFromQr() */
-  describe('setOtherTradeInfoFromQr()', () => {
-    test('stores decoded QR trade information', () => {
-      class MockTradeQrHelper {
-        decode() {
-          return {
-            missing: { MEX: [1, 5] },
-            repeats: { BRA: [8] }
-          }
-        }
-      }
-      const svc = initService()
-      svc.TradeQrHelper = MockTradeQrHelper
-      svc.setOtherTradeInfoFromQr('qr-data')
-      expect(svc.getOtherTradeInfo()).toEqual({
-        missing: { MEX: [1, 5] },
-        repeats: { BRA: [8] }
-      })
-    })
-  })
-
-  /** findStickerTradeMatchesFromQr() */
-  describe('static findStickerTradeMatchesFromQr()', () => {
-    test('decodes QR data and calculates trade matches', () => {
-      class MockTradeQrHelper {
-        decode() {
-          return {
-            missing: { MEX: [1] },
-            repeats: { BRA: [8] }
-          }
-        }
-      }
-      class MockTradeCalculation {
-        calculate() {
-          return { receive: {}, send: {} }
-        }
-      }
-      const result = TradeService.findStickerTradeMatchesFromQr({
-        qrData: '{"m":{"MEX":[1]},"r":{"BRA":[8]}}'
-      }, null, {
-        ExportService,
-        ExportStickers,
-        ImportStickers,
-        TradeCalculation: MockTradeCalculation,
-        TradeQrHelper: MockTradeQrHelper
-      })
-      expect(result).toEqual({ receive: {}, send: {} })
     })
   })
 })
@@ -630,6 +649,18 @@ describe('TradeCalculation (unit)', () => {
       const otherTradeInfo = { missing: {}, repeats: { MEX: [5, 5] } }
       const result = calculation.calculate(tradeInfo, otherTradeInfo)
       expect(result.receive).toEqual({ MEX: [5] })
+    })
+    test('keeps multiple country matches in album order', () => {
+      const tradeInfo = { missing: { MEX: [4, 5], FWC: [10] }, repeats: { MEX: [2, 3] } }
+      const otherTradeInfo = { missing: { MEX: [3, 2, 1] }, repeats: { FWC: [10], MEX: [5, 4], RSA: [1, 2, 3] } }
+      const result = calculation.calculate(tradeInfo, otherTradeInfo)
+      expect(result).toEqual({ receive: { FWC: [10], MEX: [4, 5] }, send: { MEX: [2, 3] } })
+    })
+    test('keeps multiple country matches in album order (RSA case)', () => {
+      const tradeInfo = { missing: { MEX: [4, 5], FWC: [10] }, repeats: { MEX: [2, 3] } }
+      const otherTradeInfo = { missing: { MEX: [3, 2, 1] }, repeats: { FWC: [10], MEX: [5, 4], RSA: [1, 2, 3] } }
+      const result = calculation.calculate(tradeInfo, otherTradeInfo)
+      expect(result).toEqual({ receive: { FWC: [10], MEX: [4, 5] }, send: { MEX: [2, 3] } })
     })
   })
 })

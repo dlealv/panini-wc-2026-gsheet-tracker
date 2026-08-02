@@ -17,7 +17,7 @@ describe('TradeHelpers unit tests', () => {
   describe('getPayload()', () => {
     test('returns trade options from UI state', () => {
       const result = helpers.getPayload({
-        sortMissingCheckbox: { checked: true },
+        sortByCompletionCheckbox: { checked: true },
         receiveLimitSelect: { value: '3' },
         sendLimitSelect: { value: '2' }
       })
@@ -25,7 +25,7 @@ describe('TradeHelpers unit tests', () => {
     })
     test('returns false and zero values when controls are unchecked or empty', () => {
       const result = helpers.getPayload({
-        sortMissingCheckbox: { checked: false },
+        sortByCompletionCheckbox: { checked: false },
         receiveLimitSelect: { value: '0' },
         sendLimitSelect: { value: '0' }
       })
@@ -263,6 +263,82 @@ describe('TradeHelpers unit tests', () => {
     })
     test('returns empty string for missing data', () => {
       expect(helpers.formatTradeInput()).toBe('')
+    })
+  })
+
+  /** Renders receive and send trade match previews. */
+  describe('renderMatches()', () => {
+    test('renders receive and send matches', () => {
+      const receivePreviewEl = { textContent: '', className: '', style: {} }
+      const sendPreviewEl = { textContent: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { receivePreviewEl, sendPreviewEl }
+      )
+      expect(receivePreviewEl.className).toBe('preview')
+      expect(receivePreviewEl.textContent).toBe('MEX -> 1, 5')
+      expect(receivePreviewEl.style.display).toBe('block')
+      expect(sendPreviewEl.className).toBe('preview')
+      expect(sendPreviewEl.textContent).toBe('FWC -> 2, 8')
+      expect(sendPreviewEl.style.display).toBe('block')
+    })
+    test('does nothing when matches are missing', () => {
+      expect(() => {
+        helpers.renderMatches(null, {})
+      }).not.toThrow()
+    })
+  })
+  /** Formats sticker map data for display. */
+  describe('formatStickerMap()', () => {
+    test('formats sticker map into readable text', () => {
+      const result = helpers.formatStickerMap({ MEX: [1, 5], FWC: [2, 8] })
+      expect(result).toBe('MEX -> 1, 5\nFWC -> 2, 8')
+    })
+    test('returns none for empty sticker map', () => {
+      expect(helpers.formatStickerMap({})).toBe('(none)')
+    })
+    test('returns none for missing sticker map', () => {
+      expect(helpers.formatStickerMap()).toBe('(none)')
+    })
+  })
+
+  /** Counts trade matches. */
+  describe('countMatches()', () => {
+    test('counts stickers across countries', () => {
+      expect(helpers.countMatches({ MEX: [1, 5], FWC: [2, 8, 10] })).toBe(5)
+    })
+    test('returns zero for empty matches', () => {
+      expect(helpers.countMatches({})).toBe(0)
+    })
+    test('returns zero for missing matches', () => {
+      expect(helpers.countMatches()).toBe(0)
+    })
+  })
+
+  /** Applies user-selected limits to trade matches. */
+  describe('applyTradeSelectionLimits()', () => {
+    test('limits receive and send stickers independently', () => {
+      const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3], BRA: [7] } }
+      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 2, maxStickerSend: 1 })
+      expect(result).toEqual({ receive: { MEX: [4, 5] }, send: { MEX: [2] } })
+    })
+    test('preserves country order while applying the total limit', () => {
+      const matches = { receive: { MEX: [4], FWC: [10, 11], BRA: [20] }, send: {} }
+      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 3, maxStickerSend: 0 })
+      expect(result).toEqual({ receive: { MEX: [4], FWC: [10, 11] }, send: {} })
+    })
+    test('returns all stickers when limits exceed available stickers', () => {
+      const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3] } }
+      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 10, maxStickerSend: 10 })
+      expect(result).toEqual(matches)
+    })
+    test('returns empty groups when limits are zero', () => {
+      const matches = { receive: { MEX: [4, 5] }, send: { MEX: [2, 3] } }
+      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 0, maxStickerSend: 0 })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('returns empty groups when matches are empty', () => {
+      const result = helpers.applyTradeSelectionLimits({ receive: {}, send: {} }, { maxStickerReceive: 3, maxStickerSend: 3 })
+      expect(result).toEqual({ receive: {}, send: {} })
     })
   })
 })

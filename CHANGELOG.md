@@ -60,6 +60,7 @@ No changes were made to the template, so the version number remains.
   - `testKernel.js`:
     - Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
     - Adjusted the `TEST_DATA` to represent the same data as in `initializeSpreadsheetAppMock()` so `TEST_DATA` is the source of truth.
+    - Added `TEST_DATA` to export module. Useful for modifying its content for some specific tests.
 
 - Under the `test` folder:
   - Adjusted regression tests failing after the change in `testKernel.js` to use `TEST_DATA` as the source of truth.
