@@ -131,21 +131,20 @@ class TradeService {
    * current collector and an external collector.
    * Delegates the matching logic to TradeService and serializes the
    * calculated matches for transport to the client.
+   * Also returns album completion information required by the client
+   * to locally reorder receive stickers.
    * @param {{otherTradeInfo:TradeInfo}} payload External collector trade information.
    * Example:
    * {
    *   otherTradeInfo: {
-   *     missing: {
-   *       MEX: [1, 5]
-   *     },
-   *     repeats: {
-   *       BRA: [8, 10]
-   *     }
+   *     missing: {MEX: [1, 5]},
+   *     repeats: {BRA: [8, 10]}
    *   }
    * }
    * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
    * @param {Object} [deps] Optional dependency injection for testing.
-   * @returns {{receive:string,send:string}}
+   * @returns {{receive:string,send:string, doneMap:string}}
+   * Note: receive, send and doneMap are serialized JSON strings for transport to the client.
    */
   static findStickerTradeMatches(payload, ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
@@ -156,10 +155,10 @@ class TradeService {
     const matches = service.findTradeMatches()
     return {
       receive: JSON.stringify(matches.receive),
-      send: JSON.stringify(matches.send)
+      send: JSON.stringify(matches.send),
+      doneMap: JSON.stringify(matches.doneMap)
     }
   }
-
 
   /**
    * GAS entry point for refreshing the trade proposal.
@@ -355,36 +354,30 @@ class TradeService {
   }
 
   /**
-   * Builds the current trade proposal.
-   * Recalculates possible trade matches and applies user-selected options.
-   * Returns the domain proposal without serialization.
-   * @param {Object} options Trade selection options.
-   * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>}}
-   */
-  refreshTradeProposal(options) {
-    const matches = this.findTradeMatches()
-    this.setTradeProposal(
-      this._buildTradeProposal(matches, options)
-    )
-    return this.getTradeProposal()
-  }
-
-  /**
    * Calculates all possible trade matches between two collectors.
    * Uses tradeInfo and otherTradeInfo as the source data and delegates the
    * matching logic to TradeCalculation.
+   * Also retrieves album completion information (DONE values) for the
+   * countries included in the receive matches so the client can locally
+   * prioritize missing stickers.
    * This method only calculates possible exchanges and does not modify
    * spreadsheet data.
-   * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>}}
+   * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>,doneMap:Object<string,number>}}
    */
   findTradeMatches() {
     if (!this.getOtherTradeInfo()) {
       throw new Error('External collector information is required before calculating trades.')
     }
-    return this.getTradeCalculation().calculate(
+    const matches = this.getTradeCalculation().calculate(
       this.getTradeInfo(),
       this.getOtherTradeInfo()
     )
+    const doneMap = this._getCountryDoneMap(Object.keys(matches.receive))
+    return {
+      receive: matches.receive,
+      send: matches.send,
+      doneMap: doneMap
+    }
   }
 
   /**
@@ -395,8 +388,12 @@ class TradeService {
    *  Confirmed trade information.
    */
   executeTrade(tradeConfirmation) {
+    if (!tradeConfirmation ||
+      (!tradeConfirmation.receive && !tradeConfirmation.send)) {
+      throw new Error('Trade confirmation is required.')
+    }
     const updates = this._buildTradeUpdates(tradeConfirmation)
-    return this.getRepo().updateStickerCounts(updates)
+    return this.getRepo().updateStickerCounts(updates, 'update')
   }
 
   // Export/import preparation
@@ -515,85 +512,35 @@ class TradeService {
    * Converts trade calculation data into StickerSheetRepository update format.
    * Received stickers increase the current count by one, while sent stickers
    * decrease the current count by one.
+   * Sent stickers must have an available count. Invalid updates that would
+   * result in negative sticker counts throw an error.
    * @param {{receive:Object<string,number[]>, send:Object<string,number[]>}} tradeConfirmation 
    *  Confirmed trade information.
    * @returns {Array<{countryCode:string, stickerNumber:number, count:number}>}
    */
   _buildTradeUpdates(tradeConfirmation) {
-    const updates = []
-    const applyUpdates = (tradeInfo, increase) => {
+    const countries = {}
+    const applyUpdates = (tradeInfo, delta) => {
       Object.keys(tradeInfo || {}).forEach(countryCode => {
+        if (!countries[countryCode]) {
+          countries[countryCode] = {}
+        }
         tradeInfo[countryCode].forEach(stickerNumber => {
-          const currentCount = this.getRepo()
-            .getStickerCount(countryCode, stickerNumber)
-          updates.push({ countryCode, stickerNumber, count: currentCount + increase })
+          const currentCount = this.getRepo().getStickerCount(countryCode, stickerNumber)
+          const newCount = currentCount + delta
+          if (newCount < 0) {
+            throw new Error(
+              `Cannot send sticker ${stickerNumber} from ${countryCode}. Current count is ${currentCount}.`
+            )
+          }
+          countries[countryCode][stickerNumber] = newCount
         })
       })
     }
     applyUpdates(tradeConfirmation.receive, 1)
     applyUpdates(tradeConfirmation.send, -1)
-
-    return updates
-  }
-
-  /**
-   * Builds the confirmed trade proposal from calculated matches and user options.
-   * Applies missing sticker sorting based on DONE completion and limits the number
-   * of stickers included in the final proposal.
-   * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Calculated trade matches.
-   * @param {{sortMissing:boolean,maxStickerReceive:number,maxStickerSend:number}} options User trade selection options.
-   * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>}}
-   */
-  _buildTradeProposal(matches, options) {
-    const receive = options.sortMissing
-      ? this._sortMissing(matches.receive)
-      : matches.receive
-
-    return {
-      receive: this._limitTradeStickers(receive, options.maxStickerReceive),
-      send: this._limitTradeStickers(matches.send, options.maxStickerSend)
+    return { countries: Object.keys(countries).map(code => ({ code, counts: countries[code] }))
     }
-  }
-
-  /**
-   * Limits the total number of stickers included across all countries while preserving country order.
-   * Stickers are taken sequentially from the first countries until the global limit is reached.
-   * @param {Object<string,number[]>} stickers Stickers grouped by country in priority order.
-   * @param {number} limit Maximum total number of stickers allowed.
-   * @returns {Object<string,number[]>}
-   */
-  _limitTradeStickers(stickers, limit) {
-    const result = {}
-    const entries = Object.entries(stickers || {})
-    let remaining = Number(limit) || 0
-    for (let i = 0; i < entries.length; i++) {
-      if (remaining <= 0) { break }
-      const countryCode = entries[i][0]
-      const stickerNumbers = entries[i][1].slice(0, remaining)
-      if (stickerNumbers.length) {
-        result[countryCode] = stickerNumbers
-        remaining -= stickerNumbers.length
-      }
-    }
-    return result
-  }
-
-
-  /**
-   * Sorts missing stickers by country album completion.
-   * Uses DONE values from StickerSheetRepository only for the provided countries.
-   * Higher completion percentages are prioritized first.
-   * @param {Object<string,number[]>} stickers Missing stickers grouped by country.
-   * @returns {Object<string,number[]>}
-   */
-  _sortMissing(stickers) {
-    const doneMap = this._getCountryDoneMap(Object.keys(stickers))
-    const entries = Object.entries(stickers)
-    entries.sort((a, b) => {
-      return (doneMap[b[0]] || 0) - (doneMap[a[0]] || 0)
-    })
-
-    return Object.fromEntries(entries)
   }
 
   /**

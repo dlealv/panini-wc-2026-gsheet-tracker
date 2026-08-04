@@ -269,16 +269,16 @@ describe('TradeHelpers unit tests', () => {
   /** Renders receive and send trade match previews. */
   describe('renderMatches()', () => {
     test('renders receive and send matches', () => {
-      const receivePreviewEl = { textContent: '', className: '', style: {} }
-      const sendPreviewEl = { textContent: '', className: '', style: {} }
+      const receivePreviewEl = { innerHTML: '', className: '', style: {} }
+      const sendPreviewEl = { innerHTML: '', className: '', style: {} }
       helpers.renderMatches(
         { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { receivePreviewEl, sendPreviewEl }
       )
       expect(receivePreviewEl.className).toBe('preview')
-      expect(receivePreviewEl.textContent).toBe('MEX -> 1, 5')
+      expect(receivePreviewEl.innerHTML).toBe('MEX, 1, 5')
       expect(receivePreviewEl.style.display).toBe('block')
       expect(sendPreviewEl.className).toBe('preview')
-      expect(sendPreviewEl.textContent).toBe('FWC -> 2, 8')
+      expect(sendPreviewEl.innerHTML).toBe('FWC, 2, 8')
       expect(sendPreviewEl.style.display).toBe('block')
     })
     test('does nothing when matches are missing', () => {
@@ -286,7 +286,23 @@ describe('TradeHelpers unit tests', () => {
         helpers.renderMatches(null, {})
       }).not.toThrow()
     })
+    test('highlights proposed stickers', () => {
+      const receivePreviewEl = { innerHTML: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: { MEX: [1, 2] }, send: {} }, { receivePreviewEl, highlightProposal: { receive: { MEX: [2] } } }
+      )
+      expect(receivePreviewEl.innerHTML).
+        toBe('MEX, 1, <span class="trade-highlight">2</span>')
+    })
+    test('highlights proposed send stickers', () => {
+      const sendPreviewEl = { innerHTML: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: {}, send: { FWC: [2, 8] } }, { sendPreviewEl, highlightProposal: { send: { FWC: [8] } } }
+      )
+      expect(sendPreviewEl.innerHTML).toBe('FWC, 2, <span class="trade-highlight">8</span>')
+    })
   })
+
   /** Formats sticker map data for display. */
   describe('formatStickerMap()', () => {
     test('formats sticker map into readable text', () => {
@@ -312,6 +328,9 @@ describe('TradeHelpers unit tests', () => {
     test('returns zero for missing matches', () => {
       expect(helpers.countMatches()).toBe(0)
     })
+    test('ignores missing country arrays safely', () => {
+      expect(helpers.countMatches({ MEX: undefined })).toBe(0)
+    })
   })
 
   /** Applies user-selected limits to trade matches. */
@@ -329,7 +348,8 @@ describe('TradeHelpers unit tests', () => {
     test('returns all stickers when limits exceed available stickers', () => {
       const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3] } }
       const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 10, maxStickerSend: 10 })
-      expect(result).toEqual(matches)
+      expect(result).not.toBe(matches)
+      expect(result.receive).not.toBe(matches.receive)
     })
     test('returns empty groups when limits are zero', () => {
       const matches = { receive: { MEX: [4, 5] }, send: { MEX: [2, 3] } }
@@ -339,6 +359,28 @@ describe('TradeHelpers unit tests', () => {
     test('returns empty groups when matches are empty', () => {
       const result = helpers.applyTradeSelectionLimits({ receive: {}, send: {} }, { maxStickerReceive: 3, maxStickerSend: 3 })
       expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('sorts matches by album completion before applying limits', () => {
+      const matches = {
+        receive: { MEX: [1], FWC: [2], BRA: [3] },
+        send: {}
+      }
+      const result = helpers.applyTradeSelectionLimits(matches, {
+        maxStickerReceive: 2,
+        maxStickerSend: 0,
+        sortMissing: true,
+        doneMap: { MEX: 50, FWC: 90, BRA: 20 }
+      })
+      expect(result.receive).toEqual({ FWC: [2], MEX: [1] })
+    })
+    test('does not sort when completion map is missing', () => {
+      const matches = { receive: { MEX: [1], FWC: [2] }, send: {} }
+      const result = helpers.applyTradeSelectionLimits(matches, {
+        maxStickerReceive: 2,
+        maxStickerSend: 0,
+        sortMissing: true
+      })
+      expect(result.receive).toEqual({ MEX: [1], FWC: [2] })
     })
   })
 })

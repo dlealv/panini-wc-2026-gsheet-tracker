@@ -222,48 +222,112 @@ This view displays the possible sticker exchanges identified between both collec
 
 The sticker lists displayed in the proposal are read-only. The user cannot directly select or modify individual stickers. The displayed results are updated automatically when the user click the **Refresh** button after changing the trade quantities or sorting option. It ensure all user changes are implemented at once.
 
+The process has two stages:
+1. Initial view:
+  - Shows all possible matches between both collectors.
+  - The default confirmation proposal is a balance trade. The default values for **Stickers to receive** and **Stickers to send** are calculated using the minimum number of available matches between both trade directions.
+  - Highlight with green color the stickers included in the current confirmation proposal.
+  - Provide customized hint information explaining that only highlighted stickers will be traded if the user confirms without refreshing.
+2. Proposal updated (after Refresh action)
+  - Shows the trade proposal generated using the selected quantities and sorting options.
+  - Sticker information is not highlighted because all displayed stickers are part of the current trade proposal.
+  - Provide customized hint information explaining that the user can review the scenario or confirm the trade.
+
 Example layout:
 
+View 1: Initial view
 ```text
- Trade proposal                                       [ Close ]                                                       
- +-------------------------------------------------------------+    
- |                                                 [ Refresh ] |
- |   Stickers to receive (4) [ ] Sort by album completion      |
- |  +----------------------------------------------------+     |  
- |  | MEX,1,5                                            |     |
- |  | FWC,2,8                                            |     |
- |  +----------------------------------------------------+     |
- |                                                             |
- |  Stickers to send (2)                                       |
- |  +-----------------------------------------------------+    |
- |  | MEX,4,8                                             |    | 
- |  +-----------------------------------------------------+    |
- |                                                             |
- |  Stickers to receive: [ 2 ▼ ]  Stickers to send: [ 2 ▼ ]    |
- |                                                             |
- | Messages                                                    |
- |  +-----------------------------------------------------+    |
- |  | Information, warnings, and errors.                  |    | 
- |  +-----------------------------------------------------+    |
- +-------------------------------------------------------------+
- +-------------------------------------------------------------+ 
- |  Actions                                                    | 
- |  [ Back ]  [ Refresh ] [ Confirm trade]  [ Close ]          | 
- +-------------------------------------------------------------+ 
+Trade proposal                                                   [ Close ]
++--------------------------------------------------------------------------+
+|                                                              [ Refresh ] |
+|  This proposal shows all possible matches.                               |
+|  If you click Confirm Trade now, only highlighted stickers will be       |
+|  traded. Change the limits or sorting options and click Refresh to       |
+|  create another proposal.                                                |
+|                                                                          |
+|  Legend: 🟩 Included in current proposal  ▫ Available with higher limit  |
+|  Stickers to receive (3)                                                 |
+|  ☐ Sort by album completion.                                             |
+|  +--------------------------------------------------------------------+  |
+|  | MEX, 🟩4, 🟩5                                                       |  |
+|  | FWC, 10                                                            |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
+|  Stickers to send (2)                                                    |
+|  +--------------------------------------------------------------------+  |
+|  | MEX, 🟩2, 🟩3                                                       |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
+|  Stickers to receive: [ 2 ▼ ]        Stickers to send: [ 2 ▼ ]           |
+|                                                                          |
+|  Messages                                                                |
+|  +--------------------------------------------------------------------+  |
+|  | Information, warnings, and errors.                                 |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
++--------------------------------------------------------------------------+
++--------------------------------------------------------------------------+
+|  Actions                                                                 |
+|                                                                          |
+|  [ Back ] [ Refresh ] [ Confirm trade ] [ Close ]                        |
++--------------------------------------------------------------------------+
 ```
 
-The default values for **Stickers to receive** and **Stickers to send** are calculated using the minimum number of available matches between both trade directions.
+View 2: Trade proposal updated (after Refresh)
+```text
+Trade proposal                                                   [ Close ]
 
-The available values in each dropdown range from `1` to the maximum trade quantity available for that direction.
++--------------------------------------------------------------------------+
+|                                                              [ Refresh ] |
+|  This proposal was generated using the selected limits and sorting       |
+|  options. Review the trade scenario or accept it and click Confirm       |
+|  Trade. Change the limits or sorting options and click Refresh to        |
+|  create another proposal.                                                |
+|                                                                          |
+|  Stickers to receive (3)                                                 |
+|  ☐ Sort receive by album completion                                      |
+|  +--------------------------------------------------------------------+  |
+|  | MEX, 4, 5                                                          |  |
+|  | FWC, 10                                                            |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
+|  Stickers to send (2)                                                    |
+|  +--------------------------------------------------------------------+  |
+|  | MEX, 2, 3                                                          |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
+|  Stickers to receive: [ 3 ▼ ]        Stickers to send: [ 2 ▼ ]           |
+|                                                                          |
+|  Messages                                                                |
+|  +--------------------------------------------------------------------+  |
+|  | Information, warnings, and errors.                                 |  |
+|  +--------------------------------------------------------------------+  |
+|                                                                          |
++--------------------------------------------------------------------------+
+
++--------------------------------------------------------------------------+
+|  Actions                                                                 |
+|                                                                          |
+|  [ Back ] [ Refresh ] [ Confirm trade ] [ Close ]                        |
++--------------------------------------------------------------------------+
+```
+
+The available values in each dropdown range from `1` to the maximum trade quantity available for that direction. The default values represent the balanced trade quantity.
 
 User interface elements:
 
 - **Stickers to receive (X)**
-  - Displays the stickers the user can receive from the trade proposal.
-  - The number in parenthesis indicates the total number of possible receive matches.
-  - The displayed list is limited according to the selected receive quantity.
+  - Displays the stickers the user will receive from the current trade proposal.
+  - The number in parenthesis indicates the total number of stickers to receive.
   - The displayed list is reordered when **Sort by album completion** is selected.
   - Changes to the displayed list are applied only after the user clicks the **Refresh** button.
+  - Under View 1:
+    - Stickers part of the balance trade are highlighted in green.
+    - Stickers exceed the balance trade are not highlighted.
+    - Total number of highlighted stickers is equal to dropdown value **Stickers to receive**.
+  - Under View 2:
+    - Stickers are not highlighted since all stickers are part of the trade.
+    - Total number of stickers is equal to dropdown value **Stickers to receive**.
 
 - **Sort by album completion**
   - When selected, sorts the received stickers using the user's existing collection completion information.
@@ -271,20 +335,26 @@ User interface elements:
   - Changes to this option are applied only after the user clicks the **Refresh** button.
 
 - **Stickers to send (X)**
-  - Displays the stickers the user can send as part of the trade proposal.
-  - The number in parenthesis indicates the total number of possible send matches.
-  - The displayed list is limited according to the selected send quantity.
+  - Displays the stickers the user will send as part of the current trade proposal.
+  - The number in parenthesis indicates the total number of stickers to send.
   - Changes to the displayed list are applied only after the user clicks the **Refresh** button.
+   - Under View 1:
+    - Stickers part of the balance trade are highlighted in green.
+    - Stickers exceed the balance trade are not highlighted.
+    - Total number of highlighted stickers is equal to dropdown value **Stickers to send**.
+  - Under View 2:
+    - Stickers are not highlighted since all stickers are part of the trade.
+    - Total number of stickers is equal to dropdown value **Stickers to send**.
 
 - **Trade quantity dropdowns**
   - Allow selecting the number of stickers to receive and send.
   - The available values range from `1` to the maximum trade quantity available in each direction.
-  - The default value is the balanced trade quantity.
-  - Changing a dropdown updates the corresponding sticker list after the user clicks the **Refresh** button.
+  - The default value is the balanced trade quantity (same value for both dropdowns).
+  - Changing a dropdown modifies the desired trade scenario. The displayed proposal is updated only after the user clicks the **Refresh** button.
 
 - **Balanced trade default**
   - The default quantity for both dropdowns is calculated as the minimum value between the available receive matches and send matches.
-  - This creates an equal trade by default while allowing the user to select an unbalanced trade by changing either dropdown.
+  - This creates an equal trade by default while allowing the user to select an unbalanced trade scenario by changing either dropdown and refreshing the proposal.
 
 Example:
 
@@ -309,6 +379,7 @@ This creates an equal trade by default while allowing the user to select an unba
 
 - **Refresh**
   - Updates the **Stickers to receive (X)** and **Stickers to send (X)** lists based on the selected **Sort by album completion** option and the selected trade quantities.
+  - Transitions the view from possible matches to the selected trade proposal.
   - Applies all pending user changes to the trade proposal.
   - Ensures that the displayed sticker quantities match the selected dropdown values.
 

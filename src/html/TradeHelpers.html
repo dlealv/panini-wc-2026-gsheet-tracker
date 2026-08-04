@@ -23,7 +23,7 @@
   window.Trade = (function () {
 
     /**
-     * Builds the backend payload from the current UI state.
+     * Builds the trade selection options from the current UI state.
      * @export
      * @public
      */
@@ -177,11 +177,13 @@
     }
 
     /**
-     * Renders receive/send match previews.
+     * Renders receive/send match previews with optional proposal highlighting.
      * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
      * @param {Object} deps
      * @param {HTMLElement} deps.receivePreviewEl
      * @param {HTMLElement} deps.sendPreviewEl
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} deps.highlightProposal
+     * Current selected proposal stickers to highlight.
      * @export
      * @public
      */
@@ -189,14 +191,17 @@
       if (!matches) { return }
       const receiveEl = deps.receivePreviewEl
       const sendEl = deps.sendPreviewEl
+      const highlightProposal = deps.highlightProposal || null
       if (receiveEl) {
         receiveEl.className = 'preview'
-        receiveEl.textContent = _formatMatches(matches.receive)
+        receiveEl.innerHTML = _formatMatches(matches.receive,
+          highlightProposal ? highlightProposal.receive : null)
         receiveEl.style.display = 'block'
       }
       if (sendEl) {
         sendEl.className = 'preview'
-        sendEl.textContent = _formatMatches(matches.send)
+        sendEl.innerHTML = _formatMatches(matches.send,
+          highlightProposal ? highlightProposal.send : null)
         sendEl.style.display = 'block'
       }
     }
@@ -241,7 +246,7 @@
      */
     function countMatches(matches) {
       return Object.values(matches || {})
-        .reduce((total, stickers) => total + stickers.length, 0)
+        .reduce((total, stickers) => total + (stickers || []).length, 0)
     }
 
     // Private helper functions (not exported) for internal use within the Trade namespace.
@@ -297,17 +302,32 @@
 
     /**
      * Formats trade matches for preview.
-     * @param {Object<string,number[]>} matches
+     * When highlight is provided, stickers included in the proposal are
+     * wrapped with highlight markup while the remaining stickers are rendered
+     * normally.
+     * @param {Object<string,number[]>} matches Matches grouped by country code.
+     * @param {Object<string,number[]>} [highlight] Optional stickers to highlight grouped by country code.
      * @returns {string}
      */
-    function _formatMatches(matches) {
+    function _formatMatches(matches, highlightProposal = null) {
       const countries = Object.keys(matches || {})
       if (!countries.length) {
         return '(none)'
       }
       return countries
-        .map(country => country + ' -> ' + matches[country].join(', '))
-        .join('\n')
+        .map(country => {
+          const stickers = matches[country].map(sticker => {
+            const isHighlighted = highlightProposal &&
+              highlightProposal[country] &&
+              highlightProposal[country].includes(sticker)
+            if (isHighlighted) {
+              return '<span class="trade-highlight">' + sticker + '</span>'
+            }
+            return sticker
+          })
+          return country + ', ' + stickers.join(', ')
+        })
+        .join('<br>')
     }
 
     /**
@@ -319,10 +339,34 @@
      * @public
      */
     function applyTradeSelectionLimits(matches, options) {
-      return {
-        receive: _limitTradeStickers(matches.receive, options.maxStickerReceive),
-        send: _limitTradeStickers(matches.send, options.maxStickerSend)
+      let receive = matches.receive
+      let send = matches.send
+      if (options.sortMissing && options.doneMap) {
+        receive = _sortMatchesByCompletion(receive, options.doneMap)
+        send = _sortMatchesByCompletion(send, options.doneMap)
       }
+      return {
+        receive: _limitTradeStickers(receive, options.maxStickerReceive),
+        send: _limitTradeStickers(send, options.maxStickerSend)
+      }
+    }
+
+    /**
+     * Sorts matched stickers by album completion.
+     * Countries with higher completion are prioritized,
+     * matching the legacy server sorting behavior.
+     * @param {Object<string,number[]>} matches
+     * @param {Object<string,number>} doneMap
+     */
+    function _sortMatchesByCompletion(matches, doneMap) {
+      return Object.fromEntries(
+        Object.entries(matches || {})
+          .sort((a, b) => {
+            const completionA = doneMap[a[0]] || 0
+            const completionB = doneMap[b[0]] || 0
+            return completionB - completionA
+          })
+      )
     }
 
     /**

@@ -17,16 +17,12 @@ const writeRangeMock = {
   clearContent: jest.fn()
 }
 
-/** Shared deterministic dataset. */
-/*
-const TEST_DATA = {
-  countries: [
-    { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 2: 0, 3: 2 } },
-    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 17: 1, 18: 0, 20: 2 } },
-    { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
-  ],
-  groupCodes: ['A', 'B', 'C']
-}
+/**
+ * Shared deterministic dataset.
+ * Notes:
+ * - Don't change the values in this dataset, as it is used across multiple unit tests and services.
+ * - If you want to test a different data, then add another country
+ * - I think you can add values for CC, since empty counts haven't been tested.
 */
 const TEST_DATA = {
   countries: [
@@ -118,9 +114,42 @@ class MockStickerSheetRepository {
     return Number(country.counts[stickerNumber] || 0)
   }
 
-  updateStickerCounts(updates) { // extending it to record the last updates for testing purposes
+  updateStickerCounts(updates, mode = 'update') {
     this.lastUpdates = updates
-    return true
+    const range = this.getCountsRange()
+    if (mode === 'clean_all') {
+      range.clearContent()
+    }
+    const values = range.getValues()
+    const countries = updates.countries || []
+    if (mode === 'replace_countries') {
+      countries.forEach(country => {
+        const code = String(country.code).trim().toUpperCase()
+        const index = this.getCountryMap()[code].index
+        values[index].fill('')
+      })
+    }
+    countries.forEach(country => {
+      const code = String(country.code).trim().toUpperCase()
+      const index = this.getCountryMap()[code].index
+      const bounds = MockStickerSheetRepository.getCountryBounds()
+      const [minSticker, maxSticker] = bounds.get(code) || bounds.get('TEAM')
+      for (let sticker = 0; sticker < values[index].length; sticker++) {
+        // Invalid sticker positions are always reset to numeric zero.
+        // Example: TEAM sticker 0 and FWC sticker 20 are outside the allowed range.
+        if (sticker < minSticker || sticker > maxSticker) {
+          values[index][sticker] = 0
+        }
+      }
+      Object.entries(country.counts || {}).forEach(([sticker, count]) => {
+        const stickerNumber = Number(sticker)
+        // Valid imported zero counts are stored as blank cells to match sheet behavior.
+        if (stickerNumber >= minSticker && stickerNumber <= maxSticker) {
+          values[index][stickerNumber] = count === 0 ? '' : count
+        }
+      })
+    })
+    range.setValues(values)
   }
 }
 
@@ -170,7 +199,14 @@ function initializeSpreadsheetAppMock() {
     getRow: jest.fn(() => 1),
     getColumn: jest.fn(() => 2),
     getSheet: jest.fn(() => sheetMock),
-    clearContent: jest.fn()
+    clearContent: jest.fn(() => {
+      countsValues.forEach(row => row.fill(''))
+    }),
+    setValues: jest.fn(values => {
+      values.forEach((row, index) => {
+        countsValues[index] = row
+      })
+    })
   }
   const groupsRange = createNamedRangeMock([['A'], ['B'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])])
   const flagsUrlRange = createNamedRangeMock([

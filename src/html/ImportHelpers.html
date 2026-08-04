@@ -22,14 +22,24 @@
    */
   window.Import = (function () {
 
-    /** Reads current UI state from DOM inputs.
+    /**
+     * Reads current UI state from DOM inputs.
+     * The mode value is part of the import payload contract.
+     * It must always be read from the live DOM element because the
+     * Import dialog can be opened with a different default mode
+     * (for example: replace_countries) through window.importConfig.
+     * Do not cache the mode value at namespace initialization time.
      * @export
      * @public
      */
     function getUIState(deps = {}) {
-      const textEl = deps.textInput || (typeof textInput !== 'undefined' ? textInput : null)
-      const modeEl = deps.modeInput || (typeof modeInput !== 'undefined' ? modeInput : null)
-      return { text: textEl ? textEl.value : '', mode: modeEl ? modeEl.value : 'update' }
+      const doc = deps.document || (typeof document !== 'undefined' ? document : null)
+      const textEl = deps.textInput || (doc && doc.getElementById('textInput'))
+      const modeEl = deps.modeInput || (doc && doc.getElementById('mode'))
+      return {
+        text: textEl ? textEl.value : '',
+        mode: modeEl ? modeEl.value : 'update'
+      }
     }
 
     /** Backend payload wrapper (stable contract for services).
@@ -71,14 +81,15 @@
      * @public
      */
     function setBusy(isBusy, deps = {}) {
-      const doc = deps.document || document
+      const doc = deps.document || (typeof document !== 'undefined' ? document : null)
       const controls = deps.controls || [
-        ...(typeof fileInput !== 'undefined' ? [fileInput] : []),
-        ...(typeof modeInput !== 'undefined' ? [modeInput] : []),
-        ...(typeof textInput !== 'undefined' ? [textInput] : [])
-      ]
-      doc.querySelectorAll('button').forEach(btn => { btn.disabled = isBusy })
-      controls.forEach(el => { if (el) el.disabled = isBusy })
+        doc.getElementById('fileInput'),
+        doc.getElementById('mode'),
+        doc.getElementById('textInput')
+      ].filter(Boolean)
+      doc.querySelectorAll('button')
+        .forEach(btn => { btn.disabled = isBusy })
+      controls.forEach(el => { el.disabled = isBusy })
     }
 
     /** Displays a message in the dialog UI.

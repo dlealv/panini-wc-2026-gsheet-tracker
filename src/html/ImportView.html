@@ -187,6 +187,13 @@
     const previewEl = document.getElementById('preview')
     const warningsEl = document.getElementById('import-warnings')
 
+    /**
+     * Initialize the loading mode from the server-provided dialog configuration.
+     * The value is intentionally assigned to the DOM only. Import.getPayload()
+     * reads the current DOM state when the user executes Preview or Import.
+     * This keeps menu actions (Import data, Replace countries, Update counts)
+     * independent and avoids falling back to the default "update" mode.
+     */
     if (modeInputEl && window.importConfig) {
       modeInputEl.value = window.importConfig.defaultMode || 'update'
     }

@@ -78,14 +78,10 @@ class ImportService {
     const importStickers = new ImportStickers(this.getRepo().getCountryMap())
     const parsed = importStickers.parse(text)
     const countries = parsed.countries
-    if (normalizedMode === 'clean_all') {
-      this._clearAllCounts()
-    } else if (normalizedMode === 'replace_countries') {
-      this._clearCountries(countries)
-    } else if (normalizedMode !== 'update') {
+    if (!['update', 'clean_all', 'replace_countries'].includes(normalizedMode)) {
       throw new Error(`Invalid import mode "${normalizedMode}".`)
     }
-    this._writeCountries(countries)
+    this._writeCountries(countries, normalizedMode)
     return { success: true, warnings: parsed.warnings, message: `Imported ${countries.length} country row(s) successfully.` }
   }
 
@@ -100,52 +96,9 @@ class ImportService {
 
   // Private methods
 
-  /** Clears all sticker count values in the counts range. */
-  _clearAllCounts() {
-    this.getRepo().getCountsRange().clearContent()
-  }
-
-  /** Clears sticker counts for countries present in the import payload. */
-  _clearCountries(parsedRows) {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const START_COL = repo.getStartCol()
-    const TOTAL_COLS = repo.getNumStickerCols()
-    const sheet = repo.getSheet()
-    parsedRows.forEach(item => {
-      const entry = repo.getCountryMap()[item.code]
-      if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS).clearContent()
-    })
-  }
-
-  /** Writes parsed sticker counts into the sheet preserving untouched cells. GAS dependent method. */
-  _writeCountries(parsedRows) {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const START_COL = repo.getStartCol()
-    const TOTAL_COLS = repo.getNumStickerCols()
-    const sheet = repo.getSheet()
-    parsedRows.forEach(item => {
-      const entry = repo.getCountryMap()[item.code]
-      if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      const range = sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS)
-      const currentValues = range.getValues()[0]
-      const outputValues = currentValues.slice()
-      Object.keys(item.counts).forEach(key => {
-        const stickerNumber = Number(key)
-        const offset = stickerNumber
-        if (offset < 0 || offset >= TOTAL_COLS) { throw new Error(`Sticker number out of range.`) }
-        outputValues[offset] = item.counts[key]
-      })
-      // Apply country-specific bounds to ensure only valid stickers are written, setting out-of-bounds stickers to 0.
-      const bounds = StickerSheetRepository.getCountryBounds()
-      const [minSticker, maxSticker] = bounds.get(item.code) || bounds.get('TEAM')
-      for (let sticker = 0; sticker < TOTAL_COLS; sticker++) {
-        if (sticker < minSticker || sticker > maxSticker) {
-          outputValues[sticker] = 0
-        }
-      }
-      range.setValues([outputValues])
-    })
+  /** Writes parsed canonical import rows. Parsed rows already match the repository sparse update model. */
+  _writeCountries(parsedRows, mode) {
+    this.getRepo().updateStickerCounts({ countries: parsedRows }, mode)
   }
 
 }

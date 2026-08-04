@@ -20,9 +20,9 @@ const EXPECTED_STICKER_COLUMNS = STICKER_MAX - STICKER_MIN + 1
  * `TEAM` represents all standard teams, `FWC` represents the World Cup team, and `CC` represents the Coca-Cola team.
  * The bounds are inclusive.*/
 const COUNTRY_BOUNDS = new Map([
-  ['FWC', [STICKER_MIN, STICKER_MAX-1]],  // FWC has stickers 0-19
-  ['CC', [STICKER_MIN+1, 12]], // Coca-Cola has stickers 1-12
-  ['TEAM', [STICKER_MIN+1, STICKER_MAX]] // All teams have 1-20 stickers.
+  ['FWC', [STICKER_MIN, STICKER_MAX - 1]],  // FWC has stickers 0-19
+  ['CC', [STICKER_MIN + 1, 12]], // Coca-Cola has stickers 1-12
+  ['TEAM', [STICKER_MIN + 1, STICKER_MAX]] // All teams have 1-20 stickers.
 ])
 
 /** Provides shared access to sticker sheet data stored in named ranges. 
@@ -47,7 +47,7 @@ class StickerSheetRepository {
   }
 
   /* Returns the maximum number of rows allowed in the named ranges, which is 50. This includes 48 teams plus FWC and CC. */
-  static getMaxRows() { 
+  static getMaxRows() {
     return MAX_ROWS
   }
 
@@ -296,28 +296,6 @@ class StickerSheetRepository {
     return countValues.map(v => this._toCount(v))[validStickerNumber]
   }
 
-  /** Updates multiple sticker counts in one batch write. 
-   * @param {Array} updates - An array of update objects, each containing a countryCode, stickerNumber, and count.
-   * The method first groups the updates by country code to minimize the number of sheet writes. Then, for each country, 
-   * it retrieves the current sticker counts from the sheet, applies all relevant updates to the in-memory array, 
-   * and writes the updated counts back to the sheet in a single operation. This approach optimizes performance by 
-   * reducing the number of interactions with the spreadsheet, which can be slow if done repeatedly for individual updates.
-   * Example of updates parameter:
-   * [
-   *   { countryCode: 'ARG', stickerNumber: 1, count: 2 },
-   *   { countryCode: 'BRA', stickerNumber: 3, count: 1 },
-   *   { countryCode: 'ARG', stickerNumber: 5, count: 4 }
-   * ]
-   * In this example, the method would group updates for 'ARG' together and apply them in one write, and then 
-   * apply the update for 'BRA' in another write.
-  */
-  updateStickerCounts(updates) {
-    const groupedUpdates = this._groupUpdatesByCountry(updates)
-    Object.keys(groupedUpdates).forEach(countryCode => {
-      this._updateCountryCounts(countryCode, groupedUpdates[countryCode])
-    })
-  }
-
   /** Returns all countries with group, flag, country name, and count data. It is lazy-loaded. 
    * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL, 
    * country name, and an array of sticker counts. 
@@ -336,6 +314,37 @@ class StickerSheetRepository {
       this.countries = this._loadCountries()
     }
     return this.countries
+  }
+
+  /**
+   * Updates multiple sticker counts using a single spreadsheet write operation.
+   * The input is a sparse country-based update model where only changed sticker numbers are provided.
+   * The method loads the COUNTS range once, applies every update in memory, and persists the modified
+   * values with a single `setValues()` call so the operation can be undone with one Ctrl+Z action.
+   * @param {{countries:Array<{code:string,counts:Object<number,number>}>}} updates
+   * Canonical sticker update payload.
+   * Example: { countries: [{ code:'ARG', counts:{1:2,5:4} }, { code:'BRA', counts:{3:1} }] }
+   * @param {string} mode - The update mode, which can be 'update', 'clean_all', or 'replace_countries'.
+   */
+  updateStickerCounts(updates, mode = 'update') {
+    const countries = updates && updates.countries
+    if (!Array.isArray(countries) || !countries.length) return
+    const range = this.getCountsRange()
+    if (mode === 'clean_all') {
+      range.clearContent()
+    }
+    const values = range.getValues()
+    if (mode === 'replace_countries') {
+      countries.forEach(country => {
+        const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
+        values[index].fill('')
+      })
+    }
+    countries.forEach(country => {
+      const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
+      this._applyCountUpdates(country, values[index])
+    })
+    range.setValues(values)
   }
 
   /* Helper method to validate ranges with expected dimensions. */
@@ -359,10 +368,7 @@ class StickerSheetRepository {
    * @return {Object} countryMap mapping country codes to their row and index in the named ranges.
    * The country map is built by iterating through the countries defined in the COUNTRIES named range and creating an object where each key is a normalized country code, and the value is an object containing the row number in the sheet and the index of the country in the named range. This allows for efficient lookup of country data when updating counts or retrieving information based on country codes.
    * Example structure of countryMap:
-   *  {
-   *    "FWC": { row: 1, index: 0 },
-   *    "MEX": { row: 2, index: 1 }
-   *  }
+   *  {"FWC": { row: 1, index: 0 },"MEX": { row: 2, index: 1 }}
   */
   _buildCountryMap() {
     const countryMap = {}
@@ -380,12 +386,8 @@ class StickerSheetRepository {
    * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL, 
    * country name, and an array of sticker counts.
    * Example of a country record:
-   * {
-   *   code: 'MEX',
-   *   countryName: 'Mexico',
-   *   group: 'B',
-   *   flag: 'https://example.com/flags/mexico.png',
-   *   counts: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
+   * {code: 'MEX', countryName: 'Mexico', group: 'B', flag: 'https://example.com/flags/mexico.png',
+   *  counts: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
    * }
    */
   _loadCountries() {
@@ -465,41 +467,35 @@ class StickerSheetRepository {
     }, {})
   }
 
-  /** Applies all sticker updates for one country. 
-   * @param {string} countryCode - The country code to update counts for.
-   * @param {Array} updates - An array of update objects, each containing a stickerNumber and count.
-   * This method first normalizes and validates the provided country code against the country map built from the COUNTRIES named range. It then retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index. The method applies all relevant updates to the in-memory array of counts, ensuring that any empty or invalid values are treated as zero. Finally, it writes the updated counts back to the sheet in a single operation, optimizing performance by minimizing interactions with the spreadsheet.
-   * Example of updates parameter:
-   * [
-   *   { stickerNumber: 1, count: 2 },
-   *   { stickerNumber: 3, count: 1 },
-   *   { stickerNumber: 5, count: 4 }
-   * ]
-   * In this example, all updates for the specified country will be applied in one write operation.
-  */
-  _updateCountryCounts(countryCode, updates) {
-    const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-    const row = this.getCountryMap()[normalizedCountryCode].row
-    const range = this.getSheet().getRange(row, this.getStartCol(), 1, this.getNumStickerCols())
-    const currentValues = range.getValues()[0]
-    const updatedValues = currentValues.slice()
-
-    // Determine the valid sticker range for this country (or use the default TEAM range).
+  /**
+   * Applies canonical sticker count updates for one country row in memory.
+   * Does not read or write the spreadsheet.
+   * The caller is responsible for loading and persisting the COUNTS range.
+   * Invalid sticker positions for the country are reset to zero to keep row data consistent.
+   * @param {{code:string,counts:Object<number,number>}} country - Country update in canonical form.
+   * @param {Array} values - Current sticker count row to modify.
+   * Example: { code:'ARG', counts:{1:2,5:4} }
+   */
+  _applyCountUpdates(country, values) {
     const bounds = StickerSheetRepository.getCountryBounds()
+    const normalizedCountryCode = String(country.code).trim().toUpperCase()
     const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
-
-    // Apply all updates in memory before writing the row back to the sheet.
-    updates.forEach(update => {
-      const stickerNumber = this._validateStickerNumber(update.stickerNumber)
-      if (stickerNumber < minSticker || stickerNumber > maxSticker) {
-        updatedValues[stickerNumber] = 0
-        return
+    const counts = country.counts || {}
+    for (let sticker = 0; sticker < values.length; sticker++) {
+      // Sticker positions outside the country's allowed range must always be reset.
+      // These are structural invalid values, so they are stored as numeric zero.
+      // Example: TEAM countries cannot have sticker 0, FWC cannot have sticker 20.
+      if (sticker < minSticker || sticker > maxSticker) {
+        values[sticker] = 0
+        continue
       }
-      updatedValues[stickerNumber] = update.count === 0 ? '' : update.count
-    })
-
-    // Write the updated counts in a single batch operation.
-    range.setValues([updatedValues])
+      // Only update stickers explicitly included in the import payload.
+      // A valid imported count of zero is represented as a blank cell in the sheet.
+      // This preserves the spreadsheet convention where empty cells mean zero counts.
+      if (Object.prototype.hasOwnProperty.call(counts, sticker)) {
+        values[sticker] = counts[sticker] === 0 ? '' : counts[sticker]
+      }
+    }
   }
 
   /** Converts raw sheet values to non-negative counts. */

@@ -38,27 +38,35 @@ No changes were made to the template, so the version number remains.
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: Updated France team, the information was not accurate.
 
+- Under the src/html folder:
+  - `ImportHelpers.html`: Updated the functions `getUIState()` and `setBusy()` instead of reading global variables not visible outside of IIFE, reading the variables from DOM.
+
 - Under the `src` folder:
   - `Code.gs`: Added GAS entry points for Trade service.
+  - `Commons.gs`:
+    - Method added for trading service `updateStickerCounts` now is the entry point for writing processes. The input requires is consider the canonical form from `StickerSheetRepository`
   - `ExportService.gs`: 
     - `filterStickerNumbersBy()` renamed to `_filterStickerNumbersBy()` since it is public and now used by trade services too.
-    - `ImportService.gs`: Updated `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the options argument.
-      - `LineNormalize`: 
-        - Added optional `options` constructor argument to support configurable normalization behavior.
-        - Added support to propagate sorting configuration while keeping the default behavior unchanged.
-        - Added support to preserve normalized sticker input order when sorting is disabled.
-      - `ImportStickers`:
-        - Added optional `options` constructor argument to support configurable parsing behavior.
-        - Added `sortStickers` output property in `parse()` to indicate whether sticker data is already sorted.
-        - Added conditional `stickerOrder` output per country when `sortStickers` is disabled, preserving the normalized input order that is not guaranteed by the `counts` object.
-        - Kept the default `sortStickers: true` behavior unchanged to avoid impacting existing import flows.
-        - This change enables consumers such as `TradeService` to opt into preserving sticker order when required.
+  - `ImportService.gs`: Updated `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the options argument.
+    - `LineNormalize`: 
+      - Added optional `options` constructor argument to support configurable normalization behavior.
+      - Added support to propagate sorting configuration while keeping the default behavior unchanged.
+      - Added support to preserve normalized sticker input order when sorting is disabled.
+    - `ImportStickers`:
+      - Added optional `options` constructor argument to support configurable parsing behavior.
+      - Added `sortStickers` output property in `parse()` to indicate whether sticker data is already sorted.
+      - Added conditional `stickerOrder` output per country when `sortStickers` is disabled, preserving the normalized input order that is not guaranteed by the `counts` object.
+      - Kept the default `sortStickers: true` behavior unchanged to avoid impacting existing import flows.
+      - This change enables consumers such as `TradeService` to opt into preserving sticker order when required.
+      - Removed the method `_writeCountries`, since now it is delegated to `updateStickerCounts` from `StickerSheetRepository` class. Now the write process is centralized in this class.
+    - `ImportService.gs` Removed methods: `_clearCountries` and `_clearAllCounts` now the clear process belongs to `updateStickerCounts` in `StickerSheetRepository`. 
+  - `ImportExportStyles.html`: Removed the style `.section-title-inline` since it is not in use.
   - `TradeService.gs`:
     - Pending update to consume the preserved sticker order from `ImportStickers` for `otherInfoTrade` processing without applying automatic sticker sorting.
 
 - Under the `test/utils` folder:
   - `testKernel.js`:
-    - Added the implementation for `getStickerCount()` in `MockStickerSheetRepository` class.
+    - Added the implementation for `getStickerCount()` and for `updateStickerCounts` in `MockStickerSheetRepository` class.
     - Adjusted the `TEST_DATA` to represent the same data as in `initializeSpreadsheetAppMock()` so `TEST_DATA` is the source of truth.
     - Added `TEST_DATA` to export module. Useful for modifying its content for some specific tests.
 
@@ -66,10 +74,16 @@ No changes were made to the template, so the version number remains.
   - Adjusted regression tests failing after the change in `testKernel.js` to use `TEST_DATA` as the source of truth.
   - `Commons.unit.test.js`:
     - Updated the suite `getCountryCounts()` for the test `normalizes country code before lookup`.
-  - `ImportService.unit.test.js`:
+    - Updated the tests related to `updateStickerCounts` since the contract was changed.
+  - `ImportService.unit.test.js`: Removed repetitive tests, and tests related to export services.
     - Updated the suite `sheet writes` for the test `export contains no zero values`.
     - Added specific suites for `LineNormalize` and `ImportStickers` to validate behavior when the `options` input argument is provided.
     - Added coverage for `sortStickers` behavior, including conditional `stickerOrder` output and preservation of input order when sorting is disabled.
+    - `import` tests added more detail coverages for all import modes.
+  - `QuickEntryService.unit.test.js` Updated the tests for methods: `applyPendingUpdates` and `_normalizePendingUpdates` since the contract of `updateStickerCounts` method from `StickerSheetRepository` has changed.
+
+#### Fixes
+- For import service under the option: **Update counts clearing country counts**, it was actually doing **Update count**. Fixed the issue in `ImportHelpers.html` relaying on global variables that were not in the scope of the IIFE. Instead of relying on globals, the helper can read the variables from DOM. Since the `mode` variable was not defined, inferred the default value `update`.
 
 
 ## [1.1.3] 2026-07-25

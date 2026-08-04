@@ -63,7 +63,7 @@
     <div id="trade-message" class="message info"></div>
     <div id="trade-warnings" class="message warning hidden"></div>
     <div id="trade-preview" class="preview"></div>
-  </div><!-- /section -->
+  </div><!-- /tradeMessageSection -->
 
   <div class="section">
     <div class="section-title">Actions</div>
@@ -105,6 +105,7 @@
       <button id="closeQrButton" class="btn">Close</button>
     </div>
   </div><!-- /section -->
+
 </div><!-- /generateQrView -->
 
 <div id="tradeProposalView" style="display:none;">
@@ -117,18 +118,17 @@
   <div class="proposal-container">
 
     <div class="proposal-actions">
-      <div class="hint">
-        Check proposal or adjust sorting and maximum quantities to receive or send,
-        then click Refresh and if agreed, confirm the trade.
-      </div>
+      <div id="proposalHint" class="hint"></div>
+      <div id="proposalLegend" class="hint" style="display:none;">
+        Legend: 🟩 Included in current proposal</div>
       <div class="proposal-refresh-actions">
         <button class="refresh-proposal-button btn btn-inline">Refresh</button>
       </div>
-    </div>
+    </div><!-- /proposal-actions -->
 
     <div class="section">
-      <div class="section-title section-title-inline">
-        Stickers to receive (Max. <span id="receiveMatchCount">0</span>)
+      <div class="section-title">
+        Stickers to receive (<span id="receiveMatchCount">0</span>)
       </div>
       <div>
         <label class="toolbar-item">
@@ -140,23 +140,24 @@
     </div><!-- /section -->
     <div class="section">
       <div class="section-title">
-        Stickers to send (Max. <span id="sendMatchCount">0</span>)
+        Stickers to send (<span id="sendMatchCount">0</span>)
       </div>
       <div id="sendMatchesPreview" class="preview"></div>
     </div><!-- /section -->
     <div class="section">
       <div class="hint">
         By default, the trade proposal uses the minimum available quantity to create a balanced trade.
-        You can change the maximum quantity to receive or send. Confirm trade is based on the selected quantities.
+        You can change the maximum quantity to receive or send. Confirm trade action is based on the selected
+        quantities.
       </div>
       <div class="proposal-limits">
         <div class="proposal-limit">
-          <label for="receiveLimitSelect">Maximum stickers to receive</label>
+          <label for="receiveLimitSelect">Stickers to receive</label>
           <select id="receiveLimitSelect" class="form-control"></select>
         </div>
 
         <div class="proposal-limit">
-          <label for="sendLimitSelect">Maximum stickers to send</label>
+          <label for="sendLimitSelect">Stickers to send</label>
           <select id="sendLimitSelect" class="form-control"></select>
         </div>
       </div>
@@ -241,30 +242,34 @@
     const closeProposalButtonEl = document.getElementById('closeProposalButton')
     const backToTradeInputButtonEl = document.getElementById('backToTradeInputButton')
     const confirmTradeButtonEl = document.getElementById('confirmTradeButton')
+    const proposalHintEl = document.getElementById('proposalHint')
+    const proposalLegendEl = document.getElementById('proposalLegend')
 
     let platform = 'desktop'
 
     /*
      * Client-side Trade workflow state.
-     *
      * Stores the data required while moving through the Trade workflow:
      * - otherTradeInfo: validated external collector trade information.
      * - matches: possible trade matches calculated by TradeService.
      * - proposal: selected trade proposal before confirmation.
+     * - doneMap: server-calculated trade completion information required
+     *   during trade confirmation.
      * The browser owns workflow state. Backend services remain stateless
      * and receive the required information through each request payload.
      */
     const state = {
       otherTradeInfo: null,
       matches: null,
-      proposal: null
+      proposal: null,
+      doneMap: null
     }
 
     // When the Trade view opens, the Continue button is disabled until valid trade information is available.
     continueButtonEl.disabled = true
     tradeMessageSectionEl.style.display = 'none'
 
-    // Note: Below function must be place before // Wiring events because it is called by the event handlers.
+    // Below functions must be placed before Wiring events because they are called by the event handlers.
 
     /** Returns true when running inside a spreadsheet dialog. */
     function isDesktopDialogHost() {
@@ -272,10 +277,7 @@
     }
 
     /**
-     * Initializes the shared Trade view.
-     * Called by host containers after TradeView.html is loaded.
-     * The host provides the platform configuration; the Trade view
-     * uses it only for platform-specific UI behavior.
+     * Initializes the Trade view for the current host platform.
      * @param {{platform:string}} config Host configuration.
      * @param {'desktop'|'mobile'} config.platform Running platform.
      */
@@ -286,7 +288,7 @@
       closeTradeButtonEl.style.display = isDesktopDialogHost() ? '' : 'none'
     }
 
-    /** Closes the Trade container when supported. */
+    /** Closes the current Trade view when the host supports it. */
     window.closeTradeView = function () {
       if (isDesktopDialogHost()) {
         google.script.host.close()
@@ -306,17 +308,19 @@
     refreshProposalButtons.forEach(button => {
       button.addEventListener('click', refreshProposal)
     })
-
     closeProposalButtonEl.addEventListener('click', closeTradeView)
-
     closeTradeButtonEl.addEventListener('click', closeTradeView)
     const warningsEl = document.getElementById('trade-warnings')
+    confirmTradeButtonEl.addEventListener('click', executeTrade)
 
     /** Clears the Trade input fields and resets state. */
     window.clearTradeInput = function () {
       missingTextEl.value = ''
       repeatsTextEl.value = ''
       state.otherTradeInfo = null
+      state.matches = null
+      state.proposal = null
+      state.doneMap = null
       continueButtonEl.disabled = true
       tradeMessageSectionEl.style.display = 'none'
       Trade.clearPreview({ previewEl })
@@ -324,7 +328,7 @@
       Trade.setMessage('', 'info', { messageEl: tradeMessageEl })
     }
 
-    /** Validates the other collector information. */
+    /** Validates the imported trade information. */
     function validateOtherTradeInfo() {
       Trade.setBusy(true)
       tradeMessageSectionEl.style.display = ''
@@ -340,8 +344,10 @@
         }))
     }
 
-    /** Handles successful trade validation. */
-    /** Handles successful trade validation. */
+    /**
+     * Displays the validated trade information.
+     * @param {{tradeInfo:string,warnings:Object<string,string[]>}} result Validation result.
+     */
     function onOtherTradeInfoValidated(result) {
       Trade.setBusy(false)
       const tradeInfo = JSON.parse(result.tradeInfo)
@@ -355,7 +361,10 @@
       Trade.renderPreview(previewResult, { previewEl })
     }
 
-    /** Handles validation failure. */
+    /**
+     * Displays a trade validation error.
+     * @param {Error|string} error Validation error.
+     */
     function onOtherTradeInfoValidationFailed(error) {
       Trade.setBusy(false)
       state.otherTradeInfo = null
@@ -366,8 +375,10 @@
       Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeMessageEl })
     }
 
-
-    /** Reads a selected QR image and sends it to the backend QR preview service. */
+    /**
+     * Reads the selected QR image.
+     * @param {Event} event File selection event.
+     */
     function onQrImageSelected(event) {
       const file = event.target.files[0]
       if (!file) { return }
@@ -454,10 +465,7 @@
       )
     }
 
-    /**
-     * Shows the Generate QR view and generates a QR code for 
-     * the current collector trade information.
-     */
+    /** Displays the Generate QR view. */
     function showGenerateQrView() {
       tradeInputViewEl.style.display = 'none'
       generateQrViewEl.style.display = ''
@@ -472,10 +480,8 @@
     }
 
     /**
-     * Handles successful QR generation.
-     * Converts serialized trade information returned by the backend
-     * into an object required by the QR preview renderer.
-     * @param {{qrData:string,tradeInfo:string}} result
+     * Displays the generated trade QR code.
+     * @param {{qrData:string,tradeInfo:string}} result Generated QR information.
      */
     function onQrGenerated(result) {
       const tradeInfo = JSON.parse(result.tradeInfo)
@@ -486,7 +492,10 @@
       Trade.setMessage('QR code generated successfully.', 'success', { messageEl: tradeQrMessageEl })
     }
 
-    /** Handles QR generation failure. */
+    /**
+     * Displays a QR generation error.
+     * @param {Error|string} error QR generation error.
+     */
     function onQrGenerationFailed(error) {
       Trade.setBusy(false)
       Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeQrMessageEl })
@@ -505,10 +514,7 @@
       tradeInputViewEl.style.display = ''
     }
 
-    /**
-     * Requests trade match calculation using the validated trade information.
-     * This is the transition point from validated input to trade proposal generation.
-     */
+    /** Requests the available trade matches. */
     function continueTrade() {
       if (!state.otherTradeInfo) { return }
       Trade.setBusy(true)
@@ -518,19 +524,154 @@
         .findTradeMatches({ otherTradeInfo: state.otherTradeInfo })
     }
 
-    /** Handles calculated trade matches. */
-    /** Handles calculated trade matches. */
+    /**
+     * Displays the calculated trade matches.
+     * @param {{receive:string,send:string}} result Trade matches.
+     */
     function onTradeMatchesFound(result) {
       Trade.setBusy(false)
       const matches = { receive: JSON.parse(result.receive), send: JSON.parse(result.send) }
       state.matches = matches
+      state.doneMap = JSON.parse(result.doneMap || '{}')
       showProposalView(matches)
     }
 
     /**
-     * Renders validation warnings grouped by category.
-     * @param {{missing:string[],repeats:string[]}} warnings Warning groups.
+     * Displays the initial trade proposal.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Trade matches.
      */
+    function showProposalView(matches) {
+      tradeInputViewEl.style.display = 'none'
+      tradeProposalViewEl.style.display = ''
+      const receiveCount = Trade.countMatches(matches.receive)
+      const sendCount = Trade.countMatches(matches.send)
+      proposalMessageSectionEl.style.display = 'none'
+      proposalMessageEl.textContent = ''
+      sortByCompletionCheckboxEl.checked = false
+      if (receiveCount === 0 || sendCount === 0) {
+        proposalMessageSectionEl.style.display = ''
+        proposalMessageEl.className = 'message warning'
+        proposalMessageEl.textContent = '⚠ No valid trade matches found.'
+        confirmTradeButtonEl.disabled = true
+      } else {
+        confirmTradeButtonEl.disabled = false
+      }
+      const balancedQuantity = Math.min(receiveCount, sendCount)
+      state.proposal = Trade.applyTradeSelectionLimits(matches, {
+        sortMissing: false,
+        maxStickerReceive: balancedQuantity,
+        maxStickerSend: balancedQuantity,
+        doneMap: state.doneMap
+      })
+      populateTradeQuantitySelects(matches)
+      renderProposalPreview(true)
+    }
+
+    /** Refreshes the trade proposal using the selected options. */
+    function refreshProposal() {
+      const options = Trade.getPayload({
+        sortByCompletionCheckbox: sortByCompletionCheckboxEl,
+        receiveLimitSelect: receiveLimitSelectEl,
+        sendLimitSelect: sendLimitSelectEl
+      })
+      state.proposal = Trade.applyTradeSelectionLimits(state.matches, {
+        ...options,
+        doneMap: state.doneMap
+      })
+      renderProposalPreview(false)
+    }
+
+    /** Executes the confirmed trade proposal. */
+    function executeTrade() {
+      if (!state.proposal) { return }
+      Trade.setBusy(true)
+      proposalMessageSectionEl.style.display = ''
+      Trade.setMessage('Executing trade...', 'info', { messageEl: proposalMessageEl })
+      google.script.run
+        .withSuccessHandler(onTradeExecuted)
+        .withFailureHandler(onTradeExecutionFailed)
+        .executeTrade({ receive: state.proposal.receive, send: state.proposal.send })
+    }
+
+    /** Handles successful trade execution. */
+    function onTradeExecuted() {
+      Trade.setBusy(false)
+      Trade.setMessage('Trade successful.', 'success', { messageEl: proposalMessageEl })
+      state.proposal = null
+    }
+
+    /**
+     * Handles trade execution failure.
+     * @param {Error|string} error Trade execution error.
+     */
+    function onTradeExecutionFailed(error) {
+      Trade.setBusy(false)
+      proposalMessageSectionEl.style.display = ''
+      Trade.setMessage(error.message || String(error), 'error', { messageEl: proposalMessageEl })
+    }
+
+    /**
+     * Renders the current trade proposal.
+     * @param {boolean} [isInitialProposal=false] True to render the initial highlighted proposal.
+     */
+    function renderProposalPreview(isInitialProposal = false) {
+      if (isInitialProposal) {
+        Trade.renderMatches(state.matches, {
+          receivePreviewEl: receiveMatchesPreviewEl,
+          sendPreviewEl: sendMatchesPreviewEl,
+          highlightProposal: state.proposal
+        })
+        proposalHintEl.textContent =
+          'This proposal shows all possible matches. If you click Confirm Trade now, ' +
+          'only highlighted stickers will be traded. Change the limits or sorting options and ' +
+          'click Refresh to create another proposal.'
+        proposalLegendEl.style.display = ''
+      } else {
+        Trade.renderMatches(state.proposal, {
+          receivePreviewEl: receiveMatchesPreviewEl,
+          sendPreviewEl: sendMatchesPreviewEl
+        })
+        proposalHintEl.textContent =
+          'This proposal was generated using the selected limits and sorting options. ' +
+          'Review the trade scenario or accept it and click Confirm Trade. Change the limits ' +
+          'or sorting options and click Refresh to create another proposal.'
+        proposalLegendEl.style.display = 'none'
+      }
+      receiveMatchCountEl.textContent = Trade.countMatches(state.proposal.receive)
+      sendMatchCountEl.textContent = Trade.countMatches(state.proposal.send)
+    }
+
+    /**
+     * Populates trade quantity dropdowns.
+     * The default value creates a balanced trade using the minimum available quantity.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Trade matches.
+     */
+    function populateTradeQuantitySelects(matches) {
+      const receiveMax = Trade.countMatches(matches.receive)
+      const sendMax = Trade.countMatches(matches.send)
+      const balancedQuantity = Math.min(receiveMax, sendMax)
+      receiveLimitSelectEl.textContent = ''
+      sendLimitSelectEl.textContent = ''
+      for (let i = 1; i <= receiveMax; i++) {
+        const option = document.createElement('option')
+        option.value = i
+        option.textContent = i
+        receiveLimitSelectEl.appendChild(option)
+      }
+      for (let i = 1; i <= sendMax; i++) {
+        const option = document.createElement('option')
+        option.value = i
+        option.textContent = i
+        sendLimitSelectEl.appendChild(option)
+      }
+      receiveLimitSelectEl.value = balancedQuantity
+      sendLimitSelectEl.value = balancedQuantity
+    }
+
+    /**
+    * Renders validation warnings grouped by category.
+    * @param {{missing:string[],repeats:string[]}} warnings Warning groups.
+    */
     function renderWarnings(warnings) {
       warningsEl.textContent = ''
       if (!warnings || (!warnings.missing?.length && !warnings.repeats?.length)) {
@@ -568,108 +709,6 @@
       })
     }
 
-    /**
-     * Displays the trade proposal view.
-     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Trade matches.
-     */
-    function showProposalView(matches) {
-      tradeInputViewEl.style.display = 'none'
-      tradeProposalViewEl.style.display = ''
-      const receiveCount = Trade.countMatches(matches.receive)
-      const sendCount = Trade.countMatches(matches.send)
-      proposalMessageSectionEl.style.display = 'none'
-      proposalMessageEl.textContent = ''
-      if (receiveCount === 0 && sendCount === 0) {
-        proposalMessageSectionEl.style.display = ''
-        proposalMessageEl.className = 'message warning'
-        proposalMessageEl.textContent = '⚠ No trade matches found.'
-      }
-      receiveMatchCountEl.textContent = Trade.countMatches(matches.receive)
-      sendMatchCountEl.textContent = Trade.countMatches(matches.send)
-      populateTradeQuantitySelects(matches)
-      state.proposal = Trade.applyTradeSelectionLimits(matches, {
-        sortMissing: false,
-        maxStickerReceive: Math.min(receiveCount, sendCount),
-        maxStickerSend: Math.min(receiveCount, sendCount)
-      })
-      renderMatchPreview()
-    }
-
-    /** Renders the trade matches preview in the proposal view. */
-    function renderMatchPreview() {
-      Trade.renderMatches(state.matches, {
-        receivePreviewEl: receiveMatchesPreviewEl,
-        sendPreviewEl: sendMatchesPreviewEl
-      })
-    }
-
-    /** Refreshes the displayed trade proposal using the current selections. */
-    function refreshProposal() {
-      const options = Trade.getPayload({
-        sortByCompletionCheckbox: sortByCompletionCheckboxEl,
-        receiveLimitSelect: receiveLimitSelectEl,
-        sendLimitSelect: sendLimitSelectEl
-      })
-      if (options.sortMissing) {
-        google.script.run
-          .withSuccessHandler(result => {
-            const proposal = {
-              receive: JSON.parse(result.receive),
-              send: JSON.parse(result.send)
-            }
-
-            state.proposal = proposal
-            renderProposalPreview()
-          })
-          .withFailureHandler(onOtherTradeInfoValidationFailed)
-          .refreshTradeProposal({
-            otherTradeInfo: state.otherTradeInfo,
-            sortMissing: true,
-            maxStickerReceive: options.maxStickerReceive,
-            maxStickerSend: options.maxStickerSend
-          })
-        return
-      }
-      state.proposal = Trade.applyTradeSelectionLimits(state.matches, options)
-      renderProposalPreview()
-    }
-
-    /** Renders the trade proposal preview in the proposal view. */
-    function renderProposalPreview() {
-      Trade.renderMatches(state.proposal, {
-        receivePreviewEl: receiveMatchesPreviewEl,
-        sendPreviewEl: sendMatchesPreviewEl
-      })
-      receiveMatchCountEl.textContent = Trade.countMatches(state.proposal.receive)
-      sendMatchCountEl.textContent = Trade.countMatches(state.proposal.send)
-    }
-
-    /**
-     * Populates trade quantity dropdowns.
-     * The default value creates a balanced trade using the minimum available quantity.
-     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches Trade matches.
-     */
-    function populateTradeQuantitySelects(matches) {
-      const receiveMax = Trade.countMatches(matches.receive)
-      const sendMax = Trade.countMatches(matches.send)
-      const balancedQuantity = Math.min(receiveMax, sendMax)
-      receiveLimitSelectEl.textContent = ''
-      sendLimitSelectEl.textContent = ''
-      for (let i = 1; i <= receiveMax; i++) {
-        const option = document.createElement('option')
-        option.value = i
-        option.textContent = i
-        receiveLimitSelectEl.appendChild(option)
-      }
-      for (let i = 1; i <= sendMax; i++) {
-        const option = document.createElement('option')
-        option.value = i
-        option.textContent = i
-        sendLimitSelectEl.appendChild(option)
-      }
-      receiveLimitSelectEl.value = balancedQuantity
-      sendLimitSelectEl.value = balancedQuantity
-    }
 
   })()
 

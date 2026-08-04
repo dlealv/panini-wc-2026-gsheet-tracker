@@ -43,14 +43,18 @@ class QuickEntryService {
     }
   }
 
-  /** Applies a batch of pending sticker updates and returns refreshed data. */
+  /** Applies UI pending sticker updates through the repository canonical update payload
+   * and returns refreshed country view models.
+   * The input is validated and normalized before being grouped by country code for a
+   * single COUNTS range update operation.
+   */
   applyPendingUpdates(pendingUpdates) {
     const normalizedUpdates = this._normalizePendingUpdates(pendingUpdates)
     this.repo.updateStickerCounts(normalizedUpdates)
-
+    const count = pendingUpdates.length
     return {
       success: true,
-      message: `Updated ${normalizedUpdates.length} sticker value(s).`,
+      message: `Updated ${count} sticker value(s).`,
       countries: this._buildCountryViewModels(this.repo.getCountries())
     }
   }
@@ -183,13 +187,24 @@ class QuickEntryService {
     }
   }
 
-  /** Validates and normalizes pending updates. */
+  /** Validates UI pending updates and converts them into the canonical repository update payload.
+   * Input updates are normalized individually, grouped by country code, and returned in the
+   * format expected by StickerSheetRepository.updateStickerCounts().
+   */
   _normalizePendingUpdates(pendingUpdates) {
     if (!Array.isArray(pendingUpdates) || !pendingUpdates.length) {
       throw new Error('There are no pending updates to apply.')
     }
-
-    return pendingUpdates.map(update => this._normalizePendingUpdate(update))
+    const countries = {}
+    pendingUpdates
+      .map(update => this._normalizePendingUpdate(update))
+      .forEach(update => {
+        if (!countries[update.countryCode]) {
+          countries[update.countryCode] = { code: update.countryCode, counts: {} }
+        }
+        countries[update.countryCode].counts[update.stickerNumber] = update.count
+      })
+    return { countries: Object.values(countries) }
   }
 
   /** Validates and normalizes one pending update. */

@@ -117,26 +117,10 @@ describe('TradeService (unit)', () => {
     })
   })
 
-  /** static refreshStickerTradeProposal() */
-  describe('static refreshStickerTradeProposal()', () => {
-    test('delegates to refreshTradeProposal()', () => {
-      const expected = { receive: { MEX: [1, 5] }, send: { BRA: [8] } }
-      const refreshMock = jest.spyOn(TradeService.prototype, 'refreshTradeProposal').mockReturnValue(expected)
-      const result = TradeService.refreshStickerTradeProposal({
-        otherTradeInfo: { missing: {}, repeats: {} },
-        sortMissing: true,
-        maxStickerReceive: 2,
-        maxStickerSend: 2
-      }, null, initStaticDeps())
-      expect(refreshMock).toHaveBeenCalledWith({ sortMissing: true, maxStickerReceive: 2, maxStickerSend: 2 })
-      expect(result).toEqual({ receive: JSON.stringify(expected.receive), send: JSON.stringify(expected.send) })
-    })
-  })
-
   /** static findStickerTradeMatches() */
   describe('static findStickerTradeMatches()', () => {
     test('creates service and delegates calculateMatches', () => {
-      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [] })
+      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [], doneMap: {} })
       class MockTradeCalculation {
         calculate() {
           return calculateMock()
@@ -148,10 +132,7 @@ describe('TradeService (unit)', () => {
         ...initStaticDeps(),
         TradeCalculation: MockTradeCalculation
       })
-      expect(result).toEqual({
-        receive: JSON.stringify([]),
-        send: JSON.stringify([])
-      })
+      expect(result).toEqual({ receive: JSON.stringify([]), send: JSON.stringify([]), doneMap: JSON.stringify({}) })
       expect(calculateMock).toHaveBeenCalledTimes(1)
     })
   })
@@ -488,7 +469,7 @@ describe('TradeService (unit)', () => {
     })
   })
 
-  /** calculateMatches() */
+  /** findTradeMatches() */
   describe('findTradeMatches()', () => {
     test('throws when external collector information is missing', () => {
       expect(() => service.findTradeMatches({})).
@@ -505,7 +486,7 @@ describe('TradeService (unit)', () => {
       const result = service.findTradeMatches()
       expect(calculationMock).toHaveBeenCalledTimes(1)
       expect(calculationMock).toHaveBeenCalledWith(service.getTradeInfo(), service.getOtherTradeInfo())
-      expect(result).toEqual({ receive: [], send: [] })
+      expect(result).toEqual({ receive: [], send: [], doneMap: {} })
     })
     test('returns calculation result from TradeCalculation', () => {
       service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
@@ -519,7 +500,7 @@ describe('TradeService (unit)', () => {
           send: {}
         })
       const result = service.findTradeMatches({ countries: ['BRA'] })
-      expect(result).toEqual({ receive: { BRA: [5] }, send: {} })
+      expect(result).toEqual({ receive: { BRA: [5] }, send: {}, doneMap: {} })
     })
     test('returns matches preserving trade info country order', () => {
       service.setOtherTradeInfo({
@@ -531,88 +512,57 @@ describe('TradeService (unit)', () => {
         repeats: { MEX: [2, 3] }
       })
       const result = service.findTradeMatches()
-      expect(result).toEqual({ receive: { FWC: [10], MEX: [4, 5] }, send: { MEX: [2, 3] } })
+      expect(result).toEqual({
+        receive: { FWC: [10], MEX: [4, 5] },
+        send: { MEX: [2, 3] },
+        doneMap: { FWC: 2, MEX: 2 }
+      })
     })
     test('returns empty matches when no matches exist', () => {
       service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
       jest.spyOn(service, 'getTradeInfo').mockReturnValue({ missing: { MEX: [1] }, repeats: { BRA: [8] } })
       jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({ receive: {}, send: {} })
       const result = service.findTradeMatches()
-      expect(result).toEqual({ receive: {}, send: {} })
-    })
-  })
-
-  /** refreshTradeProposal() */
-  describe('refreshTradeProposal()', () => {
-    test('builds trade proposal using user options', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').mockReturnValue({ receive: {}, send: {} })
-      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 2, maxStickerSend: 2 })
-      expect(result).toEqual({ receive: {}, send: {} })
-    })
-    test('keeps sticker preference order from trade matches', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').mockReturnValue({ receive: { MEX: [15, 1, 5] }, send: {} })
-      const result = service.refreshTradeProposal({ sortMissing: false, maxStickerReceive: 2, maxStickerSend: 2 })
-      expect(result.receive.MEX).toEqual([15, 1])
-    })
-    test('restores original match order when missing sort is disabled after refresh', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
-        receive: { BRA: [3, 4], MEX: [15, 1, 5] },
-        send: {}
-      })
-      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 90, BRA: 50 })
-      const sortedProposal = service.refreshTradeProposal({
-        sortMissing: true, maxStickerReceive: 5,
-        maxStickerSend: 2
-      })
-      const unsortedProposal = service.refreshTradeProposal({
-        sortMissing: false, maxStickerReceive: 5,
-        maxStickerSend: 2
-      })
-      expect(Object.keys(unsortedProposal.receive)).toEqual(['BRA', 'MEX'])
-      expect(unsortedProposal.receive.BRA).toEqual([3, 4])
-      expect(unsortedProposal.receive.MEX).toEqual([15, 1, 5])
-    })
-    test('sorts receive matches by album completion when missing sort is enabled', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
-        receive: { FWC: [10], MEX: [4, 5, 6] },
-        send: { MEX: [2, 3] }
-      })
-      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 95, FWC: 60 })
-      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 4, maxStickerSend: 2 })
-      expect(Object.keys(result.receive)).toEqual(['MEX', 'FWC'])
-      expect(result.receive.MEX).toEqual([4, 5, 6])
-      expect(result.receive.FWC).toEqual([10])
-      expect(result.send).toEqual({ MEX: [2, 3] })
-    })
-    test('limits receive stickers globally after sorting countries', () => {
-      const service = initService()
-      jest.spyOn(service, 'findTradeMatches').mockReturnValue({
-        receive: { FWC: [10], MEX: [4, 5, 6] },
-        send: {}
-      })
-      jest.spyOn(service, '_getCountryDoneMap').mockReturnValue({ MEX: 95, FWC: 60 })
-      const result = service.refreshTradeProposal({ sortMissing: true, maxStickerReceive: 3, maxStickerSend: 2 })
-      expect(result.receive).toEqual({ MEX: [4, 5, 6] })
+      expect(result).toEqual({ receive: {}, send: {}, doneMap: {} })
     })
   })
 
   /** executeTrade() */
   describe('executeTrade()', () => {
-    test('builds repository updates and applies confirmed trade', () => {
+    test('applies confirmed trade through repository update contract', () => {
       const service = initService()
-      const confirmation = { receive: { MEX: [18] }, send: { MEX: [17] } }
+      const result = service.executeTrade({ receive: { MEX: [18] }, send: { MEX: [20] } })
+      expect(result).toBeUndefined()
+      const counts = service.getRepo().getCountsRange().getValues()
+      expect(counts[1][18]).toBe(2)
+      expect(counts[1][20]).toBe(1)
+    })
+    test('handles empty trade confirmation without creating updates', () => {
+      const service = initService()
       const repo = service.getRepo()
       const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
-      const result = service.executeTrade(confirmation)
-      expect(updateMock).toHaveBeenCalledWith([
-        { countryCode: 'MEX', stickerNumber: 18, count: 2 },
-        { countryCode: 'MEX', stickerNumber: 17, count: -1 }
-      ])
+      const result = service.executeTrade({ receive: {}, send: {} })
+      expect(updateMock).toHaveBeenCalledWith({ countries: [] }, 'update')
       expect(result).toBe(true)
+    })
+    test('rejects outgoing trade when sticker count would become negative', () => {
+      const service = initService()
+      const repo = service.getRepo()
+      const updateSpy = jest.spyOn(repo, 'updateStickerCounts')
+      const countsBefore = repo.getCountsRange().getValues()
+      let error
+      try {
+        service.executeTrade({ receive: {}, send: { MEX: [17] } })
+      } catch (e) {
+        error = e
+      }
+      // Expected message: "Cannot send sticker 17 from MEX. Current count is 0."
+      expect(error).toBeDefined()
+      expect(error.message).toContain('MEX')
+      expect(error.message).toContain('17')
+      expect(error.message).toContain('0')
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(repo.getCountsRange().getValues()).toEqual(countsBefore)
     })
   })
 })

@@ -254,94 +254,131 @@ describe('StickerSheetRepository unit tests', () => {
 
   /** Test updateStickerCounts() method */
   describe('updateStickerCounts()', () => {
-    test('groups updates and applies once per country', () => {
-      repo._updateCountryCounts = jest.fn()
-      repo.updateStickerCounts([
-        { countryCode: 'FWC', stickerNumber: 1, count: 2 },
-        { countryCode: 'MEX', stickerNumber: 3, count: 1 },
-        { countryCode: 'FWC', stickerNumber: 5, count: 4 }
-      ])
-      expect(repo._updateCountryCounts).toHaveBeenCalledTimes(2)
-      expect(repo._updateCountryCounts).toHaveBeenCalledWith('FWC', [
-        { countryCode: 'FWC', stickerNumber: 1, count: 2 },
-        { countryCode: 'FWC', stickerNumber: 5, count: 4 }
-      ])
-      expect(repo._updateCountryCounts).toHaveBeenCalledWith('MEX', [
-        { countryCode: 'MEX', stickerNumber: 3, count: 1 }
-      ])
-    })
-    test('writes grouped updates to sheet', () => {
-      const setValues = jest.fn()
-      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
-      repo.updateStickerCounts([
-        { countryCode: 'FWC', stickerNumber: 1, count: 2 },
-        { countryCode: 'FWC', stickerNumber: 5, count: 4 }
-      ])
-      const expected = Array(21).fill(0)
-      expected[1] = 2
-      expected[5] = 4
-      expect(setValues).toHaveBeenCalledWith([expected])
-    })
-    test('stores zero as empty cell when reducing MEX sticker 20 from 2 to 0', () => {
-      const setValues = jest.fn()
-      repo.sheet = {
-        getRange: jest.fn(() => ({
-          getValues: () => {
-            const row = Array(21).fill('')
-            row[17] = 1
-            row[20] = 2
-            return [row]
-          },
-          setValues
-        }))
+    let countsRange
+    beforeEach(() => {
+      repo.countryMap = { FWC: { index: 0, row: 1 }, MEX: { index: 1, row: 2 }, CC: { index: 2, row: 3 } }
+      countsRange = {
+        getValues: jest.fn(() => [Array(21).fill(''), Array(21).fill(''), Array(21).fill('')]),
+        setValues: jest.fn()
       }
-      repo.updateStickerCounts([
-        { countryCode: 'MEX', stickerNumber: 20, count: 0 }
+      repo.getCountsRange = jest.fn(() => countsRange)
+    })
+    test('groups updates and applies once per country', () => {
+      repo._applyCountUpdates = jest.fn()
+      repo.updateStickerCounts({
+        countries: [
+          { code: 'FWC', counts: { 1: 2, 5: 4 } },
+          { code: 'MEX', counts: { 3: 1 } }
+        ]
+      })
+      expect(repo._applyCountUpdates).toHaveBeenCalledTimes(2)
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(1, { code: 'FWC', counts: { 1: 2, 5: 4 } }, expect.any(Array))
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(2, { code: 'MEX', counts: { 3: 1 } }, expect.any(Array))
+      expect(countsRange.setValues).toHaveBeenCalledTimes(1)
+    })
+    test('writes all updated rows in a single setValues call', () => {
+      repo._applyCountUpdates = jest.fn((country, row) => {
+        Object.entries(country.counts).forEach(([s, c]) => { row[s] = c })
+      })
+      repo.updateStickerCounts({
+        countries: [
+          { code: 'FWC', counts: { 1: 2 } },
+          { code: 'MEX', counts: { 3: 1 } }
+        ]
+      })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[0][1]).toBe(2)
+      expect(values[1][3]).toBe(1)
+      expect(countsRange.setValues).toHaveBeenCalledTimes(1)
+    })
+    test('stores zero as empty cell when reducing MEX sticker 20 to zero', () => {
+      countsRange.getValues.mockReturnValue([
+        Array(21).fill(''),
+        (() => {
+          const row = Array(21).fill('')
+          row[17] = 1
+          row[20] = 2
+          return row
+        })()
       ])
-      expect(setValues).toHaveBeenCalled()
-      const written = setValues.mock.calls[0][0]
-      expect(written[0][17]).toBe(1)
-      expect(written[0][20]).toBe('')
+      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: { 20: 0 } }] })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[1][17]).toBe(1)
+      expect(values[1][20]).toBe('')
     })
-    test('stores 0 as 0 for FWC sticker 20 (special slot)', () => {
-      const setValues = jest.fn()
-      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
-      repo.updateStickerCounts([{ countryCode: 'FWC', stickerNumber: 20, count: 0 }])
-      expect(setValues).toHaveBeenCalled()
-      const written = setValues.mock.calls[0][0][0]
-      expect(written[20]).toBe(0)
+    test('stores 0 for invalid FWC sticker 20', () => {
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 20: 0 } }] })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[0][20]).toBe(0)
     })
-    test('FWC sticker 20 (invalid slot) writes 0 when count is 0', () => {
-      const setValues = jest.fn()
-      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
-      repo.updateStickerCounts([
-        { countryCode: 'FWC', stickerNumber: 20, count: 0 }
-      ])
-      expect(setValues).toHaveBeenCalled()
-      const written = setValues.mock.calls[0][0][0]
-      expect(written[20]).toBe(0)
+    test('stores 0 for invalid CC sticker 13', () => {
+      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: { 13: 0 } }] })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[2][13]).toBe(0)
     })
-    test('MEX sticker 0 (invalid slot) writes 0 when count is 0', () => {
-      const setValues = jest.fn()
-      repo.sheet = { getRange: jest.fn(() => ({ getValues: () => [Array(21).fill(0)], setValues })) }
-      repo.updateStickerCounts([
-        { countryCode: 'MEX', stickerNumber: 0, count: 0 }])
-      expect(setValues).toHaveBeenCalled()
-      const written = setValues.mock.calls[0][0][0]
-      expect(written[0]).toBe(0)
+    test('stores 0 for invalid CC sticker 13 with positive count', () => {
+      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: { 13: 1 } }] })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[2][13]).toBe(0)
+    })
+    test('stores 0 for invalid MEX sticker 0', () => {
+      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: { 0: 0 } }] })
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[1][0]).toBe(0)
     })
     test('does nothing for empty updates', () => {
-      repo._updateCountryCounts = jest.fn()
-      repo.updateStickerCounts([])
-      expect(repo._updateCountryCounts).not.toHaveBeenCalled()
+      repo._applyCountUpdates = jest.fn()
+      repo.updateStickerCounts({ countries: [] })
+      expect(repo._applyCountUpdates).not.toHaveBeenCalled()
+      expect(countsRange.setValues).not.toHaveBeenCalled()
     })
     test('processes countries in first-seen order', () => {
-      repo._updateCountryCounts = jest.fn()
-      repo.updateStickerCounts([
-        { countryCode: 'MEX', stickerNumber: 1, count: 1 },
-        { countryCode: 'FWC', stickerNumber: 1, count: 1 }
+      repo._applyCountUpdates = jest.fn()
+      repo.updateStickerCounts({
+        countries: [
+          { code: 'MEX', counts: { 1: 1 } },
+          { code: 'FWC', counts: { 1: 1 } }
+        ]
+      })
+      expect(repo._applyCountUpdates.mock.calls.map(call => call[0].code)).toEqual(['MEX', 'FWC'])
+    })
+    test('reads and writes the COUNTS range only once', () => {
+      countsRange.getValues = jest.fn(() => [Array(21).fill(''), Array(21).fill(''), Array(21).fill('')])
+      countsRange.setValues = jest.fn()
+      repo.updateStickerCounts({
+        countries: [
+          { code: 'FWC', counts: { 1: 2, 5: 4 } },
+          { code: 'MEX', counts: { 3: 1 } }
+        ]
+      })
+      expect(countsRange.getValues).toHaveBeenCalledTimes(1)
+      expect(countsRange.setValues).toHaveBeenCalledTimes(1)
+    })
+    test('replace_countries mode clears existing values before applying imported countries', () => {
+      countsRange.getValues.mockReturnValue([
+        [1, 2, 3, 4, 5],
+        [6, 7, 8, 9, 10],
+        [11, 12, 13, 14, 15]
       ])
-      expect(repo._updateCountryCounts.mock.calls.map(call => call[0])).toEqual(['MEX', 'FWC'])
+      repo._applyCountUpdates = jest.fn((country, row) => {
+        row[1] = country.counts[1]
+      })
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 99 } }] }, 'replace_countries')
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[0][0]).toBe('')
+      expect(values[0][1]).toBe(99)
+      expect(values[0][2]).toBe('')
+      expect(values[1]).toEqual([6, 7, 8, 9, 10])
+      expect(values[2]).toEqual([11, 12, 13, 14, 15])
+    })
+    test('clean_all mode clears range before applying updates', () => {
+      countsRange.clearContent = jest.fn()
+      repo.updateStickerCounts({
+        countries: [{ code: 'FWC', counts: { 1: 2 } }]
+      }, 'clean_all')
+      expect(countsRange.clearContent).toHaveBeenCalledTimes(1)
+      const values = countsRange.setValues.mock.calls[0][0]
+      expect(values[0][1]).toBe(2)
     })
   })
 

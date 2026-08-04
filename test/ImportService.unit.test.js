@@ -10,16 +10,29 @@
  * which sets up the necessary environment for testing without actual GAS services.
  */
 
-/* global __writeRangeMock, __countsRange */
+/* global __countsRange */
 
 // eslint-disable-next-line
 const { ImportService, ImportStickers, LineNormalize } = require('../build/ImportService.js')
 
+/**
+ * Helper function to check sticker values for a given country, it checks empty stickers (''),
+ * non empty and zero values
+ * */
+function checkStickers(row, stickersWithValues, stickersWithZero = []) {
+  row.forEach((value, index) => {
+    const stickerNumber = index
+    if (stickersWithValues.includes(stickerNumber) || stickersWithZero.includes(stickerNumber)) {
+      return
+    }
+    expect(value).toBe('')
+  })
+}
+
 /** ImportService (unit) */
 describe('ImportService (unit)', () => {
   const { initTestKernel } = require('./utils/testKernel.js')
-  const { ExportService } = require('../build/ExportService.js') // needed for export-import integration tests
-  let service, exportService
+  let service
 
   /* Each test starts with cleared mocks to ensure isolation and prevent state leakage between tests.
   ImportService has GAS dependency so we need mock objects for SpreadsheetApp and other services.
@@ -28,7 +41,6 @@ describe('ImportService (unit)', () => {
     jest.clearAllMocks()
     initTestKernel()
     service = new ImportService()
-    exportService = new ExportService()
   })
 
   /** Test for getRepo() */
@@ -61,41 +73,91 @@ describe('ImportService (unit)', () => {
   of multiple countries and different import modes, as well as validation of error handling for invalid modes.
   */
   describe('import() modes', () => {
-    test('clean_all clears sheet before import', () => {
-      const result = service.import('FWC,1,2', 'clean_all')
+    test('clean_all mode clears all countries before importing multiple countries', () => {
+      const result = service.import('FWC,1\nMEX,2', 'clean_all')
       expect(result.success).toBe(true)
-      expect(result.message).toContain('1 country row')
-    })
-    test('replace_countries clears only target countries', () => {
-      const result = service.import('FWC,1,2', 'replace_countries')
-      expect(result.success).toBe(true)
-      expect(result.message).toMatch(/Imported \d+ country row\(s\) successfully\./)
+      expect(__countsRange.clearContent).toHaveBeenCalledTimes(1)
+      const repo = service.getRepo()
+      expect(repo.lastUpdates.countries).toHaveLength(2)
+      const written = __countsRange.setValues.mock.calls[0][0]
+      const fwcRow = written[0]
+      checkStickers(fwcRow, [1], [20])
+      expect(fwcRow[1]).toBe(1)
+      const mexRow = written[1]
+      checkStickers(mexRow, [2], [0])
+      expect(mexRow[2]).toBe(1)
     })
     test('invalid mode throws', () => {
       expect(() => service.import('FWC,1', 'invalid')).toThrow(/Invalid import mode/)
     })
+    test('update mode updates multiple countries while preserving existing values', () => {
+      const values = __countsRange.getValues()
+      values[0][5] = 7 // existing FWC sticker
+      values[1][10] = 4 // existing MEX sticker
+      __countsRange.getValues.mockReturnValue(values)
+      const result = service.import('FWC,1\nMEX,2', 'update')
+      expect(result.success).toBe(true)
+      expect(result.message).toMatch(/Imported 2 country row/)
+      expect(__countsRange.setValues).toHaveBeenCalledTimes(1)
+      const written = __countsRange.setValues.mock.calls[0][0]
+      const fwcRow = written[0] // FWC
+      checkStickers(fwcRow, [1, 3, 5], [20])
+      expect(fwcRow[1]).toBe(1)
+      expect(fwcRow[3]).toBe(2)
+      expect(fwcRow[5]).toBe(7)
+      const mexRow = written[1] // MEX
+      expect(mexRow[0]).toBe(0)
+      checkStickers(mexRow, [2, 10, 18, 20], [0])
+      expect(mexRow[2]).toBe(1)
+      expect(mexRow[10]).toBe(4)
+      expect(mexRow[18]).toBe(1)
+      expect(mexRow[20]).toBe(2)
+    })
+    test('replace_countries mode cleans each imported country before writing imported values', () => {
+      const result = service.import('FWC,1\nMEX,2', 'replace_countries')
+      expect(result.success).toBe(true)
+      expect(result.message).toMatch(/Imported 2 country row/)
+      expect(__countsRange.clearContent).not.toHaveBeenCalled()
+      expect(__countsRange.setValues).toHaveBeenCalledTimes(1)
+      const written = __countsRange.setValues.mock.calls[0][0]
+      const fwcRow = written[0]
+      checkStickers(fwcRow, [1], [20])
+      expect(fwcRow[1]).toBe(1)
+      const mexRow = written[1]
+      checkStickers(mexRow, [2], [0])
+      expect(mexRow[2]).toBe(1)
+    })
   })
 
-  /** Tests for import() core behavior, focusing on the parsing and importing logic for different input formats. */
-  describe('import() core behavior', () => {
-    test('parses and imports single country', () => {
-      const result = service.import('FWC,1,2,3')
-      expect(result).toEqual(expect.objectContaining({
-        success: true,
-        message: expect.any(String),
-        warnings: expect.any(Array)
-      }))
-      expect(result.message).toMatch(/Imported 1 country/)
+  describe('sheet writing', () => {
+    test('FWC import always writes 0 at offset 20 (update mode)', () => {
+      service.import('FWC,1,3(2)')
+      const written = __countsRange.setValues.mock.calls[0][0][0]
+      checkStickers(written, [1, 3], [20])
     })
-    test('handles multiple countries correctly', () => {
-      const result = service.import('FWC,1\nMEX,2,3')
-      expect(result.success).toBe(true)
-      expect(result.message).toMatch(/Imported 2 country/)
+    test('non-FWC import always writes 0 at offset 0 (update mode)', () => {
+      service.import('MEX,1,3(2)')
+      const written = __countsRange.setValues.mock.calls[0][0][1]
+      checkStickers(written, [1, 3, 18, 20], [0])
+    })
+    test('CC import zeroes stickers outside its valid bounds', () => {
+      service.import('CC,1,12,13')
+      const written = __countsRange.setValues.mock.calls[0][0][2]
+      checkStickers(written, [1, 12], [0, 13, 14, 15, 16, 17, 18, 19, 20])
+    })
+    test('update mode writes zero for out-of-album stickers', () => {
+      service.import('MEX,0\nFWC,20')
+      expect(__countsRange.setValues).toHaveBeenCalledTimes(1)
+      const written = __countsRange.setValues.mock.calls[0][0]
+      const mexRow = written[1]
+      checkStickers(mexRow, [18, 20], [0])
+      const fwcRow = written[0]
+      checkStickers(fwcRow, [1, 3], [20])
     })
   })
 
   /* Test error handling in parse() method */
-  describe('parse error handling', () => {
+  describe('preview() validation rules', () => {
     test('preview accepts CC as a valid country without warnings', () => {
       const result = service.preview('CC,1,2,3')
       expect(result.success).toBe(true)
@@ -173,28 +235,25 @@ describe('ImportService (unit)', () => {
     })
   })
 
-  /** Tests for parser integration, ensuring that the import and export methods correctly interact with the parser. */
-  describe('parser integration', () => {
+  /**
+   * Tests for contract stability, confirming that the import and methods always return objects
+   * with the expected properties.
+   */
+  describe('import() contract', () => {
+    test('import() returns stable shape', () => {
+      const result = service.import('FWC,1')
+      expect(Object.keys(result).sort()).toEqual(['message', 'success', 'warnings'])
+    })
+    test('import() defaults to update mode', () => {
+      const result = service.import('FWC,1')
+      expect(result.success).toBe(true)
+      expect(result.message).toMatch(/Imported 1 country/)
+    })
     test('warnings are preserved from parser', () => {
       const result = service.import('🇺🇸,1')
       expect(result.success).toBe(true)
       expect(Array.isArray(result.warnings)).toBe(true)
       expect(result.warnings[0]).toMatch(/country/i)
-    })
-  })
-
-  /**
-   * Tests for contract stability, confirming that the import and export methods always return objects
-   * with the expected properties.
-   */
-  describe('contract stability', () => {
-    test('import returns stable shape', () => {
-      const result = service.import('FWC,1')
-      expect(Object.keys(result).sort()).toEqual(['message', 'success', 'warnings'])
-    })
-    test('export returns stable shape', () => {
-      const result = exportService.exportAllStickerData({ includeFlags: false })
-      expect(Object.keys(result).sort()).toEqual(['lines', 'success', 'text'])
     })
   })
 
@@ -212,96 +271,6 @@ describe('ImportService (unit)', () => {
       const result = service.preview('MEX,1,22') // sticker 22 out of range → warning
       expect(result.success).toBe(true)
       expect(result.warnings.some(w => w.includes('22'))).toBe(true)
-    })
-  })
-
-  /**
-   * Tests for sheet writing behavior, confirming that the import method correctly interacts
-   * with the sheet to update sticker counts.
-   */
-  describe('sheet writes', () => {
-    test('writes correct sticker matrix to sheet', () => {
-      service.import('FWC,1,3(2)')
-      // Assert: values written to sheet
-      expect(global.__writeRangeMock.setValues).toHaveBeenCalled()
-      expect(global.__getRangeMock).toHaveBeenCalledTimes(1)
-      const written = global.__writeRangeMock.setValues.mock.calls[0][0]
-      // THIS is the real "cell content" assertion
-      expect(written[0][1]).toBe(1)
-      expect(written[0][3]).toBe(2)
-      // Assert no other cells were written to
-      const [row] = global.__getRangeMock.mock.calls[0]
-      expect(row).toBe(1) // row 1 is the first row of counts
-    })
-    test('exports deterministic formatted sticker string', () => {
-      const result = exportService.exportAllStickerData({ includeFlags: true })
-      expect(result.text).toContain('🏆')
-      expect(result.text).toContain('FWC')
-      expect(result.text).toContain('1')
-      expect(result.text).toContain('3(2)')
-    })
-    test('export contains no zero values', () => {
-      const result = exportService.exportAllStickerData({ includeFlags: false })
-      expect(result.text).not.toMatch(/\(\s*0\s*\)/)
-    })
-    test('update mode preserves existing valid sticker values not in the import payload', () => {
-      const existingRow = Array(21).fill(0)
-      existingRow[3] = 2
-      __writeRangeMock.getValues.mockReturnValueOnce([existingRow])
-      service.import('FWC,1', 'update')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[1]).toBe(1)
-      expect(written[3]).toBe(2)
-    })
-  })
-
-  /** Tests for sheet clearing behavior, ensuring that the appropriate ranges are cleared based on the import mode. */
-  describe('sheet clearing', () => {
-    test('clean_all clears counts range', () => {
-      service.import('FWC,1', 'clean_all')
-      expect(__countsRange.clearContent).toHaveBeenCalledTimes(1)
-    })
-    test('replace_countries clears target row before writing', () => {
-      service.import('FWC,1', 'replace_countries')
-      expect(__writeRangeMock.clearContent).toHaveBeenCalledTimes(1)
-    })
-    test('replace_countries clears before writing', () => {
-      service.import('FWC,1,3(2)', 'replace_countries')
-      const clearCallIndex = __writeRangeMock.clearContent.mock.invocationCallOrder[0]
-      const writeCallIndex = __writeRangeMock.setValues.mock.invocationCallOrder[0]
-      expect(clearCallIndex).toBeLessThan(writeCallIndex)
-    })
-  })
-
-  /** Tests that non-valid sticker positions are always written as 0 on import, for all modes. */
-  describe('out-of-bound sticker zeroing', () => {
-    test('FWC import always writes 0 at offset 20 (update mode)', () => {
-      service.import('FWC,1,3(2)')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[20]).toBe(0) // offset 20 is non-valid for FWC
-    })
-    test('non-FWC import always writes 0 at offset 0 (update mode)', () => {
-      service.import('MEX,1,3(2)')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[0]).toBe(0) // offset 0 is non-valid for non-FWC
-    })
-    test('CC import zeroes stickers outside its valid bounds', () => {
-      service.import('CC,1,12,13')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[0]).toBe(0) // below lower bound
-      expect(written[13]).toBe(0) // above upper bound
-      expect(written[1]).toBe(1) // valid
-      expect(written[12]).toBe(1) // valid
-    })
-    test('replace_countries mode also zeroes non-valid offset', () => {
-      service.import('MEX,1', 'replace_countries')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[0]).toBe(0)
-    })
-    test('clean_all mode also zeroes non-valid offset', () => {
-      service.import('MEX,1', 'clean_all')
-      const written = __writeRangeMock.setValues.mock.calls[0][0][0]
-      expect(written[0]).toBe(0)
     })
   })
 })

@@ -179,11 +179,6 @@ function findTradeMatches(payload) {
   return TradeService.findStickerTradeMatches(payload)
 }
 
-/** Generates the initial trade proposal. */
-function refreshTradeProposal(payload) {
-  return TradeService.refreshStickerTradeProposal(payload)
-}
-
 /** Applies the confirmed trade. */
 function executeTrade(payload) {
   return TradeService.executeStickerTrades(payload)
