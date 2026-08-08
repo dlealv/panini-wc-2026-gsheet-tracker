@@ -581,8 +581,8 @@ case "$CMD" in
         exit 1
         ;;
 esac
-
-echo "[BOOT] CONFIGURATION: LOG_LEVEL=$LOG_LEVEL DRY_RUN=$DRY_RUN CMD=$CMD"
+timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+echo "[$timestamp] [BOOT] CONFIGURATION: LOG_LEVEL=$LOG_LEVEL DRY_RUN=$DRY_RUN CMD=$CMD"
 
 if is_dry_run; then
     echo "==================== DRY RUN MODE ENABLED ========================="

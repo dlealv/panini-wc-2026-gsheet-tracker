@@ -29,6 +29,13 @@ function onOpen() {
     .addToUi()
 }
 
+/** Builds JSON text response for scanner integration. */
+function createJsonOutput(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON)
+}
+
 // #region Import
 //==============================================================================
 // Import Dialog

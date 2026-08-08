@@ -85,7 +85,7 @@ class TradeService {
   /**
  * GAS entry point for generating the current collector's sticker trade QR data.
  * Creates a TradeService instance and delegates QR generation.
- * Generates compact QR payload data and serialized trade information
+ * Generates compact QR payload data using bit masks and serialized trade information
  * for sharing with another collector.
  * This method only prepares trade information.
  * It does not calculate matches or modify spreadsheet data.
@@ -110,9 +110,9 @@ class TradeService {
  * This method only prepares external collector trade information.
  * It does not calculate matches or modify spreadsheet data.
  * @param {{qrData:string}} payload Decoded QR payload data.
- * Example:
+ * Example: 
  * {
- *   qrData:"{\"m\":{\"MEX\":[1,5]},\"r\":{\"BRA\":[8]}}"
+ *    qrData:"{\"m\":{\"MEX\":16401},\"r\":{\"BRA\":128}}"
  * }
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
  * @param {Object} [deps] Optional dependency injection for testing.
@@ -319,12 +319,12 @@ class TradeService {
   }
 
   /**
- * Generates QR encoded trade information for the current collector.
- * Retrieves the current collector trade information and delegates encoding
- * to TradeQrHelper.
- * This method only generates QR data and does not modify spreadsheet data.
- * @returns {{success:boolean,qrData:string,tradeInfo:Object}}
- */
+   * Generates QR encoded trade information for the current collector.
+   * Retrieves the current collector trade information and delegates compact
+   * bit mask encoding to TradeQrHelper.
+   * This method only generates QR data and does not modify spreadsheet data.
+   * @returns {{success:boolean,qrData:string,tradeInfo:Object}}
+   */
   generateTradeInfoQr() {
     const tradeInfo = this.getTradeInfo()
     const qrData = this.getTradeQrHelper().encode(tradeInfo)
@@ -539,7 +539,8 @@ class TradeService {
     }
     applyUpdates(tradeConfirmation.receive, 1)
     applyUpdates(tradeConfirmation.send, -1)
-    return { countries: Object.keys(countries).map(code => ({ code, counts: countries[code] }))
+    return {
+      countries: Object.keys(countries).map(code => ({ code, counts: countries[code] }))
     }
   }
 
@@ -565,7 +566,7 @@ class TradeService {
 
 }
 
-//#endregion
+//#endregion TradeService
 
 //#region TradeCalculation
 
@@ -694,64 +695,107 @@ class TradeCalculation {
   }
 }
 
-//#endregion
+//#endregion TradeCalculation
 
+//#region TradeQrHelper
 /**
  * Provides QR payload encoding and decoding for trade information.
  * The QR payload is a compact representation of TradeInfo used to transfer
  * collector sticker data between users.
  * Payload format:
  * {
- *   "m": {"MEX": [1,5,15],"FWC": [2,8]},
- *   "r": {"BRA": [8,10],"ARG": [4,12]}
+ *   "m": {"MEX": 524287,"FWC": 983069},
+ *   "r": {"BRA": 128,"ARG": 2048}
  * }
  * Where:
- * - m represents missing stickers.
- * - r represents repeated stickers.
- * The helper preserves sticker order and does not apply sorting or validation
- * related to trading rules. Those responsibilities belong to TradeService.
+ * - m represents missing stickers encoded as bit masks.
+ * - r represents repeated stickers encoded as bit masks.
+ * Each bit position represents a sticker number, where bit 0 represents
+ * sticker 1, bit 1 represents sticker 2, and so on.
+ * The helper only handles data representation conversion between sticker
+ * arrays and bit masks. It does not apply sorting, validation, or trading
+ * rules. Those responsibilities belong to TradeService.
  * @export
  */
 class TradeQrHelper {
 
   /**
-   * Converts trade information into a compact QR payload string.
-   * Empty missing or repeated collections are omitted from the payload.
-   * @param {TradeInfo} tradeInfo Trade information to encode.
-   * @returns {string} Compact JSON string ready to be stored in a QR code.
-   */
+ * Converts trade information into a compact QR payload string.
+ * Empty missing or repeated collections are omitted from the payload.
+ * @param {TradeInfo} tradeInfo Trade information to encode.
+ * @returns {string} Compact JSON string ready to be stored in a QR code.
+ */
   encode(tradeInfo) {
     const payload = {}
-
+    const encodeCollection = collection => Object.fromEntries(Object.entries(collection)
+      .map(([key, values]) => {
+        const encodedValue = this._encodeBitMask(values)
+        return [key, encodedValue]
+      }))
     if (tradeInfo.missing && Object.keys(tradeInfo.missing).length) {
-      payload.m = tradeInfo.missing
+      payload.m = encodeCollection(tradeInfo.missing)
     }
     if (tradeInfo.repeats && Object.keys(tradeInfo.repeats).length) {
-      payload.r = tradeInfo.repeats
+      payload.r = encodeCollection(tradeInfo.repeats)
     }
     return JSON.stringify(payload)
   }
 
   /**
- * Decodes QR payload data into trade information.
- * @param {string} qrData QR encoded trade information.
- * @returns {Object} Trade information with missing and repeats stickers.
- */
+   * Decodes QR payload data into trade information.
+   * @param {string} qrData QR encoded trade information.
+   * @returns {Object} Trade information with repeats and missing data.
+   */
   decode(qrData) {
     try {
       const payload = JSON.parse(qrData)
+      const decodeCollection = collection => Object.fromEntries(Object.entries(collection)
+        .map(([country, mask]) => {
+          const decodedValues = this._decodeBitMask(mask)
+          return [country, decodedValues]
+        }))
+      const repeatData = payload.r || {}
+      const missingData = payload.m || {}
+      const repeats = decodeCollection(repeatData)
+      const missing = decodeCollection(missingData)
       return {
-        missing: payload.m || {},
-        repeats: payload.r || {}
+        repeats: repeats,
+        missing: missing
       }
     } catch (error) {
       return {
-        missing: {},
-        repeats: {}
+        repeats: {},
+        missing: {}
       }
     }
   }
 
+  /**
+  * Converts an array of numeric positions into a bit mask number.
+  * Each position is represented by one bit in the resulting number.
+  * @param {Array<number>} values Numeric positions to encode.
+  * @returns {number} Bit mask represented as a decimal number.
+  */
+  _encodeBitMask(values) {
+    return values.reduce((mask, value) => mask | (1 << (value - 1)), 0)
+  }
+
+  /**
+   * Converts a bit mask number into an array of numeric positions.
+   * Each active bit represents one position.
+   * @param {number} mask Bit mask represented as a decimal number.
+   * @returns {Array<number>} Numeric positions decoded from the mask.
+   */
+  _decodeBitMask(mask) {
+    const values = []
+    for (let i = 0; i < 20; i++) {
+      if (mask & (1 << i)) {
+        values.push(i + 1)
+      }
+    }
+    return values
+  }
+
 }
 
-//#region 
+//#endregion  TradeQrHelper

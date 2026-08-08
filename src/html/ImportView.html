@@ -3,6 +3,15 @@
 
   Desktop Import view.
 
+  Architectural constraint:
+    The complete Import desktop HTML structure must remain embedded inside
+    the import-view container. ImportDialog.html provides only the dialog
+    wrapper and includes this file as the view body.
+
+    NOTE: Do not move Import view elements outside import-view or split the 
+      layout into additional top-level HTML fragments unless the dialog 
+      architecture is intentionally changed.
+
   Owns the complete desktop user interface for the Import service,
   including:
 
@@ -33,6 +42,7 @@
   Shared client-side logic is provided by ImportHelpers.html.
 -->
 
+<!--NOTE: Keep all view inside the import-view container -->
 <div id="import-view" class="import-view container">
 
   <!-- Header Section -->
@@ -45,7 +55,7 @@
     </div>
   </div>
 
-  <div id="importModeWrapper">
+  <div id="importModeWrapper" class="import-sections">
 
     <!-- Section 1) Import using a file upload -->
     <div class="section">
@@ -106,7 +116,7 @@
           </tr>
         </tbody>
       </table>
-    </div>
+    </div> <!-- /div.section: Input format -->
 
     <!-- Section 3) Import modes-->
     <div class="section">
@@ -126,7 +136,19 @@
         <li><strong>Update counts</strong>: overwrites only the sticker positions explicitly provided; all other
           values remain unchanged.</li>
       </ul>
-    </div>
+    </div><!--section: Import modes-->
+
+    <!-- Feedback -->
+    <div id="importMessageSection" class="section" style="display:none;">
+      <div class="section-title">Messages</div>
+      <div class="message-section">
+        <div id="import-message" class="message info"></div>
+        <div id="import-warnings" class="message warning hidden"></div>
+        <div id="preview" class="preview hidden"></div>
+      </div>
+    </div> <!-- /div.section: Feedback -->
+
+
 
     <!-- Actions -->
     <div class="section">
@@ -151,15 +173,9 @@
         📌 <strong>Tip:</strong> use <em>Validate / Preview</em> first to confirm how counts will be mapped before
         importing.
       </div>
-    </div>
+    </div><!-- /div.section: Actions -->
 
   </div> <!-- /importModeWrapper -->
-
-
-  <div id="import-message" class="message info"></div>
-  <!-- warnings shown below the status message in amber, populated after preview or import -->
-  <div id="import-warnings" class="message warning hidden"></div>
-  <div id="preview" class="preview"></div>
 
 </div> <!-- /import-view -->
 
@@ -186,6 +202,7 @@
     const messageEl = document.getElementById('import-message')
     const previewEl = document.getElementById('preview')
     const warningsEl = document.getElementById('import-warnings')
+    const importMessageSectionEl = document.getElementById('importMessageSection')
 
     /**
      * Initialize the loading mode from the server-provided dialog configuration.
@@ -223,8 +240,9 @@
       if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
       if (modeInputEl) modeInputEl.value = 'update'
       Import.clearPreview({ previewEl })
-      renderWarnings([]) // clear previous warnings immediately
-      setMessage('Input cleared.', 'info')
+      importMessageSectionEl.style.display = 'none'
+      renderWarnings([])
+      setMessage('', 'info')
     }
 
     /**Validates the current import input and renders a preview without writing data. */
@@ -235,6 +253,7 @@
       setMessage('Validating input...', 'info')
       google.script.run
         .withSuccessHandler((result) => {
+          console.log('result' + JSON.stringify(result))
           Import.setBusy(false)
           setMessage('Validation successful.', 'success')
           renderWarnings(result.warnings)
@@ -270,6 +289,9 @@
 
     /* Wrapper for setMessage to keep the messageEl reference local to this view. */
     function setMessage(text, type) {
+      if (text && importMessageSectionEl) {
+        importMessageSectionEl.style.display = ''
+      }
       Import.setMessage(text, type, { messageEl })
     }
 
@@ -284,6 +306,7 @@
         warningsEl.classList.add('hidden')
         return
       }
+      importMessageSectionEl.style.display = ''
       warningsEl.classList.remove('hidden')
       warnings.forEach(w => {
         const p = document.createElement('p')

@@ -65,6 +65,30 @@ As a result, several version combinations are possible:
 3. **The template version is ahead of the Apps Script version**: The versions were previously aligned, but subsequent releases only included changes to the spreadsheet template.
 4. **Both versions are behind the latest GitHub release**: One or more GitHub releases only introduced documentation, build, or other project-related improvements that did not affect either the spreadsheet template or the Apps Script project.
 
+### After copying the Panini template, I don't see the **Manage Panini** menu?
+
+This is usually a timing issue. It may take a few moments for the menu to appear. Simply refresh the page, and the **Manage Panini** menu should become available.
+
+### I don't see a new menu item in **Manage Panini** custom menu?
+
+If a new release updated the **Manage Panini** menu, you need to refresh your Google Spreadsheet template in order to see it.
+
+### After copying the Panini template and granting access, I don't see the `appsscript.json` file?
+
+When you copy the Apps Script project, a new local Apps Script project is created. By default, the manifest file from the template project is hidden.
+
+To display it:
+
+1. In Google Sheets, open the **Extensions** menu and select **Apps Script**.
+2. In the Apps Script editor, click **Project Settings** (gear icon).
+3. Enable the option **Show "appsscript.json" manifest file in editor**.
+4. Return to the **Editor** view.
+
+You will now see the [`appsscript.json`](../src/appsscript.json) file. It contains the same settings as the template project, although the fields may appear in a different order.
+
+---
+
+## Lookup Roster Service
 
 ### How can I look up the name of a player or sticker?
 
@@ -95,27 +119,7 @@ For example, if you search for the player `Staněk` (Jindřich Staněk from Czec
 
 The roster file `data/panini_fwc2026_roster.csv` always stores player names, countries/categories, and club names in their canonical form. ASCII normalization is applied only during the lookup process to make searches easier, so you do not need to know or type language-specific characters. For example, searching for `Stanek` will correctly find `Staněk`, `Curacao` will match `Curaçao`, and `Club America` will match `Club América`.
 
-
-### After copying the Panini template, I don't see the **Manage Panini** menu?
-
-This is usually a timing issue. It may take a few moments for the menu to appear. Simply refresh the page, and the **Manage Panini** menu should become available.
-
-### I don't see a new menu item in **Manage Panini** custom menu?
-
-If a new release updated the **Manage Panini** menu, you need to refresh your Google Spreadsheet template in order to see it.
-
-### After copying the Panini template and granting access, I don't see the `appsscript.json` file?
-
-When you copy the Apps Script project, a new local Apps Script project is created. By default, the manifest file from the template project is hidden.
-
-To display it:
-
-1. In Google Sheets, open the **Extensions** menu and select **Apps Script**.
-2. In the Apps Script editor, click **Project Settings** (gear icon).
-3. Enable the option **Show "appsscript.json" manifest file in editor**.
-4. Return to the **Editor** view.
-
-You will now see the [`appsscript.json`](../src/appsscript.json) file. It contains the same settings as the template project, although the fields may appear in a different order.
+## Mobile Services
 
 ### After following the instructions in the Mobile Web App link, I don't see the URL?
 
@@ -128,6 +132,26 @@ The purpose of this step is simply to provide you with the Web App URL. Alternat
 ### After deploying the Web App, I don't see the application listed?
 
 This is usually a timing issue. Refresh the Apps Script page, then open the **Deploy** drop-down menu in the upper-right corner and select **Manage deployments**. The newly deployed Web App should appear in the list.
+
+---
+
+## Trade stickers service
+
+### Is there a simpler way to trade stickers than using the `Trade` tab?
+
+Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new service: **Trade stickers**. This service simplifies the trading process by identifying matching stickers, generating a trade proposal, and executing the trade by automatically updating the `Stickers` tab.
+
+### I generated a QR code with my trade information, but the service doesn't read it correctly. Why?
+
+This is usually because you are using a screenshot of the generated QR code. Instead, save the QR code image in its original format. For example, on a desktop computer, right-click the QR code and select **Save image as...**. This preserves the original image quality and ensures the service can read it correctly.
+
+### Can I manually edit the trade proposal?
+
+No. The trade proposal can only be adjusted using the dropdowns and the **Sort by album completion** checkbox. This is intentional to ensure the proposed trade remains consistent with the user's current collection.
+
+The other collector's information can be entered manually, but your own trade information is always obtained directly from the Google Spreadsheet template.
+
+---
 
 ## Google Access/Security Questions
 

@@ -57,6 +57,9 @@
     function clearPreview(deps = {}) {
       const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
       if (!el) return
+      if (el.classList) {
+        el.classList.add('hidden')
+      }
       el.style.display = 'none'
       el.textContent = ''
     }
@@ -66,11 +69,15 @@
      * @public
      */
     function renderPreview(result, deps = {}) {
-      const el = deps.previewEl || previewEl
-      const text = _renderPreviewData(result)
-      if (!text) {
+      const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
+      if (!el) return
+      if (!result) {
         clearPreview({ previewEl: el })
         return
+      }
+      const text = _renderPreviewData(result)
+      if (el.classList) {
+        el.classList.remove('hidden')
       }
       el.textContent = text
       el.style.display = 'block'

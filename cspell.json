@@ -5,5 +5,11 @@
 {
   "ignorePaths": [
     "data/panini_fwc2026_roster.csv"
+  ],
+  "words": [
+    "Binarize",
+    "Downscales",
+    "textsf",
+    "thresholded"
   ]
 }

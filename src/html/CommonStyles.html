@@ -1,22 +1,26 @@
 <style>
-  /* src/html/CommonStyles.html
-   * Shared styles used by all dialogs in the application.
+  /*
+   * src/html/CommonStyles.html
+   *
+   * Shared styles used by all application views and dialogs.
+   *
    * Contains:
    * - Theme variables
-   * - Typography
-   * - Font sizes
+   * - Typography defaults
    * - Layout primitives
    * - Buttons
-   * - Messages
+   * - Status messages
    * - Form controls
    * - Utility classes
-   * Dialog-specific styles belong in:
+   *
+   * View-specific styles belong in:
    * - ImportExportStyles.html
    * - QuickEntryStyles.html
- */
+   */
+
+  /* Global theme values and reusable sizing tokens. */
   :root {
     --border: #c6cacc;
-    /*darker border for better contrast*/
     --text: #202124;
     --muted: #5f6368;
     --bg-soft: #f8f9fa;
@@ -35,22 +39,26 @@
     --text-2xl: 22px;
   }
 
+  /* Uses predictable sizing for all elements. */
   * {
     box-sizing: border-box;
   }
 
+  /* Defines the shared application font and colors. */
   body {
     font-family: Arial, sans-serif;
     color: var(--text);
     background: #fff;
   }
 
+  /* Provides the shared vertical layout container. */
   .container {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
   }
 
+  /* Defines the shared bordered content section. */
   .section {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -58,6 +66,7 @@
     background: #fff;
   }
 
+  /* Defines the shared button appearance. */
   .btn {
     border: 1px solid var(--border);
     background: #fff;
@@ -69,37 +78,47 @@
     white-space: nowrap;
   }
 
+  /* Highlights enabled buttons on hover. */
   .btn:hover:not(:disabled) {
     background: var(--bg-soft);
   }
 
+  /* Reduces emphasis and disables interaction for disabled buttons. */
   .btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
 
+  /* Defines the primary action button. */
   .btn-primary {
     background: var(--primary);
     border-color: var(--primary);
     color: #fff;
   }
 
+  /* Defines the primary button hover state. */
   .btn-primary:hover:not(:disabled) {
     background: var(--primary-hover);
   }
 
-  /* A button variant used for filter options, which can be toggled on/off. */
+  /* Defines toggle-style filter buttons. */
   .btn-filter {
     font-weight: 600;
   }
 
-  /* Active state for filter buttons. */
+  /* Highlights an active filter button. */
   .btn-filter.active {
     border-color: var(--primary);
     color: var(--primary);
   }
 
-  /* status messages (single line feedback) */
+  /* Defines compact buttons used beside labels or titles. */
+  .btn-inline {
+    padding: 3px 10px;
+    font-size: var(--text-xs);
+  }
+
+  /* Defines the shared status message area. */
   .message {
     min-height: 20px;
     font-size: var(--text-sm);
@@ -107,26 +126,38 @@
     margin-top: 4px;
   }
 
+  /* Defines success message color. */
   .message.success {
     color: var(--success);
   }
 
+  /* Defines error message color. */
   .message.error {
     color: var(--error);
   }
 
+  /* Defines informational message color. */
   .message.info {
     color: var(--muted);
   }
 
+  /* Defines warning message color. */
   .message.warning {
     color: var(--warning);
   }
 
+  /* Defines the shared message container layout. */
+  .message-section {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  /* Hides elements without removing them from the DOM. */
   .hidden {
     display: none !important;
   }
 
+  /* Defines inline formatted code blocks. */
   .inline-code {
     font-family: var(--font-mono);
     background: var(--bg-soft);
@@ -136,19 +167,21 @@
     color: var(--text);
   }
 
+  /* Defines shared label formatting. */
   label {
     display: inline-block;
     margin-bottom: 6px;
     font-weight: 600;
   }
 
-  /* secondary informational text, used for hints and messages,etc. */
+  /* Defines secondary informational text. */
   .hint {
     font-size: var(--text-xs);
     color: var(--muted);
     line-height: 1.5;
   }
 
+  /* Keeps form controls consistent with application typography. */
   input,
   select,
   textarea,
@@ -156,11 +189,13 @@
     font: inherit;
   }
 
+  /* Defines shared select control sizing. */
   select {
     width: 100%;
     padding: 8px;
   }
 
+  /* Defines reusable form input styling. */
   .form-control {
     width: 100%;
     padding: 8px;
@@ -168,16 +203,18 @@
     border-radius: 6px;
   }
 
-  /* About view content */
+  /* Adds spacing for About view content. */
   .about-card {
     padding: 10px 16px;
   }
 
+  /* Defines the About view table layout. */
   .about-table {
     border-collapse: collapse;
     margin: 0;
   }
 
+  /* Defines About table header cells. */
   .about-table th {
     text-align: left;
     vertical-align: top;
@@ -187,13 +224,14 @@
     width: 120px;
   }
 
+  /* Defines About table data cells. */
   .about-table td {
     padding: 4px 0;
     text-align: left;
     font-size: var(--text-sm);
   }
 
-  /* Links in the About view table should break if they are too long. */
+  /* Allows long links to wrap inside About tables. */
   .about-table a {
     word-break: break-word;
   }

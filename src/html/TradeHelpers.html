@@ -3,22 +3,20 @@
 
   /**
    * Pure functions (testable) related to trade dialog logic.
-   *
    * This helper supports TradeDialog.html and contains:
    * - trade payload generation
    * - UI state extraction
    * - message handling
-   *
-   * NOTE: the export tag in comments indicates methods that are intended to be
-   * testable and exposed for external use, so they should not be removed or
-   * altered without consideration of their role in the overall application
-   * architecture.
+   * - trade information formatting
+   * - QR preview rendering
+   * QR payload compression is handled by TradeQrHelper on the backend.
+   * This helper only works with normalized TradeInfo objects.
    */
 
   /** 
    * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global 
    * scope and to provide a clear structure for export-related functions.
-   * Functions exported from the namespace are tagged with @public to easy identification and documentation.
+   * Functions exported from the namespace are tagged with @public for easy identification and documentation.
    */
   window.Trade = (function () {
 
@@ -154,19 +152,31 @@
     /**
      * Renders a QR code preview for the trade info in the UI.
      * @param {{qrData:string,tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
-     * @param {Object} deps
-     * @param {HTMLImageElement} deps.qrEl - The image element to render the QR code into.
-     * @param {HTMLElement} deps.infoEl - The element to render the trade info message into.
+     * @param {{qrEl:HTMLImageElement,hintEl?:HTMLElement,infoEl?:HTMLElement}} elements
+     * @return {void}
      * @export
      * @public
      */
     function renderQrPreview(result, elements) {
-      if (!elements.qrEl) { return }
+      if (!elements.qrEl) {
+        return
+      }
+      elements.qrEl.onload = null
+      elements.qrEl.onerror = null
+      elements.qrEl.style.display = 'none'
+      if (typeof elements.qrEl.removeAttribute === 'function') {
+        elements.qrEl.removeAttribute('src')
+      } else {
+        elements.qrEl.src = ''
+      }
       elements.qrEl.onload = function () {
         elements.qrEl.style.display = 'block'
         if (elements.hintEl) {
           elements.hintEl.style.display = 'block'
         }
+      }
+      elements.qrEl.onerror = function () {
+        elements.qrEl.style.display = 'none'
       }
       elements.qrEl.src = _buildQrImageUrl(result.qrData)
       if (elements.infoEl) {
@@ -191,15 +201,16 @@
       if (!matches) { return }
       const receiveEl = deps.receivePreviewEl
       const sendEl = deps.sendPreviewEl
+      const previewClass = deps.previewClass || 'preview'
       const highlightProposal = deps.highlightProposal || null
       if (receiveEl) {
-        receiveEl.className = 'preview'
+        receiveEl.className = previewClass
         receiveEl.innerHTML = _formatMatches(matches.receive,
           highlightProposal ? highlightProposal.receive : null)
         receiveEl.style.display = 'block'
       }
       if (sendEl) {
-        sendEl.className = 'preview'
+        sendEl.className = previewClass
         sendEl.innerHTML = _formatMatches(matches.send,
           highlightProposal ? highlightProposal.send : null)
         sendEl.style.display = 'block'
@@ -253,12 +264,17 @@
 
     /**
      * Builds the QR image URL from encoded trade data.
+     * Larger QR images improve reliability when the QR is captured
+     * from a mobile camera because each QR module occupies more pixels.
      * @param {string} qrData
      * @returns {string}
      */
     function _buildQrImageUrl(qrData) {
-      let url = 'https://quickchart.io/qr?text=' + encodeURIComponent(qrData) // avoid using ${} notation
-      return url
+      const size = 800
+      const encoded = encodeURIComponent(qrData)
+      // avoid using ${} notation
+      const result = 'https://quickchart.io/qr?size=' + size + '&ecLevel=H' + '&text=' + encoded
+      return result
     }
 
     /**

@@ -1,0 +1,164 @@
+<style>
+  /*
+   * src/html/MobileTradeStyles.html
+   *
+   * Styles for the mobile Trade view.
+   *
+   * Shared styles come from:
+   * - CommonStyles.html
+   * - ImportExportStyles.html
+   * - TradeStyles.html
+   *
+   * This file only contains mobile-specific Trade adjustments.
+   */
+
+  /*
+   * Mobile Trade container.
+   * Provides the mobile card layout used by the service view.
+   */
+  #view-trade {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /*
+   * Trade QR generation toolbar.
+   * Keeps Trade-specific toolbar controls aligned on mobile.
+   */
+  #view-trade .trade-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  /*
+   * Inline actions beside "Another collector's trade information".
+   * TradeView defines this container, but no shared style exists.
+   */
+  #view-trade .trade-information-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  #view-trade .trade-information-actions .btn-inline {
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 10px 12px;
+    font-size: var(--text-sm);
+  }
+
+  /*
+   * Trade input areas.
+   * Mobile needs larger touch-friendly text areas than desktop.
+   */
+  #view-trade .trade-textarea {
+    min-height: 320px;
+    font-size: var(--text-lg);
+    padding: 14px;
+  }
+
+  /*
+   * Import hint spacing.
+   * Keeps the explanation separated from the input controls.
+   */
+  #view-trade .trade-import-hint {
+    margin-bottom: 10px;
+  }
+
+  /*
+   * Trade proposal card.
+   * Keeps proposal content readable on smaller screens.
+   */
+  #view-trade .proposal-container {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  /*
+ * Trade quantity selectors. Displays the receive and send selectors side-by-side.
+ * Control the separation between the two selectors with the gap property.
+ */
+  #view-trade .proposal-limits {
+    display: flex;
+    gap: 20px;
+  }
+
+  /*
+ * Container for each trade quantity selector.
+ * Keeps label and dropdown aligned horizontally.
+ */
+  #view-trade .proposal-limit {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Label for each trade quantity selector.
+   * Keeps the label width based on its content so the dropdown
+   * can be positioned closer to it.
+   */
+  #view-trade .proposal-limit label {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  /*
+   * Dropdown selector for each trade quantity.
+   * Provides enough width for two-digit quantities on mobile.
+   */
+  #view-trade .proposal-limit select {
+    width: 110px;
+    flex: 0 0 110px;
+    margin-left: 18px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* Scrollable container for the proposal preview. */
+  #view-trade .proposal-preview {
+    overflow-y: auto;
+    margin-top: 8px;
+    line-height: 1.4;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Highlights stickers included in the current trade proposal. */
+  #view-trade .trade-highlight {
+    background: #d9f2d9;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-weight: 600;
+  }
+
+  /*
+   * Trade proposal legend.
+   * Adds spacing so the legend does not appear cramped.
+   */
+  #view-trade #proposalLegend {
+    margin-top: 6px;
+  }
+
+  /* Centers the generated QR code horizontally. */
+  .qr-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Fixed display size for generated QR code. */
+  .trade-qr-image {
+    width: min(98vw, 640px);
+    height: min(98vw, 640px);
+    display: none;
+  }
+</style>

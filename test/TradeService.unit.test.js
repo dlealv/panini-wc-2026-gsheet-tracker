@@ -415,14 +415,14 @@ describe('TradeService (unit)', () => {
     })
     test('generates QR trade information from current trade data', () => {
       const mockTradeInfo = { missing: { MEX: [1, 5] }, repeats: { FWC: [6, 14] } }
-      encode.mockReturnValue('{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}')
+      encode.mockReturnValue('{"m":{"MEX":16402},"r":{"FWC":8320}}')
       const svc = new TradeService(null, deps)
       jest.spyOn(svc, 'getTradeInfo').mockReturnValue(mockTradeInfo)
       const result = svc.generateTradeInfoQr()
       expect(encode).toHaveBeenCalledWith(mockTradeInfo)
       expect(result).toEqual({
         success: true,
-        qrData: '{"m":{"MEX":[1,5]},"r":{"FWC":[6,14]}}',
+        qrData: '{"m":{"MEX":16402},"r":{"FWC":8320}}',
         tradeInfo: mockTradeInfo
       })
     })
@@ -621,45 +621,48 @@ describe('TradeQrHelper (unit)', () => {
   beforeEach(() => {
     helper = new TradeQrHelper()
   })
-
   /** encode() */
   describe('encode()', () => {
-    test('encodes trade information into QR payload format', () => {
+    test('encodes trade information into QR payload format using bit masks', () => {
       const tradeInfo = {
         missing: { MEX: [1, 5, 15], FWC: [2, 8] },
         repeats: { BRA: [8, 10], ARG: [4, 12] }
       }
       const result = helper.encode(tradeInfo)
-      expect(result).toBe('{"m":{"MEX":[1,5,15],"FWC":[2,8]},"r":{"BRA":[8,10],"ARG":[4,12]}}')
+      expect(result).toBe('{"m":{"MEX":16401,"FWC":130},"r":{"BRA":640,"ARG":2056}}')
     })
     test('omits empty missing and repeats collections', () => {
       expect(helper.encode({ missing: {}, repeats: {} })).toBe('{}')
     })
   })
-
   /** decode() */
   describe('decode()', () => {
     test('decodes QR payload into trade information model', () => {
-      const payload = '{"m":{"MEX":[1,5,15],"FWC":[2,8]},"r":{"BRA":[8,10],"ARG":[4,12]}}'
+      const payload = '{"m":{"MEX":16401,"FWC":130},"r":{"BRA":640,"ARG":2056}}'
       const result = helper.decode(payload)
-      expect(result).toEqual({ missing: { MEX: [1, 5, 15], FWC: [2, 8] }, repeats: { BRA: [8, 10], ARG: [4, 12] } })
+      expect(result).toEqual({ repeats: { BRA: [8, 10], ARG: [4, 12] }, missing: { MEX: [1, 5, 15], FWC: [2, 8] } })
     })
     test('returns empty trade information for invalid payload', () => {
       const result = helper.decode('invalid')
-      expect(result).toEqual({ missing: {}, repeats: {} })
+      expect(result).toEqual({ repeats: {}, missing: {} })
     })
     test('ignores unknown fields from QR payload', () => {
-      const payload = '{"m":{"MEX":[1,5]},"r":{"BRA":[8]},"x":"ignored"}'
+      const payload = '{"m":{"MEX":16400},"r":{"BRA":128},"x":"ignored"}'
       const result = helper.decode(payload)
-      expect(result).toEqual({ missing: { MEX: [1, 5] }, repeats: { BRA: [8] } })
+      expect(result).toEqual({ repeats: { BRA: [8] }, missing: { MEX: [5, 15] } })
     })
     test('handles payload with only missing stickers', () => {
-      const result = helper.decode('{"m":{"MEX":[1]}}')
-      expect(result).toEqual({ missing: { MEX: [1] }, repeats: {} })
+      const result = helper.decode('{"m":{"MEX":1}}')
+      expect(result).toEqual({ repeats: {}, missing: { MEX: [1] } })
     })
     test('handles payload with only repeat stickers', () => {
-      const result = helper.decode('{"r":{"BRA":[8]}}')
-      expect(result).toEqual({ missing: {}, repeats: { BRA: [8] } })
+      const result = helper.decode('{"r":{"BRA":128}}')
+      expect(result).toEqual({ repeats: { BRA: [8] }, missing: {} })
+    })
+    test('preserves all stickers in a full 20 sticker mask', () => {
+      const payload = '{"m":{"FWC":1048575}}'
+      const result = helper.decode(payload)
+      expect(result.missing.FWC).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
     })
   })
 })

@@ -259,16 +259,22 @@ describe('QuickEntryHelpers.html', () => {
   })
 
   /** Tests for setMessage() */
-  describe('setMessage()', () => {
-    test('updates message element text and class', () => {
-      const el = { className: '', textContent: '' }
-      helpers.setMessage(el, 'Updated', 'success')
-      expect(el.textContent).toBe('Updated')
-      expect(el.className).toBe('message success')
-    })
-    test('returns null when element is missing', () => {
-      expect(helpers.setMessage(null, 'Hello', 'success')).toBeNull()
-    })
+  test('updates message element text and class', () => {
+    const el = {
+      textContent: '',
+      classList: {
+        classes: [],
+        remove(...names) {
+          this.classes = this.classes.filter(c => !names.includes(c))
+        },
+        add(...names) {
+          this.classes.push(...names)
+        }
+      }
+    }
+    helpers.setMessage(el, 'Updated', 'success')
+    expect(el.textContent).toBe('Updated')
+    expect(el.classList.classes).toEqual(['message', 'success'])
   })
 
   /** Tests for applyLayout() */

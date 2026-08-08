@@ -25,21 +25,24 @@
 -->
 
 <div id="tradeInputView">
-
   <div class="section">
-    <div class="section-title">Generate trade QR code</div>
+    <div class="section-title">Generate your trade information QR code</div>
     <div class="trade-toolbar">
       <button id="generateQrButton" class="btn btn-primary">Generate my QR code</button>
     </div>
-  </div><!-- /section -->
+  </div><!-- /section: Generate your trade information QR code -->
   <div class="section">
     <div class="label-row">
-      <div class="section-title">Trade information</div>
+      <div class="section-title">Another collector's trade information</div>
       <div class="trade-information-actions">
         <button class="btn btn-inline" onclick="clearTradeInput()">Clear</button>
         <button id="uploadQrButton" class="btn btn-inline">Upload QR image</button>
         <button id="captureQrButton" class="btn btn-inline" style="display:none;">Capture QR code</button>
-        <input id="tradeQrFileInput" type="file" accept="image/*" style="display:none;">
+        <!--Hidden QR image input. Desktop uses it for uploaded images.
+            Mobile uses it to launch camera capture when supported.
+        -->
+        <input id="tradeQrFileInput" type="file" accept="image/jpeg,image/png" capture="environment"
+          style="display:none;">
       </div>
     </div>
     <div class="hint trade-import-hint">
@@ -56,13 +59,16 @@
     <textarea id="missingText" class="form-control trade-textarea" spellcheck="false"
       placeholder="MEX,1,5,12-13&#10;FWC,2,8,17-18"></textarea>
 
-  </div><!-- /section -->
+  </div><!-- /section: Another collector's trade information -->
 
+  <!--Message section -->
   <div id="tradeMessageSection" class="section" style="display:none;">
     <div class="section-title">Messages</div>
-    <div id="trade-message" class="message info"></div>
-    <div id="trade-warnings" class="message warning hidden"></div>
-    <div id="trade-preview" class="preview"></div>
+    <div class="message-section">
+      <div id="trade-message" class="message info"></div>
+      <div id="trade-warnings" class="message warning hidden"></div>
+      <div id="trade-preview" class="preview"></div>
+    </div>
   </div><!-- /tradeMessageSection -->
 
   <div class="section">
@@ -86,7 +92,7 @@
 
   <div class="section">
     <div id="tradeQrHint" class="hint" style="display:none;">
-      Scan this QR code to import my trade information (repeats and missing stickers)
+      Scan this QR code to import my trade information (repeats and missing stickers).
     </div>
     <div class="qr-container">
       <img id="tradeQrImage" class="trade-qr-image" alt="Trade QR code" style="display:none;">
@@ -95,8 +101,10 @@
 
   <div class="section">
     <div class="section-title">Messages</div>
-    <div id="tradeQrMessage" class="message info"></div>
-    <div id="tradeQrInfo" class="preview"></div>
+    <div class="message-section">
+      <div id="tradeQrMessage" class="message info"></div>
+      <div id="tradeQrInfo" class="preview"></div>
+    </div>
   </div><!-- /section -->
 
   <div class="section">
@@ -111,8 +119,7 @@
 <div id="tradeProposalView" style="display:none;">
   <div class="label-row">
     <div class="section-title">Trade proposal</div>
-    <div class="trade-information-actions">
-    </div>
+    <div class="trade-information-actions"></div>
   </div><!-- /label-row -->
 
   <div class="proposal-container">
@@ -136,13 +143,13 @@
           Sort by album completion
         </label>
       </div>
-      <div id="receiveMatchesPreview" class="preview"></div>
+      <div id="receiveMatchesPreview" class="preview proposal-preview"></div>
     </div><!-- /section -->
     <div class="section">
       <div class="section-title">
         Stickers to send (<span id="sendMatchCount">0</span>)
       </div>
-      <div id="sendMatchesPreview" class="preview"></div>
+      <div id="sendMatchesPreview" class="preview proposal-preview"></div>
     </div><!-- /section -->
     <div class="section">
       <div class="hint">
@@ -165,7 +172,9 @@
 
     <div id="proposalMessageSection" class="section" style="display:none;">
       <div class="section-title">Messages</div>
-      <div id="proposal-message" class="message info"></div>
+      <div class="message-section">
+        <div id="proposal-message" class="message info"></div>
+      </div>
     </div> <!-- /proposalMessageSection -->
 
   </div><!-- /proposal-container -->
@@ -182,13 +191,18 @@
 
 </div><!-- /tradeProposalView -->
 
-<!--JS library to read QR codes -->
+<!--
+  Third-party dependency:
+  - jsQR (https://github.com/cozmo/jsQR)
+  - License: Apache-2.0
+  - Loaded from jsDelivr CDN for client-side QR fallback decoding
+-->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
+<?!= include('QRUtils') ?>
 <?!= include('TradeHelpers') ?>
 
 <script>
-
   /*
    * View controller.
    *
@@ -244,8 +258,10 @@
     const confirmTradeButtonEl = document.getElementById('confirmTradeButton')
     const proposalHintEl = document.getElementById('proposalHint')
     const proposalLegendEl = document.getElementById('proposalLegend')
+    const warningsEl = document.getElementById('trade-warnings')
 
-    let platform = 'desktop'
+
+    let platform = 'desktop'      // Current host platform.
 
     /*
      * Client-side Trade workflow state.
@@ -298,7 +314,17 @@
     // Wire events
     validateButtonEl.addEventListener('click', validateOtherTradeInfo)
     generateQrButtonEl.addEventListener('click', showGenerateQrView)
-    uploadQrButtonEl.addEventListener('click', () => { tradeQrFileInputEl.click() })
+    /*
+     * Mobile QR capture. Uses the same hidden input, but mobile browsers
+     * will open the camera when capture is supported.
+     */
+    uploadQrButtonEl.addEventListener('click', () => {
+      tradeQrFileInputEl.click()
+    })
+    captureQrButtonEl.addEventListener('click', () => {
+      tradeQrFileInputEl.click()
+    })
+
     tradeQrFileInputEl.addEventListener('change', onQrImageSelected)
     document.querySelectorAll('.backQrButton')
       .forEach(button => button.addEventListener('click', hideGenerateQrView))
@@ -310,7 +336,6 @@
     })
     closeProposalButtonEl.addEventListener('click', closeTradeView)
     closeTradeButtonEl.addEventListener('click', closeTradeView)
-    const warningsEl = document.getElementById('trade-warnings')
     confirmTradeButtonEl.addEventListener('click', executeTrade)
 
     /** Clears the Trade input fields and resets state. */
@@ -390,33 +415,25 @@
     }
 
     /**
-     * Decodes a QR image locally using jsQR and sends the QR payload to Apps Script.
-     * @param {string} imageData Data URL of the uploaded image.
+     * Decodes a QR image using the configured QR decoder.
+     * @param {string} imageData Data URL of the selected image.
+     * @returns {Promise<void>} Completion promise for the decode flow.
      */
-    function decodeQrImage(imageData) {
-      const img = new Image()
-      img.onload = function () {
-        const canvas = document.createElement('canvas')
-        canvas.width = img.width
-        canvas.height = img.height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0)
-        const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        const qr = jsQR(image.data, image.width, image.height, { inversionAttempts: 'attemptBoth' })
-        if (!qr) {
-          onReadFromQrFailed(new Error('No QR code found in the selected image.'))
-          return
-        }
-        previewOtherTradeInfoFromQr(qr.data)
+    async function decodeQrImage(imageData) {
+      try {
+        const qrData = await TradeQr.qrDecoder.decode(imageData)
+        previewOtherTradeInfoFromQr(qrData)
+      } catch (error) {
+        onReadFromQrFailed(new Error('No QR code found in the selected image.'))
       }
-      img.onerror = function () { onReadFromQrFailed(new Error('Unable to read the selected image.')) }
-      img.src = imageData
     }
 
     /**
      * Validates external collector information from decoded QR payload data.
-     * The QR image is decoded locally using jsQR. This function sends only
-     * the QR payload string to Apps Script.
+     * The QR image is decoded locally in the browser and only the decoded payload
+     * string is sent to Apps Script.
+     * The QR payload may come from any supported host input method, such as image upload
+     * or mobile camera capture input.
      * @param {string} qrData Decoded QR payload.
      */
     function previewOtherTradeInfoFromQr(qrData) {
@@ -471,6 +488,7 @@
       generateQrViewEl.style.display = ''
       tradeQrImageEl.style.display = 'none'
       tradeQrHintEl.style.display = 'none'
+      tradeQrMessageEl.style.display = ''
       Trade.setBusy(true)
       Trade.setMessage('Generating QR code...', 'info', { messageEl: tradeQrMessageEl })
       google.script.run
@@ -553,9 +571,11 @@
         proposalMessageEl.className = 'message warning'
         proposalMessageEl.textContent = '⚠ No valid trade matches found.'
         confirmTradeButtonEl.disabled = true
-      } else {
-        confirmTradeButtonEl.disabled = false
+        state.proposal = { receive: {}, send: {} }
+        renderProposalPreview(false)
+        return
       }
+      confirmTradeButtonEl.disabled = false
       const balancedQuantity = Math.min(receiveCount, sendCount)
       state.proposal = Trade.applyTradeSelectionLimits(matches, {
         sortMissing: false,
@@ -619,21 +639,23 @@
         Trade.renderMatches(state.matches, {
           receivePreviewEl: receiveMatchesPreviewEl,
           sendPreviewEl: sendMatchesPreviewEl,
-          highlightProposal: state.proposal
+          highlightProposal: state.proposal,
+          previewClass: 'preview proposal-preview'
         })
         proposalHintEl.textContent =
-          'This proposal shows all possible matches. If you click Confirm Trade now, ' +
+          'This proposal shows all possible matches. If you click Confirm trade now, ' +
           'only highlighted stickers will be traded. Change the limits or sorting options and ' +
           'click Refresh to create another proposal.'
         proposalLegendEl.style.display = ''
       } else {
         Trade.renderMatches(state.proposal, {
           receivePreviewEl: receiveMatchesPreviewEl,
-          sendPreviewEl: sendMatchesPreviewEl
+          sendPreviewEl: sendMatchesPreviewEl,
+          previewClass: 'preview proposal-preview'
         })
         proposalHintEl.textContent =
           'This proposal was generated using the selected limits and sorting options. ' +
-          'Review the trade scenario or accept it and click Confirm Trade. Change the limits ' +
+          'Review the trade scenario or accept it and click Confirm trade. Change the limits ' +
           'or sorting options and click Refresh to create another proposal.'
         proposalLegendEl.style.display = 'none'
       }
@@ -695,7 +717,7 @@
      * @param {string[]} messages List of warning messages.
      */
     function renderWarningSection(title, messages) {
-      if (!messages.length) return
+      if (!messages.length) { return }
       const header = document.createElement('p')
       header.style.margin = '8px 0 4px 0'
       header.style.fontWeight = 'bold'
@@ -708,7 +730,6 @@
         warningsEl.appendChild(p)
       })
     }
-
 
   })()
 

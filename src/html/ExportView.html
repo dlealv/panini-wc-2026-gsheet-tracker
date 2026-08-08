@@ -22,9 +22,6 @@
   <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
   <div class="section-title" id="exportTitle"></div>
 
-  <!-- MobileExportView.html injects an optional mobile-only hint here. -->
-  <div id="mobileExportTopHint" class="export-top-hint"></div>
-
   <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
   <div class="export-toolbar">
     <label class="toolbar-item">
@@ -49,6 +46,15 @@
   <div id="exportHint" class="hint hint-spaced"></div>
 </div>
 
+<!-- Messages -->
+<div id="exportMessageSection" class="section" style="display:none;">
+  <div class="section-title">Messages</div>
+  <div class="message-section">
+    <div id="export-message" class="message info"></div>
+    <div id="export-warnings" class="message warning hidden"></div>
+  </div>
+</div><!-- /div.section: MessageSection -->
+
 <!-- Actions -->
 <div class="section">
   <div class="section-title">Actions</div>
@@ -58,10 +64,6 @@
     <button id="exportCloseButton" class="btn" onclick="closeExportView()">Close</button>
   </div>
 </div>
-
-<!-- Reserved for backend warnings and validation notices. -->
-<div id="export-message" class="message info"></div>
-<div id="export-warnings" class="message warning hidden"></div>
 
 <!-- Include shared export helpers (under Export namespace) -->
 <?!= include('ExportHelpers') ?>
@@ -83,12 +85,11 @@
     const sortByDoneCheckboxEl = document.getElementById('sortByDoneCheckbox')
     const isCompactCheckboxEl = document.getElementById('isCompactCheckbox')
     const exportWarningsEl = document.getElementById('export-warnings')
+    const exportMessageSectionEl = document.getElementById('exportMessageSection')
     const sortByDoneContainerEl = document.getElementById('sortByDoneContainer')
     const exportHintEl = document.getElementById('exportHint')
     const exportCloseButtonEl = document.getElementById('exportCloseButton')
-    const messageEl = isDesktopDialogHost()
-      ? document.getElementById('export-message')
-      : document.getElementById('mobileMessage')
+    const messageEl = document.getElementById('export-message')
 
     let currentExportMode = 'export_all'
 
@@ -177,10 +178,11 @@
     function renderWarnings(warnings) {
       exportWarningsEl.textContent = ''
       if (!warnings || !warnings.length) {
-        exportWarningsEl.style.display = 'none'
+        exportWarningsEl.classList.add('hidden')
         return
       }
-      exportWarningsEl.style.display = 'block'
+      exportMessageSectionEl.style.display = ''
+      exportWarningsEl.classList.remove('hidden')
       warnings.forEach(w => {
         const p = document.createElement('p')
         p.style.margin = '2px 0'
@@ -196,6 +198,9 @@
      */
     function setMessage(text, type) {
       if (!messageEl) { return }
+      if (text) {
+        exportMessageSectionEl.style.display = ''
+      }
       messageEl.className = `message ${type || 'info'}`
       messageEl.textContent = text || ''
     }
@@ -249,9 +254,6 @@
           if (exportHintEl) {
             exportHintEl.innerHTML = getExportHintText(currentExportMode)
           }
-          const messageEl = isDesktopDialogHost()
-            ? document.getElementById('export-message')
-            : document.getElementById('mobileMessage')
           setMessage(`Export ready. ${typeof result.lines === 'number' ? result.lines : 0} line(s) generated.`,
             'success')
           if (messageEl) {
@@ -283,21 +285,23 @@
      */
     function getExportHintText(mode) {
       if (mode === 'export_all') {
-        return 'The exported content uses the same Format 1 syntax accepted by the import process. Only sticker counts greater than <span class="inline-code">0</span> are included.'
+        return 'The exported content uses the same Format 1 syntax accepted by the import process. ' +
+        'Only sticker counts greater than <span class="inline-code">0</span> are included.'
       }
       return 'The exported content uses the same Format 1 syntax accepted by the import process.'
     }
 
     /** Clears the export feedback message before loading new data. */
     function clearExportMessage() {
-      const messageEl = isDesktopDialogHost()
-        ? document.getElementById('export-message')
-        : document.getElementById('mobileMessage')
       if (!messageEl) {
         return
       }
       messageEl.textContent = ''
       messageEl.className = 'message info'
+      if (exportMessageSectionEl) {
+        exportMessageSectionEl.style.display = 'none'
+      }
+      renderWarnings([])
     }
   })();
 </script>

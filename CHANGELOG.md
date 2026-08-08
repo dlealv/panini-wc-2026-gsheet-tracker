@@ -2,8 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
-project structure, and documentation.
+The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, project structure, and documentation.
 
 ---
 
@@ -11,7 +10,7 @@ project structure, and documentation.
 
 ### Overview
 
-Implemented Trade service for Apps Script.
+Implemented Trade service for Apps Script. Centralized Google Spreadsheet writing process in `StickerSheetRepository` class. Fixed a bug in Import service when the user selected Update counts clearing country counts it actually executed the Update counts option. Improved `testKernel.js` to use `TEST_DATA` consistently. Standardize the look and feel by moving styles to common styles: `CommonStyles.html` and `MobileStyles.html`.
 
 ### Google Spreadsheet template
 
@@ -38,8 +37,47 @@ No changes were made to the template, so the version number remains.
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: Updated France team, the information was not accurate.
 
+- Under the `docs` folder:
+  - `FAQ.md`: 
+    - Organized the document by sections.
+    - Added a section to Trade stickers service.
+  - `TechnicalArchitecture.md`: 
+    - Updated the documentation to include the new Trade stickers service.
+    - Updated the responsibilities of `StickerSheetRepository` class.
+
+- Under the `images` folder:
+  - Added the new images related to Trade stickers service.
+
+- Under `scripts` folder:
+  - `clasp.zsh`: Added timestamp at the beginning of the execution of the script.
+
 - Under the src/html folder:
+  - `CommonStyles.html`: Now it centralized all common styles used by different services.
+    - Moved common components from other style files to this one.
+    - Added new definition: `message-section` for message and for preview, so the output is scrollable.
+  - `ExportView.html`: 
+    - Added feedback (messages) block into a section to ensure the same pattern as in other services.
+    - Added a new section id: `exportMessageSection` and the variable `exportMessageSectionEl` and adjusted the functions `renderWarnings()`, `setMessage()`, `clearExportMessage()` to set the new behavior. 
+    - Moved the message section on top of the action section.
+    - Removed `mobileMessage` DOM variable there is no specific message for mobile service.
+    - Removed `div` element with id `mobileExportTopHint`, since it is not used.
+  - `ImportExportStyles.html`: Removed `.btn-inline ` style, since it belongs to `CommonStyles.html`.
   - `ImportHelpers.html`: Updated the functions `getUIState()` and `setBusy()` instead of reading global variables not visible outside of IIFE, reading the variables from DOM.
+  - `ImportView.html`: 
+    - Adjusted the HTML portion to standardize the message block of information with other services. 
+    - Documented the specific of this service that was designed to have all the elements inside a single view.
+    - Added the message section with the following id: `importMessageSection` created the corresponding variable `importMessageSectionEl` and adjusted the following functions `clearInput()`, `setMessage()`, `renderWarnings()`, to set properly the DOM variable. 
+    - Moved the message section on top of the action section in the HTML portion of the file.
+  - `MobileExportStyles.html`: Simplified the file by moving common style elements to `MobileStyles.html` and adjusted some values to fix specific needs for the export service for mobile.
+  - `MobileHome.html`: 
+    - Added Trade service, include `TradeStyles.html`, `TradeView.html`, added a new drawer element.
+    - Modified the order of the items in the menu, so now Quick Entry and Trade come first.
+    - Modified the default menu item, now is Quick entry since it is more frequently used for mobile services than import service.
+  - `MobileImportStyle.html`: Adjusted some styles to accommodate the new design in `MobileImportView.html`.
+  - `QuickEntryHelpers.html`: Updated `setMessage()` to set message information too base don the changes in the view.
+  - `QuickEntryStyles.html`: Added `qe-message` style.
+  - `QuickEntryView.html`: Now message output uses a specific style: `message info qe-message`.
+
 
 - Under the `src` folder:
   - `Code.gs`: Added GAS entry points for Trade service.
@@ -75,6 +113,7 @@ No changes were made to the template, so the version number remains.
   - `Commons.unit.test.js`:
     - Updated the suite `getCountryCounts()` for the test `normalizes country code before lookup`.
     - Updated the tests related to `updateStickerCounts` since the contract was changed.
+  - `ImportHelpers.html.js:` Adjusted tests after modifying the source file.
   - `ImportService.unit.test.js`: Removed repetitive tests, and tests related to export services.
     - Updated the suite `sheet writes` for the test `export contains no zero values`.
     - Added specific suites for `LineNormalize` and `ImportStickers` to validate behavior when the `options` input argument is provided.
@@ -82,7 +121,12 @@ No changes were made to the template, so the version number remains.
     - `import` tests added more detail coverages for all import modes.
   - `QuickEntryService.unit.test.js` Updated the tests for methods: `applyPendingUpdates` and `_normalizePendingUpdates` since the contract of `updateStickerCounts` method from `StickerSheetRepository` has changed.
 
-#### Fixes
+- Under the root folder:
+  - `cspell.json`: Added additional word exceptions to the code spell checker.
+  - `TODO.md`: Added trade service and refactor of the data model to unify it.
+
+#### Fixed
+
 - For import service under the option: **Update counts clearing country counts**, it was actually doing **Update count**. Fixed the issue in `ImportHelpers.html` relaying on global variables that were not in the scope of the IIFE. Instead of relying on globals, the helper can read the variables from DOM. Since the `mode` variable was not defined, inferred the default value `update`.
 
 

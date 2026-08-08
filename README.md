@@ -225,6 +225,90 @@ For example, Korea is closer to completion than Mexico, so obtaining a missing s
 
 📌 This entire process is significantly simplified by the information provided in this tab.
 
+### Trade stickers automation
+
+Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new service: **Trade stickers**. This service allows you to:
+
+- Enter another collector's missing and repeated stickers to find potential matches.
+- Upload a QR image containing another collector's missing and repeated stickers to find potential matches.
+- Generate a QR code containing your own missing and repeated stickers.
+- Validate another collector's information and automatically generate a trade proposal identifying the stickers to send and receive.
+- Adjust the trade proposal by changing the number of stickers to send and receive or by sorting the stickers to receive based on album completion.
+- Confirm the trade and automatically update the user's `Stickers` tab with the traded stickers.
+
+> **Note:** The trade service available in the `Trade` tab of the Google Spreadsheet differs from this service because it only identifies potential trades by finding matching stickers. It does not execute the trade or update the `Stickers` tab.
+
+The trade process is completed in two steps. The first screen provides two ways to enter another collector's information or, alternatively, generate your own trade information (missing and repeated stickers) as a QR code:
+
+![Trade Service: Input Another Collector Info](images/tradeViewAnotherCollectorInfo.jpg)
+
+> **Note:** On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the mobile device's camera.
+
+In the example above, the other collector has:
+
+Repeats (stickers to offer)
+```text
+MEX,5,4
+FWC,10
+RSA,1,2,3
+```
+
+Missing (stickers needed)
+```text
+MEX,3,2,1
+```
+
+The input format is the same as for the Import services. See the **Import format** section for more information.
+
+The user can also enter repeated stickers using quantities, for example `MEX,5(3),4(2)`, indicating multiple copies of the same sticker are available for trade. Likewise, missing stickers can also include quantities when more than one copy is needed. Although this format is accepted, the trade service considers only one copy of each sticker internally when searching for matches. This becomes evident after clicking the **Validation** button. The output shows the stickers that will actually be considered during the trade:
+
+**Messages**</br>
+${\color{green}\textsf{Validation successful.}}$
+```text
+Repeats:
+MEX -> 5, 4
+FWC -> 10
+RSA -> 1, 2, 3
+Missing:
+MEX -> 3, 2, 1
+```
+
+As shown above, the quantity notation is removed and only a single copy of each sticker is considered for matching.
+
+The validated data preserves the order provided by the other collector. The matching algorithm first processes countries in the order they were entered and then processes the stickers within each country in the same order. For example, if there is a match, sticker `3` will be the first sticker selected to send to the other collector.
+
+You can enter another collector's missing and repeated stickers manually, paste them, or upload them as a QR code containing the corresponding JSON data. For the previous example, the JSON content encoded in the QR code would be:
+
+```text
+{"r":{"MEX":[5,4],"FWC":[4,10],"RSA":[1,2,3]},"m":{"MEX":[3,2,1]}}
+```
+
+where `r` represents repeated stickers and `m` represents missing stickers.
+
+Once the mandatory validation step is completed, click **Continue** to generate the trade proposal.
+
+If your goal is only to share your own trade information, click **Generate my QR code**. This displays a screen similar to the following:
+
+![Trade Service: Generate my QR code](images/tradeViewGenerateMyQrCode.jpg)
+
+At the bottom of the screen, a validation message confirms the information encoded in the generated QR code. At this point, the workflow is complete for this use case because the user's intention is simply to share the QR code with another collector. The trade process will then continue in the other collector's Google Spreadsheet template, either on desktop or mobile.
+
+The second step is the trade proposal. After clicking **Continue**, the service displays all possible matches between the user's collection and the information provided by the other collector:
+
+![Trade Service: Initial Trade Proposal](images/tradeViewInitialTradeProposal.jpg)
+
+This is the initial trade proposal and can be adjusted by both collectors. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a green background are included in the trade.
+
+However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on album completion. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
+
+To adjust the proposal, the user can select different values in the **Stickers to receive** and **Stickers to send** dropdowns. If the goal is to prioritize album completion, the user can also enable the **Sort by album completion** checkbox. After the collectors agree on the adjusted proposal, clicking **Refresh** recalculates the send and receive lists.
+
+For example, if both collectors agree that the current user will receive every possible matching sticker, the **Stickers to receive** dropdown should be increased to its maximum value. If **Sort by album completion** is also enabled, clicking **Refresh** displays the updated proposal:
+
+![Trade Service: Adjusted Trade Proposal](images/tradeViewAdjustedTradeProposal.jpg)
+
+The proposal can be adjusted and refreshed as many times as necessary until both collectors reach an agreement. Once the agreement is final, click **Confirm trade** to complete the exchange. When the trade is confirmed, the count of each sticker sent is decreased by one, and the count of each sticker received is increased by one. All updates are automatically reflected in the `Stickers` tab.
+
 ### Roster lookup service
 
 Starting with version `1.1.3`, collectors have access to the sticker roster through the `Roster` tab:
@@ -643,11 +727,14 @@ In alphabetical order and organized by folders:
   - `MobileImportStyles.html`: CCS specific styles for mobile import service.
   - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper of `QuickEntryView.html`.
   - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `QRUtils.html`: Client-side QR decoding utilities for Trade views.
   - `QuickEntryDialog.html`: HTML user interface for the Quick sticker entry dialog.
   - `QuickEntryView.html`: HTML view and javascript functions used by Quick entry service (desktop and mobile). Used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
   - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryView.html`.
   - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryView.html`.
   - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
+  - `TradeHelpers.html`: Helper logic functions used by `TradeView.html`.
+  - `TradeView.html`: HTML and javascript function used by Trade Service (desktop and mobile). Used by `TradeDialog.html` and `MobileTradeView.html`.
   - `WebAppLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project. Once the Web app project is deployed it provided the URL, so the user can use this URL from a mobile device.
 
 - Under the `src` folder:
@@ -656,6 +743,7 @@ In alphabetical order and organized by folders:
   - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
   - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
+  - `TradeService.gs`: Trade service to automate trades with another collector.
 
 - Under the `test/` folder:
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.

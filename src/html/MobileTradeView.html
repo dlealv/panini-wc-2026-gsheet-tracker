@@ -1,0 +1,42 @@
+<!--
+  src/html/MobileTradeView.html
+
+  Mobile Trade view wrapper.
+
+  This template is injected into MobileHome.html and provides the mobile
+  container for the shared Trade view.
+
+  Responsibilities:
+    - Render the mobile trade container.
+    - Initialize the shared Trade view.
+    - Own any mobile-specific cleanup.
+
+  Shared Trade behavior belongs to TradeView.html.
+-->
+
+<section id="view-trade" class="view card hidden">
+  <?!= include('TradeView') ?>
+</section>
+
+<script>
+
+  (function () {
+
+    /**
+     * Displays the shared Trade view.
+     * Called from the mobile navigation drawer.
+     */
+    window.showTradeView = function () {
+      showView('trade')
+
+      if (typeof initializeTradeView === 'function') {
+        initializeTradeView({ platform: 'mobile' })
+      }
+    }
+
+    window.openMobileQrCapture = function () { }
+    window.closeMobileQrCapture = function () { }
+
+  })()
+
+</script>

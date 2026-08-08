@@ -191,7 +191,7 @@ describe('TradeHelpers unit tests', () => {
       const hintEl = { style: {} }
       const infoEl = { textContent: '', className: '', style: {} }
       helpers.renderQrPreview(result, { qrEl, hintEl, infoEl })
-      expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent(result.qrData)}`)
+      expect(qrEl.src).toBe(`https://quickchart.io/qr?size=800&ecLevel=H&text=${encodeURIComponent(result.qrData)}`)
       expect(infoEl.className).toBe('preview')
       expect(infoEl.style.display).toBe('block')
       expect(infoEl.textContent).toBe('Repeats:\nFWC -> 6, 14\nMissing:\nMEX -> 1, 5')
@@ -205,7 +205,7 @@ describe('TradeHelpers unit tests', () => {
       const hintEl = { style: {} }
       const infoEl = { textContent: '', className: '', style: {} }
       helpers.renderQrPreview(result, { qrEl, hintEl, infoEl })
-      expect(qrEl.src).toBe(`https://quickchart.io/qr?text=${encodeURIComponent('{}')}`)
+      expect(qrEl.src).toBe(`https://quickchart.io/qr?size=800&ecLevel=H&text=${encodeURIComponent('{}')}`)
       expect(infoEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
       qrEl.onload()
       expect(qrEl.style.display).toBe('block')
@@ -271,13 +271,14 @@ describe('TradeHelpers unit tests', () => {
     test('renders receive and send matches', () => {
       const receivePreviewEl = { innerHTML: '', className: '', style: {} }
       const sendPreviewEl = { innerHTML: '', className: '', style: {} }
+      const previewClass = 'preview proposal-preview'
       helpers.renderMatches(
-        { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { receivePreviewEl, sendPreviewEl }
+        { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { receivePreviewEl, sendPreviewEl, previewClass }
       )
-      expect(receivePreviewEl.className).toBe('preview')
+      expect(receivePreviewEl.className).toBe(previewClass)
       expect(receivePreviewEl.innerHTML).toBe('MEX, 1, 5')
       expect(receivePreviewEl.style.display).toBe('block')
-      expect(sendPreviewEl.className).toBe('preview')
+      expect(sendPreviewEl.className).toBe(previewClass)
       expect(sendPreviewEl.innerHTML).toBe('FWC, 2, 8')
       expect(sendPreviewEl.style.display).toBe('block')
     })

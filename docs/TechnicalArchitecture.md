@@ -278,18 +278,20 @@ The mobile implementation is built on top of the same backend services used by t
 - `ImportService.gs`
 - `ExportService.gs`
 - `QuickEntryService.gs`
+- `TradeService.gs`
 
 Responsibilities:
 - Read and update spreadsheet data.
 - Generate import and export payloads.
 - Process sticker count updates.
+- Enabling trading process between collectors.
 - Expose desktop dialog and mobile Web app entry points.
 - Serve shared HTML templates.
 - Provide a common backend for both desktop and mobile UIs.
 
 #### Shared repository layer
 
-`Commons.gs` contains the shared spreadsheet repository layer. The `StickerSheetRepository` constructor accepts an optional spreadsheet instance. Desktop services use the active spreadsheet by default, while mobile services explicitly pass the target spreadsheet.
+`Commons.gs` contains the shared spreadsheet repository layer (reading and writing from/to Google Spreadsheet). The `StickerSheetRepository` constructor accepts an optional spreadsheet instance. Desktop services use the active spreadsheet by default, while mobile services explicitly pass the target spreadsheet.
 
 This constructor parameter is a key part of the mobile architecture because:
 - Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
@@ -302,7 +304,7 @@ This design allows the same repository implementation to operate correctly in bo
 - Locate named ranges.
 - Validate the spreadsheet structure.
 - Read country and sticker data.
-- Update sticker counts in batches.
+- Update sticker counts in batches considering different modes.
 - Provide reusable lookup helpers for the Import, Export, and Quick Entry services.
 - Lazily initialize internal attributes through getters to reduce execution time.
 

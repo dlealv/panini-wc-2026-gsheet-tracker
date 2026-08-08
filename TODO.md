@@ -17,4 +17,4 @@
 - [x] Show product version for gsheet template and for Apps Script project.
 - [x] Panini sticker card repository and lookup
 - [x] Trade Service Apps Script service to simplify trading process.
-- [] Complete refactor to ensure service use the same contract as the input of `updateStickerCounts` in `StickerSheetRepository`, so there is no need to do additional transformation.
+- [ ] Complete refactor to ensure service use the same contract as the input of `updateStickerCounts` in `StickerSheetRepository`, so there is no need to do additional transformation.
