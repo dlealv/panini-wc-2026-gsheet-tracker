@@ -9,7 +9,8 @@ global.document = {
   createElement: () => ({
     className: '',
     textContent: ''
-  })
+  }),
+  getElementById: () => null
 }
 
 describe('TradeHelpers unit tests', () => {
@@ -17,19 +18,27 @@ describe('TradeHelpers unit tests', () => {
   describe('getPayload()', () => {
     test('returns trade options from UI state', () => {
       const result = helpers.getPayload({
-        sortByCompletionCheckbox: { checked: true },
+        sortModeSelect: { value: 'completion' },
         receiveLimitSelect: { value: '3' },
         sendLimitSelect: { value: '2' }
       })
-      expect(result).toEqual({ sortMissing: true, maxStickerReceive: 3, maxStickerSend: 2 })
+      expect(result).toEqual({ sortMode: 'completion', maxStickerReceive: 3, maxStickerSend: 2 })
     })
-    test('returns false and zero values when controls are unchecked or empty', () => {
+    test('defaults to album mode for empty selector', () => {
       const result = helpers.getPayload({
-        sortByCompletionCheckbox: { checked: false },
+        sortModeSelect: { value: '' },
         receiveLimitSelect: { value: '0' },
         sendLimitSelect: { value: '0' }
       })
-      expect(result).toEqual({ sortMissing: false, maxStickerReceive: 0, maxStickerSend: 0 })
+      expect(result).toEqual({ sortMode: 'album', maxStickerReceive: 0, maxStickerSend: 0 })
+    })
+    test('defaults to album mode for invalid selector value', () => {
+      const result = helpers.getPayload({
+        sortModeSelect: { value: 'random-mode' },
+        receiveLimitSelect: { value: '1' },
+        sendLimitSelect: { value: '1' }
+      })
+      expect(result).toEqual({ sortMode: 'album', maxStickerReceive: 1, maxStickerSend: 1 })
     })
   })
 
@@ -335,53 +344,79 @@ describe('TradeHelpers unit tests', () => {
   })
 
   /** Applies user-selected limits to trade matches. */
-  describe('applyTradeSelectionLimits()', () => {
+  describe('prepareTradeSelection()', () => {
     test('limits receive and send stickers independently', () => {
       const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3], BRA: [7] } }
-      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 2, maxStickerSend: 1 })
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 2, maxStickerSend: 1 })
       expect(result).toEqual({ receive: { MEX: [4, 5] }, send: { MEX: [2] } })
     })
     test('preserves country order while applying the total limit', () => {
       const matches = { receive: { MEX: [4], FWC: [10, 11], BRA: [20] }, send: {} }
-      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 3, maxStickerSend: 0 })
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 3, maxStickerSend: 0 })
       expect(result).toEqual({ receive: { MEX: [4], FWC: [10, 11] }, send: {} })
     })
     test('returns all stickers when limits exceed available stickers', () => {
       const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3] } }
-      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 10, maxStickerSend: 10 })
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 10, maxStickerSend: 10 })
       expect(result).not.toBe(matches)
       expect(result.receive).not.toBe(matches.receive)
     })
     test('returns empty groups when limits are zero', () => {
       const matches = { receive: { MEX: [4, 5] }, send: { MEX: [2, 3] } }
-      const result = helpers.applyTradeSelectionLimits(matches, { maxStickerReceive: 0, maxStickerSend: 0 })
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 0, maxStickerSend: 0 })
       expect(result).toEqual({ receive: {}, send: {} })
     })
     test('returns empty groups when matches are empty', () => {
-      const result = helpers.applyTradeSelectionLimits({ receive: {}, send: {} }, { maxStickerReceive: 3, maxStickerSend: 3 })
+      const result = helpers.prepareTradeSelection({ receive: {}, send: {} }, { maxStickerReceive: 3, maxStickerSend: 3 })
       expect(result).toEqual({ receive: {}, send: {} })
     })
-    test('sorts matches by album completion before applying limits', () => {
-      const matches = {
-        receive: { MEX: [1], FWC: [2], BRA: [3] },
-        send: {}
-      }
-      const result = helpers.applyTradeSelectionLimits(matches, {
+    test('sorts matches by completion before applying limits', () => {
+      const matches = { receive: { MEX: [1], FWC: [2], BRA: [3] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 2,
         maxStickerSend: 0,
-        sortMissing: true,
+        sortMode: 'completion',
         doneMap: { MEX: 50, FWC: 90, BRA: 20 }
       })
       expect(result.receive).toEqual({ FWC: [2], MEX: [1] })
     })
-    test('does not sort when completion map is missing', () => {
+    test('falls back to album order when completion map is missing', () => {
       const matches = { receive: { MEX: [1], FWC: [2] }, send: {} }
-      const result = helpers.applyTradeSelectionLimits(matches, {
+      const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 2,
         maxStickerSend: 0,
-        sortMissing: true
+        sortMode: 'completion'
       })
       expect(result.receive).toEqual({ MEX: [1], FWC: [2] })
+    })
+    test('keeps album order when sort mode is album', () => {
+      const matches = { receive: { MEX: [3, 1], FWC: [2] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 3,
+        maxStickerSend: 0,
+        sortMode: 'album'
+      })
+      expect(result.receive).toEqual({ MEX: [3, 1], FWC: [2] })
+    })
+    test('sorts receive by preferences mode', () => {
+      const matches = { receive: { MEX: [2, 1], FWC: [7], POR: [9, 11] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences: ['FWC', '1', 'POR11']
+      })
+      expect(result.receive).toEqual({ FWC: [7], MEX: [1, 2], POR: [11, 9] })
+    })
+    test('falls back to album order when preferences list is empty', () => {
+      const matches = { receive: { MEX: [2, 1], FWC: [7] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences: []
+      })
+      expect(result.receive).toEqual({ MEX: [2, 1], FWC: [7] })
     })
   })
 })

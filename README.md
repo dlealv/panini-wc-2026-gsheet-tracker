@@ -686,6 +686,7 @@ In alphabetical order and organized by folders:
 
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: panini sticker roster file.
+  - `clean_roster.py`: Helper script file to standardize the roster file, it does cleanup and standardize club names.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.

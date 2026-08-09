@@ -42,7 +42,7 @@ This service covers:
 - Validating and normalizing another collector's trade information.
 - Comparing both collections to identify possible sticker exchanges.
 - Supporting equal and unbalanced trade quantities.
-- Sorting received stickers by album order or album completion percentage (`DONE` named range).
+- Support sorting for receive stickers by album, completion (`DONE` named range) or by user preferences (`TRADE_PREFERENCES` named range).
 - Confirming the final trade quantities.
 - Updating the user's sticker counts in the `COUNTS` named range after confirmation.
 - Preserving spreadsheet formatting by writing values only to `COUNTS`.
@@ -165,7 +165,7 @@ The workflow consists of:
 7. Display the Trade proposal and confirmation view:
    - Review possible exchanges.
    - Select receive and send quantities.
-   - Sort received stickers by album order or completion percentage.
+   - Sort received stickers by album, completion, or user preferences.
    - Confirm the final trade.
 
 8. After confirmation:
@@ -450,7 +450,11 @@ The default receive sticker order is:
 
 - Album order.
 
-The user can optionally sort receive stickers by country completion percentage using the `DONE` named range.
+The user can optionally sort stickers to receive by:
+
+- Album order, based on the order of the countries in the album. This is the default sorting.
+- Country completion, in descending order, using the `DONE` named range.
+- User preferences defined in the `TRADE_PREFERENCES` named range.
 
 Sorting only changes display order.
 
@@ -459,6 +463,111 @@ It does not modify:
 - Match results.
 - Sticker availability.
 - Trade validation rules.
+
+### 9.4 `TRADE_PREFERENCES` Named Range
+
+`TRADE_PREFERENCES` is a single-column named range containing the user's preferences for stickers to receive. Preferences are evaluated from top to bottom, with the first row having the highest priority.
+
+The user can define preferences by:
+
+- Country code, for example `FWC`.
+- Sticker number, for example `1`, `13`, etc..
+- Country-specific sticker, for example `FRA20`, `POR15`, `ARG10`, etc..
+
+The intention of this sorting is to consider the collector's priority for receiving stickers. For example, the user may want to prioritize certain country codes, specific sticker positions, or specific players. Famous players such as Messi, Cristiano Ronaldo, Mbappe, etc. may be preferred over other players. Similarly, special stickers such as the crest (`1`) or team picture (`13`) may be preferred. Therefore, the trading process attempts to prioritize the stickers according to the user's preferences.
+
+This prioritization applies only to the current user's stickers to receive. The current user's stickers to send are not sorted using `TRADE_PREFERENCES`; their order continues to be determined by the input data in missing list since the order of the other collector input data is respected by the trading process.
+
+Preferences are interpreted according to their type:
+
+- **Country preference**: If the country is present in the receive list, that country is prioritized according to the position of the preference in `TRADE_PREFERENCES`.
+
+- **Global sticker-number preference**: If a country contains the specified sticker number, that country is prioritized according to the position of the preference. The same preference also places that sticker before the other stickers within every country where it is present.
+
+- **Country-specific sticker preference**: If the specified country contains the specified sticker, that country is prioritized and the specified sticker is placed before the other stickers within that country. The preference does not prioritize the same sticker number in other countries.
+
+For example, if `1` is a preference and both `MEX` and `CZE` contain sticker `1`, both countries are affected by that preference and sticker `1` is placed first within each of those countries.
+
+If `13` is the next preference, any country containing sticker `13` is prioritized at that preference level, and sticker `13` is placed before the other stickers within those countries.
+
+If `FRA20` is a preference, France is prioritized when sticker `20` is present in the receive list, and sticker `20` is placed before the other stickers within France. The `FRA20` preference does not prioritize sticker `20` in other countries.
+
+Preferences are evaluated sequentially from the highest priority to the lowest priority. The first applicable preference determines the priority at that level. If multiple countries or stickers are affected by the same preference, their relative order is determined by subsequent applicable preferences. If no preference distinguishes them, the album order is used as the final sorting criterion.
+
+Given the following `TRADE_PREFERENCES`:
+```text
+FWC
+CC
+1
+13
+FRA20
+POR15
+ARG10
+```
+
+And the following receive list, initially sorted by album order and with stickers sorted by their default numeric order:
+```text
+MEX,1,2,5,13
+RSA,2,3
+KOR,13
+CZE,1,9
+CAN,12,13
+GER,2,3
+POR,2,11
+CC,2,3
+```
+
+The resulting order is determined as follows:
+
+| Receive List | Justification |
+| ------------ | ------------- |
+| `CC,2,3` | `CC` is first because `CC` is the highest-priority preference that matches the receive list. There are no `FWC` stickers. |
+| `MEX,1,13,2,5` | `MEX` contains sticker `1`, which is the next applicable preference. Sticker `1` is placed before the other stickers. Sticker `13` is also preferred over the remaining sticker `2` and `5` because `13` is the next applicable sticker-number preference. |
+| `CZE,1,9` | `CZE` contains sticker `1`, so it is prioritized by the same global sticker-number preference. |
+| `KOR,13` | `KOR` contains sticker `13`, which is the next applicable sticker-number preference. |
+| `CAN,13,12` | `CAN` contains sticker `13`, so sticker `13` is placed before sticker `12`. |
+| `POR,15,2` | `POR,11` matches the country-specific sticker preference `POR1%`, so `POR` is prioritized and sticker `11` is placed first within `POR`. |
+| `RSA,2,3` | No preference matches `RSA`, so it remains in album order. |
+| `GER,2,3` | No preference matches `GER`, so it remains in album order after `RSA`. It goes after `RSA` because of the album order.|
+
+The resulting receive list is:
+```text
+CC,2,3
+MEX,1,13,2,5
+CZE,1,9
+KOR,13
+CAN,13,12
+POR,11,2
+RSA,2,3
+GER,2,3
+```
+
+The order of stickers within each country is also subject to the applicable preferences. For example, if `1` and `13` are preferences and the receive list contains:
+```text
+MEX,1,13,2
+```
+
+then the result is:
+```text
+MEX,1,13,2
+```
+
+because `1` has a higher preference priority than `13`, and both have higher priority than the remaining sticker.
+
+The numbers `1` and `13` are only examples of sticker-number preferences. Any valid sticker number can be used in `TRADE_PREFERENCES`.
+
+If `FRA20` is a preference and the receive list contains:
+```text
+FRA,20,10
+```
+
+then `FRA` is prioritized as a country and sticker `20` is placed before sticker `10` within France.
+
+If two countries are affected by the same preference, and no subsequent preference distinguishes them, their relative order is determined by album order. The same rule applies when two stickers within a country have the same applicable priority.
+
+The receive list always maintains one country per row. Stickers from different countries must not be combined into the same row as a result of any sorting criteria.
+
+The service must implement a sorting algorithm based on the above business rules.
 
 ---
 
@@ -489,7 +598,7 @@ The displayed trade can only be modified by changing:
 
 - Stickers to receive quantity.
 - Stickers to send quantity.
-- Sort by album completion option.
+- Sort criteria for receive stickers list.
 
 After user makes the changes, they missing and repeats list will be updated after the users requests to refresh the view.
 
@@ -544,6 +653,8 @@ Before applying the trade, the service must validate that the selected trade inf
 After successful confirmation:
 
 - The service updates the user's sticker counts in the `COUNTS` named range.
+  - Sticker to send the count will be reduced by `1`.
+  - Sticker to receive the count will be incremented by `1`.
 - The applied trade becomes the new collection state.
 - The Messages section displays the result of the trade operation.
 
@@ -629,7 +740,116 @@ The final write operation must be performed through the `StickerSheetRepository`
 
 ---
 
-## 12. Errors and Warnings
+## 12 QR code and decode specification
+
+The Trade service must support QR code exchange as an alternative method for sharing trade information.
+
+The QR code functionality must support:
+
+- Generating a QR code containing the user's trade information.
+- Importing another collector's trade information from a QR code image.
+- Capturing another collector's QR code using the mobile device camera.
+
+The QR payload must contain only the information required for trading:
+
+- Missing stickers.
+- Repeats.
+
+The QR representation should prioritize:
+
+- Compact data representation.
+- Reliable encoding and decoding.
+- Compatibility between generated and scanned QR codes.
+
+QR code data must not include information that can be generated from the user's spreadsheet collection.
+
+Decoded QR information must follow the same validation and normalization process as manual input.
+
+### 12.1 QR encode specification
+
+The preferred QR representation is a simplified JSON format using integer bit masks to represent sticker lists.
+
+Since each country's missing and repeats lists only need to indicate whether a sticker is present, each sticker list can be represented as a binary bit mask.
+
+For example, the following 21-bit representation, covering sticker numbers `0` through `20`:
+
+```text
+#  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+   0 0 1 1 0 0 0 0 0 0  1  1  1  0  0  0  0  0  0  0  0
+```
+
+represents the sticker list:
+```text
+2,3,10,11,12
+```
+
+The bit positions are interpreted as follows:
+
+- Bit `0` represents sticker `0`.
+- Bit `1` represents sticker `1`.
+- Bit `2` represents sticker `2`.
+- And so on.
+
+Therefore, the above sticker list has the following set bits:
+
+- Sticker `2` -> `2^2` = `4`
+- Sticker `3` -> `2^3` = `8`
+- Sticker `10` -> `2^10` = `1024`
+- Sticker `11` -> `2^11` = `2048`
+- Sticker `12` -> `2^12` = `4096`
+
+The decimal representation of the bit mask is therefore:
+```text
+4 + 8 + 1024 + 2048 + 4096 = 7180
+```
+
+Thus, the compact decimal representation of the above binary mask is: `7180`. The general formula is the following:
+```text
+sticker number N -> 2^N
+```
+
+The simplified JSON contract could therefore be:
+```text
+{
+  "r":{"BRA":640,"ARG":2056},
+  "m":{"MEX":16402,"FWC":129}
+}
+```
+
+Where:
+
+- `m` represents missing stickers encoded as integer bit masks.
+- `r` represents repeated stickers encoded as integer bit masks.
+- Each country code is associated with one integer containing the bit mask for its stickers.
+
+For example, the encoded values above can be decoded internally as follows:
+```text
+{
+  "repeats": { "BRA": [7, 9], "ARG": [3, 11] },
+  "missing": { "MEX": [1, 4, 14], "FWC": [0, 7] }
+}
+```
+
+The values are decoded using the same bit-position convention:
+
+- `640` = `512 + 128` = stickers `9,7`, represented in ascending order as `[7,9]`.
+- `2056` = `2048 + 8` = stickers `11,3`, represented in ascending order as `[3,11]`.
+- `16402` = `16384 + 16 + 2` = stickers `14,4,1`, represented in ascending order as `[1,4,14]`.
+- `129` = `128 + 1` = stickers `7,0`, represented in ascending order as `[0,7]`.
+
+Because sticker `0` is a valid sticker number, a country containing all stickers from `0` through `20` is represented by:
+
+```text
+2^0 + 2^1 + 2^2 + ... + 2^20 = 2^21 - 1 = 2097151
+```
+
+Therefore `2097151` is the maximum encode value for a country with stickers `0` through `20`.
+
+The QR encoding and decoding process must preserve the sticker lists represented by these bit masks. The decoded lists must then be processed using the same normalization and validation rules as manually entered trade information.
+
+---
+
+## 13. Errors and Warnings
 
 The Trade service must reuse the existing error and warning handling implemented by the Import and Export services.
 
@@ -657,9 +877,9 @@ If the trade update fails:
 
 ---
 
-## 13. User Interface Requirements
+## 14. User Interface Requirements
 
-### 13.1 Desktop Trade Dialog
+### 14.1 Desktop Trade Dialog
 
 The Trade service must provide a desktop dialog accessible from the `Manage Panini` custom menu.
 
@@ -681,7 +901,7 @@ The desktop implementation must reuse existing application styles and UI convent
 
 The desktop interface must not modify the spreadsheet through intermediate actions. Spreadsheet updates must only occur after the user selects **Confirm trade**.
 
-### 13.2 Mobile Trade View
+### 14.2 Mobile Trade View
 
 The mobile Trade service must provide the same trade workflow, business rules, and trade functionality as the desktop implementation.
 
@@ -700,7 +920,7 @@ The mobile implementation must reuse the same:
 
 Spreadsheet updates must only occur after the user selects **Confirm trade**.
 
-### 13.3 Trade Information Input
+### 14.3 Trade Information Input
 
 The Trade service must allow the user to provide another collector's trade information through:
 
@@ -719,32 +939,7 @@ The user interface must display validation results in the Messages section.
 
 The user must be able to correct invalid information before continuing with the trade workflow.
 
-### 13.4 QR Code Features
-
-The Trade service must support QR code exchange as an alternative method for sharing trade information.
-
-The QR code functionality must support:
-
-- Generating a QR code containing the user's trade information.
-- Importing another collector's trade information from a QR code image.
-- Capturing another collector's QR code using the mobile device camera.
-
-The QR payload must contain only the information required for trading:
-
-- Missing stickers.
-- Repeats.
-
-The QR representation should prioritize:
-
-- Compact data representation.
-- Reliable encoding and decoding.
-- Compatibility between generated and scanned QR codes.
-
-QR code data must not include information that can be generated from the user's spreadsheet collection.
-
-Decoded QR information must follow the same validation and normalization process as manual input.
-
-### 13.5 Trade proposal and confirmation view
+### 14.4 Trade proposal and confirmation view
 
 The Trade proposal view must display the possible sticker exchanges generated by the matching process.
 
@@ -769,7 +964,7 @@ The displayed proposal must represent only the current possible trade and must n
 
 The view must provide a **Confirm trade** action that applies the selected exchange.
 
-### 13.6 Trade Confirmation
+### 14.5 Trade Confirmation
 
 The Trade proposal view also acts as the trade confirmation step.
 
@@ -786,7 +981,7 @@ The service must clearly indicate that confirming the operation will update the 
 
 The Trade service must not update the user's collection until the user explicitly selects **Confirm trade**.
 
-### 13.7 Loading, Empty, Success, and Error States
+### 14.6 Loading, Empty, Success, and Error States
 
 The Trade service must provide clear feedback during each stage of the workflow.
 
@@ -814,11 +1009,11 @@ The user interface must provide enough information for the user to understand th
 
 ---
 
-## 14. Technical Design Guidelines
+## 15. Technical Design Guidelines
 
 The implementation must follow the existing application architecture and reuse existing services and components whenever possible.
 
-### 14.1 Trade Service Responsibilities
+### 15.1 Trade Service Responsibilities
 
 The Trade service is responsible for:
 
@@ -836,7 +1031,7 @@ The Trade service must not duplicate:
 - Existing import parsing and validation logic.
 - Existing export trade information generation logic.
 
-### 14.2 StickerSheetRepository Usage
+### 15.2 StickerSheetRepository Usage
 
 All spreadsheet access must be performed through the existing `StickerSheetRepository` class.
 
@@ -844,7 +1039,7 @@ The Trade service must not access spreadsheet ranges directly when repository me
 
 The repository layer must be responsible for applying updates to the `COUNTS` named range.
 
-### 14.3 Client and Backend Separation
+### 15.3 Client and Backend Separation
 
 The implementation must separate:
 

@@ -143,8 +143,9 @@ class TradeService {
    * }
    * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
    * @param {Object} [deps] Optional dependency injection for testing.
-   * @returns {{receive:string,send:string, doneMap:string}}
-   * Note: receive, send and doneMap are serialized JSON strings for transport to the client.
+   * @returns {{receive:string,send:string, doneMap:string, tradePreferences:string}}
+   * Note: receive, send, doneMap, tradePreferences are serialized JSON strings for transport 
+   * to the client.
    */
   static findStickerTradeMatches(payload, ss = null, deps = {}) {
     const service = new TradeService(ss, deps)
@@ -156,7 +157,8 @@ class TradeService {
     return {
       receive: JSON.stringify(matches.receive),
       send: JSON.stringify(matches.send),
-      doneMap: JSON.stringify(matches.doneMap)
+      doneMap: JSON.stringify(matches.doneMap),
+      tradePreferences: JSON.stringify(matches.tradePreferences)
     }
   }
 
@@ -373,10 +375,12 @@ class TradeService {
       this.getOtherTradeInfo()
     )
     const doneMap = this._getCountryDoneMap(Object.keys(matches.receive))
+    const tradePreferences = this._getTradePreferences()
     return {
       receive: matches.receive,
       send: matches.send,
-      doneMap: doneMap
+      doneMap: doneMap,
+      tradePreferences: tradePreferences
     }
   }
 
@@ -562,6 +566,18 @@ class TradeService {
       doneMap[code] = Number(doneValues[i] && doneValues[i][0]) || 0
     }
     return doneMap
+  }
+
+  /** Retrieves the trade preferences from the repository.
+   * Returns an array of country codes in the order defined by the user.
+   * Empty or undefined values are filtered out.
+   * @returns {string[]} Array of country codes representing trade preferences.
+   */
+  _getTradePreferences() {
+    const repo = this.getRepo()
+    const tradePreferencesRange = repo.getTradePreferencesRange()
+    const values = tradePreferencesRange.getValues()
+    return values.map(row => row[0]).filter(v => v)
   }
 
 }
@@ -771,26 +787,30 @@ class TradeQrHelper {
   }
 
   /**
-  * Converts an array of numeric positions into a bit mask number.
-  * Each position is represented by one bit in the resulting number.
-  * @param {Array<number>} values Numeric positions to encode.
-  * @returns {number} Bit mask represented as a decimal number.
-  */
+ * Converts an array of numeric positions into a bit mask number.
+ * Each position is represented by one bit in the resulting number.
+ * Sticker 0 is represented by bit 0.
+ *
+ * @param {Array} values Numeric positions to encode.
+ * @returns {number} Bit mask represented as a decimal number.
+ */
   _encodeBitMask(values) {
-    return values.reduce((mask, value) => mask | (1 << (value - 1)), 0)
+    return values.reduce((mask, value) => mask | (1 << value), 0)
   }
 
   /**
    * Converts a bit mask number into an array of numeric positions.
-   * Each active bit represents one position.
+   * Each active bit represents one sticker position.
+   * Bit 0 represents sticker 0.
+   *
    * @param {number} mask Bit mask represented as a decimal number.
-   * @returns {Array<number>} Numeric positions decoded from the mask.
+   * @returns {Array} Numeric positions decoded from the mask.
    */
   _decodeBitMask(mask) {
     const values = []
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i <= 20; i++) {
       if (mask & (1 << i)) {
-        values.push(i + 1)
+        values.push(i)
       }
     }
     return values

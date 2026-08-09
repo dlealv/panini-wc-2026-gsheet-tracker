@@ -16,6 +16,9 @@
 
 const { TradeService, TradeCalculation, TradeQrHelper } = require('../build/TradeService.js')
 
+/** Expected trade preferences from test kernel mock range. */
+const EXPECTED_TRADE_PREFERENCES = ['MEX', '1', '13', 'POR11']
+
 describe('TradeService (unit)', () => {
   const { initTestKernel, TEST_DATA } = require('./utils/testKernel.js')
   const { ExportService, ExportStickers } = require('../build/ExportService.js')
@@ -120,7 +123,12 @@ describe('TradeService (unit)', () => {
   /** static findStickerTradeMatches() */
   describe('static findStickerTradeMatches()', () => {
     test('creates service and delegates calculateMatches', () => {
-      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [], doneMap: {} })
+      const calculateMock = jest.fn().mockReturnValue({
+        receive: [],
+        send: [],
+        doneMap: {},
+        tradePreferences: {}
+      })
       class MockTradeCalculation {
         calculate() {
           return calculateMock()
@@ -132,7 +140,12 @@ describe('TradeService (unit)', () => {
         ...initStaticDeps(),
         TradeCalculation: MockTradeCalculation
       })
-      expect(result).toEqual({ receive: JSON.stringify([]), send: JSON.stringify([]), doneMap: JSON.stringify({}) })
+      expect(result).toEqual({
+        receive: JSON.stringify([]),
+        send: JSON.stringify([]),
+        doneMap: JSON.stringify({}),
+        tradePreferences: JSON.stringify(EXPECTED_TRADE_PREFERENCES)
+      })
       expect(calculateMock).toHaveBeenCalledTimes(1)
     })
   })
@@ -486,7 +499,12 @@ describe('TradeService (unit)', () => {
       const result = service.findTradeMatches()
       expect(calculationMock).toHaveBeenCalledTimes(1)
       expect(calculationMock).toHaveBeenCalledWith(service.getTradeInfo(), service.getOtherTradeInfo())
-      expect(result).toEqual({ receive: [], send: [], doneMap: {} })
+      expect(result).toEqual({
+        receive: [],
+        send: [],
+        doneMap: {},
+        tradePreferences: EXPECTED_TRADE_PREFERENCES
+      })
     })
     test('returns calculation result from TradeCalculation', () => {
       service.setOtherTradeInfo({ countries: [] }, { countries: [{ code: 'MEX', counts: { 1: 1 } }] })
@@ -500,7 +518,12 @@ describe('TradeService (unit)', () => {
           send: {}
         })
       const result = service.findTradeMatches({ countries: ['BRA'] })
-      expect(result).toEqual({ receive: { BRA: [5] }, send: {}, doneMap: {} })
+      expect(result).toEqual({
+        receive: { BRA: [5] },
+        send: {},
+        doneMap: {},
+        tradePreferences: EXPECTED_TRADE_PREFERENCES
+      })
     })
     test('returns matches preserving trade info country order', () => {
       service.setOtherTradeInfo({
@@ -515,7 +538,8 @@ describe('TradeService (unit)', () => {
       expect(result).toEqual({
         receive: { FWC: [10], MEX: [4, 5] },
         send: { MEX: [2, 3] },
-        doneMap: { FWC: 2, MEX: 2 }
+        doneMap: { FWC: 2, MEX: 2 },
+        tradePreferences: EXPECTED_TRADE_PREFERENCES
       })
     })
     test('returns empty matches when no matches exist', () => {
@@ -523,7 +547,12 @@ describe('TradeService (unit)', () => {
       jest.spyOn(service, 'getTradeInfo').mockReturnValue({ missing: { MEX: [1] }, repeats: { BRA: [8] } })
       jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({ receive: {}, send: {} })
       const result = service.findTradeMatches()
-      expect(result).toEqual({ receive: {}, send: {}, doneMap: {} })
+      expect(result).toEqual({
+        receive: {},
+        send: {},
+        doneMap: {},
+        tradePreferences: EXPECTED_TRADE_PREFERENCES
+      })
     })
   })
 
@@ -621,26 +650,28 @@ describe('TradeQrHelper (unit)', () => {
   beforeEach(() => {
     helper = new TradeQrHelper()
   })
+
   /** encode() */
   describe('encode()', () => {
     test('encodes trade information into QR payload format using bit masks', () => {
       const tradeInfo = {
-        missing: { MEX: [1, 5, 15], FWC: [2, 8] },
-        repeats: { BRA: [8, 10], ARG: [4, 12] }
+        missing: { MEX: [1, 4, 14], FWC: [0, 7] },
+        repeats: { BRA: [7, 9], ARG: [3, 11] }
       }
       const result = helper.encode(tradeInfo)
-      expect(result).toBe('{"m":{"MEX":16401,"FWC":130},"r":{"BRA":640,"ARG":2056}}')
+      expect(result).toBe('{"m":{"MEX":16402,"FWC":129},"r":{"BRA":640,"ARG":2056}}')
     })
     test('omits empty missing and repeats collections', () => {
       expect(helper.encode({ missing: {}, repeats: {} })).toBe('{}')
     })
   })
+
   /** decode() */
   describe('decode()', () => {
     test('decodes QR payload into trade information model', () => {
-      const payload = '{"m":{"MEX":16401,"FWC":130},"r":{"BRA":640,"ARG":2056}}'
+      const payload = '{"m":{"MEX":16402,"FWC":129},"r":{"BRA":640,"ARG":2056}}'
       const result = helper.decode(payload)
-      expect(result).toEqual({ repeats: { BRA: [8, 10], ARG: [4, 12] }, missing: { MEX: [1, 5, 15], FWC: [2, 8] } })
+      expect(result).toEqual({ repeats: { BRA: [7, 9], ARG: [3, 11] }, missing: { MEX: [1, 4, 14], FWC: [0, 7] } })
     })
     test('returns empty trade information for invalid payload', () => {
       const result = helper.decode('invalid')
@@ -649,20 +680,20 @@ describe('TradeQrHelper (unit)', () => {
     test('ignores unknown fields from QR payload', () => {
       const payload = '{"m":{"MEX":16400},"r":{"BRA":128},"x":"ignored"}'
       const result = helper.decode(payload)
-      expect(result).toEqual({ repeats: { BRA: [8] }, missing: { MEX: [5, 15] } })
+      expect(result).toEqual({ repeats: { BRA: [7] }, missing: { MEX: [4, 14] } })
     })
     test('handles payload with only missing stickers', () => {
       const result = helper.decode('{"m":{"MEX":1}}')
-      expect(result).toEqual({ repeats: {}, missing: { MEX: [1] } })
+      expect(result).toEqual({ repeats: {}, missing: { MEX: [0] } })
     })
     test('handles payload with only repeat stickers', () => {
       const result = helper.decode('{"r":{"BRA":128}}')
-      expect(result).toEqual({ repeats: { BRA: [8] }, missing: {} })
+      expect(result).toEqual({ repeats: { BRA: [7] }, missing: {} })
     })
-    test('preserves all stickers in a full 20 sticker mask', () => {
-      const payload = '{"m":{"FWC":1048575}}'
+    test('preserves all stickers in a full 21 sticker mask', () => {
+      const payload = '{"m":{"FWC":2097151}}'
       const result = helper.decode(payload)
-      expect(result.missing.FWC).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
+      expect(result.missing.FWC).toEqual(Array.from({ length: 21 }, (_, i) => i))
     })
   })
 })

@@ -134,14 +134,16 @@
     </div><!-- /proposal-actions -->
 
     <div class="section">
-      <div class="section-title">
-        Stickers to receive (<span id="receiveMatchCount">0</span>)
-      </div>
-      <div>
-        <label class="toolbar-item">
-          <input id="sortByCompletionCheckbox" type="checkbox">
-          Sort by album completion
-        </label>
+      <div class="section-title receive-header-inline">
+        <span>Stickers to receive (<span id="receiveMatchCount">0</span>)</span>
+        <div class="receive-sort-inline toolbar-item">
+          <label for="sortModeSelect">Sort by</label>
+          <select id="sortModeSelect" class="form-control trade-sort-mode-select">
+            <option value="album">Album</option>
+            <option value="completion">Completion</option>
+            <option value="preferences">Preferences</option>
+          </select>
+        </div>
       </div>
       <div id="receiveMatchesPreview" class="preview proposal-preview"></div>
     </div><!-- /section -->
@@ -249,7 +251,7 @@
     const sendMatchCountEl = document.getElementById('sendMatchCount')
     const receiveLimitSelectEl = document.getElementById('receiveLimitSelect')
     const sendLimitSelectEl = document.getElementById('sendLimitSelect')
-    const sortByCompletionCheckboxEl = document.getElementById('sortByCompletionCheckbox')
+    const sortModeSelectEl = document.getElementById('sortModeSelect')
     const proposalMessageEl = document.getElementById('proposal-message')
     const proposalMessageSectionEl = document.getElementById('proposalMessageSection')
     const refreshProposalButtons = document.querySelectorAll('.refresh-proposal-button')
@@ -278,7 +280,8 @@
       otherTradeInfo: null,
       matches: null,
       proposal: null,
-      doneMap: null
+      doneMap: null,
+      tradePreferences: []
     }
 
     // When the Trade view opens, the Continue button is disabled until valid trade information is available.
@@ -346,6 +349,7 @@
       state.matches = null
       state.proposal = null
       state.doneMap = null
+      state.tradePreferences = []
       continueButtonEl.disabled = true
       tradeMessageSectionEl.style.display = 'none'
       Trade.clearPreview({ previewEl })
@@ -551,6 +555,7 @@
       const matches = { receive: JSON.parse(result.receive), send: JSON.parse(result.send) }
       state.matches = matches
       state.doneMap = JSON.parse(result.doneMap || '{}')
+      state.tradePreferences = JSON.parse(result.tradePreferences || '[]')
       showProposalView(matches)
     }
 
@@ -565,7 +570,7 @@
       const sendCount = Trade.countMatches(matches.send)
       proposalMessageSectionEl.style.display = 'none'
       proposalMessageEl.textContent = ''
-      sortByCompletionCheckboxEl.checked = false
+      sortModeSelectEl.value = 'album'
       if (receiveCount === 0 || sendCount === 0) {
         proposalMessageSectionEl.style.display = ''
         proposalMessageEl.className = 'message warning'
@@ -577,11 +582,12 @@
       }
       confirmTradeButtonEl.disabled = false
       const balancedQuantity = Math.min(receiveCount, sendCount)
-      state.proposal = Trade.applyTradeSelectionLimits(matches, {
-        sortMissing: false,
+      state.proposal = Trade.prepareTradeSelection(matches, {
+        sortMode: 'album',
         maxStickerReceive: balancedQuantity,
         maxStickerSend: balancedQuantity,
-        doneMap: state.doneMap
+        doneMap: state.doneMap,
+        tradePreferences: state.tradePreferences
       })
       populateTradeQuantitySelects(matches)
       renderProposalPreview(true)
@@ -590,13 +596,14 @@
     /** Refreshes the trade proposal using the selected options. */
     function refreshProposal() {
       const options = Trade.getPayload({
-        sortByCompletionCheckbox: sortByCompletionCheckboxEl,
+        sortModeSelect: sortModeSelectEl,
         receiveLimitSelect: receiveLimitSelectEl,
         sendLimitSelect: sendLimitSelectEl
       })
-      state.proposal = Trade.applyTradeSelectionLimits(state.matches, {
+      state.proposal = Trade.prepareTradeSelection(state.matches, {
         ...options,
-        doneMap: state.doneMap
+        doneMap: state.doneMap,
+        tradePreferences: state.tradePreferences
       })
       renderProposalPreview(false)
     }

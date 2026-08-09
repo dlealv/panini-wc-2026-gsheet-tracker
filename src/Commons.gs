@@ -21,8 +21,8 @@ const EXPECTED_STICKER_COLUMNS = STICKER_MAX - STICKER_MIN + 1
  * The bounds are inclusive.*/
 const COUNTRY_BOUNDS = new Map([
   ['FWC', [STICKER_MIN, STICKER_MAX - 1]],  // FWC has stickers 0-19
-  ['CC', [STICKER_MIN + 1, 12]], // Coca-Cola has stickers 1-12
-  ['TEAM', [STICKER_MIN + 1, STICKER_MAX]] // All teams have 1-20 stickers.
+  ['CC', [STICKER_MIN + 1, 12]],            // Coca-Cola has stickers 1-12
+  ['TEAM', [STICKER_MIN + 1, STICKER_MAX]]  // All teams have 1-20 stickers.
 ])
 
 /** Provides shared access to sticker sheet data stored in named ranges. 
@@ -73,6 +73,7 @@ class StickerSheetRepository {
     this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
     this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
+    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
 
     this.ss = ss || SpreadsheetApp.getActiveSpreadsheet()
     this.countriesRange = null
@@ -134,7 +135,10 @@ class StickerSheetRepository {
     return this.countsRange
   }
 
-  /** Lazy loads and validates the DONE named range, ensuring it has the correct shape and dimensions. */
+  /**
+   * Lazy loads and validates the DONE named range, ensuring it 
+   * has the correct shape and dimensions. 
+   */
   getDoneRange() {
     if (!this.doneRange) {
       const DONE_RANGE_NAME = this.DONE_RANGE_NAME
@@ -142,6 +146,18 @@ class StickerSheetRepository {
       this._validateRange(this.doneRange, MAX_ROWS, 1, DONE_RANGE_NAME)
     }
     return this.doneRange
+  }
+
+  /** 
+   * Lazy loads and validates the TRADE_PREFERENCES named range, ensuring it has 
+   * the correct shape and dimensions. The content of the range could be empty, in 
+   * case the user didn't define any preference.*/
+  getTradePreferencesRange() {
+    if (!this.tradePreferencesRange) {
+      const TRADE_PREFERENCES_RANGE_NAME = this.TRADE_PREFERENCES_RANGE_NAME
+      this.tradePreferencesRange = this.ss.getRangeByName(TRADE_PREFERENCES_RANGE_NAME)
+    }
+    return this.tradePreferencesRange
   }
 
   /** Lazy loads and validates the FLAG_ICONS named range, ensuring it has the correct shape and dimensions. */

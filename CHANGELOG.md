@@ -14,11 +14,15 @@ Implemented Trade service for Apps Script. Centralized Google Spreadsheet writin
 
 ### Google Spreadsheet template
 
-No changes were made to the template, so the version number remains.
+#### Added
+- `TRADE_PREFERENCES` named range, to consider user's preference during trade process.
 
 ### Apps Script
 
 #### Added
+
+- Under the `data` folder:
+  - `clean_roster.py`: Helper python script to clean, validate and standardize the `panini_fwc2026_roster.csv` file.
 
 - Under the `docs` folder:
   - `TradeServiceMockDesign.md`: Mock UI design of the Trade service.
@@ -35,7 +39,10 @@ No changes were made to the template, so the version number remains.
 #### Changes
 
 - Under the `data` folder:
-  - `panini_fwc2026_roster.csv`: Updated France team, the information was not accurate.
+  - `panini_fwc2026_roster.csv`: 
+    - Updated player's names based on [panini missing stickers website](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html)
+    - Standardized club names and adjusted some club considering as cut-off day before the World Cup started
+    - Now the file passed all checks from `data/roster_clean.py` file.
 
 - Under the `docs` folder:
   - `FAQ.md`: 
@@ -82,7 +89,8 @@ No changes were made to the template, so the version number remains.
 - Under the `src` folder:
   - `Code.gs`: Added GAS entry points for Trade service.
   - `Commons.gs`:
-    - Method added for trading service `updateStickerCounts` now is the entry point for writing processes. The input requires is consider the canonical form from `StickerSheetRepository`
+    - Method added for trading service `updateStickerCounts()` now is the entry point for writing processes. The input requires is considered the canonical form from `StickerSheetRepository`: was optimized to do a bulk write all rows at onces, before it was doing the updates to `COUNTS` named range by country.
+    - `updateStickerCounts()`
   - `ExportService.gs`: 
     - `filterStickerNumbersBy()` renamed to `_filterStickerNumbersBy()` since it is public and now used by trade services too.
   - `ImportService.gs`: Updated `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the options argument.
@@ -122,8 +130,14 @@ No changes were made to the template, so the version number remains.
   - `QuickEntryService.unit.test.js` Updated the tests for methods: `applyPendingUpdates` and `_normalizePendingUpdates` since the contract of `updateStickerCounts` method from `StickerSheetRepository` has changed.
 
 - Under the root folder:
+  - `.gitignore`: Added `panini_fwc2026_roster_clean.csv` file since it is just a working file part of the cleanup process for the `panini_fwc2026_roster.csv` file.
+  - `cspell.json`: Ignore the file `data/clean_roster.py`
   - `cspell.json`: Added additional word exceptions to the code spell checker.
   - `TODO.md`: Added trade service and refactor of the data model to unify it.
+  - `README.md`: 
+    - Added a section to describe Trade Apps Script service
+    - Updated the list of files
+    - Updated test coverage
 
 #### Fixed
 

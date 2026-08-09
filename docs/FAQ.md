@@ -151,6 +151,90 @@ No. The trade proposal can only be adjusted using the dropdowns and the **Sort b
 
 The other collector's information can be entered manually, but your own trade information is always obtained directly from the Google Spreadsheet template.
 
+### How to populate `TRADE_PREFERENCE` named range?
+
+The business rules are simple, and priorities are ranked from higher to lower, from top to bottom in the single column named range. Each row can contain one of the following possibilities:
+
+1. A **Country Code**, i.e. `MEX`. If the receive sticker list contains stickers from Mexico, the country will be prioritized.
+2. A **sticker number**, i.e. `13`. This is a global prioritization across all countries in the receive sticker list. If any country contains the given sticker, that country will be prioritized. In addition, the sticker will be prioritized within the list of stickers for that country. For example: `ARG,13,2,3` instead of `ARG,1,2,3,13`. This ensures that during the trading process, sticker `13` is the first sticker to trade for Argentina.
+3. A **country-specific sticker**, i.e. `POR15` (Cristiano Ronaldo). If the receive sticker list contains the given sticker, the country is prioritized and, within the list of stickers, the country-specific sticker is prioritized. For example: `POR,15,1,2,3` instead of `POR,1,2,3,15`. Different delimiters can also be used, such as `POR,15` or `POR 15`.
+
+Here is a common configuration for the `TRADE_PREFERENCE` named range:
+
+| `TRADE_PREFERENCE` named range | Interpretation |
+| ------------------------------ | -------------- |
+| `FWC`                          | `FWC` goes first. |
+| `CC`                           | Coca-Cola goes after `FWC`. |
+| `1`                            | All countries with sticker `1` go after `CC`, and sticker `1` is the first sticker in the country's list. |
+| `13`                           | All countries with sticker `13` go after countries with sticker `1`. Sticker `13` goes after sticker `1` within the sticker list for countries this priority apply.|
+| `FRA20`                        | If Kylian Mbappé is in the list, France goes after all countries with sticker `13`, and sticker `20` goes first in the list of stickers for France. |
+| `POR15`                        | If Cristiano Ronaldo is in the list, Portugal goes after France, and sticker `15` goes first in the list of stickers for Portugal. |
+| `ARG10`                        | If Leonel Messi is in the list, Argentina goes after Portugal, and sticker `10` goes first in the list of stickers for Argentina. |
+
+In case of a tie, the last criterion is the album country order. This is also enforced by having just one rule per row.
+
+Defining trade preferences ensures that, during the trading process, the stickers you are most interested in receiving are matched first.
+
+### How is the send sticker list prioritized?
+
+The send sticker list comes from matching the missing sticker list of another collector with the repeats of the current user. During the matching process, the order of the missing sticker list is respected, so the other collector's preferences are taken into account.
+
+### How is the QR code information represented?
+
+The QR code contains the missing and repeated sticker information per country. Each country's sticker list is represented as an integer bit mask using `21`-bits, covering sticker numbers `0` through `20`.
+
+For example:
+
+```text
+{
+  "r":{"BRA":640,"ARG":2056},
+  "m":{"MEX":16402,"FWC":129}
+}
+```
+
+where:
+
+- `m` represents missing stickers encoded as integer bit masks.
+- `r` represents repeated stickers encoded as integer bit masks.
+- Each country code is associated with one integer containing the bit mask for its stickers.
+
+The following table shows the `21`-bit representation, covering sticker numbers `0` through `20`:
+
+| Code | Stickers | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+| ---- | -------- | - | - | - | - | - | - | - | - | - | - | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | -- |
+| BRA  | `7,9`    | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  |
+| ARG  | `3,11`   | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0  | 1  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  |
+| MEX  | `1,4,14` | 0 | 1 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0  | 0  | 0  | 0  | 1  | 0  | 0  | 0  | 0  | 0  | 0  |
+| FWC  | `0,7`    | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  | 0  |
+
+The general decimal representation of the bit mask is:
+
+```text
+sticker number N -> 2^N
+```
+
+For `BRA`, the decimal representation of each sticker is:
+
+- Sticker `7` -> `2^7` = `128`
+- Sticker `9` -> `2^9` = `512`
+
+Therefore, the decimal representation of the bit mask is:
+
+```text
+128 + 512 = 640
+```
+
+The previous JSON representation corresponds to the following trade information:
+
+```text
+{
+  "repeats": { "BRA": [7, 9], "ARG": [3, 11] },
+  "missing": { "MEX": [1, 4, 14], "FWC": [0, 7] }
+}
+```
+
+The main advantage of this compact representation is that it represents the same information using significantly fewer characters. This reduces the amount of data encoded in the QR code, which can improve QR code density and make scanning and decoding more reliable.
+
 ---
 
 ## Google Access/Security Questions

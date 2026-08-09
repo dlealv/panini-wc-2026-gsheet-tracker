@@ -75,6 +75,9 @@
   /* Gives the quantity dropdowns a compact width. */
   .proposal-limits select {
     width: 70px;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: var(--text-sm);
   }
 
   /* Right-aligns the Refresh button above the proposal. */
@@ -96,5 +99,55 @@
     border-radius: 3px;
     padding: 0 2px;
     font-weight: 600;
+  }
+
+  /* Compact size for the "Sort receive stickers by" dropdown only. */
+  .trade-sort-mode-select {
+    width: 154px;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: var(--text-sm);
+  }
+
+  /* Reuse compact toolbar typography and alignment. */
+  .receive-sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Compact select only for sort mode, without touching other selects. */
+  .trade-sort-mode-select {
+    width: 140px;
+    height: 28px;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+  }
+
+  /* Keeps receive title/count and sort control on one row, grouped on the left. */
+  .receive-header-inline {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Reuses compact inline layout for sort label + select. */
+  .receive-sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Removes default label bottom spacing so text aligns vertically with select. */
+  .receive-sort-inline label {
+    margin-bottom: 0;
+  }
+
+  /* Compact select only for sort mode, without affecting other selects. */
+  .trade-sort-mode-select {
+    width: 140px;
+    height: 28px;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
   }
 </style>

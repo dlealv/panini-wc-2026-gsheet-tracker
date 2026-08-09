@@ -120,6 +120,9 @@
   #view-trade .proposal-limit select {
     width: 110px;
     flex: 0 0 110px;
+    height: 44px;
+    min-height: 44px;
+    padding: 6px 10px;
     margin-left: 18px;
     padding-left: 10px;
     padding-right: 10px;
@@ -160,5 +163,49 @@
     width: min(98vw, 640px);
     height: min(98vw, 640px);
     display: none;
+  }
+
+  /*
+   * Receive section header + sort control on one line.
+   * Matches desktop behavior while keeping mobile spacing readable.
+   */
+  #view-trade .receive-header-inline {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    flex-wrap: nowrap;
+  }
+
+  /*
+   * Inline sort block beside the receive title.
+   * Keeps label vertically centered with the dropdown.
+   */
+  #view-trade .receive-sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Sort label alignment fix for shared label default spacing. */
+  #view-trade .receive-sort-inline label {
+    margin-bottom: 0;
+    font-size: var(--text-md);
+    font-weight: 700;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /*
+   * Compact sort dropdown for mobile Trade view only.
+   * Does not affect receive/send quantity selectors.
+   */
+  #view-trade .trade-sort-mode-select {
+    width: 220px;
+    height: 44px;
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: var(--text-md);
+    line-height: 1.2;
   }
 </style>

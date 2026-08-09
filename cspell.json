@@ -4,11 +4,19 @@
  */
 {
   "ignorePaths": [
-    "data/panini_fwc2026_roster.csv"
+    "data/panini_fwc2026_roster*.csv",
+    "data/panini_clean_roster.py"
   ],
   "words": [
     "Binarize",
+    "Cristiano",
     "Downscales",
+    "Kylian",
+    "Mbape",
+    "Mbappe",
+    "Mbappé",
+    "Messi",
+    "Ronaldo",
     "textsf",
     "thresholded"
   ]

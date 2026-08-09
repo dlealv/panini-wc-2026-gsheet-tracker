@@ -106,6 +106,18 @@ describe('StickerSheetRepository unit tests', () => {
     testRangeGetter('getFlagIconsRange')
   })
 
+  describe('getTradePreferencesRange()', () => {
+    test('returns valid range', () => {
+      const range = repo.getTradePreferencesRange()
+      expect(range.getValues().length).toBeGreaterThan(0)
+    })
+    test('caches value', () => {
+      const first = repo.getTradePreferencesRange()
+      const second = repo.getTradePreferencesRange()
+      expect(first).toBe(second)
+    })
+  })
+
   /** Test getSheet() method */
   describe('getSheet()', () => {
     test('returns valid sheet object', () => {

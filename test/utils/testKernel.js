@@ -45,6 +45,7 @@ class MockStickerSheetRepository {
     this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
     this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
+    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
 
     this.startCol = 1
     this.numStickerCols = 21
@@ -58,6 +59,7 @@ class MockStickerSheetRepository {
     this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
     this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
     this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
+    this.tradePreferencesRange = this.ss.getRangeByName(this.TRADE_PREFERENCES_RANGE_NAME)
 
     const baseCountries = TEST_DATA.countries
     this.countryMap =
@@ -93,6 +95,7 @@ class MockStickerSheetRepository {
   getCountriesRange() { return this.countriesRange }
   getCountsRange() { return this.countsRange }
   getDoneRange() { return this.doneRange }
+  getTradePreferencesRange() { return this.tradePreferencesRange }
   getFlagIconsRange() { return this.flagIconsRange }
   getFlagsUrlRange() { return this.flagsUrlRange }
   getCountryNamesRange() { return this.countryNamesRange }
@@ -239,6 +242,7 @@ function initializeSpreadsheetAppMock() {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
+  const tradePreferencesRange = createNamedRangeMock([['MEX'], ['1'], ['13'], ['POR11']])
   const spreadsheetMock = {
     getRangeByName: (name) => {
       if (name === 'COUNTRIES') return countriesRange
@@ -248,6 +252,7 @@ function initializeSpreadsheetAppMock() {
       if (name === 'COUNTRY_NAMES') return countryNamesRange
       if (name === 'FLAG_ICONS') return flagIconsRange
       if (name === 'DONE') return doneRange
+      if (name === 'TRADE_PREFERENCES') return tradePreferencesRange
       throw new Error(`Unknown range ${name}`)
     }
   }
