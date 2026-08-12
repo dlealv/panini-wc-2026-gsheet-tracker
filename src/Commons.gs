@@ -91,6 +91,8 @@ class StickerSheetRepository {
     this.countryMap = null
     this.countries = null
     this.groupCodes = null
+    this.tradePreferencesRange = null
+    this.tradePreferences = null
   }
 
   // Getters for named ranges and sheet info
@@ -228,6 +230,48 @@ class StickerSheetRepository {
       this.getCountsRange() // ensures numStickerCols is initialized
     }
     return this.numStickerCols
+  }
+
+  /**
+   * Returns normalized trade preferences from TRADE_PREFERENCES named range.
+   * Values are uppercased and stripped from separators/spaces to match TradeHelpers format.
+   * @return {string[]} Array of normalized unique tokens preserving sheet order or 
+   * empty array if the range is empty or not defined.
+   */
+  getTradePreferences() {
+    if (this.tradePreferences) {
+      return this.tradePreferences
+    }
+    const range = this.getTradePreferencesRange()
+    if (!range) {
+      this.tradePreferences = []
+      return this.tradePreferences
+    }
+
+    /** Normalizes one trade preference token to TradeHelpers-compatible format. */
+    function normalizeTradePreferenceToken(value) {
+      return String(value || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[\s,]+/g, '')
+    }
+
+    const rawValues = range.getDisplayValues()
+    const unique = new Set()
+    const normalized = []
+    rawValues.forEach(row => {
+      row.forEach(cell => {
+        const token = normalizeTradePreferenceToken(cell)
+        if (!token || unique.has(token)) {
+          return
+        }
+        unique.add(token)
+        normalized.push(token)
+      })
+    })
+
+    this.tradePreferences = normalized
+    return this.tradePreferences
   }
 
   /**

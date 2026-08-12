@@ -5,19 +5,49 @@
 {
   "ignorePaths": [
     "data/panini_fwc2026_roster*.csv",
-    "data/panini_clean_roster.py"
+    "data/clean_roster.py",
+    ".style.yapf"
   ],
   "words": [
+    "América",
+    "appscript",
+    "argen",
     "Binarize",
+    "CLASPRC",
+    "Côte",
+    "COUNTRYSTICKER",
     "Cristiano",
+    "Curaçao",
+    "currentonly",
+    "d'Ivoire",
+    "dedup",
+    "defaultmode",
+    "Dels",
     "Downscales",
+    "eslintcr",
+    "eslintirc",
+    "Flexbox",
+    "fseventsd",
+    "isget",
+    "Jindřich",
     "Kylian",
-    "Mbape",
-    "Mbappe",
+    "lifecycles",
     "Mbappé",
     "Messi",
+    "newname",
+    "nullglob",
+    "octry",
+    "qfmj",
+    "quickentry",
     "Ronaldo",
+    "SMAX",
+    "SMIN",
+    "Staněk",
     "textsf",
-    "thresholded"
+    "thresholded",
+    "transactionally",
+    "Türkiye",
+    "uppercased",
+    "yapf"
   ]
 }

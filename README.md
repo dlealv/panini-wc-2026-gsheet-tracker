@@ -242,7 +242,7 @@ The trade process is completed in two steps. The first screen provides two ways 
 
 ![Trade Service: Input Another Collector Info](images/tradeViewAnotherCollectorInfo.jpg)
 
-> **Note:** On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the mobile device's camera.
+> **Note:** On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the device's camera. The user will see a **Capture QR image** button instead of **Upload QR code**.
 
 In the example above, the other collector has:
 
@@ -257,6 +257,8 @@ Missing (stickers needed)
 ```text
 MEX,3,2,1
 ```
+
+> **Note:** The order of stickers and countries is determined by the user's input, and this order is respected by the trading process. This means that, in the missing stickers list, the user prefers to receive sticker `3` before `2` or `1`.
 
 The input format is the same as for the Import services. See the **Import format** section for more information.
 
@@ -280,10 +282,10 @@ The validated data preserves the order provided by the other collector. The matc
 You can enter another collector's missing and repeated stickers manually, paste them, or upload them as a QR code containing the corresponding JSON data. For the previous example, the JSON content encoded in the QR code would be:
 
 ```text
-{"r":{"MEX":[5,4],"FWC":[4,10],"RSA":[1,2,3]},"m":{"MEX":[3,2,1]}}
+{"m":{"MEX":14},"r":{"MEX":48,"FWC":1040,"RSA":14}}
 ```
 
-where `r` represents repeated stickers and `m` represents missing stickers.
+where `r` represents repeated stickers and `m` represents missing stickers. The encoding process is optimized to minimize the number of characters in the JSON object. Each country's sticker list is represented as an integer bit mask using `21` bits, covering sticker numbers `0` through `20`. For more details about the encoding process, see the question *How is the QR code information represented?* in the [Faq.md](docs/FAQ.md) document.
 
 Once the mandatory validation step is completed, click **Continue** to generate the trade proposal.
 
@@ -297,13 +299,19 @@ The second step is the trade proposal. After clicking **Continue**, the service 
 
 ![Trade Service: Initial Trade Proposal](images/tradeViewInitialTradeProposal.jpg)
 
-This is the initial trade proposal and can be adjusted by both collectors. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a green background are included in the trade.
+This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a green background are included in the trade.
 
-However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on album completion. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
+However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on different sorting criteria. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
 
-To adjust the proposal, the user can select different values in the **Stickers to receive** and **Stickers to send** dropdowns. If the goal is to prioritize album completion, the user can also enable the **Sort by album completion** checkbox. After the collectors agree on the adjusted proposal, clicking **Refresh** recalculates the send and receive lists.
+To adjust the proposal, the user can select different values from the **Stickers to receive** and **Stickers to send** dropdowns.
 
-For example, if both collectors agree that the current user will receive every possible matching sticker, the **Stickers to receive** dropdown should be increased to its maximum value. If **Sort by album completion** is also enabled, clicking **Refresh** displays the updated proposal:
+To prioritize the stickers to receive according to a specific sorting criterion, the user has the following options:
+
+- **Album** order, based on the order of the countries in the album. This is the default sorting.
+- **Completion**, i.e. country completion in descending order, using the `DONE` named range.
+- **Preferences**, i.e. the current user's preferences defined in the `TRADE_PREFERENCES` named range in the Google Spreadsheet template. The user can define more granular trade priorities by country, sticker number, or a specific country-sticker combination, such as `POR15` (Cristiano Ronaldo, for example). For more information on how to set up the `TRADE_PREFERENCES` named range, see the question *How to populate `TRADE_PREFERENCES` named range?* in [Faq.md](docs/FAQ.md). It explains how to populate the column and the prioritization rules that apply. For more technical details, see [TradeServiceRequirements.md](docs/TradeServiceRequirements.md), specifically section *9. Trade Matching Process*.
+
+For example, if both collectors agree that the current user will receive every possible matching sticker, the **Stickers to receive** dropdown should be increased to its maximum value. If the **Sort by** dropdown is changed to **Completion**, clicking **Refresh** displays the updated proposal:
 
 ![Trade Service: Adjusted Trade Proposal](images/tradeViewAdjustedTradeProposal.jpg)
 
@@ -323,8 +331,9 @@ The information displayed is loaded from `data/panini_fwc2026_roster.csv` in the
 - `Country/Category`
 - `Club`
 - `Position` (player position)
+- `DOB` (player's date of birth)
 
-The roster is stored in its canonical form. This means that `Name/Description`, `Country/Category`, and `Club` values preserve their original non-ASCII characters.
+The roster is stored in its canonical form. This means that `Name/Description`, and `Club` values preserve their original non-ASCII characters. For the case of `Country/Category` the name of the countries as they are in the Album, therefore Türkiye instead of Turkey and Côte d'Ivoire instead of Ivory Coast.
 
 Collectors can perform lookups using the service provided in the `Lookup` tab. This is particularly useful during sticker trading, when other collectors share only the front side of a sticker. The lookup service helps identify the corresponding sticker ID based on the available information.
 
@@ -569,6 +578,7 @@ The operator prefix may be applied to any valid import line format:
 - `TOTAL_MISSING_STICKERS`: Cell in the `Stickers` tab storing the total number of missing stickers.
 - `TOTAL_REPEATED_STICKERS`: Cell in the `Stickers` tab storing the total number of unique repeated stickers.
 - `TOTAL_STICKERS`: Cell in the `Reports` tab representing the total number of stickers in the album.
+- `TRADE_PREFERENCES`: In `Lookup` tab, allows the user to define trade preferences for **Trade stickers** service in **Manage Panini** custom menu.
 
 ---
 
@@ -686,7 +696,7 @@ In alphabetical order and organized by folders:
 
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: panini sticker roster file.
-  - `clean_roster.py`: Helper script file to standardize the roster file, it does cleanup and standardize club names.
+  - `clean_roster.py`: Helper script to standardize and validate the `panini_fwc2026_roster.csv` file. Cleans and standardizes the roster, validates the header and row structure, removes repeated headers and blank lines, normalizes Sticker IDs and club names, verifies sticker groups, field requirements, DOBs, positions, duplicates, and sorting, checks the consistency of Coca-Cola stickers with the corresponding player's information, and reports a final summary.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.

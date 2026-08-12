@@ -466,15 +466,15 @@ It does not modify:
 
 ### 9.4 `TRADE_PREFERENCES` Named Range
 
-`TRADE_PREFERENCES` is a single-column named range containing the user's preferences for stickers to receive. Preferences are evaluated from top to bottom, with the first row having the highest priority.
+`TRADE_PREFERENCES` named range is a single-column named range containing the user's preferences for stickers to receive. Preferences are evaluated from top to bottom, with the first row having the highest priority. In Google Spreadsheet template is located in `Lookup` tab after the lookup result.
 
 The user can define preferences by:
 
 - Country code, for example `FWC`.
 - Sticker number, for example `1`, `13`, etc..
-- Country-specific sticker, for example `FRA20`, `POR15`, `ARG10`, etc..
+- Country-specific sticker, for example `FRA20`, `POR15`, `ARG17`, etc..
 
-The intention of this sorting is to consider the collector's priority for receiving stickers. For example, the user may want to prioritize certain country codes, specific sticker positions, or specific players. Famous players such as Messi, Cristiano Ronaldo, Mbappe, etc. may be preferred over other players. Similarly, special stickers such as the crest (`1`) or team picture (`13`) may be preferred. Therefore, the trading process attempts to prioritize the stickers according to the user's preferences.
+The intention of this sorting is to consider the collector's priority for receiving stickers. For example, the user may want to prioritize certain country codes, specific sticker positions, or specific players. Famous players such as Messi, Cristiano Ronaldo, Mbappé, etc. may be preferred over other players. Similarly, special stickers such as the crest (`1`) or team picture (`13`) may be preferred. Therefore, the trading process attempts to prioritize the stickers according to the user's preferences.
 
 This prioritization applies only to the current user's stickers to receive. The current user's stickers to send are not sorted using `TRADE_PREFERENCES`; their order continues to be determined by the input data in missing list since the order of the other collector input data is respected by the trading process.
 
@@ -486,7 +486,9 @@ Preferences are interpreted according to their type:
 
 - **Country-specific sticker preference**: If the specified country contains the specified sticker, that country is prioritized and the specified sticker is placed before the other stickers within that country. The preference does not prioritize the same sticker number in other countries.
 
-For example, if `1` is a preference and both `MEX` and `CZE` contain sticker `1`, both countries are affected by that preference and sticker `1` is placed first within each of those countries.
+If two countries have the same preference their relative order is stablish by album order.
+
+For example, if `1` is a preference and both `MEX` and `CZE` contain sticker `1`, both countries are affected by that preference and sticker `1` is placed first within each of those countries. Since both countries have the same trading preference, then the final sort is determined by album order, so `MEX` goes first and `CZE` after.
 
 If `13` is the next preference, any country containing sticker `13` is prioritized at that preference level, and sticker `13` is placed before the other stickers within those countries.
 
@@ -502,7 +504,7 @@ CC
 13
 FRA20
 POR15
-ARG10
+ARG17
 ```
 
 And the following receive list, initially sorted by album order and with stickers sorted by their default numeric order:
@@ -513,20 +515,20 @@ KOR,13
 CZE,1,9
 CAN,12,13
 GER,2,3
-POR,2,11
+POR,2,15
 CC,2,3
 ```
 
-The resulting order is determined as follows:
+The resulting receive sticker list order is as follows:
 
 | Receive List | Justification |
 | ------------ | ------------- |
 | `CC,2,3` | `CC` is first because `CC` is the highest-priority preference that matches the receive list. There are no `FWC` stickers. |
 | `MEX,1,13,2,5` | `MEX` contains sticker `1`, which is the next applicable preference. Sticker `1` is placed before the other stickers. Sticker `13` is also preferred over the remaining sticker `2` and `5` because `13` is the next applicable sticker-number preference. |
 | `CZE,1,9` | `CZE` contains sticker `1`, so it is prioritized by the same global sticker-number preference. |
-| `KOR,13` | `KOR` contains sticker `13`, which is the next applicable sticker-number preference. |
+| `KOR,13` | `KOR` contains sticker `13`, which is the next applicable sticker-number preference. `KOR` and `CAN` have the same priority, but `KOR` goes first in the album order|
 | `CAN,13,12` | `CAN` contains sticker `13`, so sticker `13` is placed before sticker `12`. |
-| `POR,15,2` | `POR,11` matches the country-specific sticker preference `POR1%`, so `POR` is prioritized and sticker `11` is placed first within `POR`. |
+| `POR,15,2` | `POR,15` matches the country-specific sticker preference `POR15`, so `POR` is prioritized and sticker `15` is placed first within `POR`. |
 | `RSA,2,3` | No preference matches `RSA`, so it remains in album order. |
 | `GER,2,3` | No preference matches `GER`, so it remains in album order after `RSA`. It goes after `RSA` because of the album order.|
 
@@ -537,7 +539,7 @@ MEX,1,13,2,5
 CZE,1,9
 KOR,13
 CAN,13,12
-POR,11,2
+POR,15,2
 RSA,2,3
 GER,2,3
 ```

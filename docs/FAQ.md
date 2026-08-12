@@ -102,6 +102,7 @@ A new folder, `data`, was added to the project and contains the file `panini_fwc
 - `Country/Category`
 - `Club`
 - `Position` (player position)
+- `DOB` (player's date of birth)
 
 There is no need to open or inspect this file directly. The template provides a lookup interface in the `Lookup` tab. The roster is automatically loaded into the `Roster` tab from the GitHub repository, so any updates made to the repository will be reflected in the template after Google Sheets refreshes the imported data.
 
@@ -117,7 +118,7 @@ Yes. The lookup service in the `Lookup` tab normalizes the lookup values for `Na
 
 For example, if you search for the player `Staněk` (Jindřich Staněk from Czechia), the lookup converts both the search term and the roster data to `Stanek`, allowing the match to succeed while still returning the player's name in its original form with non-ASCII characters.
 
-The roster file `data/panini_fwc2026_roster.csv` always stores player names, countries/categories, and club names in their canonical form. ASCII normalization is applied only during the lookup process to make searches easier, so you do not need to know or type language-specific characters. For example, searching for `Stanek` will correctly find `Staněk`, `Curacao` will match `Curaçao`, and `Club America` will match `Club América`.
+The roster file `data/panini_fwc2026_roster.csv` always stores player names, countries/categories, and club names in their canonical form. ASCII normalization is applied only during the lookup process to make searches easier, so you do not need to know or type language-specific characters. For example, searching for `Stanek` will correctly find `Staněk`, `Curacao` will match `Curaçao`, and `Club America` will match `Club América`. For countries, the canonical form is as they are in the Album.
 
 ## Mobile Services
 
@@ -141,13 +142,9 @@ This is usually a timing issue. Refresh the Apps Script page, then open the **De
 
 Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new service: **Trade stickers**. This service simplifies the trading process by identifying matching stickers, generating a trade proposal, and executing the trade by automatically updating the `Stickers` tab.
 
-### I generated a QR code with my trade information, but the service doesn't read it correctly. Why?
-
-This is usually because you are using a screenshot of the generated QR code. Instead, save the QR code image in its original format. For example, on a desktop computer, right-click the QR code and select **Save image as...**. This preserves the original image quality and ensures the service can read it correctly.
-
 ### Can I manually edit the trade proposal?
 
-No. The trade proposal can only be adjusted using the dropdowns and the **Sort by album completion** checkbox. This is intentional to ensure the proposed trade remains consistent with the user's current collection.
+No. The trade proposal can only be adjusted using the dropdowns and the **Sort by** dropdown. This is intentional to ensure the proposed trade remains consistent with the user's current collection.
 
 The other collector's information can be entered manually, but your own trade information is always obtained directly from the Google Spreadsheet template.
 
@@ -155,9 +152,9 @@ The other collector's information can be entered manually, but your own trade in
 
 The business rules are simple, and priorities are ranked from higher to lower, from top to bottom in the single column named range. Each row can contain one of the following possibilities:
 
-1. A **Country Code**, i.e. `MEX`. If the receive sticker list contains stickers from Mexico, the country will be prioritized.
-2. A **sticker number**, i.e. `13`. This is a global prioritization across all countries in the receive sticker list. If any country contains the given sticker, that country will be prioritized. In addition, the sticker will be prioritized within the list of stickers for that country. For example: `ARG,13,2,3` instead of `ARG,1,2,3,13`. This ensures that during the trading process, sticker `13` is the first sticker to trade for Argentina.
-3. A **country-specific sticker**, i.e. `POR15` (Cristiano Ronaldo). If the receive sticker list contains the given sticker, the country is prioritized and, within the list of stickers, the country-specific sticker is prioritized. For example: `POR,15,1,2,3` instead of `POR,1,2,3,15`. Different delimiters can also be used, such as `POR,15` or `POR 15`.
+1. A **country Code**, i.e. `MEX`. If the receive sticker list contains stickers from Mexico, the country will be prioritized.
+2. A **sticker number**, i.e. `13`. This is a global prioritization across all countries in the receive sticker list. If any country contains the given sticker, that country will be prioritized. In addition, the sticker will be prioritized within the list of stickers for that country. For example: `ARG,13,2,3` instead of `ARG,2,3,13`. This ensures that during the trading process, sticker `13` is the first sticker to trade for Argentina.
+3. A **country-specific sticker**, i.e. `POR15` (Cristiano Ronaldo). If the receive sticker list contains the given sticker, the country is prioritized and, within the list of stickers, the country-specific sticker is prioritized. For example: `POR,15,2,3` instead of `POR,2,3,15`. Different delimiters can also be used, such as `POR,15` or `POR 15`.
 
 Here is a common configuration for the `TRADE_PREFERENCE` named range:
 
@@ -169,7 +166,7 @@ Here is a common configuration for the `TRADE_PREFERENCE` named range:
 | `13`                           | All countries with sticker `13` go after countries with sticker `1`. Sticker `13` goes after sticker `1` within the sticker list for countries this priority apply.|
 | `FRA20`                        | If Kylian Mbappé is in the list, France goes after all countries with sticker `13`, and sticker `20` goes first in the list of stickers for France. |
 | `POR15`                        | If Cristiano Ronaldo is in the list, Portugal goes after France, and sticker `15` goes first in the list of stickers for Portugal. |
-| `ARG10`                        | If Leonel Messi is in the list, Argentina goes after Portugal, and sticker `10` goes first in the list of stickers for Argentina. |
+| `ARG17`                        | If Leonel Messi is in the list, Argentina goes after Portugal, and sticker `17` goes first in the list of stickers for Argentina. |
 
 In case of a tie, the last criterion is the album country order. This is also enforced by having just one rule per row.
 
@@ -178,6 +175,10 @@ Defining trade preferences ensures that, during the trading process, the sticker
 ### How is the send sticker list prioritized?
 
 The send sticker list comes from matching the missing sticker list of another collector with the repeats of the current user. During the matching process, the order of the missing sticker list is respected, so the other collector's preferences are taken into account.
+
+### I generated a QR code with my trade information, but the service doesn't read it correctly. Why?
+
+This is usually because you are using a screenshot of the generated QR code. Instead, save the QR code image in its original format. For example, on a desktop computer, right-click the QR code and select **Save image as...**. This preserves the original image quality and ensures the service can read it correctly. Nevertheless the solution has been improved to read properly a QR from a picture taken to a generated QR code.
 
 ### How is the QR code information represented?
 
@@ -194,9 +195,21 @@ For example:
 
 where:
 
-- `m` represents missing stickers encoded as integer bit masks.
 - `r` represents repeated stickers encoded as integer bit masks.
+- `m` represents missing stickers encoded as integer bit masks.
 - Each country code is associated with one integer containing the bit mask for its stickers.
+
+The previous JSON representation is decoded to the following internal trade information:
+
+```text
+{
+  "repeats": { "BRA": [7, 9], "ARG": [3, 11] },
+  "missing": { "MEX": [1, 4, 14], "FWC": [0, 7] }
+}
+```
+
+The main advantage of this compact representation is that it represents the same information using significantly fewer characters. This reduces the amount of data encoded in the QR code, which can improve QR code density and make scanning and decoding more reliable.
+
 
 The following table shows the `21`-bit representation, covering sticker numbers `0` through `20`:
 
@@ -223,17 +236,7 @@ Therefore, the decimal representation of the bit mask is:
 ```text
 128 + 512 = 640
 ```
-
-The previous JSON representation corresponds to the following trade information:
-
-```text
-{
-  "repeats": { "BRA": [7, 9], "ARG": [3, 11] },
-  "missing": { "MEX": [1, 4, 14], "FWC": [0, 7] }
-}
-```
-
-The main advantage of this compact representation is that it represents the same information using significantly fewer characters. This reduces the amount of data encoded in the QR code, which can improve QR code density and make scanning and decoding more reliable.
+The same decoding process can be applied to the rest of the countries in the lists.
 
 ---
 

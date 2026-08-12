@@ -25,6 +25,7 @@
     function getPayload(deps = {}) {
       return _getUIState(deps)
     }
+
     /**
      * Enables/disables UI during async operations.
      * @export
@@ -46,6 +47,7 @@
         }
       })
     }
+
     /**
      * Displays a message in the Trade dialog UI.
      * @export
@@ -59,6 +61,7 @@
       el.className = 'message ' + (type || 'info')
       el.textContent = text || ''
     }
+
     /**
      * Shows or hides the Trade message section.
      * @export
@@ -71,6 +74,7 @@
       }
       el.style.display = show ? '' : 'none'
     }
+
     /**
      * Builds the backend payload from the Trade input fields.
      * @export
@@ -84,6 +88,7 @@
         repeatsText: repeatsEl ? repeatsEl.value.trim() : ''
       }
     }
+
     /**
      * Renders a preview of the trade info in the UI.
      * @param {{tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
@@ -94,13 +99,12 @@
      */
     function renderPreview(result, deps = {}) {
       const el = deps.previewEl
-      if (!el) {
-        return
-      }
+      if (!el) { return }
       el.className = 'preview'
       el.textContent = _formatTradeInfo(result.tradeInfo || {})
       el.style.display = 'block'
     }
+
     /**
      * Clears the trade preview display.
      * @param {Object} deps
@@ -110,12 +114,11 @@
      */
     function clearPreview(deps = {}) {
       const el = deps.previewEl
-      if (!el) {
-        return
-      }
+      if (!el) { return }
       el.style.display = 'none'
       el.textContent = ''
     }
+
     /**
      * Clears the QR code preview display.
      * @param {{qrEl?:HTMLImageElement,messageEl?:HTMLElement,infoEl?:HTMLElement}} elements
@@ -123,9 +126,7 @@
      * @public
      */
     function clearQrPreview(elements = {}) {
-      if (!elements.qrEl) {
-        return
-      }
+      if (!elements.qrEl) { return }
       elements.qrEl.src = ''
       elements.qrEl.style.display = 'none'
       if (elements.messageEl) {
@@ -138,6 +139,7 @@
         elements.infoEl.style.display = 'none'
       }
     }
+
     /**
      * Renders a QR code preview for trade info in the UI.
      * @param {{qrData:string,tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
@@ -147,9 +149,7 @@
      * @public
      */
     function renderQrPreview(result, elements) {
-      if (!elements.qrEl) {
-        return
-      }
+      if (!elements.qrEl) { return }
       elements.qrEl.onload = null
       elements.qrEl.onerror = null
       elements.qrEl.style.display = 'none'
@@ -174,6 +174,7 @@
         elements.infoEl.style.display = 'block'
       }
     }
+
     /**
      * Renders receive/send match previews with optional proposal highlighting.
      * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
@@ -186,9 +187,7 @@
      * @public
      */
     function renderMatches(matches, deps = {}) {
-      if (!matches) {
-        return
-      }
+      if (!matches) { return }
       const receiveEl = deps.receivePreviewEl
       const sendEl = deps.sendPreviewEl
       const previewClass = deps.previewClass || 'preview'
@@ -204,6 +203,7 @@
         sendEl.style.display = 'block'
       }
     }
+
     /**
      * Formats trade input data into a string suitable for display in text areas.
      * @param {Object<string,number[]>} data
@@ -214,6 +214,7 @@
     function formatTradeInput(data) {
       return Object.keys(data || {}).map(country => country + ',' + data[country].join(',')).join('\n')
     }
+
     /**
      * Formats a sticker map into a readable string.
      * @param {Object<string,number[]>} data
@@ -232,6 +233,7 @@
       })
       return lines.join('\n')
     }
+
     /**
      * Counts the total number of sticker matches in a trade direction.
      * @param {Object<string,number[]>} matches
@@ -242,6 +244,7 @@
     function countMatches(matches) {
       return Object.values(matches || {}).reduce((total, stickers) => total + (stickers || []).length, 0)
     }
+
     /**
      * Prepares trade selection by sorting matches and applying limits.
      * Supports three sorting modes for receive stickers:
@@ -287,6 +290,7 @@
       const encoded = encodeURIComponent(qrData)
       return 'https://quickchart.io/qr?size=' + size + '&ecLevel=H' + '&text=' + encoded
     }
+
     /**
      * Reads the current trade options from the UI.
      * sortMode defaults to album when selector is absent or invalid.
@@ -305,6 +309,7 @@
         maxStickerSend: Number(sendSelect ? sendSelect.value : 0)
       }
     }
+
     /**
      * Formats TradeInfo into a readable message.
      * Used to format missing/repeats from another collector.
@@ -328,6 +333,7 @@
       appendSection('Missing:', tradeInfo.missing)
       return lines.join('\n')
     }
+
     /**
      * Formats trade matches for preview.
      * @param {Object<string,number[]>} matches
@@ -352,6 +358,7 @@
         return country + ', ' + stickers.join(', ')
       }).join('<br>')
     }
+
     /**
      * Returns send matches without changing order.
      * @param {Object<string,number[]>} sendMatches
@@ -360,6 +367,7 @@
     function _sortSendMatches(sendMatches) {
       return sendMatches || {}
     }
+
     /**
      * Sorts receive matches according to selected mode.
      * @param {Object<string,number[]>} receiveMatches
@@ -376,6 +384,7 @@
       }
       return receiveMatches || {}
     }
+
     /**
      * Sorts receive countries and stickers using TRADE_PREFERENCES.
      * @param {Object<string,number[]>} receiveMatches
@@ -406,34 +415,37 @@
       })
       return Object.fromEntries(sortedEntries.map(item => [item.country, item.stickers]))
     }
+
     /**
      * Builds normalized preference rules preserving preference order.
+     * Assumes input tradePreferences are already normalized by backend.
      * @param {string[]} tradePreferences
      * @return {{countries:Array<{country:string,index:number}>,stickers:Array<{sticker:number,index:number}>,
      * countryStickers:Array<{country:string,sticker:number,index:number}>}}
      */
     function _buildPreferenceRules(tradePreferences) {
       const rules = { countries: [], stickers: [], countryStickers: [] }
-      ;(tradePreferences || []).forEach((rawValue, index) => {
-        const value = _normalizePreferenceToken(rawValue)
-        if (!value) {
-          return
-        }
-        const countrySticker = _parseCountryStickerPreference(value)
-        if (countrySticker) {
-          rules.countryStickers.push({ country: countrySticker.country, sticker: countrySticker.sticker, index: index })
-          return
-        }
-        if (_isStickerPreference(value)) {
-          rules.stickers.push({ sticker: Number(value), index: index })
-          return
-        }
-        if (_isCountryPreference(value)) {
-          rules.countries.push({ country: value, index: index })
-        }
-      })
+        ; (tradePreferences || []).forEach((rawValue, index) => {
+          const value = String(rawValue || '')
+          if (!value) {
+            return
+          }
+          const countrySticker = _parseCountryStickerPreference(value)
+          if (countrySticker) {
+            rules.countryStickers.push({ country: countrySticker.country, sticker: countrySticker.sticker, index: index })
+            return
+          }
+          if (_isStickerPreference(value)) {
+            rules.stickers.push({ sticker: Number(value), index: index })
+            return
+          }
+          if (_isCountryPreference(value)) {
+            rules.countries.push({ country: value, index: index })
+          }
+        })
       return rules
     }
+
     /**
      * Normalizes one raw preference token from TRADE_PREFERENCES.
      * @param {string} rawValue
@@ -451,14 +463,17 @@
       }
       return compact
     }
+
     /** Returns true when preference token is a global sticker number. */
     function _isStickerPreference(value) {
       return /^\d+$/.test(value)
     }
+
     /** Returns true when preference token is a country code. */
     function _isCountryPreference(value) {
       return /^[A-Z]{2,3}$/.test(value)
     }
+
     /**
      * Parses country-specific sticker preference (example: POR11).
      * @param {string} value
@@ -466,11 +481,10 @@
      */
     function _parseCountryStickerPreference(value) {
       const match = value.match(/^([A-Z]{2,3})(\d{1,2})$/)
-      if (!match) {
-        return null
-      }
+      if (!match) { return null }
       return { country: match[1], sticker: Number(match[2]) }
     }
+
     /**
      * Builds album index map for countries for stable tie-breaks.
      * @param {Array<[string,number[]]>} entries
@@ -483,6 +497,7 @@
       })
       return indexMap
     }
+
     /**
      * Resolves best priority index for a country.
      * @param {string} country
@@ -511,6 +526,7 @@
       })
       return bestIndex
     }
+
     /**
      * Sorts stickers inside a country by preference order, then album order.
      * @param {string} country
@@ -521,9 +537,9 @@
      */
     function _sortStickersByPreferences(country, stickers, rules) {
       const albumIndexMap = {}
-      ;(stickers || []).forEach((sticker, index) => {
-        albumIndexMap[sticker] = index
-      })
+        ; (stickers || []).forEach((sticker, index) => {
+          albumIndexMap[sticker] = index
+        })
       const getStickerPriority = sticker => {
         let bestIndex = Number.MAX_SAFE_INTEGER
         rules.stickers.forEach(rule => {
@@ -548,6 +564,7 @@
         return albumIndexMap[left] - albumIndexMap[right]
       })
     }
+
     /**
      * Sorts matched stickers by album completion.
      * @param {Object<string,number[]>} matches
@@ -561,6 +578,7 @@
         return completionB - completionA
       }))
     }
+
     /**
      * Limits the number of stickers by max limit preserving current order.
      * @param {Object<string,number[]>} stickers
@@ -582,7 +600,8 @@
       })
       return result
     }
-    return {
+
+    return { // namespace
       getPayload,
       setBusy,
       setMessage,

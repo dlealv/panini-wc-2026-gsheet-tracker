@@ -106,6 +106,13 @@ class MockStickerSheetRepository {
   getStartCol() { return this.startCol }
   getNumRows() { return this.numRows }
   getNumStickerCols() { return this.numStickerCols }
+  getTradePreferences() {
+    const range = this.getTradePreferencesRange()
+    if (!range) { return [] }
+    const values = range.getDisplayValues()
+    const flatValues = values.flat().filter(v => String(v || '').trim() !== '')
+    return [...new Set(flatValues.map(v => String(v).replace(/[\s,]+/g, '').toUpperCase()))]
+  }
 
   getStickerCount(countryCode, stickerNumber) {
     const country = TEST_DATA.countries.find(

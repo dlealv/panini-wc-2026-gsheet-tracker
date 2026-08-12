@@ -136,6 +136,16 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Keeps long validation preview content contained inside the gray preview box. */
+  #view-trade #trade-preview {
+    max-height: 280px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+    width: 100%;
+    line-height: 1.4;
+  }
+
   /* Highlights stickers included in the current trade proposal. */
   #view-trade .trade-highlight {
     background: #d9f2d9;
@@ -207,5 +217,23 @@
     padding: 6px 10px;
     font-size: var(--text-md);
     line-height: 1.2;
+  }
+
+  /* Keeps Trade validation warnings stacked like desktop instead of one-line flex layout. */
+  #view-trade #trade-warnings {
+    display: block;
+  }
+
+  /* Restores readable paragraph spacing for warning lines. */
+  #view-trade #trade-warnings p {
+    margin: 4px 0;
+    line-height: 1.4;
+  }
+
+  /* Emphasizes section headers (Repeats, Missing) if they are first paragraph in each warning block. */
+  #view-trade #trade-warnings p:first-child {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-weight: 700;
   }
 </style>

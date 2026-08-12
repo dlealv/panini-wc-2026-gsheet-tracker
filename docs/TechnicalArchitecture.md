@@ -232,8 +232,7 @@ To ensure local testability while maintaining cross-platform consistency and syn
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
 #### Layer 1.3: Mobile-Specific View (`Mobile*View.html`)
-* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization, configuration, or layout adjustments when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated mobile implementation.  
-  This is the case for `MobileImportView.html`, which provides a simplified import interface optimized for mobile devices.
+* **Responsibility**: Provides the mobile wrapper around shared `*View.html` files, adding mobile-specific initialization, configuration, or layout adjustments when required. If a mobile feature requires a different interface from the desktop version, this layer contains the dedicated mobile implementation. This is the case for `MobileImportView.html`, which provides a simplified import interface optimized for mobile devices.
 * **Implementation Rules**:
     * ✔ Owns mobile navigation sections, visibility management, and feature initialization when required.
     * ✔ May configure shared views through parameters or exposed initialization functions.
@@ -346,6 +345,12 @@ The application provides two user interfaces:
   - Loads `QuickEntryView.html` (which loads `QuickEntryHelpers.html` and `QuickEntryRender.html`).
   - Initializes the shared Quick Entry view.
 
+- `TradeDialog.html`: Desktop dialog for Trade service.
+  - Loading shared styles: `CommonStyles.html`, `ImportExportStyles.html`.
+  - Loading Trade-specific style: `TradeStyles.html`.
+  - Providing desktop configuration `platform`.
+  - Initializing the shared Trade view.
+
 Whenever the desktop and mobile implementations share the same UI, the common markup and controller logic are extracted into a `*View.html` file. The desktop dialog and the mobile wrapper become thin containers responsible only for platform-specific initialization.
 
 Shared view controllers use an IIFE-based structure to isolate internal state, DOM references, and implementation details. Only functions required by the host container or HTML event bindings are exposed through the global scope.
@@ -379,7 +384,7 @@ Examples:
   - Implements the navigation drawer.
   - Handles view switching.
   - Clears messages when navigating between services.
-  - Loads `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html`, and `MobileQuickEntryStyles.html`.
+  - Loads `MobileStyles.html`, `MobileImportStyles.html`, `MobileExportStyles.html`, `MobileQuickEntryStyles.html`, and `MobileTradeStyles.html`.
   - Loads `MobileImportView.html`, `MobileExportView.html`, and `MobileQuickEntryView.html`.
 
 - Mobile views:
@@ -396,6 +401,10 @@ Examples:
     - Configures the mobile layout.
     - Sets the number of stickers displayed per row.
     - Reuses the shared Quick Entry implementation.
+  - `MobileTradeView.html`: Mobile wrapper around `TradeView.html`.
+    - Render the mobile trade container.
+    - Initialize the shared Trade view.
+    - Own any mobile-specific Trade behavior.
 
 ### Mobile import flow
 
@@ -424,6 +433,15 @@ Examples:
 5. `QuickEntryView.html` loads the shared interface and initializes the data.
 6. Backend wrapper functions invoke the mobile Quick Entry service to retrieve and update sticker data.
 
+### Mobile Trade stickers flow
+
+1. The user opens the navigation drawer.
+2. Selects **Trade**.
+3. `MobileHome.html` calls `showTradeView()` which sets `platform` to `mobile`.
+4. `MobileTradeView.html`: renders mobile trade container and load and initialize Trade view.
+5. Wrapper functions in `Code.gs` invoke `TradeService.gs`
+6. Results are rendered in the mobile view.
+
 ### Styles
 
 - `CommonStyles.html`: Common styles shared by all desktop dialogs.
@@ -431,21 +449,28 @@ Examples:
   - Typography.
   - Layout primitives.
   - Buttons.
-  - Messages.
+  - Status messages.
   - Form controls.
+  - Utility classes.
 
 - `ImportExportStyles.html`: Desktop styles shared by the Import and Export dialogs.
-  - Shared layouts.
-  - Forms.
-  - Buttons.
-  - Message components.
+  - Theme variables
+  - Typography
+  - Layout primitives
+  - Forms control
+  - Buttons
+  - Messages
 
 - `QuickEntryStyles.html`: Desktop-specific styles for the Quick Entry dialog.
-  - Sticker grid layout.
-  - Country sections.
-  - Sticker cards.
-  - Filters.
-  - Desktop dialog layout.
+  - Theme colors
+  - Typography
+  - Layouts
+  - Filters
+  - Buttons
+  - Messages
+  - Form controls
+  - Sections and containers
+  - Sticker grid and cards
 
 - `MobileStyles.html`: Common styles shared by all mobile services.
   - Theme variables.
@@ -456,18 +481,16 @@ Examples:
   - Form controls.
 
 - `MobileImportStyles.html`: Mobile-specific styles for the Import service.
-  - Import card layout.
-  - Buttons.
-  - Preview panel.
-  - Warning panel.
-  - Format hints.
+  - Import view container adjustments
+  - Import-specific fields
+  - Import format hint
+  - Import action button layout
+  - Import preview/warnings customization
 
 - `MobileExportStyles.html`: Mobile-specific styles for the Export service.
-  - Export card layout.
+  - Export section format.
   - Toolbar alignment.
-  - Button sizing.
-  - Text area sizing.
-  - Warning and message styling.
+  - hint customization
 
 - `MobileQuickEntryStyles.html`: Mobile-specific styles for the Quick Entry service.
   - Responsive five-column sticker grid.
@@ -631,14 +654,15 @@ The workflow performs the following actions:
 2. Execute the shared setup action (`.github/actions/setup-project/action.yml`):
    - Setup the Node.js environment.
    - Install project dependencies (`npm ci`).
-2. Run ESLint.
-
+3. Setup python and Execute panini roster file validation
+   ```bash
+   python data/clean_roster.py
+   ```
+4. Run ESLint.
    ```bash
    npm run lint
    ```
-
-3. Execute the test suite.
-
+5. Execute the test suite.
    ```bash
    npm test
    ```

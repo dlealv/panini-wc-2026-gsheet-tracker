@@ -262,7 +262,6 @@
     const proposalLegendEl = document.getElementById('proposalLegend')
     const warningsEl = document.getElementById('trade-warnings')
 
-
     let platform = 'desktop'      // Current host platform.
 
     /*
@@ -322,9 +321,12 @@
      * will open the camera when capture is supported.
      */
     uploadQrButtonEl.addEventListener('click', () => {
+      prepareForQrRead()
       tradeQrFileInputEl.click()
     })
+
     captureQrButtonEl.addEventListener('click', () => {
+      prepareForQrRead()
       tradeQrFileInputEl.click()
     })
 
@@ -354,14 +356,14 @@
       tradeMessageSectionEl.style.display = 'none'
       Trade.clearPreview({ previewEl })
       renderWarnings([])
-      Trade.setMessage('', 'info', { messageEl: tradeMessageEl })
+      setMessage('', 'info', tradeMessageEl )
     }
 
     /** Validates the imported trade information. */
     function validateOtherTradeInfo() {
       Trade.setBusy(true)
       tradeMessageSectionEl.style.display = ''
-      Trade.setMessage('Validating input...', 'info', { messageEl: tradeMessageEl })
+      setMessage('Validating input...', 'info', tradeMessageEl)
       renderWarnings([])
       Trade.clearPreview({ previewEl })
       google.script.run
@@ -384,7 +386,7 @@
       state.otherTradeInfo = tradeInfo
       continueButtonEl.disabled = false
       tradeMessageSectionEl.style.display = ''
-      Trade.setMessage('Validation successful.', 'success', { messageEl: tradeMessageEl })
+      setMessage('Validation successful.', 'success', tradeMessageEl)
       renderWarnings(result.warnings || {})
       Trade.clearPreview({ previewEl })
       Trade.renderPreview(previewResult, { previewEl })
@@ -401,7 +403,7 @@
       tradeMessageSectionEl.style.display = ''
       Trade.clearPreview({ previewEl })
       renderWarnings([])
-      Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeMessageEl })
+      setMessage(error.message || String(error), 'error', tradeMessageEl)
     }
 
     /**
@@ -410,12 +412,31 @@
      */
     function onQrImageSelected(event) {
       const file = event.target.files[0]
-      if (!file) { return }
-      const reader = new FileReader()
-      reader.onload = function () {
-        decodeQrImage(reader.result)
+      if (!file) {
+        Trade.setBusy(false)
+        return
       }
-      reader.readAsDataURL(file)
+      tradeMessageSectionEl.style.display = ''
+      Trade.setBusy(true)
+      setMessage('Reading QR code...', 'info', tradeMessageEl)
+      setTimeout(() => {
+        const reader = new FileReader()
+        reader.onload = function () {
+          decodeQrImage(reader.result)
+        }
+        reader.onerror = function () {
+          onReadFromQrFailed(new Error('Could not read selected image.'))
+        }
+        reader.readAsDataURL(file)
+      }, 0)
+    }
+
+    /** Resets trade input/message state before starting a new QR capture flow. */
+    /** Resets UI state before starting a new QR read flow (upload or capture). */
+    function prepareForQrRead() {
+      clearTradeInput()
+      tradeMessageSectionEl.style.display = ''
+      setMessage('Reading QR code...', 'info', tradeMessageEl)
     }
 
     /**
@@ -428,7 +449,7 @@
         const qrData = await TradeQr.qrDecoder.decode(imageData)
         previewOtherTradeInfoFromQr(qrData)
       } catch (error) {
-        onReadFromQrFailed(new Error('No QR code found in the selected image.'))
+        onReadFromQrFailed(new Error('No QR code found in the selected image. Focus the camera on the QR code and try again.'))
       }
     }
 
@@ -443,7 +464,7 @@
     function previewOtherTradeInfoFromQr(qrData) {
       Trade.setBusy(true)
       tradeMessageSectionEl.style.display = ''
-      Trade.setMessage('Reading QR code...', 'info', { messageEl: tradeMessageEl })
+      setMessage('Reading QR code...', 'info', tradeMessageEl)
       renderWarnings([])
       Trade.clearPreview({ previewEl })
       google.script.run
@@ -467,7 +488,7 @@
       state.otherTradeInfo = tradeInfo
       continueButtonEl.disabled = false
       tradeMessageSectionEl.style.display = ''
-      Trade.setMessage('QR code read successfully.', 'success', { messageEl: tradeMessageEl })
+      setMessage('QR code read successfully.', 'success', tradeMessageEl)
       renderWarnings(result.warnings || {})
       missingTextEl.value = Trade.formatTradeInput(tradeInfo.missing)
       repeatsTextEl.value = Trade.formatTradeInput(tradeInfo.repeats)
@@ -479,11 +500,7 @@
     function onReadFromQrFailed(error) {
       Trade.setBusy(false)
       tradeMessageSectionEl.style.display = ''
-      Trade.setMessage(
-        error.message || String(error),
-        'error',
-        { messageEl: tradeMessageEl }
-      )
+      setMessage(error.message || String(error), 'error', tradeMessageEl)
     }
 
     /** Displays the Generate QR view. */
@@ -494,7 +511,7 @@
       tradeQrHintEl.style.display = 'none'
       tradeQrMessageEl.style.display = ''
       Trade.setBusy(true)
-      Trade.setMessage('Generating QR code...', 'info', { messageEl: tradeQrMessageEl })
+      setMessage('Generating QR code...', 'info', tradeQrMessageEl)
       google.script.run
         .withSuccessHandler(onQrGenerated)
         .withFailureHandler(onQrGenerationFailed)
@@ -511,7 +528,7 @@
       const obj = { qrData: result.qrData, tradeInfo: tradeInfo }
       Trade.setBusy(false)
       Trade.renderQrPreview(obj, { qrEl: tradeQrImageEl, hintEl: tradeQrHintEl, infoEl: tradeQrInfoEl })
-      Trade.setMessage('QR code generated successfully.', 'success', { messageEl: tradeQrMessageEl })
+      setMessage('QR code generated successfully.', 'success', tradeQrMessageEl)
     }
 
     /**
@@ -520,7 +537,7 @@
      */
     function onQrGenerationFailed(error) {
       Trade.setBusy(false)
-      Trade.setMessage(error.message || String(error), 'error', { messageEl: tradeQrMessageEl })
+      setMessage(error.message || String(error), 'error', tradeQrMessageEl)
     }
 
     /** Hides the Generate QR view and returns to the Trade input view. */
@@ -613,7 +630,7 @@
       if (!state.proposal) { return }
       Trade.setBusy(true)
       proposalMessageSectionEl.style.display = ''
-      Trade.setMessage('Executing trade...', 'info', { messageEl: proposalMessageEl })
+      setMessage('Executing trade...', 'info', proposalMessageEl)
       google.script.run
         .withSuccessHandler(onTradeExecuted)
         .withFailureHandler(onTradeExecutionFailed)
@@ -623,7 +640,7 @@
     /** Handles successful trade execution. */
     function onTradeExecuted() {
       Trade.setBusy(false)
-      Trade.setMessage('Trade successful.', 'success', { messageEl: proposalMessageEl })
+      setMessage('Trade successful.', 'success', proposalMessageEl)
       state.proposal = null
     }
 
@@ -634,7 +651,7 @@
     function onTradeExecutionFailed(error) {
       Trade.setBusy(false)
       proposalMessageSectionEl.style.display = ''
-      Trade.setMessage(error.message || String(error), 'error', { messageEl: proposalMessageEl })
+      setMessage(error.message || String(error), 'error', proposalMessageEl)
     }
 
     /**
@@ -736,6 +753,11 @@
         p.textContent = '⚠ ' + message // avoid using ${} notation
         warningsEl.appendChild(p)
       })
+    }
+
+    /** Wraps Trade.setMessage for local message element usage. */
+    function setMessage(text, type, messageEl) {
+      Trade.setMessage(text, type, { messageEl: messageEl })
     }
 
   })()

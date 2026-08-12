@@ -301,14 +301,9 @@ describe('QuickEntryHelpers.html', () => {
 
   /** Test for getVisibleCountries() */
   describe('getVisibleCountries()', () => {
-    test('returns filtered visible countries', () => {
+    test('returns filtered visible countries, search by country code', () => {
       const state = {
-        countries: [{
-          code: 'ARG',
-          countryName: 'Argentina',
-          group: 'A',
-          stickers: [{ number: 1, count: 0 }]
-        }],
+        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -316,15 +311,23 @@ describe('QuickEntryHelpers.html', () => {
       }
       const result = helpers.getVisibleCountries(state)
       expect(result).toHaveLength(1)
+      expect(result[0].code).toBe('ARG')
+    })
+    test('returns filtered visible countries search by name', () => {
+      const state = {
+        countries: [{ code: 'BIH', countryName: 'Bosnia-Herzegovina', group: 'B', stickers: [{ number: 1, count: 0 }] }],
+        pendingUpdates: {},
+        selectedGroupFilter: 'B',
+        selectedStatusFilter: 'missing',
+        searchText: 'bos'
+      }
+      const result = helpers.getVisibleCountries(state)
+      expect(result).toHaveLength(1)
+      expect(result[0].code).toBe('BIH')
     })
     test('filters out countries when group does not match', () => {
       const state = {
-        countries: [{
-          code: 'ARG',
-          countryName: 'Argentina',
-          group: 'A',
-          stickers: [{ number: 1, count: 0 }]
-        }],
+        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'B',
         selectedStatusFilter: 'missing',
@@ -334,12 +337,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('filters out countries when search does not match', () => {
       const state = {
-        countries: [{
-          code: 'ARG',
-          countryName: 'Argentina',
-          group: 'A',
-          stickers: [{ number: 1, count: 0 }]
-        }],
+        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -349,12 +347,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('removes countries with no stickers after status filtering', () => {
       const state = {
-        countries: [{
-          code: 'ARG',
-          countryName: 'Argentina',
-          group: 'A',
-          stickers: [{ number: 1, count: 1 }]
-        }],
+        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -365,18 +358,8 @@ describe('QuickEntryHelpers.html', () => {
     test('returns matching sticker number across all countries for numeric search', () => {
       const state = {
         countries: [
-          {
-            code: 'ARG',
-            countryName: 'Argentina',
-            group: 'A',
-            stickers: [{ number: 1, count: 0 }, { number: 13, count: 1 }]
-          },
-          {
-            code: 'BRA',
-            countryName: 'Brazil',
-            group: 'A',
-            stickers: [{ number: 13, count: 2 }, { number: 20, count: 0 }]
-          }
+          { code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }, { number: 13, count: 1 }] },
+          { code: 'BRA', countryName: 'Brazil', group: 'A', stickers: [{ number: 13, count: 2 }, { number: 20, count: 0 }] }
         ],
         pendingUpdates: {},
         selectedGroupFilter: 'all',
@@ -391,18 +374,8 @@ describe('QuickEntryHelpers.html', () => {
     test('numeric search combines correctly with missing filter', () => {
       const state = {
         countries: [
-          {
-            code: 'ARG',
-            countryName: 'Argentina',
-            group: 'A',
-            stickers: [{ number: 13, count: 0 }]
-          },
-          {
-            code: 'BRA',
-            countryName: 'Brazil',
-            group: 'A',
-            stickers: [{ number: 13, count: 1 }]
-          }
+          { code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 13, count: 0 }] },
+          { code: 'BRA', countryName: 'Brazil', group: 'A', stickers: [{ number: 13, count: 1 }] }
         ],
         pendingUpdates: {},
         selectedGroupFilter: 'all',

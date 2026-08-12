@@ -329,9 +329,9 @@ User interface elements:
     - Total number of stickers is equal to dropdown value **Stickers to receive**.
 
 - **Sort by**
-  - By default the receive list is sorted by **Album**, i.e. country listed in the order of the Album, but order can be considered.
-  - Sorted by **Completion**, the receive list is sorted by country completion, i.e country code close to completion move to top.
-  - Sorted by **Preferences**, sorted by user's preferences defined in the `TRADE_PREFERENCES` named range. Check [TradeServiceRequirements.md](TradeServiceRequirements.md)  for the details of this sorting criteria.
+  - By default, the receive list is sorted by **Album**, i.e. by country in the order they appear in the Album. This order can be changed:
+  - Sorted by **Completion**, the receive list is sorted by country completion, with countries closest to completion moved to the top.
+  - Sorted by **Preferences**, the receive list is sorted according to the user's preferences defined in the `TRADE_PREFERENCES` named range. See `TradeServiceRequirements.md` for details on the sorting criteria.
   - Changes to this option are applied only after the user clicks the **Refresh** button.
 
 - **Stickers to send (X)**

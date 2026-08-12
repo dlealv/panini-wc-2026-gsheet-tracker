@@ -106,15 +106,30 @@ describe('StickerSheetRepository unit tests', () => {
     testRangeGetter('getFlagIconsRange')
   })
 
+  /** Test getTradePreferencesRange() method */
   describe('getTradePreferencesRange()', () => {
     test('returns valid range', () => {
       const range = repo.getTradePreferencesRange()
-      expect(range.getValues().length).toBeGreaterThan(0)
+      expect(range).toBeDefined()
+      expect(typeof range.getDisplayValues).toBe('function')
     })
     test('caches value', () => {
       const first = repo.getTradePreferencesRange()
       const second = repo.getTradePreferencesRange()
       expect(first).toBe(second)
+    })
+    test('returns null when TRADE_PREFERENCES named range does not exist', () => {
+      initTestKernel()
+      global.SpreadsheetApp.getActiveSpreadsheet = () => ({
+        getRangeByName: name => {
+          if (name === 'TRADE_PREFERENCES') {
+            return null
+          }
+          return { getValues: () => [['FWC']], getDisplayValues: () => [['FWC']] }
+        }
+      })
+      const localRepo = new StickerSheetRepository()
+      expect(localRepo.getTradePreferencesRange()).toBeNull()
     })
   })
 
@@ -261,6 +276,39 @@ describe('StickerSheetRepository unit tests', () => {
     test('getCountryCounts throws when COUNTRIES range is empty', () => {
       repo.countryMap = {}
       expect(() => repo.getCountryCounts('FWC')).toThrow()
+    })
+  })
+
+  /** Test getTradePreferences() method */
+  describe('getTradePreferences()', () => {
+    test('returns normalized unique preferences preserving first-seen order', () => {
+      repo.tradePreferencesRange = { getDisplayValues: jest.fn(() => [['POR,15'], [' por 15 '], ['FWC'], ['  mex, 1  ']]) }
+      expect(repo.getTradePreferences()).toEqual(['POR15', 'FWC', 'MEX1'])
+    })
+    test('removes empty values and deduplicates', () => {
+      repo.tradePreferencesRange = { getDisplayValues: jest.fn(() => [[''], ['   '], ['MEX,1'], ['mex1'], ['FWC'], ['FWC']]) }
+      expect(repo.getTradePreferences()).toEqual(['MEX1', 'FWC'])
+    })
+    test('supports multi-column ranges', () => {
+      repo.tradePreferencesRange = { getDisplayValues: jest.fn(() => [['POR,15', ' FWC '], [' MEX 1 ', '']]) }
+      expect(repo.getTradePreferences()).toEqual(['POR15', 'FWC', 'MEX1'])
+    })
+    test('returns empty array when range is null', () => {
+      repo.tradePreferencesRange = null
+      repo.getTradePreferencesRange = jest.fn(() => null)
+      expect(repo.getTradePreferences()).toEqual([])
+    })
+    test('returns empty array when range has empty content', () => {
+      repo.tradePreferencesRange = { getDisplayValues: jest.fn(() => [[''], ['  '], [' ,  ']]) }
+      expect(repo.getTradePreferences()).toEqual([])
+    })
+    test('caches normalized result and reads range once', () => {
+      const getDisplayValues = jest.fn(() => [['POR,15'], ['FWC']])
+      repo.tradePreferencesRange = { getDisplayValues }
+      const first = repo.getTradePreferences()
+      const second = repo.getTradePreferences()
+      expect(first).toBe(second)
+      expect(getDisplayValues).toHaveBeenCalledTimes(1)
     })
   })
 

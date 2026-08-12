@@ -375,7 +375,7 @@ class TradeService {
       this.getOtherTradeInfo()
     )
     const doneMap = this._getCountryDoneMap(Object.keys(matches.receive))
-    const tradePreferences = this._getTradePreferences()
+    const tradePreferences = this.getRepo().getTradePreferences()
     return {
       receive: matches.receive,
       send: matches.send,
@@ -454,9 +454,8 @@ class TradeService {
 
   /**
    * Parses raw sticker input when trade data is provided as text.
-   * Uses ImportStickers and LineNormalize to convert raw user input
-   * into canonical sticker data.
-   * The parser is configured to preserve the original sticker order
+   * Uses ImportStickers and LineNormalize to convert raw user input into canonical sticker data.
+   * The parser is configured to preserve the original sticker order from another collector
    * because trade input order is meaningful for preview operations.
    * Warning consolidation behavior is inherited from ImportStickers.
    * @param {string} text Raw sticker input.
@@ -787,13 +786,13 @@ class TradeQrHelper {
   }
 
   /**
- * Converts an array of numeric positions into a bit mask number.
- * Each position is represented by one bit in the resulting number.
- * Sticker 0 is represented by bit 0.
- *
- * @param {Array} values Numeric positions to encode.
- * @returns {number} Bit mask represented as a decimal number.
- */
+   * Converts an array of numeric positions into a bit mask number.
+   * Each position is represented by one bit in the resulting number.
+   * Sticker 0 is represented by bit 0.
+   *
+   * @param {Array} values Numeric positions to encode.
+   * @returns {number} Bit mask represented as a decimal number.
+   */
   _encodeBitMask(values) {
     return values.reduce((mask, value) => mask | (1 << value), 0)
   }
