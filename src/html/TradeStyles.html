@@ -1,0 +1,153 @@
+<style>
+  /*
+   src/html/TradeStyles.html
+
+  Styles specific to the Trade workflow.
+  Contains:
+    - Trade toolbar and import hint
+    - Trade text areas
+    - Trade QR display
+    - Trade proposal layout and controls
+
+  Common UI styles belong in:
+    - CommonStyles.html
+
+  This file should only contain styles required by Trade views:
+    - TradeDialog.html
+    - MobileTradeView.html
+ */
+
+  /* Adds consistent padding around every logical section of the Trade view. */
+  .section {
+    padding: 18px;
+  }
+
+  /* Layout for the Generate QR button row. */
+  .trade-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Standard height for the Missing and Repeats text areas. */
+  .trade-textarea {
+    min-height: 120px;
+  }
+
+  /* Adds spacing below the Trade information help text. */
+  .trade-import-hint {
+    margin-bottom: 10px;
+  }
+
+  /* Fixed display size for generated QR code. */
+  .trade-qr-image {
+    width: 280px;
+    height: 280px;
+    max-width: 100%;
+    display: none;
+  }
+
+  /* Centers the generated QR code horizontally. */
+  .qr-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Card-like container that groups the trade proposal controls. */
+  .proposal-container {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 24px;
+  }
+
+  /* Displays the quantity selectors side-by-side. */
+  .proposal-limits {
+    display: flex;
+    gap: 20px;
+  }
+
+  /* Allows each quantity selector column to occupy half of the available width. */
+  .proposal-limit {
+    flex: 1;
+  }
+
+  /* Gives the quantity dropdowns a compact width. */
+  .proposal-limits select {
+    width: 70px;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: var(--text-sm);
+  }
+
+  /* Right-aligns the Refresh button above the proposal. */
+  .proposal-refresh-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+
+  /* Scrollable container for the proposal preview. */
+  .proposal-preview {
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  /* Highlights stickers included in the current trade proposal. */
+  .trade-highlight {
+    background: #d9f2d9;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 600;
+  }
+
+  /* Compact size for the "Sort receive stickers by" dropdown only. */
+  .trade-sort-mode-select {
+    width: 154px;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: var(--text-sm);
+  }
+
+  /* Reuse compact toolbar typography and alignment. */
+  .receive-sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Compact select only for sort mode, without touching other selects. */
+  .trade-sort-mode-select {
+    width: 140px;
+    height: 28px;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+  }
+
+  /* Keeps receive title/count and sort control on one row, grouped on the left. */
+  .receive-header-inline {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Reuses compact inline layout for sort label + select. */
+  .receive-sort-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Removes default label bottom spacing so text aligns vertically with select. */
+  .receive-sort-inline label {
+    margin-bottom: 0;
+  }
+
+  /* Compact select only for sort mode, without affecting other selects. */
+  .trade-sort-mode-select {
+    width: 140px;
+    height: 28px;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+  }
+</style>

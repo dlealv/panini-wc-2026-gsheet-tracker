@@ -155,7 +155,7 @@ class ExportStickers {
     const lines = []
     for (let i = 0; i < this.rows.length; i++) {
       const row = this.rows[i]
-      const items = this._filterStickerNumbersBy(row, 'owned')
+      const items = this.filterStickerNumbersBy(row, 'owned')
       if (!items.length) { continue }
       const tokens = this._formatStickerNumbers(items, { includeRepeats: true, isCompact: isCompact })
       if (!tokens.length) { continue }
@@ -181,13 +181,13 @@ class ExportStickers {
     const missingLines = []
     for (let i = 0; i < this.rows.length; i++) {
       const row = this.rows[i]
-      const repeatItems = this._filterStickerNumbersBy(row, 'repeats')
+      const repeatItems = this.filterStickerNumbersBy(row, 'repeats')
       const repeatTokens = this._formatStickerNumbers(repeatItems, { includeRepeats: false, isCompact: isCompact })
       if (repeatTokens.length) repeatLines.push(this._buildExportLine(row, repeatTokens, shouldIncludeFlags))
     }
     for (let i = 0; i < missingRows.length; i++) {
       const row = missingRows[i]
-      const missingItems = this._filterStickerNumbersBy(row, 'missing')
+      const missingItems = this.filterStickerNumbersBy(row, 'missing')
       const missingTokens = this._formatStickerNumbers(missingItems, { includeRepeats: false, isCompact: isCompact })
       if (missingTokens.length) missingLines.push(this._buildExportLine(row, missingTokens, shouldIncludeFlags))
     }
@@ -207,7 +207,7 @@ class ExportStickers {
    * Returns sticker/count pairs matching the requested category.
    * @returns {Array<{ sticker: number, count: number }>}
    */
-  _filterStickerNumbersBy(row, by) {
+  filterStickerNumbersBy(row, by) {
     const out = []
     const STICKER_MIN = StickerSheetRepository.getStickerMin()
     const STICKER_MAX = StickerSheetRepository.getStickerMax()

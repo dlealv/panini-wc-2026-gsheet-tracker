@@ -134,21 +134,21 @@ describe('QuickEntryService (unit)', () => {
   /** Tests for functions that normalize pending updates. */
   describe('_normalizePendingUpdates()', () => {
     test('normalizes valid updates', () => {
+      const result = service._normalizePendingUpdates([{ countryCode: 'arg', stickerNumber: 1, count: 2 }])
+      expect(result).toEqual({ countries: [{ code: 'ARG', counts: { 1: 2 } }] })
+    })
+    test('groups multiple updates by country', () => {
       const result = service._normalizePendingUpdates([
-        {
-          countryCode: 'arg',
-          stickerNumber: 1,
-          count: 2
-        }
+        { countryCode: 'mex', stickerNumber: 1, count: 2 },
+        { countryCode: 'mex', stickerNumber: 3, count: 1 },
+        { countryCode: 'arg', stickerNumber: 5, count: 4 }
       ])
-
-      expect(result).toEqual([
-        {
-          countryCode: 'ARG',
-          stickerNumber: 1,
-          count: 2
-        }
-      ])
+      expect(result).toEqual({
+        countries: [
+          { code: 'MEX', counts: { 1: 2, 3: 1 } },
+          { code: 'ARG', counts: { 5: 4 } }
+        ]
+      })
     })
     test('rejects empty arrays', () => {
       expect(() => service._normalizePendingUpdates([])).
@@ -254,14 +254,8 @@ describe('QuickEntryService (unit)', () => {
   describe('applyPendingUpdates()', () => {
     test('applies normalized updates and returns refreshed countries', () => {
       const result = service.applyPendingUpdates([{ countryCode: 'mex', stickerNumber: 4, count: 0 }])
-      expect(service.repo.lastUpdates).toEqual([
-        { countryCode: 'MEX', stickerNumber: 4, count: 0 }
-      ])
-      expect(result).toEqual({
-        success: true,
-        message: 'Updated 1 sticker value(s).',
-        countries: expect.any(Array)
-      })
+      expect(service.repo.lastUpdates).toEqual({ countries: [{ code: 'MEX', counts: { 4: 0 } }] })
+      expect(result).toEqual({ success: true, message: 'Updated 1 sticker value(s).', countries: expect.any(Array) })
     })
     test('throws when no updates are provided', () => {
       expect(() => service.applyPendingUpdates([])).toThrow('There are no pending updates to apply.')
@@ -275,6 +269,14 @@ describe('QuickEntryService (unit)', () => {
       expect(() =>
         service.applyPendingUpdates([{ countryCode: 'MEX', stickerNumber: 1, count: -1 }])
       ).toThrow('Invalid count "-1" for MEX sticker 1.')
+    })
+    test('sends canonical payload to repository', () => {
+      const spy = jest.spyOn(service.repo, 'updateStickerCounts')
+      service.applyPendingUpdates([
+        { countryCode: 'mex', stickerNumber: 4, count: 2 },
+        { countryCode: 'mex', stickerNumber: 5, count: 1 }
+      ])
+      expect(spy).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 4: 2, 5: 1 } }] })
     })
   })
 })

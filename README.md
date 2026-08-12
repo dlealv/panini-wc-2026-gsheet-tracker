@@ -225,6 +225,98 @@ For example, Korea is closer to completion than Mexico, so obtaining a missing s
 
 📌 This entire process is significantly simplified by the information provided in this tab.
 
+### Trade stickers automation
+
+Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new service: **Trade stickers**. This service allows you to:
+
+- Enter another collector's missing and repeated stickers to find potential matches.
+- Upload a QR image containing another collector's missing and repeated stickers to find potential matches.
+- Generate a QR code containing your own missing and repeated stickers.
+- Validate another collector's information and automatically generate a trade proposal identifying the stickers to send and receive.
+- Adjust the trade proposal by changing the number of stickers to send and receive or by sorting the stickers to receive based on album completion.
+- Confirm the trade and automatically update the user's `Stickers` tab with the traded stickers.
+
+> **Note:** The trade service available in the `Trade` tab of the Google Spreadsheet differs from this service because it only identifies potential trades by finding matching stickers. It does not execute the trade or update the `Stickers` tab.
+
+The trade process is completed in two steps. The first screen provides two ways to enter another collector's information or, alternatively, generate your own trade information (missing and repeated stickers) as a QR code:
+
+![Trade Service: Input Another Collector Info](images/tradeViewAnotherCollectorInfo.jpg)
+
+> **Note:** On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the device's camera. The user will see a **Capture QR image** button instead of **Upload QR code**.
+
+In the example above, the other collector has:
+
+Repeats (stickers to offer)
+```text
+MEX,5,4
+FWC,10
+RSA,1,2,3
+```
+
+Missing (stickers needed)
+```text
+MEX,3,2,1
+```
+
+> **Note:** The order of stickers and countries is determined by the user's input, and this order is respected by the trading process. This means that, in the missing stickers list, the user prefers to receive sticker `3` before `2` or `1`.
+
+The input format is the same as for the Import services. See the **Import format** section for more information.
+
+The user can also enter repeated stickers using quantities, for example `MEX,5(3),4(2)`, indicating multiple copies of the same sticker are available for trade. Likewise, missing stickers can also include quantities when more than one copy is needed. Although this format is accepted, the trade service considers only one copy of each sticker internally when searching for matches. This becomes evident after clicking the **Validation** button. The output shows the stickers that will actually be considered during the trade:
+
+**Messages**</br>
+${\color{green}\textsf{Validation successful.}}$
+```text
+Repeats:
+MEX -> 5, 4
+FWC -> 10
+RSA -> 1, 2, 3
+Missing:
+MEX -> 3, 2, 1
+```
+
+As shown above, the quantity notation is removed and only a single copy of each sticker is considered for matching.
+
+The validated data preserves the order provided by the other collector. The matching algorithm first processes countries in the order they were entered and then processes the stickers within each country in the same order. For example, if there is a match, sticker `3` will be the first sticker selected to send to the other collector.
+
+You can enter another collector's missing and repeated stickers manually, paste them, or upload them as a QR code containing the corresponding JSON data. For the previous example, the JSON content encoded in the QR code would be:
+
+```text
+{"m":{"MEX":14},"r":{"MEX":48,"FWC":1040,"RSA":14}}
+```
+
+where `r` represents repeated stickers and `m` represents missing stickers. The encoding process is optimized to minimize the number of characters in the JSON object. Each country's sticker list is represented as an integer bit mask using `21` bits, covering sticker numbers `0` through `20`. For more details about the encoding process, see the question *How is the QR code information represented?* in the [Faq.md](docs/FAQ.md) document.
+
+Once the mandatory validation step is completed, click **Continue** to generate the trade proposal.
+
+If your goal is only to share your own trade information, click **Generate my QR code**. This displays a screen similar to the following:
+
+![Trade Service: Generate my QR code](images/tradeViewGenerateMyQrCode.jpg)
+
+At the bottom of the screen, a validation message confirms the information encoded in the generated QR code. At this point, the workflow is complete for this use case because the user's intention is simply to share the QR code with another collector. The trade process will then continue in the other collector's Google Spreadsheet template, either on desktop or mobile.
+
+The second step is the trade proposal. After clicking **Continue**, the service displays all possible matches between the user's collection and the information provided by the other collector:
+
+![Trade Service: Initial Trade Proposal](images/tradeViewInitialTradeProposal.jpg)
+
+This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a green background are included in the trade.
+
+However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on different sorting criteria. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
+
+To adjust the proposal, the user can select different values from the **Stickers to receive** and **Stickers to send** dropdowns.
+
+To prioritize the stickers to receive according to a specific sorting criterion, the user has the following options:
+
+- **Album** order, based on the order of the countries in the album. This is the default sorting.
+- **Completion**, i.e. country completion in descending order, using the `DONE` named range.
+- **Preferences**, i.e. the current user's preferences defined in the `TRADE_PREFERENCES` named range in the Google Spreadsheet template. The user can define more granular trade priorities by country, sticker number, or a specific country-sticker combination, such as `POR15` (Cristiano Ronaldo, for example). For more information on how to set up the `TRADE_PREFERENCES` named range, see the question *How to populate `TRADE_PREFERENCES` named range?* in [Faq.md](docs/FAQ.md). It explains how to populate the column and the prioritization rules that apply. For more technical details, see [TradeServiceRequirements.md](docs/TradeServiceRequirements.md), specifically section *9. Trade Matching Process*.
+
+For example, if both collectors agree that the current user will receive every possible matching sticker, the **Stickers to receive** dropdown should be increased to its maximum value. If the **Sort by** dropdown is changed to **Completion**, clicking **Refresh** displays the updated proposal:
+
+![Trade Service: Adjusted Trade Proposal](images/tradeViewAdjustedTradeProposal.jpg)
+
+The proposal can be adjusted and refreshed as many times as necessary until both collectors reach an agreement. Once the agreement is final, click **Confirm trade** to complete the exchange. When the trade is confirmed, the count of each sticker sent is decreased by one, and the count of each sticker received is increased by one. All updates are automatically reflected in the `Stickers` tab.
+
 ### Roster lookup service
 
 Starting with version `1.1.3`, collectors have access to the sticker roster through the `Roster` tab:
@@ -239,8 +331,9 @@ The information displayed is loaded from `data/panini_fwc2026_roster.csv` in the
 - `Country/Category`
 - `Club`
 - `Position` (player position)
+- `DOB` (player's date of birth)
 
-The roster is stored in its canonical form. This means that `Name/Description`, `Country/Category`, and `Club` values preserve their original non-ASCII characters.
+The roster is stored in its canonical form. This means that `Name/Description`, and `Club` values preserve their original non-ASCII characters. For the case of `Country/Category` the name of the countries as they are in the Album, therefore Türkiye instead of Turkey and Côte d'Ivoire instead of Ivory Coast.
 
 Collectors can perform lookups using the service provided in the `Lookup` tab. This is particularly useful during sticker trading, when other collectors share only the front side of a sticker. The lookup service helps identify the corresponding sticker ID based on the available information.
 
@@ -485,6 +578,7 @@ The operator prefix may be applied to any valid import line format:
 - `TOTAL_MISSING_STICKERS`: Cell in the `Stickers` tab storing the total number of missing stickers.
 - `TOTAL_REPEATED_STICKERS`: Cell in the `Stickers` tab storing the total number of unique repeated stickers.
 - `TOTAL_STICKERS`: Cell in the `Reports` tab representing the total number of stickers in the album.
+- `TRADE_PREFERENCES`: In `Lookup` tab, allows the user to define trade preferences for **Trade stickers** service in **Manage Panini** custom menu.
 
 ---
 
@@ -602,6 +696,7 @@ In alphabetical order and organized by folders:
 
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: panini sticker roster file.
+  - `clean_roster.py`: Helper script to standardize and validate the `panini_fwc2026_roster.csv` file. Cleans and standardizes the roster, validates the header and row structure, removes repeated headers and blank lines, normalizes Sticker IDs and club names, verifies sticker groups, field requirements, DOBs, positions, duplicates, and sorting, checks the consistency of Coca-Cola stickers with the corresponding player's information, and reports a final summary.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
@@ -643,11 +738,14 @@ In alphabetical order and organized by folders:
   - `MobileImportStyles.html`: CCS specific styles for mobile import service.
   - `MobileQuickEntryView.html`: Specific view for mobile quick entry service. It is just a wrapper of `QuickEntryView.html`.
   - `MobileStyles.html`: Mobile CCS specific styles, common to all mobile services.
+  - `QRUtils.html`: Client-side QR decoding utilities for Trade views.
   - `QuickEntryDialog.html`: HTML user interface for the Quick sticker entry dialog.
   - `QuickEntryView.html`: HTML view and javascript functions used by Quick entry service (desktop and mobile). Used by `QuickEntryDialog.html` and `MobileQuickEntryView.html`.
   - `QuickEntryHelpers.html`: Helper logic functions used in `QuickEntryView.html`.
   - `QuickEntryRender.html`: DOM/UI-specific functions used in `QuickEntryView.html`.
   - `QuickEntryStyles.html`: Styles used by the Quick Sticker Entry dialog. Desktop version.
+  - `TradeHelpers.html`: Helper logic functions used by `TradeView.html`.
+  - `TradeView.html`: HTML and javascript function used by Trade Service (desktop and mobile). Used by `TradeDialog.html` and `MobileTradeView.html`.
   - `WebAppLinkDialog.html`: Provides user's instructions on how to deploy as Web App the GAS project. Once the Web app project is deployed it provided the URL, so the user can use this URL from a mobile device.
 
 - Under the `src` folder:
@@ -656,6 +754,7 @@ In alphabetical order and organized by folders:
   - `ImportService.gs`: Import service logic, including preview generation, import execution, and input parsing.
   - `ExportService.gs`: Export service logic, includes export all stickers and export shared stickers.
   - `QuickEntryService.gs`: Quick Sticker Entry service that builds UI-ready country view models and applies sticker count updates.
+  - `TradeService.gs`: Trade service to automate trades with another collector.
 
 - Under the `test/` folder:
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.

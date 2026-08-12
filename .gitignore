@@ -5,6 +5,7 @@ node_modules/
 tmp_clasp/
 backup/
 *.zip
+panini_fwc2026_roster_clean.csv
 .DS_Store
 .AppleDouble
 .LSOverride

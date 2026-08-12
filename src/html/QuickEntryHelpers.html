@@ -64,7 +64,8 @@
         function setMessage(el, text, type) {
             if (el) {
                 el.textContent = text || ''
-                el.className = `message ${type || 'info'}`
+                el.classList.remove('success', 'error', 'info', 'warning', 'pending')
+                el.classList.add('message', type || 'info')
             }
             return el
         }

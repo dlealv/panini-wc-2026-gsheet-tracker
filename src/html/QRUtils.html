@@ -1,0 +1,509 @@
+<script>
+  /**
+   * src/html/QRUtils.html
+   * 
+   * Provides client-side QR decoding utilities for Trade views.
+   * This module is UI-agnostic and does not depend on Trade workflow state or DOM rendering.
+   * It exposes TradeQr.qrDecoder.decode(imageData) as the single entry point.
+   * Decode strategy uses BarcodeDetector as primary when supported by the browser and falls back
+   * to jsQR when BarcodeDetector is unavailable or cannot decode the image.
+   * Image preprocessing includes grayscale normalization, threshold retries, crop anchors, and
+   * optional downscaling for better mobile reliability.
+   * Debug logs can be enabled with TradeQr.Logger.LOG_OUTPUT = true.
+   */
+
+  /**
+   * Client-side QR decoding namespace used by TradeView.
+   * It exposes a single decode entry point with BarcodeDetector primary strategy
+   * and jsQR fallback strategy.
+   */
+  const TradeQr = (() => {
+    /**
+     * Optional logger for QR internals.
+     * Toggle LOG_OUTPUT to true only while debugging decode issues.
+     */
+    class Logger {
+      /** @type {boolean} Enables or disables debug output. */
+      static LOG_OUTPUT = true
+
+      /**
+       * Writes debug output when logging is enabled.
+       * @param {...*} args Values to pass to console.log.
+       * @return {void}
+       */
+      static log(...args) {
+        if (Logger.LOG_OUTPUT) {
+          console.log(...args)
+        }
+      }
+
+    }
+
+    /**
+     * Image and canvas utilities shared by decoder strategies.
+     * Methods here are UI-agnostic and focused on preprocessing for QR detection.
+     */
+    class ImageUtils {
+      /**
+       * Loads image data URL into an image source.
+       * It tries ImageBitmap first for orientation handling and falls back to HTMLImageElement.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<ImageBitmap|HTMLImageElement>} Loaded image source.
+       */
+      static async loadImageFromDataUrl(imageData) {
+        const response = await fetch(imageData)
+        const blob = await response.blob()
+        if ('createImageBitmap' in window) {
+          try {
+            return await createImageBitmap(blob, { imageOrientation: 'from-image' })
+          } catch (error) {
+            Logger.log('createImageBitmap fallback:', error)
+          }
+        }
+        return ImageUtils.loadHtmlImageFallback(imageData)
+      }
+
+      /**
+       * Loads image data URL into an HTMLImageElement.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<HTMLImageElement>} Loaded HTML image element.
+       */
+      static async loadHtmlImageFallback(imageData) {
+        const image = new Image()
+        await new Promise((resolve, reject) => {
+          image.onload = resolve
+          image.onerror = reject
+          image.src = imageData
+        })
+        return image
+      }
+
+      /**
+       * Draws an image source into a same-size canvas.
+       * @param {ImageBitmap|HTMLImageElement} imageSource Source image.
+       * @return {HTMLCanvasElement} Canvas containing the source image.
+       */
+      static drawImageToCanvas(imageSource) {
+        const width = imageSource.width || imageSource.naturalWidth
+        const height = imageSource.height || imageSource.naturalHeight
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(imageSource, 0, 0, width, height)
+        return canvas
+      }
+
+      /**
+       * Downscales large canvases for mobile memory stability.
+       * @param {HTMLCanvasElement} baseCanvas Source canvas.
+       * @param {number} maxSide Maximum allowed width/height side.
+       * @return {HTMLCanvasElement} Original or downscaled canvas.
+       */
+      static normalizeCanvasForQr(baseCanvas, maxSide) {
+        const width = baseCanvas.width
+        const height = baseCanvas.height
+        const longestSide = Math.max(width, height)
+        if (longestSide <= maxSide) {
+          return baseCanvas
+        }
+        const ratio = maxSide / longestSide
+        const targetWidth = Math.max(1, Math.round(width * ratio))
+        const targetHeight = Math.max(1, Math.round(height * ratio))
+        const out = document.createElement('canvas')
+        out.width = targetWidth
+        out.height = targetHeight
+        const ctx = out.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(baseCanvas, 0, 0, width, height, 0, 0, targetWidth, targetHeight)
+        return out
+      }
+
+      /**
+       * Builds a prepared grayscale canvas from a crop rectangle and scale factor.
+       * @param {CanvasRenderingContext2D} baseCtx Source context.
+       * @param {{x:number,y:number,width:number,height:number}} cropRect Crop area.
+       * @param {number} scaleFactor Output scale factor.
+       * @return {HTMLCanvasElement} Prepared and scaled canvas.
+       */
+      static buildPreparedCanvas(baseCtx, cropRect, scaleFactor) {
+        // Read only crop area pixels from the base image.
+        const sourceImageData = baseCtx.getImageData(cropRect.x, cropRect.y, cropRect.width, cropRect.height)
+        const sourceCanvas = document.createElement('canvas')
+        sourceCanvas.width = cropRect.width
+        sourceCanvas.height = cropRect.height
+        const sourceCtx = sourceCanvas.getContext('2d', { willReadFrequently: true })
+        sourceCtx.putImageData(sourceImageData, 0, 0)
+        // Normalize image values before decode attempts.
+        const preparedData = ImageUtils.prepareQrImageData(sourceCtx, sourceCanvas)
+        sourceCtx.putImageData(preparedData, 0, 0)
+        // Scale variant to improve module-size detection chances.
+        const targetCanvas = document.createElement('canvas')
+        targetCanvas.width = Math.max(1, Math.floor(cropRect.width * scaleFactor))
+        targetCanvas.height = Math.max(1, Math.floor(cropRect.height * scaleFactor))
+        const targetCtx = targetCanvas.getContext('2d')
+        targetCtx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height, 0, 0,
+          targetCanvas.width, targetCanvas.height)
+        return targetCanvas
+      }
+
+      /**
+       * Converts source pixels to normalized grayscale and applies mild contrast shaping.
+       * @param {CanvasRenderingContext2D} ctx Source context.
+       * @param {HTMLCanvasElement} canvas Source canvas.
+       * @return {ImageData} Prepared grayscale image data.
+       */
+      static prepareQrImageData(ctx, canvas) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const data = imageData.data
+        let min = 255
+        let max = 0
+        // First pass: compute dynamic grayscale range.
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114)
+          if (gray < min) {
+            min = gray
+          }
+          if (gray > max) {
+            max = gray
+          }
+        }
+        const range = max - min || 1
+        // Second pass: normalize and apply gentle contrast transform.
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114)
+          const normalized = ((gray - min) * 255) / range
+          const contrasted = normalized < 128 ? normalized * 0.9 : 255 - (255 - normalized) * 0.9
+          const value = Math.max(0, Math.min(255, Math.round(contrasted)))
+          data[i] = value
+          data[i + 1] = value
+          data[i + 2] = value
+        }
+        return imageData
+      }
+
+      /**
+       * Builds a thresholded black/white variant from a grayscale source canvas.
+       * @param {HTMLCanvasElement} sourceCanvas Grayscale source canvas.
+       * @param {number} threshold Threshold value in [0..255].
+       * @return {HTMLCanvasElement} Binary threshold canvas.
+       */
+      static buildThresholdCanvas(sourceCanvas, threshold) {
+        const canvas = document.createElement('canvas')
+        canvas.width = sourceCanvas.width
+        canvas.height = sourceCanvas.height
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(sourceCanvas, 0, 0)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const data = imageData.data
+        // Convert each pixel to black/white using threshold.
+        for (let i = 0; i < data.length; i += 4) {
+          const value = data[i] >= threshold ? 255 : 0
+          data[i] = value
+          data[i + 1] = value
+          data[i + 2] = value
+        }
+        ctx.putImageData(imageData, 0, 0)
+        return canvas
+      }
+
+      /**
+       * Returns multiple crop rectangles from center and near-corner anchors.
+       * @param {number} width Source width.
+       * @param {number} height Source height.
+       * @param {number} ratio Crop ratio in (0..1].
+       * @return {{x:number,y:number,width:number,height:number}[]} Crop rectangles.
+       */
+      static getMultiAnchorCropRects(width, height, ratio) {
+        const cropWidth = Math.max(1, Math.floor(width * ratio))
+        const cropHeight = Math.max(1, Math.floor(height * ratio))
+        const maxX = Math.max(0, width - cropWidth)
+        const maxY = Math.max(0, height - cropHeight)
+        const anchors = [
+          { x: 0.5, y: 0.5 }, { x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 },
+          { x: 0.2, y: 0.8 }, { x: 0.8, y: 0.8 }
+        ]
+        // Map normalized anchors into valid crop coordinates.
+        return anchors.map(anchor => {
+          const x = Math.floor(maxX * anchor.x)
+          const y = Math.floor(maxY * anchor.y)
+          return { x: x, y: y, width: cropWidth, height: cropHeight }
+        })
+      }
+
+      /**
+       * Logs image diagnostics for troubleshooting decode failures.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<void>}
+       */
+      static async logDiagnostics(imageData) {
+        const sizeBytes = Math.round((imageData.length * 3) / 4)
+        Logger.log('QR diagnostics: dataUrlLength=', imageData.length, 'approxBytes=', sizeBytes)
+        const image = await ImageUtils.loadImageFromDataUrl(imageData)
+        const width = image.width || image.naturalWidth
+        const height = image.height || image.naturalHeight
+        Logger.log('QR diagnostics: sourceWidth=', width, 'sourceHeight=', height)
+        const canvas = ImageUtils.drawImageToCanvas(image)
+        Logger.log('QR diagnostics: canvasWidth=', canvas.width, 'canvasHeight=', canvas.height)
+      }
+
+    }
+
+    /**
+     * QR decoder strategy based on native BarcodeDetector.
+     * It retries full-image and crop variants before signaling failure.
+     */
+    class BarcodeDecoder {
+      /** @type {{cropRatios:number[],scaleFactors:number[],thresholds:number[]}} Strategy settings. */
+      static SETTINGS = {
+        cropRatios: [0.95, 0.9, 0.8, 0.7, 0.6, 0.5],
+        scaleFactors: [1, 1.25, 1.6, 2],
+        thresholds: [80, 96, 112, 128, 144, 160, 176]
+      }
+
+      /**
+       * Decodes QR payload using native BarcodeDetector flow.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<string>} Decoded QR payload.
+       */
+      async decode(imageData) {
+        const image = await ImageUtils.loadImageFromDataUrl(imageData)
+        const detector = await this.createDetector()
+        // Attempt direct detection from original image source.
+        const originalValue = await this.detectFirstValue(detector, image)
+        if (originalValue) {
+          return originalValue
+        }
+        // Attempt with prepared full image.
+        const baseCanvas = ImageUtils.drawImageToCanvas(image)
+        const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true })
+        const fullRect = { x: 0, y: 0, width: baseCanvas.width, height: baseCanvas.height }
+        const fullValue = await this.detectFromPreparedArea(detector, baseCtx, fullRect, 1)
+        if (fullValue) {
+          return fullValue
+        }
+        // Attempt multi-anchor crop and scale/threshold variants.
+        for (const ratio of BarcodeDecoder.SETTINGS.cropRatios) {
+          const cropRects = ImageUtils.getMultiAnchorCropRects(baseCanvas.width, baseCanvas.height, ratio)
+          for (const cropRect of cropRects) {
+            const value = await this.detectFromAreaVariants(detector, baseCtx, cropRect)
+            if (value) {
+              return value
+            }
+          }
+        }
+        throw new Error('No QR code found')
+      }
+
+      /**
+       * Creates a QR-only BarcodeDetector after capability validation.
+       * @return {Promise<BarcodeDetector>} Configured QR detector.
+       */
+      async createDetector() {
+        if (!('BarcodeDetector' in window)) {
+          throw new Error('BarcodeDetector is not available')
+        }
+        const formats = await BarcodeDetector.getSupportedFormats()
+        if (!formats.includes('qr_code')) {
+          throw new Error('BarcodeDetector does not support QR codes')
+        }
+        return new BarcodeDetector({ formats: ['qr_code'] })
+      }
+
+      /**
+       * Reads first raw value from detector output.
+       * @param {BarcodeDetector} detector Detector instance.
+       * @param {ImageBitmap|HTMLImageElement|HTMLCanvasElement} source Decode source.
+       * @return {Promise<string>} Raw QR value or empty string.
+       */
+      async detectFirstValue(detector, source) {
+        const results = await detector.detect(source)
+        if (results && results.length && results[0].rawValue) {
+          return results[0].rawValue
+        }
+        return ''
+      }
+
+      /**
+       * Performs one decode attempt from a prepared crop area.
+       * @param {BarcodeDetector} detector Detector instance.
+       * @param {CanvasRenderingContext2D} baseCtx Base image context.
+       * @param {{x:number,y:number,width:number,height:number}} cropRect Crop rectangle.
+       * @param {number} scaleFactor Scale factor.
+       * @return {Promise<string>} Raw QR value or empty string.
+       */
+      async detectFromPreparedArea(detector, baseCtx, cropRect, scaleFactor) {
+        const preparedCanvas = ImageUtils.buildPreparedCanvas(baseCtx, cropRect, scaleFactor)
+        return this.detectFirstValue(detector, preparedCanvas)
+      }
+
+      /**
+       * Performs variant retries for one crop area.
+       * @param {BarcodeDetector} detector Detector instance.
+       * @param {CanvasRenderingContext2D} baseCtx Base image context.
+       * @param {{x:number,y:number,width:number,height:number}} cropRect Crop rectangle.
+       * @return {Promise<string>} Raw QR value or empty string.
+       */
+      async detectFromAreaVariants(detector, baseCtx, cropRect) {
+        // Loop 1: test multiple scale factors for different effective QR sizes.
+        for (const scaleFactor of BarcodeDecoder.SETTINGS.scaleFactors) {
+          const grayCanvas = ImageUtils.buildPreparedCanvas(baseCtx, cropRect, scaleFactor)
+          const grayValue = await this.detectFirstValue(detector, grayCanvas)
+          if (grayValue) {
+            return grayValue
+          }
+          // Loop 2: retry same scaled image with multiple binary thresholds.
+          for (const threshold of BarcodeDecoder.SETTINGS.thresholds) {
+            const bwCanvas = ImageUtils.buildThresholdCanvas(grayCanvas, threshold)
+            const bwValue = await this.detectFirstValue(detector, bwCanvas)
+            if (bwValue) {
+              return bwValue
+            }
+          }
+        }
+        return ''
+      }
+
+    }
+
+    /**
+     * QR decoder strategy based on jsQR library.
+     * It is used as fallback when BarcodeDetector is unavailable or fails.
+     */
+    class JsQrDecoder {
+      /** @type {{maxCanvasSide:number,initialScales:number[],cropRatios:number[],cropScales:number[],thresholds:number[]}} */
+      static SETTINGS = {
+        maxCanvasSide: 1400,
+        initialScales: [1, 1.25],
+        cropRatios: [1, 0.9, 0.75],
+        cropScales: [1, 1.25],
+        thresholds: [96, 128, 160]
+      }
+
+      /**
+       * Decodes QR payload using jsQR over normalized variants.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<string>} Decoded QR payload.
+       */
+      async decode(imageData) {
+        if (typeof jsQR !== 'function') {
+          throw new Error('jsQR is not loaded')
+        }
+        const imageSource = await ImageUtils.loadImageFromDataUrl(imageData)
+        const sourceCanvas = ImageUtils.drawImageToCanvas(imageSource)
+        // Downscale very large images to improve memory behavior on mobile browsers.
+        const baseCanvas = ImageUtils.normalizeCanvasForQr(sourceCanvas, JsQrDecoder.SETTINGS.maxCanvasSide)
+        Logger.log('jsQR normalized canvas:', baseCanvas.width + 'x' + baseCanvas.height)
+        const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true })
+        const fullRect = { x: 0, y: 0, width: baseCanvas.width, height: baseCanvas.height }
+        const fullValue = this.detectFromVariants(baseCtx, fullRect, JsQrDecoder.SETTINGS.initialScales)
+        if (fullValue) {
+          return fullValue
+        }
+        // Retry with anchor-based crop windows to handle off-center captures.
+        for (const ratio of JsQrDecoder.SETTINGS.cropRatios) {
+          const cropRects = ImageUtils.getMultiAnchorCropRects(baseCanvas.width, baseCanvas.height, ratio)
+          for (const cropRect of cropRects) {
+            const value = this.detectFromVariants(baseCtx, cropRect, JsQrDecoder.SETTINGS.cropScales)
+            if (value) {
+              return value
+            }
+          }
+        }
+        throw new Error('No QR code found')
+      }
+
+      /**
+       * Performs grayscale and threshold variant retries for one crop area.
+       * @param {CanvasRenderingContext2D} baseCtx Base image context.
+       * @param {{x:number,y:number,width:number,height:number}} cropRect Crop rectangle.
+       * @param {number[]} scaleFactors Scale factors for retry variants.
+       * @return {string} Decoded QR payload or empty string.
+       */
+      detectFromVariants(baseCtx, cropRect, scaleFactors) {
+        // Loop 1: test multiple scale factors to handle different QR module sizes.
+        for (const scaleFactor of scaleFactors) {
+          const grayCanvas = ImageUtils.buildPreparedCanvas(baseCtx, cropRect, scaleFactor)
+          Logger.log('jsQR try gray:', 'crop=', cropRect.width + 'x' + cropRect.height, 'scale=',
+            scaleFactor, 'canvas=', grayCanvas.width + 'x' + grayCanvas.height)
+          const grayValue = this.runJsQr(grayCanvas)
+          if (grayValue) {
+            return grayValue
+          }
+          // Loop 2: binarize the same scaled canvas with different thresholds.
+          for (const threshold of JsQrDecoder.SETTINGS.thresholds) {
+            const bwCanvas = ImageUtils.buildThresholdCanvas(grayCanvas, threshold)
+            const bwValue = this.runJsQr(bwCanvas)
+            if (bwValue) {
+              Logger.log('jsQR success on threshold:', threshold)
+              return bwValue
+            }
+          }
+        }
+        return ''
+      }
+
+      /**
+       * Runs one jsQR attempt over a canvas.
+       * @param {HTMLCanvasElement} canvas Decode candidate canvas.
+       * @return {string} Decoded QR payload or empty string.
+       */
+      runJsQr(canvas) {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const result = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' })
+        if (result && result.data) {
+          Logger.log('jsQR success:', result.data.length, 'chars', 'size=', canvas.width + 'x' + canvas.height)
+          return result.data
+        }
+        return ''
+      }
+
+    }
+
+    /**
+     * Facade that coordinates strategy selection and fallback order.
+     * It exposes the stable public decode API used by TradeView.
+     */
+    class DecoderFacade {
+      /** Creates fallback decoder instances. */
+      constructor() {
+        this.barcodeDecoder = new BarcodeDecoder()
+        this.jsQrDecoder = new JsQrDecoder()
+      }
+
+      /**
+       * Decodes QR payload with BarcodeDetector first and jsQR fallback.
+       * @param {string} imageData Data URL for the selected image.
+       * @return {Promise<string>} Decoded QR payload.
+       */
+      async decode(imageData) {
+        await ImageUtils.logDiagnostics(imageData)
+        const hasBarcodeDetector = 'BarcodeDetector' in window
+        if (hasBarcodeDetector) {
+          try {
+            return await this.barcodeDecoder.decode(imageData)
+          } catch (error) {
+            Logger.log('BarcodeDetector decode failed, fallback to jsQR:', error)
+          }
+        } else {
+          Logger.log('BarcodeDetector unavailable, using jsQR')
+        }
+        return this.jsQrDecoder.decode(imageData)
+      }
+
+    }
+
+    /** Public decoder instance. */
+    const qrDecoder = new DecoderFacade()
+
+    return {// Namespace exports
+      Logger,
+      ImageUtils,
+      BarcodeDecoder,
+      JsQrDecoder,
+      DecoderFacade,
+      qrDecoder
+    }
+
+  })()
+</script>

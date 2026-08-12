@@ -9,21 +9,18 @@ describe('ImportHelpers unit tests', () => {
   /** Get payload for import based on current UI state. */
   describe('getPayload()', () => {
     test('returns default structure when inputs are empty', () => {
-      const result = helpers.getUIState()
+      const result = helpers.getUIState({ document: { getElementById: () => null } })
       expect(result).toEqual({ text: '', mode: 'update' })
     })
     test('reads values from mocked inputs', () => {
-      global.textInput = { value: 'abc' }
-      global.modeInput = { value: 'update' }
-      const result = helpers.getUIState()
+      const result = helpers.getUIState({ textInput: { value: 'abc' }, modeInput: { value: 'update' } })
       expect(result).toEqual({ text: 'abc', mode: 'update' })
     })
     test('returns same result as getUIState', () => {
-      global.textInput = { value: 'abc' }
-      global.modeInput = { value: 'update' }
-      expect(helpers.getPayload()).toEqual({
-        text: 'abc', mode: 'update'
-      })
+      expect(helpers.getPayload({
+        textInput: { value: 'abc' },
+        modeInput: { value: 'update' }
+      })).toEqual({ text: 'abc', mode: 'update' })
     })
   })
 
@@ -102,15 +99,22 @@ describe('setBusy()', () => {
     buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
     controls.forEach(control => { expect(control.disabled).toBe(true) })
   })
-  test('uses global controls when controls dependency is missing', () => {
-    global.fileInput = { disabled: false }
-    global.modeInput = { disabled: false }
-    global.textInput = { disabled: false }
-    const docMock = { querySelectorAll: jest.fn(() => []) }
+  test('uses document controls when controls dependency is missing', () => {
+    const fileInput = { disabled: false }
+    const modeInput = { disabled: false }
+    const textInput = { disabled: false }
+    const docMock = {
+      getElementById: jest.fn(id => ({
+        fileInput,
+        mode: modeInput,
+        textInput
+      }[id])),
+      querySelectorAll: jest.fn(() => [])
+    }
     helpers.setBusy(true, { document: docMock })
-    expect(global.fileInput.disabled).toBe(true)
-    expect(global.modeInput.disabled).toBe(true)
-    expect(global.textInput.disabled).toBe(true)
+    expect(fileInput.disabled).toBe(true)
+    expect(modeInput.disabled).toBe(true)
+    expect(textInput.disabled).toBe(true)
   })
   test('enables controls when busy is false', () => {
     const controls = [{ disabled: true }]
@@ -131,9 +135,7 @@ describe('getUIState()', () => {
     expect(result).toEqual({ text: '', mode: 'update' })
   })
   test('reads values from DOM inputs', () => {
-    global.textInput = { value: 'abc' }
-    global.modeInput = { value: 'update' }
-    const result = helpers.getUIState()
+    const result = helpers.getUIState({ textInput: { value: 'abc' }, modeInput: { value: 'update' } })
     expect(result).toEqual({ text: 'abc', mode: 'update' })
   })
   test('uses dependency inputs when provided', () => {

@@ -78,14 +78,10 @@ class ImportService {
     const importStickers = new ImportStickers(this.getRepo().getCountryMap())
     const parsed = importStickers.parse(text)
     const countries = parsed.countries
-    if (normalizedMode === 'clean_all') {
-      this._clearAllCounts()
-    } else if (normalizedMode === 'replace_countries') {
-      this._clearCountries(countries)
-    } else if (normalizedMode !== 'update') {
+    if (!['update', 'clean_all', 'replace_countries'].includes(normalizedMode)) {
       throw new Error(`Invalid import mode "${normalizedMode}".`)
     }
-    this._writeCountries(countries)
+    this._writeCountries(countries, normalizedMode)
     return { success: true, warnings: parsed.warnings, message: `Imported ${countries.length} country row(s) successfully.` }
   }
 
@@ -100,52 +96,9 @@ class ImportService {
 
   // Private methods
 
-  /** Clears all sticker count values in the counts range. */
-  _clearAllCounts() {
-    this.getRepo().getCountsRange().clearContent()
-  }
-
-  /** Clears sticker counts for countries present in the import payload. */
-  _clearCountries(parsedRows) {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const START_COL = repo.getStartCol()
-    const TOTAL_COLS = repo.getNumStickerCols()
-    const sheet = repo.getSheet()
-    parsedRows.forEach(item => {
-      const entry = repo.getCountryMap()[item.code]
-      if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS).clearContent()
-    })
-  }
-
-  /** Writes parsed sticker counts into the sheet preserving untouched cells. GAS dependent method. */
-  _writeCountries(parsedRows) {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const START_COL = repo.getStartCol()
-    const TOTAL_COLS = repo.getNumStickerCols()
-    const sheet = repo.getSheet()
-    parsedRows.forEach(item => {
-      const entry = repo.getCountryMap()[item.code]
-      if (!entry) { throw new Error(`Country "${item.code}" not found in sheet mapping.`) }
-      const range = sheet.getRange(entry.row, START_COL, 1, TOTAL_COLS)
-      const currentValues = range.getValues()[0]
-      const outputValues = currentValues.slice()
-      Object.keys(item.counts).forEach(key => {
-        const stickerNumber = Number(key)
-        const offset = stickerNumber
-        if (offset < 0 || offset >= TOTAL_COLS) { throw new Error(`Sticker number out of range.`) }
-        outputValues[offset] = item.counts[key]
-      })
-      // Apply country-specific bounds to ensure only valid stickers are written, setting out-of-bounds stickers to 0.
-      const bounds = StickerSheetRepository.getCountryBounds()
-      const [minSticker, maxSticker] = bounds.get(item.code) || bounds.get('TEAM')
-      for (let sticker = 0; sticker < TOTAL_COLS; sticker++) {
-        if (sticker < minSticker || sticker > maxSticker) {
-          outputValues[sticker] = 0
-        }
-      }
-      range.setValues([outputValues])
-    })
+  /** Writes parsed canonical import rows. Parsed rows already match the repository sparse update model. */
+  _writeCountries(parsedRows, mode) {
+    this.getRepo().updateStickerCounts({ countries: parsedRows }, mode)
   }
 
 }
@@ -154,15 +107,26 @@ class ImportService {
  * @export
 */
 class ImportStickers {
-  /** Creates an ImportStickers instance using the available country codes. */
-  constructor(countryMap) {
+  /** Creates an ImportStickers instance using the available country codes. 
+   * @param {Object<string, { row: number, col: number }>} countryMap - Map of valid country codes 
+   * to their sheet positions.
+   * @param {Object} options - Optional configuration options.
+  */
+  constructor(countryMap, options = {}) {
+    this.options = {
+      sortStickers: true,
+      ...(options ?? {})
+    }
     this.countryMap = countryMap
     this.tokenRegex = /^(\d+)(?:\((\d+)\))?$/
   }
 
   /**
    * Parses and validates the full import payload.
-   * @return { countries: Array<{ code: string, counts: { [stickerNumber]: count } }>, warnings: string[] }
+   * The returned sortStickers flag indicates whether countries are already sorted.
+   * When sorting is disabled, each country includes stickerOrder preserving the normalized input order.
+   * @return {{ sortStickers: boolean, countries: Array<{ code: string, 
+   *  counts: { [stickerNumber]: number }, stickerOrder?: number[] }>, warnings: string[] }}
    */
   parse(text) {
     const raw = String(text || '').
@@ -178,7 +142,7 @@ class ImportStickers {
     if (!lines.length) {
       throw new Error('Input is empty.')
     }
-    const normalizer = new LineNormalize(this.countryMap)
+    const normalizer = new LineNormalize(this.countryMap, this.options)
     const warnings = []
     const seenCountries = new Set()
     const countries = []
@@ -192,14 +156,26 @@ class ImportStickers {
       const parsed = this._parseLine(normalized.line, lineIndex, seenCountries, warnings)
       if (parsed) countries.push(parsed)
     })
-    return { countries, warnings }
+    return {
+      sortStickers: this.options.sortStickers,
+      countries,
+      warnings
+    }
   }
 
   /**
-   * Parses one normalized Format 1 line. Returns null when the country is duplicate or invalid.
-   * Assume the line is already pre-normalized to the expected canonical form by the InputLineNormalize
+   * Parses one normalized Format 1 line.
+   * Returns null when the country is duplicate or invalid.
+   * Assumes the line is already pre-normalized to the expected canonical form by the LineNormalize
    * class, so only strict Format 1 syntax is accepted here.
-  */
+   * The returned object contains the country code, sticker counts, and the sticker order according
+   * to the configured sorting option.
+   * @param {string} line - The normalized Format 1 line to parse.
+   * @param {number} lineIndex - The index of the line in the original input for warning messages.
+   * @param {Set<string>} seenCountries - A set of already processed country codes to detect duplicates.
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid or duplicate entries.
+   * @returns {{ code: string, counts: Object<number, number>, stickerOrder: number[] } | null}
+   */
   _parseLine(line, lineIndex, seenCountries, warnings) {
     const parts = line.split(',')
     const code = parts[0]
@@ -217,15 +193,20 @@ class ImportStickers {
     }
     if (!this._validateCountryCode(code, warnings)) { return null }
     seenCountries.add(code)
-    const counts = {}
 
+    const counts = {}
+    const stickerOrder = []
     for (let i = 1; i < parts.length; i++) {
       if (!parts[i] || parts[i].trim() === '') {
         throw new Error(`Country "${code}": empty token detected.`)
       }
-      this._parseStickerToken(parts[i], code, counts, warnings)
+      this._parseStickerToken(parts[i], code, counts, warnings, stickerOrder)
     }
-    return { code, counts }
+    const result = { code, counts }
+    if (!this.options.sortStickers) {
+      result.stickerOrder = this._buildStickerOrder(stickerOrder)
+    }
+    return result
   }
 
   /** Validates one country code. Returns false and collects a warning when invalid or unknown. */
@@ -239,7 +220,7 @@ class ImportStickers {
   }
 
   /** Parses a fully normalized Format 1 token (atomic or N(X)). Skips with warning when out of range. */
-  _parseStickerToken(token, code, counts, warnings) {
+  _parseStickerToken(token, code, counts, warnings, stickerOrder) {
     const match = token.match(this.tokenRegex)
     if (!match) {
       throw new Error(`Country "${code}": invalid token "${token}".`)
@@ -252,6 +233,7 @@ class ImportStickers {
       throw new Error(`Country "${code}": duplicate sticker "${stickerNumber}" after normalization.`)
     }
     counts[stickerNumber] = this._mapTokenToCount(code, stickerNumber, explicitCount)
+    stickerOrder.push(stickerNumber)
   }
 
   /**
@@ -302,6 +284,18 @@ class ImportStickers {
     }
     return explicitCount !== null ? explicitCount : 1
   }
+
+  /**
+ * Builds the sticker order exposed with the parsed country.
+ * Preserves input order when sorting is disabled.
+ * Uses numeric order when sorting is enabled.
+ */
+  _buildStickerOrder(order) {
+    if (this.options.sortStickers) {
+      return order.sort((a, b) => a - b)
+    }
+    return order
+  }
 }
 
 /**
@@ -315,13 +309,22 @@ class LineNormalize {
   /**
    * Creates a normalizer bound to the available country codes.
    * countryMap must be keyed by uppercase 3-letter country code.
+   * @param {Object<string, { row: number, col: number }>} countryMap - Map of valid country 
+   *  codes to their sheet positions.
+   * @param {Object} [options] - Optional configuration object.
    */
-  constructor(countryMap) {
+  constructor(countryMap, options = {}) {
     /* Country code pattern for Format 2, including the special case of CC. */
     this.COUNTRY_CODE_PATTERN = '[A-Z]{3}|CC'
 
     /* Format 2 token pattern: COUNTRY-STICKER or COUNTRYSTICKER. */
     this.FORMAT2_COUNTRY_REGEX = new RegExp(`^(${this.COUNTRY_CODE_PATTERN})-?(\\d.*)$`)
+
+    /* Options for normalization behavior. */
+    this.options = {
+      sortStickers: true,
+      ...(options ?? {})
+    }
 
     this.countryMap = Object.fromEntries(
       Object.entries(countryMap).map(([code, value]) => [code.toUpperCase(), value])
@@ -338,7 +341,7 @@ class LineNormalize {
    * STEP 4 expand tokens (format 2 + ranges)
    * STEP 5 deduplicate stickers (first occurrence wins)
    * STEP 6 resolve exclusion if present
-   * STEP 7 sort and build canonical output
+   * STEP 7 optionally sort stickers and build canonical output
    */
   normalizeLine(rawLine) {
     const warnings = []
@@ -361,6 +364,9 @@ class LineNormalize {
     if (isExclusion) { // exclusion complement is already numerically sorted by _getValidPositions
       stickerTokens = this._computeExclusion(code, stickerTokens, warnings)
       if (!stickerTokens) { return { line: null, warnings } }
+    }
+    if (this.options.sortStickers) {
+      stickerTokens = this._sortStickers(stickerTokens)
     }
     if (stickerTokens.length === 0) {
       warnings.push(`Country "${code}": no valid stickers after normalization.`)
@@ -525,9 +531,9 @@ class LineNormalize {
   }
 
   /**
-   * Removes duplicate stickers using first-occurrence wins.
+   * Removes duplicate stickers using first-occurrence wins while preserving input order.
    * Sticker number defines uniqueness; repeat counts are ignored for deduplication.
-   * Emits a single consolidated warning listing all duplicate numbers found in this line.
+   * Emits a single consolidated warning listing duplicate numbers in first-occurrence order.
    */
   _deduplicateStickers(tokens, code, warnings) {
     const seen = new Set()
@@ -545,14 +551,12 @@ class LineNormalize {
       seen.add(key)
       map.set(key, token)
     }
-    if (duplicates.length > 0) { // single warning for all duplicates in this line
-      const unique = [...new Set(duplicates)].sort((a, b) => a - b)
-
+    if (duplicates.length > 0) {
+      const unique = [...new Set(duplicates)]
       warnings.push(`Country "${code}": duplicate sticker(s) "${unique.join(',')}" ignored; first occurrence wins.`)
     }
-    return Array.from(map.entries()).
-      sort((a, b) => a[0] - b[0]).
-      map(([, token]) => token)
+
+    return Array.from(map.values())
   }
 
   /**

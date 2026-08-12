@@ -17,11 +17,17 @@ const writeRangeMock = {
   clearContent: jest.fn()
 }
 
-/** Shared deterministic dataset. */
+/**
+ * Shared deterministic dataset.
+ * Notes:
+ * - Don't change the values in this dataset, as it is used across multiple unit tests and services.
+ * - If you want to test a different data, then add another country
+ * - I think you can add values for CC, since empty counts haven't been tested.
+*/
 const TEST_DATA = {
   countries: [
-    { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 2: 0, 3: 2 } },
-    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 17: 1, 18: 0, 20: 2 } },
+    { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 3: 2 } },
+    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 18: 1, 20: 2 } },
     { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
   ],
   groupCodes: ['A', 'B', 'C']
@@ -39,6 +45,7 @@ class MockStickerSheetRepository {
     this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
     this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
     this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
+    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
 
     this.startCol = 1
     this.numStickerCols = 21
@@ -52,6 +59,7 @@ class MockStickerSheetRepository {
     this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
     this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
     this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
+    this.tradePreferencesRange = this.ss.getRangeByName(this.TRADE_PREFERENCES_RANGE_NAME)
 
     const baseCountries = TEST_DATA.countries
     this.countryMap =
@@ -87,6 +95,7 @@ class MockStickerSheetRepository {
   getCountriesRange() { return this.countriesRange }
   getCountsRange() { return this.countsRange }
   getDoneRange() { return this.doneRange }
+  getTradePreferencesRange() { return this.tradePreferencesRange }
   getFlagIconsRange() { return this.flagIconsRange }
   getFlagsUrlRange() { return this.flagsUrlRange }
   getCountryNamesRange() { return this.countryNamesRange }
@@ -97,9 +106,60 @@ class MockStickerSheetRepository {
   getStartCol() { return this.startCol }
   getNumRows() { return this.numRows }
   getNumStickerCols() { return this.numStickerCols }
-  updateStickerCounts(updates) { // extending it to record the last updates for testing purposes
+  getTradePreferences() {
+    const range = this.getTradePreferencesRange()
+    if (!range) { return [] }
+    const values = range.getDisplayValues()
+    const flatValues = values.flat().filter(v => String(v || '').trim() !== '')
+    return [...new Set(flatValues.map(v => String(v).replace(/[\s,]+/g, '').toUpperCase()))]
+  }
+
+  getStickerCount(countryCode, stickerNumber) {
+    const country = TEST_DATA.countries.find(
+      item => item.code === countryCode
+    )
+    if (!country) {
+      throw new Error(`Country ${countryCode} not found`)
+    }
+    return Number(country.counts[stickerNumber] || 0)
+  }
+
+  updateStickerCounts(updates, mode = 'update') {
     this.lastUpdates = updates
-    return true
+    const range = this.getCountsRange()
+    if (mode === 'clean_all') {
+      range.clearContent()
+    }
+    const values = range.getValues()
+    const countries = updates.countries || []
+    if (mode === 'replace_countries') {
+      countries.forEach(country => {
+        const code = String(country.code).trim().toUpperCase()
+        const index = this.getCountryMap()[code].index
+        values[index].fill('')
+      })
+    }
+    countries.forEach(country => {
+      const code = String(country.code).trim().toUpperCase()
+      const index = this.getCountryMap()[code].index
+      const bounds = MockStickerSheetRepository.getCountryBounds()
+      const [minSticker, maxSticker] = bounds.get(code) || bounds.get('TEAM')
+      for (let sticker = 0; sticker < values[index].length; sticker++) {
+        // Invalid sticker positions are always reset to numeric zero.
+        // Example: TEAM sticker 0 and FWC sticker 20 are outside the allowed range.
+        if (sticker < minSticker || sticker > maxSticker) {
+          values[index][sticker] = 0
+        }
+      }
+      Object.entries(country.counts || {}).forEach(([sticker, count]) => {
+        const stickerNumber = Number(sticker)
+        // Valid imported zero counts are stored as blank cells to match sheet behavior.
+        if (stickerNumber >= minSticker && stickerNumber <= maxSticker) {
+          values[index][stickerNumber] = count === 0 ? '' : count
+        }
+      })
+    })
+    range.setValues(values)
   }
 }
 
@@ -116,15 +176,23 @@ function initTestKernel() {
 function initializeSpreadsheetAppMock() {
   const MAX_ROWS = 50
   const STICKER_COLS = 21
-  const fwcCounts = Array(STICKER_COLS).fill(''); fwcCounts[1] = 1; fwcCounts[3] = 2
-  const mexCounts = Array(STICKER_COLS).fill('')
-  const ccCounts = Array(STICKER_COLS).fill('')
-  const countriesValues = [['FWC'], ['MEX'], ['CC'], ...Array.from({ length: MAX_ROWS - 3 }, () => [''])]
+  const buildCountsRow = (country) => {
+    const row = Array(STICKER_COLS).fill('')
+    Object.entries(country.counts).forEach(([sticker, count]) => {
+      row[Number(sticker)] = count
+    })
+    return row
+  }
+  const countriesValues = [
+    ...TEST_DATA.countries.map(country => [country.code]),
+    ...Array.from({ length: MAX_ROWS - TEST_DATA.countries.length }, () => [''])
+  ]
   const countsValues = [
-    fwcCounts,
-    mexCounts,
-    ccCounts,
-    ...Array.from({ length: MAX_ROWS - 3 }, () => Array(STICKER_COLS).fill(''))]
+    ...TEST_DATA.countries.map(buildCountsRow),
+    ...Array.from(
+      { length: MAX_ROWS - TEST_DATA.countries.length }, () => Array(STICKER_COLS).fill('')
+    )
+  ]
 
   const getRangeMock = jest.fn((row, col, numRows, numCols) => {
     if (row == null || col == null || numRows == null || numCols == null) {
@@ -141,7 +209,14 @@ function initializeSpreadsheetAppMock() {
     getRow: jest.fn(() => 1),
     getColumn: jest.fn(() => 2),
     getSheet: jest.fn(() => sheetMock),
-    clearContent: jest.fn()
+    clearContent: jest.fn(() => {
+      countsValues.forEach(row => row.fill(''))
+    }),
+    setValues: jest.fn(values => {
+      values.forEach((row, index) => {
+        countsValues[index] = row
+      })
+    })
   }
   const groupsRange = createNamedRangeMock([['A'], ['B'], ...Array.from({ length: MAX_ROWS - 2 }, () => [''])])
   const flagsUrlRange = createNamedRangeMock([
@@ -174,6 +249,7 @@ function initializeSpreadsheetAppMock() {
     getSheet: jest.fn(() => sheetMock),
     clearContent: jest.fn()
   }
+  const tradePreferencesRange = createNamedRangeMock([['MEX'], ['1'], ['13'], ['POR11']])
   const spreadsheetMock = {
     getRangeByName: (name) => {
       if (name === 'COUNTRIES') return countriesRange
@@ -183,6 +259,7 @@ function initializeSpreadsheetAppMock() {
       if (name === 'COUNTRY_NAMES') return countryNamesRange
       if (name === 'FLAG_ICONS') return flagIconsRange
       if (name === 'DONE') return doneRange
+      if (name === 'TRADE_PREFERENCES') return tradePreferencesRange
       throw new Error(`Unknown range ${name}`)
     }
   }
@@ -223,5 +300,6 @@ function initializeSpreadsheetAppMock() {
 }
 
 module.exports = {
-  initTestKernel
+  initTestKernel,
+  TEST_DATA
 }

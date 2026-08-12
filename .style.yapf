@@ -1,0 +1,21 @@
+[style]
+
+# Keep lines compact; my project uses a 120-character limit.
+column_limit = 120
+
+# Use 4 spaces for indentation.
+indent_width = 4
+continuation_indent_width = 4
+
+# Avoid unnecessary vertical expansion.
+split_before_first_argument = false
+split_before_named_assigns = false
+split_before_logical_operator = false
+
+# Keep dictionaries compact when they fit.
+each_dict_entry_on_separate_line = false
+allow_split_before_dict_value = false
+
+# Keep closing brackets compact.
+dedent_closing_brackets = true
+coalesce_brackets = true

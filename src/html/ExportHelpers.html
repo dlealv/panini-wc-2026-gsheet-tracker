@@ -89,21 +89,16 @@
       const doc = deps.document || document
       const urlApi = deps.URL || URL
       const setTimeoutFn = deps.setTimeoutFn || setTimeout
-
       const blob = new Blob([content], {
         type: 'text/plain;charset=utf-8'
       })
-
       const url = urlApi.createObjectURL(blob)
-
       const a = doc.createElement('a')
       a.href = url
       a.download = fileName
-
       doc.body.appendChild(a)
       a.click()
       doc.body.removeChild(a)
-
       setTimeoutFn(() => {
         urlApi.revokeObjectURL(url)
       }, 1000)

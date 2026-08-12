@@ -2,10 +2,196 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, 
-project structure, and documentation.
+The format is inspired by **Keep a Changelog** and this project uses simple release-based entries focused on user-visible features, project structure, and documentation.
 
 ---
+
+## [1.1.4] 2026-08-11
+
+### Overview
+
+Implemented the Trade service for Apps Script. Centralized the Google Spreadsheet writing process in the `StickerSheetRepository` class. Fixed a bug in the Import service where selecting **Update counts clearing country counts** actually executed the **Update counts** option. Fixed Quick entry search by name not returning result. Improved `testKernel.js` to use `TEST_DATA` consistently. Standardized the look and feel by moving common styles to `CommonStyles.html` and `MobileStyles.html`. Updated `panini_fwc2026_roster.csv` with the correct player and sticker names based on the [Panini missing stickers website](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html), and updated club information using the player affiliations available when the Panini stickers were published.
+
+### Google Spreadsheet template
+
+#### Added
+
+- `TRADE_PREFERENCES` named range to store the user's trade preferences for the Trade service, accessible from the **Manage Panini** custom menu.
+
+#### Changes
+
+- Under the `About` tab:
+  - Updated the version information.
+- Under the `Lookup` tab:
+  - Added a new column for `DOB`.
+  - Adjusted the formula to include the `DOB` column from the `Roster` tab.
+- Under the `Roster` tab:
+  - Added the `DOB` column since the Panini roster file now includes the players' dates of birth.
+  - Added `Trade Preferences` in column `Q` and configured the `TRADE_PREFERENCES` named range to reference that column.
+
+### Apps Script
+
+#### Added
+
+- Under the `data` folder:
+  - `clean_roster.py`: Helper Python script to clean, validate, and standardize the `panini_fwc2026_roster.csv` file.
+
+- Under the `docs` folder:
+  - `TradeServiceMockDesign.md`: Mock UI design for the Trade service.
+  - `TradeServiceRequirements.md`: Trade service specification.
+
+- Under the `src/html` folder:
+  - `MobileTradeStyles.html`: Specific CSS styles for the Trade service on mobile devices.
+  - `MobileTradeView.html`: Mobile wrapper for `TradeView.html`.
+  - `TradeDialog.html`: Desktop dialog for the Trade service.
+  - `TradeStyles.html`: Specific CSS styles for the Trade service.
+  - `TradeView.html`: Shared view for the Trade service.
+
+- Under the `src` folder:
+  - `TradeService.gs`: Classes for managing the Trade service backend.
+
+- Under the root folder:
+  - `.style.yapf`: YAPF configuration file for Python code formatting.
+
+#### Changes
+
+- Under `.github/workflow`
+  - `validate.yml`: Added the step to include the validation of the `panini_fwc2026_roster.csv` running `python data/clean_roster.py` if the scripts fails validation, then the deployments stops.
+
+- Under the `data` folder:
+  - `panini_fwc2026_roster.csv`:
+    - Updated player names and sticker information based on the [Panini missing stickers website](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html).
+    - Standardized club names and adjusted some club affiliations based on the cutoff date before the World Cup.
+    - The file now passes all checks performed by `data/clean_roster.py`.
+    - Using the country names as they appear in the album for example: Türkiye, Côte d'Ivoire and Bosnia-Herzegovina.
+
+- Under the `docs` folder:
+  - `FAQ.md`:
+    - Organized the document into sections.
+    - Added a section for the Trade service.
+  - `TechnicalArchitecture.md`:
+    - Updated the documentation to include the new Trade service.
+    - Updated the responsibilities of the `StickerSheetRepository` class.
+
+- Under the `images` folder:
+  - Added new images related to the Trade service.
+
+- Under the `scripts` folder:
+  - `clasp.zsh`: Added a timestamp at the beginning of script execution.
+
+- Under the `src/html` folder:
+  - `AboutView.html`: Updated the release information.
+  - `CommonStyles.html`:
+    - Centralized common styles used by different services.
+    - Moved common components from other style files to this file.
+    - Added the `message-section` definition for messages and previews so the output is scrollable.
+  - `ExportView.html`:
+    - Added a feedback message block inside a section to follow the same pattern as other services.
+    - Added the `exportMessageSection` section ID and the `exportMessageSectionEl` variable.
+    - Adjusted `renderWarnings()`, `setMessage()`, and `clearExportMessage()` to use the new message section.
+    - Moved the message section above the action section.
+    - Removed the `mobileMessage` DOM variable because there is no specific message for the mobile service.
+    - Removed the `mobileExportTopHint` element because it is not used.
+  - `ImportExportStyles.html`:
+    - Removed the `.btn-inline` style because it belongs in `CommonStyles.html`.
+    - Removed the `.section-title-inline` style because it is not in use.
+  - `ImportHelpers.html`:
+    - Updated `getUIState()` and `setBusy()` to read values from the DOM instead of global variables that are not visible outside the IIFE.
+  - `ImportView.html`:
+    - Adjusted the HTML to standardize the information message block with other services.
+    - Documented the specific design of this service, which was intentionally designed to contain all elements inside a single view.
+    - Added the `importMessageSection` section and the corresponding `importMessageSectionEl` variable.
+    - Adjusted `clearInput()`, `setMessage()`, and `renderWarnings()` to properly use the new DOM variable.
+    - Moved the message section above the action section.
+  - `MobileExportStyles.html`:
+    - Simplified the file by moving common styles to `MobileStyles.html`.
+    - Adjusted specific values required by the Export service on mobile devices.
+  - `MobileHome.html`:
+    - Added the Trade service, including `TradeStyles.html` and `TradeView.html`, and added a new drawer element.
+    - Changed the menu order so Quick Entry and Trade appear first.
+    - Changed the default menu item to Quick Entry because it is used more frequently than the Import service on mobile devices.
+  - `MobileImportStyles.html`:
+    - Adjusted styles to accommodate the new design in `MobileImportView.html`.
+  - `QuickEntryHelpers.html`:
+    - Updated `setMessage()` to set message information based on the changes in the view.
+  - `QuickEntryStyles.html`:
+    - Added the `qe-message` style.
+  - `QuickEntryView.html`:
+    - Updated message output to use the specific `message info qe-message` style.
+
+- Under the `src` folder:
+  - `Code.gs`:
+    - Added Apps Script entry points for the Trade service.
+  - `Commons.gs`:
+    - Added `updateStickerCounts()` as the entry point for spreadsheet writing processes used by the Trade service.
+    - The input is now expected in the canonical form defined by `StickerSheetRepository`.
+    - Optimized the method to perform a bulk write of all rows instead of updating the `COUNTS` named range separately for each country.
+    - Added attribute: `this.tradePreferences` and method: `getTradePreferences()`.
+  - `ExportService.gs`:
+    - Renamed `filterStickerNumbersBy()` to `_filterStickerNumbersBy()` because it is an internal method now also used by the Trade service.
+  - `ImportService.gs`:
+    - Updated the `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the `options` input argument. This is not required by the Import service but is required by the Trade service.
+    - `LineNormalize`:
+      - Added an optional `options` constructor argument to support configurable normalization behavior.
+      - Added support for propagating sorting configuration while keeping the default behavior unchanged.
+      - Added support for preserving normalized sticker input order when sorting is disabled.
+    - `ImportStickers`:
+      - Added an optional `options` constructor argument to support configurable parsing behavior.
+      - Added the `sortStickers` output property in `parse()` to indicate whether sticker data is already sorted.
+      - Added conditional `stickerOrder` output per country when `sortStickers` is disabled, preserving the normalized input order that is not guaranteed by the `counts` object.
+      - Kept the default `sortStickers: true` behavior unchanged to avoid impacting existing import flows.
+      - This change enables consumers such as `TradeService` to preserve sticker order when required.
+      - Removed the `_writeCountries` method because writing is now delegated to `updateStickerCounts()` through the `StickerSheetRepository` class.
+      - Removed the `_clearCountries` and `_clearAllCounts` methods because clearing is now handled by `updateStickerCounts()` in `StickerSheetRepository`.
+
+- Under the `test/utils` folder:
+  - `testKernel.js`:
+    - Added implementations for `getStickerCount()`, `getTradePreferences()`, `updateStickerCounts()` in the `MockStickerSheetRepository` class.
+    - Adjusted `TEST_DATA` to represent the same data as `initializeSpreadsheetAppMock()`, making `TEST_DATA` the source of truth.
+    - Exported `TEST_DATA` to make it available for modification in specific tests.
+
+- Under the `test` folder:
+  - Adjusted regression tests that failed after the changes in `testKernel.js` to use `TEST_DATA` as the source of truth.
+  - `Commons.unit.test.js`:
+    - Updated the `getCountryCounts()` suite, including the `normalizes country code before lookup` test.
+    - Updated tests related to `updateStickerCounts()` after the contract changed.
+  - `ImportHelpers.html.js`:
+    - Adjusted tests after modifying the source file.
+  - `ImportService.unit.test.js`:
+    - Removed repetitive tests and tests related to Export services.
+    - Updated the `sheet writes` suite, including the `export contains no zero values` test.
+    - Added specific suites for `LineNormalize` and `ImportStickers` to validate behavior when the `options` input argument is provided.
+    - Added coverage for `sortStickers` behavior, including conditional `stickerOrder` output and preservation of input order when sorting is disabled.
+    - Added more detailed coverage for all Import modes.
+  - `QuickEntryService.unit.test.js`:
+    - Updated tests for `applyPendingUpdates()` and `_normalizePendingUpdates()` because the `updateStickerCounts()` contract in `StickerSheetRepository` changed.
+    - Added a specific test for `getVisibleCountries` for this case: `returns filtered visible countries search by name` to include the specific case of country name search.
+
+- Under the root folder:
+  - `.gitignore`:
+    - Added `panini_fwc2026_roster_clean.csv` because it is a working file generated during the cleanup process for `panini_fwc2026_roster.csv`.
+  - `cspell.json`:
+    - Added `data/clean_roster.py` to the ignored files.
+    - Added additional word exceptions to the code spell checker.
+  - `TODO.md`:
+    - Added the Trade service and the refactoring of the data model to unify it.
+  - `README.md`:
+    - Added a section describing the Trade service.
+    - Updated the list of files.
+    - Updated test coverage information.
+
+#### Fixed
+
+- Import service:
+  - Fixed an issue with the **Update counts clearing country counts** option, which was incorrectly executing **Update counts**.
+  - The issue was caused by `ImportHelpers.html` relying on global variables that were not in the scope of the IIFE.
+  - The helper now reads the required values from the DOM instead of relying on unavailable global variables.
+  - Because the `mode` variable was not defined in the expected scope, the code incorrectly fell back to the default `update` mode.
+- Quick entry service:
+  - Search by name didn't return the expected result, for example `bos` returns no result, expected to return `BIH`.
+
+---
+
 ## [1.1.3] 2026-07-25
 
 ### Overview

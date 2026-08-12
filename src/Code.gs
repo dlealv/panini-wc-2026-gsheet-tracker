@@ -21,10 +21,19 @@ function onOpen() {
     .addSeparator()
     .addItem('Quick sticker entry', 'showQuickStickerEntryDialog')
     .addSeparator()
+    .addItem('Trade stickers', 'showTradeDialog')
+    .addSeparator()
     .addItem('Mobile Web app link', 'showWebAppLink')
     .addSeparator()
     .addItem('About', 'showAboutDialog')
     .addToUi()
+}
+
+/** Builds JSON text response for scanner integration. */
+function createJsonOutput(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON)
 }
 
 // #region Import
@@ -147,6 +156,51 @@ function applyQuickEntryUpdates(payload) {
 
 // #endregion QuickEntry
 
+// #region Trade
+//==============================================================================
+// Trade Dialog
+//==============================================================================
+
+/** Opens the Trade dialog. */
+function showTradeDialog() {
+  _showTradeDialog('desktop')
+}
+
+/** Returns a preview of another collector's trade information. */
+function previewOtherTradeInfo(payload) {
+  return TradeService.previewOtherStickerTradeInfo(payload || {})
+}
+
+/** Returns a preview of another collector's trade information from QR image data. */
+function previewOtherTradeInfoFromQr(payload) {
+  return TradeService.previewOtherStickerTradeInfoFromQr(payload || {})
+}
+
+/** Generates the current collector QR payload. */
+function generateTradeInfoQr() {
+  return TradeService.generateStickerTradeInfoQr()
+}
+
+/** Finds all possible trade matches with another collector. */
+function findTradeMatches(payload) {
+  return TradeService.findStickerTradeMatches(payload)
+}
+
+/** Applies the confirmed trade. */
+function executeTrade(payload) {
+  return TradeService.executeStickerTrades(payload)
+}
+
+/** Opens the Trade dialog with the provided platform configuration. */
+function _showTradeDialog(platform) {
+  const template = HtmlService.createTemplateFromFile('TradeDialog')
+  template.platform = platform || 'desktop'
+  const html = template.evaluate().setWidth(760).setHeight(760)
+
+  SpreadsheetApp.getUi().showModalDialog(html, 'Trade stickers')
+}
+
+// #endregion Trade
 
 // #region Mobile
 //==============================================================================

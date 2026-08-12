@@ -1,37 +1,60 @@
 <style>
-  /* src/html/QuickEntryStyles.html
-   * Styles specific to the Quick Entry Dialog. This file is included in QuickEntryDialog.html.
-   It contains:
-    - Theme variables
-    - Typography
-    - Layout primitives
-    - Buttons
-    - Messages
-    - Form controls
+  /*
+   * src/html/QuickEntryStyles.html
+   *
+   * Styles specific to the Quick Entry view.
+   *
+   * Shared styles are provided by CommonStyles.html:
+   * - Theme colors
+   * - Typography
+   * - Buttons
+   * - Messages
+   * - Form controls
+   * - Sections and containers
+   *
+   * This file contains:
+   * - Quick Entry layout
+   * - Filters and toolbar
+   * - Legend
+   * - Country list
+   * - Sticker grid and cards
+   * - Quick Entry-specific states
    */
+
   :root {
-    /* theme */
+    /* Pending change indicator colors. */
     --pending: #f29900;
     --pending-text: #c5221f;
+
+    /* Sticker count colors. */
     --count-0-bg: #ffffff;
     --count-0-text: #202124;
+
     --count-1-bg: #cfe2f3;
     --count-1-text: #202124;
+
     --count-2-bg: #fff200;
     --count-2-text: #202124;
+
     --count-3-bg: #f6b26b;
     --count-3-text: #202124;
+
     --count-4-bg: #d9d2e9;
     --count-4-text: #202124;
+
     --count-5-plus-bg: #e06666;
     --count-5-plus-text: #202124;
+
+    /* Completed country colors. */
     --completed-bg: #0b5394;
     --completed-text: #ffffff;
-    /* layout variables */
+
+    /* Layout configuration values. */
     --scrollbar-width: 12px;
     --stickers-per-row: 8;
   }
 
+  /* Removes browser spacing and keeps the view inside the dialog area. */
   html,
   body {
     margin: 0;
@@ -39,26 +62,33 @@
     overflow: hidden;
   }
 
+  /* Adds dialog padding for the Quick Entry view. */
   body {
     padding: 16px;
   }
 
+  /* Defines the Quick Entry viewport and preserves vertical layout space. */
   .container {
+    display: flex;
+    flex-direction: column;
     height: calc(100vh - 32px);
     overflow: hidden;
   }
 
+  /* Adds spacing between top controls in the Quick Entry header. */
   .top-bar {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
+  /* Aligns the update action to the right side. */
   .top-actions {
     display: flex;
     justify-content: flex-end;
   }
 
+  /* Defines desktop layout for search, filters, and buttons. */
   .filters {
     display: grid;
     grid-template-columns: minmax(290px, 2fr) minmax(110px, 0.5fr) auto auto auto auto;
@@ -66,14 +96,17 @@
     align-items: center;
   }
 
+  /* Allows filter controls to participate in the desktop grid. */
   .filter-row {
     display: contents;
   }
 
+  /* Hides the mobile dropdown when desktop buttons are available. */
   .filter-select-mobile {
     display: none !important;
   }
 
+  /* Displays the legend items in a wrapping row. */
   .legend {
     display: flex;
     flex-wrap: wrap;
@@ -83,12 +116,14 @@
     color: var(--muted);
   }
 
+  /* Aligns legend marker and label together. */
   .legend-item {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
 
+  /* Base style for sticker state indicators in the legend. */
   .legend-swatch {
     width: 16px;
     height: 16px;
@@ -98,6 +133,7 @@
     flex: 0 0 auto;
   }
 
+  /* Legend colors for sticker counts. */
   .legend-swatch.count-0 {
     background: var(--count-0-bg);
   }
@@ -122,11 +158,13 @@
     background: var(--count-5-plus-bg);
   }
 
+  /* Shows the pending indicator dot in the legend. */
   .legend-swatch.pending {
     position: relative;
     background: #fff;
   }
 
+  /* Draws the pending change marker dot. */
   .legend-swatch.pending::after {
     content: '';
     position: absolute;
@@ -138,11 +176,13 @@
     background: var(--pending);
   }
 
+  /* Shows completed countries using the completed color. */
   .legend-swatch.completed {
     background: var(--completed-bg);
     border-color: var(--completed-bg);
   }
 
+  /* Quick Entry-specific filter input sizing. */
   .filter-input,
   .filter-select {
     width: 100%;
@@ -151,17 +191,14 @@
     border-radius: 6px;
   }
 
-  .message.pending {
-    color: var(--pending-text);
-    font-weight: 700;
-  }
-
+  /* Allows the country list section to consume remaining height. */
   .country-list-wrapper {
     flex: 1;
     min-height: 0;
     overflow: hidden;
   }
 
+  /* Displays country sections in a vertically scrollable list. */
   .country-list {
     display: flex;
     flex-direction: column;
@@ -173,25 +210,30 @@
     scrollbar-gutter: stable;
   }
 
+  /* Defines scrollbar width for Chromium-based browsers. */
   .country-list::-webkit-scrollbar {
     width: var(--scrollbar-width);
   }
 
+  /* Defines scrollbar track appearance. */
   .country-list::-webkit-scrollbar-track {
     background: #f1f3f4;
     border-radius: 999px;
   }
 
+  /* Defines scrollbar thumb appearance. */
   .country-list::-webkit-scrollbar-thumb {
     background: #c1c7cd;
     border-radius: 999px;
     border: 2px solid #f1f3f4;
   }
 
+  /* Highlights scrollbar thumb on hover. */
   .country-list::-webkit-scrollbar-thumb:hover {
     background: #a8b0b8;
   }
 
+  /* Defines the country card container. */
   .country-section {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -199,11 +241,13 @@
     background: #fff;
   }
 
+  /* Highlights completed countries. */
   .country-section.completed {
     background: var(--completed-bg);
     color: var(--completed-text);
   }
 
+  /* Displays the country header information. */
   .country-header {
     display: flex;
     flex-wrap: wrap;
@@ -212,14 +256,16 @@
     margin-bottom: 12px;
   }
 
+  /* Aligns country title, flag, and text together. */
   .country-title {
     display: flex;
     align-items: center;
     gap: 10px;
-   font-size: var(--text-xl);
+    font-size: var(--text-xl);
     font-weight: 700;
   }
 
+  /* Displays country flags consistently. */
   .country-flag {
     width: 48px;
     height: 28px;
@@ -231,6 +277,7 @@
     flex: 0 0 auto;
   }
 
+  /* Displays country summary values in a flexible row. */
   .country-summary {
     display: flex;
     flex-wrap: wrap;
@@ -238,10 +285,12 @@
     font-size: var(--text-md);
   }
 
+  /* Highlights numeric summary values. */
   .summary-value {
     font-weight: 700;
   }
 
+  /* Defines the default sticker list layout. */
   .sticker-grid {
     display: flex;
     flex-direction: column;
@@ -249,12 +298,14 @@
     width: 100%;
   }
 
+  /* Displays stickers horizontally in compact mode. */
   .sticker-grid.compact {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: flex-start;
   }
 
+  /* Defines the sticker row grid layout. */
   .sticker-row {
     display: grid;
     grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
@@ -262,20 +313,20 @@
     width: 100%;
   }
 
+  /* Centers incomplete final sticker rows. */
   .sticker-row.last-row {
     display: flex;
     justify-content: center;
     gap: 6px;
   }
 
-  /* Each sticker card represents one sticker and its count. The card's background color changes based on 
-  the count of stickers. */
+  /* Defines the base sticker card appearance. */
   .sticker-card {
     position: relative;
     min-height: 0;
     border: 2px solid var(--border);
     border-radius: 8px;
-    padding: 6px 4px 6px 4px;
+    padding: 6px 4px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -287,17 +338,16 @@
   }
 
   /*
-   Sticker rows use CSS grid with the number of columns controlled by
-   --stickers-per-row.
-   The last row and compact layouts use flex sizing so incomplete rows
-   can keep the same card dimensions and spacing without leaving oversized
-   gaps.
-  */
+   Sticker cards keep consistent sizing in:
+   - incomplete final rows
+   - compact layouts
+   */
   .sticker-row.last-row .sticker-card,
   .sticker-grid.compact .sticker-card {
     width: calc((100% - (var(--stickers-per-row) - 1) * 6px) / var(--stickers-per-row));
   }
 
+  /* Sticker colors based on current count. */
   .sticker-card.count-0 {
     background: var(--count-0-bg);
     color: var(--count-0-text);
@@ -328,8 +378,7 @@
     color: var(--count-5-plus-text);
   }
 
-  /* A visual indicator (orange dot) shown on sticker cards that have pending changes 
-  (i.e. changes that have been made but not yet saved). */
+  /* Shows an orange marker when a sticker has unsaved changes. */
   .sticker-card.pending-change::after {
     content: '';
     position: absolute;
@@ -342,19 +391,19 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
   }
 
-  /* The label element on each sticker card, used to display the sticker number or label. */
+  /* Displays the sticker number label. */
   .sticker-label {
     font-size: var(--text-md);
     font-weight: 700;
   }
 
-  /* Container for the increment/decrement buttons on each sticker card. */
+  /* Groups increment and decrement buttons. */
   .sticker-actions {
     display: flex;
     gap: 4px;
   }
 
-  /* Buttons used to increment/decrement sticker count. */
+  /* Defines sticker increment and decrement button size. */
   .btn-sticker {
     padding: 0;
     width: 26px;
@@ -366,12 +415,12 @@
     line-height: 1;
   }
 
+  /* Reduces opacity for disabled sticker actions. */
   .sticker-actions button:disabled {
     opacity: 0.7;
   }
 
-  /* A badge that can be optionally shown on a sticker card, used to display special 
-  icons or labels (e.g. for sticker 1 and 13). */
+  /* Displays optional sticker badges. */
   .sticker-badge {
     position: absolute;
     top: 3px;
@@ -382,11 +431,29 @@
     letter-spacing: 0.3px;
   }
 
+  /* Styles empty list messages. */
   .empty-state {
     color: var(--muted);
     font-size: var(--text-md);
   }
 
+  /* Pending messages use a stronger visual emphasis. */
+  .message.pending {
+    color: var(--pending-text);
+    font-weight: 700;
+  }
+
+  /* Defines the Quick Entry status message area. */
+  /* Defines the Quick Entry status message area. */
+  #qe-message.qe-message {
+    flex: 0 0 auto;
+    margin: 4px 0 8px 0;
+    min-height: 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Adjusts country cards for narrow screens. */
   @media (max-width: 600px) {
     .country-section {
       padding: 8px;

@@ -30,11 +30,12 @@
   <?!= include('MobileImportStyles') ?>
   <?!= include('MobileExportStyles') ?>
   <?!= include('MobileQuickEntryStyles') ?>
+  <?!= include('MobileTradeStyles') ?>
 </head>
 
 <body>
   <div class="mobile-page">
-    <!-- Application header ─────────────────────────────────────────────── -->
+    <!-- Application header -->
     <header class="header">
       <div class="header-title">🎴 Panini WC 2026</div>
       <button class="menu-btn" onclick="toggleMenu()">&#9776;</button>
@@ -44,23 +45,14 @@
       </div>
     </header>
 
-    <!-- Navigation drawer ─────────────────────────────────────────────── -->
+    <!-- Navigation drawer: The order of the items is different than from desktop menu.-->
     <div id="drawer" class="drawer hidden">
-      <div class="drawer-item" onclick="showView('import')">
-        Import
-      </div>
-      <div class="drawer-item" onclick="showExportView('export_all')">
-        Export all
-      </div>
-      <div class="drawer-item" onclick="showExportView('export_shared')">
-        Export shared
-      </div>
-      <div class="drawer-item" onclick="showQuickEntryView()">
-        Quick Entry
-      </div>
-      <div class="drawer-item" onclick="showAboutView()">
-        About
-      </div>
+      <div class="drawer-item" onclick="showQuickEntryView()"> Quick Entry </div>
+      <div class="drawer-item" onclick="showTradeView()"> Trade </div>
+      <div class="drawer-item" onclick="showView('import')"> Import </div>
+      <div class="drawer-item" onclick="showExportView('export_all')"> Export all </div>
+      <div class="drawer-item" onclick="showExportView('export_shared')"> Export shared </div>
+      <div class="drawer-item" onclick="showAboutView()"> About </div>
     </div>
 
     <!-- Overlay shown while the navigation drawer is open. -->
@@ -74,15 +66,20 @@
       <?!= include('MobileExportView') ?>
       <?!= include('MobileQuickEntryView') ?>
       <?!= include('MobileAboutView') ?>
+      <?!= include('MobileTradeView') ?>
 
 
       <script>
         window.addEventListener('load', () => {
           const views = document.querySelectorAll('.view')
           views.forEach(v => v.classList.add('hidden'))
-          const importView = document.getElementById('view-import')
-          if (importView) {
-            importView.classList.remove('hidden')
+          // Quick Entry is the default view for mobile users.
+          const quickEntryView = document.getElementById('view-quickentry')
+          if (quickEntryView) {
+            quickEntryView.classList.remove('hidden')
+            if (typeof initializeQuickEntryView === 'function') {
+              initializeQuickEntryView()
+            }
           }
         })
       </script>
@@ -100,7 +97,7 @@
          * Hides all other service views.
          * @param {string} view Service identifier (for example, "import").
          */
-        window.showView = function(view) {
+        window.showView = function (view) {
           if (typeof clearViewMessages === 'function') {
             clearViewMessages()
           }
@@ -118,7 +115,7 @@
         }
 
         /** Toggles the visibility of the navigation drawer and its overlay. */
-        window.toggleMenu = function() {
+        window.toggleMenu = function () {
           const drawer = document.getElementById('drawer')
           const overlay = document.getElementById('overlay')
           drawer.classList.toggle('hidden')

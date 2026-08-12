@@ -1,0 +1,621 @@
+<script>
+  // src/html/TradeHelpers.html
+  /**
+   * Pure functions (testable) related to trade dialog logic.
+   * This helper supports TradeDialog.html and contains:
+   * - trade payload generation
+   * - UI state extraction
+   * - message handling
+   * - trade information formatting
+   * - QR preview rendering
+   * QR payload compression is handled by TradeQrHelper on the backend.
+   * This helper only works with normalized TradeInfo objects.
+   */
+  /**
+   * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global scope and to
+   * provide a clear structure for export-related functions. Functions exported from the namespace are tagged with
+   * @public for easy identification and documentation.
+   */
+  window.Trade = (function () {
+    /**
+     * Builds the trade selection options from the current UI state.
+     * @export
+     * @public
+     */
+    function getPayload(deps = {}) {
+      return _getUIState(deps)
+    }
+
+    /**
+     * Enables/disables UI during async operations.
+     * @export
+     * @public
+     */
+    function setBusy(isBusy, deps = {}) {
+      const doc = deps.document || document
+      doc.querySelectorAll('button').forEach(btn => {
+        btn.disabled = isBusy
+      })
+      const controls = deps.controls || [
+        ...(typeof sortModeSelect !== 'undefined' ? [sortModeSelect] : []),
+        ...(typeof receiveLimitSelect !== 'undefined' ? [receiveLimitSelect] : []),
+        ...(typeof sendLimitSelect !== 'undefined' ? [sendLimitSelect] : [])
+      ]
+      controls.forEach(control => {
+        if (control) {
+          control.disabled = isBusy
+        }
+      })
+    }
+
+    /**
+     * Displays a message in the Trade dialog UI.
+     * @export
+     * @public
+     */
+    function setMessage(text, type, deps = {}) {
+      const el = deps.messageEl || (typeof tradeMessageEl !== 'undefined' ? tradeMessageEl : null)
+      if (!el) {
+        return
+      }
+      el.className = 'message ' + (type || 'info')
+      el.textContent = text || ''
+    }
+
+    /**
+     * Shows or hides the Trade message section.
+     * @export
+     * @public
+     */
+    function showMessage(show, deps = {}) {
+      const el = deps.messageSectionEl || (typeof tradeMessageSectionEl !== 'undefined' ? tradeMessageSectionEl : null)
+      if (!el) {
+        return
+      }
+      el.style.display = show ? '' : 'none'
+    }
+
+    /**
+     * Builds the backend payload from the Trade input fields.
+     * @export
+     * @public
+     */
+    function getValidationPayload(deps = {}) {
+      const missingEl = deps.missingText || (typeof missingTextEl !== 'undefined' ? missingTextEl : null)
+      const repeatsEl = deps.repeatsText || (typeof repeatsTextEl !== 'undefined' ? repeatsTextEl : null)
+      return {
+        missingText: missingEl ? missingEl.value.trim() : '',
+        repeatsText: repeatsEl ? repeatsEl.value.trim() : ''
+      }
+    }
+
+    /**
+     * Renders a preview of the trade info in the UI.
+     * @param {{tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
+     * @param {Object} deps
+     * @param {HTMLElement} deps.previewEl The element to render the preview into.
+     * @export
+     * @public
+     */
+    function renderPreview(result, deps = {}) {
+      const el = deps.previewEl
+      if (!el) { return }
+      el.className = 'preview'
+      el.textContent = _formatTradeInfo(result.tradeInfo || {})
+      el.style.display = 'block'
+    }
+
+    /**
+     * Clears the trade preview display.
+     * @param {Object} deps
+     * @param {HTMLElement} deps.previewEl The element to clear the preview from.
+     * @export
+     * @public
+     */
+    function clearPreview(deps = {}) {
+      const el = deps.previewEl
+      if (!el) { return }
+      el.style.display = 'none'
+      el.textContent = ''
+    }
+
+    /**
+     * Clears the QR code preview display.
+     * @param {{qrEl?:HTMLImageElement,messageEl?:HTMLElement,infoEl?:HTMLElement}} elements
+     * @export
+     * @public
+     */
+    function clearQrPreview(elements = {}) {
+      if (!elements.qrEl) { return }
+      elements.qrEl.src = ''
+      elements.qrEl.style.display = 'none'
+      if (elements.messageEl) {
+        elements.messageEl.textContent = ''
+        elements.messageEl.className = ''
+        elements.messageEl.style.display = 'none'
+      }
+      if (elements.infoEl) {
+        elements.infoEl.textContent = ''
+        elements.infoEl.style.display = 'none'
+      }
+    }
+
+    /**
+     * Renders a QR code preview for trade info in the UI.
+     * @param {{qrData:string,tradeInfo:{missing:Object<string,number[]>,repeats:Object<string,number[]>}}} result
+     * @param {{qrEl:HTMLImageElement,hintEl?:HTMLElement,infoEl?:HTMLElement}} elements
+     * @return {void}
+     * @export
+     * @public
+     */
+    function renderQrPreview(result, elements) {
+      if (!elements.qrEl) { return }
+      elements.qrEl.onload = null
+      elements.qrEl.onerror = null
+      elements.qrEl.style.display = 'none'
+      if (typeof elements.qrEl.removeAttribute === 'function') {
+        elements.qrEl.removeAttribute('src')
+      } else {
+        elements.qrEl.src = ''
+      }
+      elements.qrEl.onload = function () {
+        elements.qrEl.style.display = 'block'
+        if (elements.hintEl) {
+          elements.hintEl.style.display = 'block'
+        }
+      }
+      elements.qrEl.onerror = function () {
+        elements.qrEl.style.display = 'none'
+      }
+      elements.qrEl.src = _buildQrImageUrl(result.qrData)
+      if (elements.infoEl) {
+        elements.infoEl.className = 'preview'
+        elements.infoEl.textContent = _formatTradeInfo(result.tradeInfo || {})
+        elements.infoEl.style.display = 'block'
+      }
+    }
+
+    /**
+     * Renders receive/send match previews with optional proposal highlighting.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
+     * @param {Object} deps
+     * @param {HTMLElement} deps.receivePreviewEl
+     * @param {HTMLElement} deps.sendPreviewEl
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} deps.highlightProposal
+     * Current selected proposal stickers to highlight.
+     * @export
+     * @public
+     */
+    function renderMatches(matches, deps = {}) {
+      if (!matches) { return }
+      const receiveEl = deps.receivePreviewEl
+      const sendEl = deps.sendPreviewEl
+      const previewClass = deps.previewClass || 'preview'
+      const highlightProposal = deps.highlightProposal || null
+      if (receiveEl) {
+        receiveEl.className = previewClass
+        receiveEl.innerHTML = _formatMatches(matches.receive, highlightProposal ? highlightProposal.receive : null)
+        receiveEl.style.display = 'block'
+      }
+      if (sendEl) {
+        sendEl.className = previewClass
+        sendEl.innerHTML = _formatMatches(matches.send, highlightProposal ? highlightProposal.send : null)
+        sendEl.style.display = 'block'
+      }
+    }
+
+    /**
+     * Formats trade input data into a string suitable for display in text areas.
+     * @param {Object<string,number[]>} data
+     * @returns {string}
+     * @export
+     * @public
+     */
+    function formatTradeInput(data) {
+      return Object.keys(data || {}).map(country => country + ',' + data[country].join(',')).join('\n')
+    }
+
+    /**
+     * Formats a sticker map into a readable string.
+     * @param {Object<string,number[]>} data
+     * @returns {string}
+     * @public
+     * @export
+     */
+    function formatStickerMap(data) {
+      const lines = []
+      const countries = Object.keys(data || {})
+      if (!countries.length) {
+        return '(none)'
+      }
+      countries.forEach(country => {
+        lines.push(country + ' -> ' + data[country].join(', '))
+      })
+      return lines.join('\n')
+    }
+
+    /**
+     * Counts the total number of sticker matches in a trade direction.
+     * @param {Object<string,number[]>} matches
+     * @returns {number}
+     * @export
+     * @public
+     */
+    function countMatches(matches) {
+      return Object.values(matches || {}).reduce((total, stickers) => total + (stickers || []).length, 0)
+    }
+
+    /**
+     * Prepares trade selection by sorting matches and applying limits.
+     * Supports three sorting modes for receive stickers:
+     * - album: keep incoming backend order
+     * - completion: sort by doneMap descending
+     * - preferences: sort by TRADE_PREFERENCES rules
+     * Send stickers are never sorted here and always keep backend order.
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
+     * @param {{maxStickerReceive:number,maxStickerSend:number,sortMode?:string,doneMap?:Object<string,number>,
+     * tradePreferences?:string[]}} options
+     * @return {{receive:Object<string,number[]>,send:Object<string,number[]>}}
+     * @export
+     * @public
+     */
+    function prepareTradeSelection(matches, options) {
+      const safeOptions = options || {}
+      const sortMode = safeOptions.sortMode || 'album'
+      const receiveMatches = matches && matches.receive ? matches.receive : {}
+      const sendMatches = matches && matches.send ? matches.send : {}
+      const sortedReceive = _sortReceiveMatches(receiveMatches, {
+        sortMode: sortMode,
+        doneMap: safeOptions.doneMap || null,
+        tradePreferences: safeOptions.tradePreferences || []
+      })
+      const sortedSend = _sortSendMatches(sendMatches)
+      const maxStickerReceive = Number(safeOptions.maxStickerReceive || 0)
+      const maxStickerSend = Number(safeOptions.maxStickerSend || 0)
+      return {
+        receive: _limitTradeStickers(sortedReceive, maxStickerReceive),
+        send: _limitTradeStickers(sortedSend, maxStickerSend)
+      }
+    }
+
+    // Private helpers (not exported)
+
+    /**
+     * Builds the QR image URL from encoded trade data.
+     * @param {string} qrData
+     * @returns {string}
+     */
+    function _buildQrImageUrl(qrData) {
+      const size = 800
+      const encoded = encodeURIComponent(qrData)
+      return 'https://quickchart.io/qr?size=' + size + '&ecLevel=H' + '&text=' + encoded
+    }
+
+    /**
+     * Reads the current trade options from the UI.
+     * sortMode defaults to album when selector is absent or invalid.
+     * @returns {{sortMode:string,maxStickerReceive:number,maxStickerSend:number}}
+     */
+    function _getUIState(deps = {}) {
+      const sortSelect = deps.sortModeSelect || document.getElementById('sortModeSelect')
+      const receiveSelect = deps.receiveLimitSelect || document.getElementById('receiveLimitSelect')
+      const sendSelect = deps.sendLimitSelect || document.getElementById('sendLimitSelect')
+      const selectedMode = sortSelect ? String(sortSelect.value || '').toLowerCase() : ''
+      const allowedModes = { album: true, completion: true, preferences: true }
+      const sortMode = allowedModes[selectedMode] ? selectedMode : 'album'
+      return {
+        sortMode: sortMode,
+        maxStickerReceive: Number(receiveSelect ? receiveSelect.value : 0),
+        maxStickerSend: Number(sendSelect ? sendSelect.value : 0)
+      }
+    }
+
+    /**
+     * Formats TradeInfo into a readable message.
+     * Used to format missing/repeats from another collector.
+     * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
+     * @returns {string}
+     */
+    function _formatTradeInfo(tradeInfo) {
+      const lines = []
+      const appendSection = (title, data) => {
+        lines.push(title)
+        const countries = Object.keys(data || {})
+        if (!countries.length) {
+          lines.push('(none)')
+          return
+        }
+        countries.forEach(country => {
+          lines.push(country + ' -> ' + data[country].join(', '))
+        })
+      }
+      appendSection('Repeats:', tradeInfo.repeats)
+      appendSection('Missing:', tradeInfo.missing)
+      return lines.join('\n')
+    }
+
+    /**
+     * Formats trade matches for preview.
+     * @param {Object<string,number[]>} matches
+     * @param {Object<string,number[]>} [highlightProposal]
+     * @returns {string}
+     */
+    function _formatMatches(matches, highlightProposal = null) {
+      const countries = Object.keys(matches || {})
+      if (!countries.length) {
+        return '(none)'
+      }
+      return countries.map(country => {
+        const stickers = matches[country].map(sticker => {
+          const isHighlighted = highlightProposal &&
+            highlightProposal[country] &&
+            highlightProposal[country].includes(sticker)
+          if (isHighlighted) {
+            return '<span class="trade-highlight">' + sticker + '</span>'
+          }
+          return sticker
+        })
+        return country + ', ' + stickers.join(', ')
+      }).join('<br>')
+    }
+
+    /**
+     * Returns send matches without changing order.
+     * @param {Object<string,number[]>} sendMatches
+     * @return {Object<string,number[]>}
+     */
+    function _sortSendMatches(sendMatches) {
+      return sendMatches || {}
+    }
+
+    /**
+     * Sorts receive matches according to selected mode.
+     * @param {Object<string,number[]>} receiveMatches
+     * @param {{sortMode:string,doneMap?:Object<string,number>,tradePreferences?:string[]}} options
+     * @return {Object<string,number[]>}
+     */
+    function _sortReceiveMatches(receiveMatches, options) {
+      const sortMode = options && options.sortMode ? options.sortMode : 'album'
+      if (sortMode === 'completion' && options.doneMap) {
+        return _sortMatchesByCompletion(receiveMatches, options.doneMap)
+      }
+      if (sortMode === 'preferences' && options.tradePreferences && options.tradePreferences.length) {
+        return _sortReceiveMatchesByPreferences(receiveMatches, options.tradePreferences)
+      }
+      return receiveMatches || {}
+    }
+
+    /**
+     * Sorts receive countries and stickers using TRADE_PREFERENCES.
+     * @param {Object<string,number[]>} receiveMatches
+     * @param {string[]} tradePreferences
+     * @return {Object<string,number[]>}
+     */
+    function _sortReceiveMatchesByPreferences(receiveMatches, tradePreferences) {
+      const albumEntries = Object.entries(receiveMatches || {})
+      const albumCountryIndexMap = _buildAlbumCountryIndexMap(albumEntries)
+      const rules = _buildPreferenceRules(tradePreferences)
+      const rankedEntries = albumEntries.map(entry => {
+        const country = entry[0]
+        const stickers = entry[1] || []
+        const sortedStickers = _sortStickersByPreferences(country, stickers, rules)
+        const countryPriority = _getCountryPriority(country, sortedStickers, rules)
+        return {
+          country: country,
+          stickers: sortedStickers,
+          countryPriority: countryPriority,
+          albumIndex: albumCountryIndexMap[country]
+        }
+      })
+      const sortedEntries = rankedEntries.sort((left, right) => {
+        if (left.countryPriority !== right.countryPriority) {
+          return left.countryPriority - right.countryPriority
+        }
+        return left.albumIndex - right.albumIndex
+      })
+      return Object.fromEntries(sortedEntries.map(item => [item.country, item.stickers]))
+    }
+
+    /**
+     * Builds normalized preference rules preserving preference order.
+     * Assumes input tradePreferences are already normalized by backend.
+     * @param {string[]} tradePreferences
+     * @return {{countries:Array<{country:string,index:number}>,stickers:Array<{sticker:number,index:number}>,
+     * countryStickers:Array<{country:string,sticker:number,index:number}>}}
+     */
+    function _buildPreferenceRules(tradePreferences) {
+      const rules = { countries: [], stickers: [], countryStickers: [] }
+        ; (tradePreferences || []).forEach((rawValue, index) => {
+          const value = String(rawValue || '')
+          if (!value) {
+            return
+          }
+          const countrySticker = _parseCountryStickerPreference(value)
+          if (countrySticker) {
+            rules.countryStickers.push({ country: countrySticker.country, sticker: countrySticker.sticker, index: index })
+            return
+          }
+          if (_isStickerPreference(value)) {
+            rules.stickers.push({ sticker: Number(value), index: index })
+            return
+          }
+          if (_isCountryPreference(value)) {
+            rules.countries.push({ country: value, index: index })
+          }
+        })
+      return rules
+    }
+
+    /**
+     * Normalizes one raw preference token from TRADE_PREFERENCES.
+     * @param {string} rawValue
+     * @return {string}
+     */
+    function _normalizePreferenceToken(rawValue) {
+      const raw = String(rawValue || '').trim().toUpperCase()
+      if (!raw) {
+        return ''
+      }
+      const compact = raw.replace(/\s+/g, '')
+      const countryStickerMatch = compact.match(/^([A-Z]{2,3})[,:\-]?(\d{1,2})$/)
+      if (countryStickerMatch) {
+        return countryStickerMatch[1] + countryStickerMatch[2]
+      }
+      return compact
+    }
+
+    /** Returns true when preference token is a global sticker number. */
+    function _isStickerPreference(value) {
+      return /^\d+$/.test(value)
+    }
+
+    /** Returns true when preference token is a country code. */
+    function _isCountryPreference(value) {
+      return /^[A-Z]{2,3}$/.test(value)
+    }
+
+    /**
+     * Parses country-specific sticker preference (example: POR11).
+     * @param {string} value
+     * @return {{country:string,sticker:number}|null}
+     */
+    function _parseCountryStickerPreference(value) {
+      const match = value.match(/^([A-Z]{2,3})(\d{1,2})$/)
+      if (!match) { return null }
+      return { country: match[1], sticker: Number(match[2]) }
+    }
+
+    /**
+     * Builds album index map for countries for stable tie-breaks.
+     * @param {Array<[string,number[]]>} entries
+     * @return {Object<string,number>}
+     */
+    function _buildAlbumCountryIndexMap(entries) {
+      const indexMap = {}
+      entries.forEach((entry, index) => {
+        indexMap[entry[0]] = index
+      })
+      return indexMap
+    }
+
+    /**
+     * Resolves best priority index for a country.
+     * @param {string} country
+     * @param {number[]} stickers
+     * @param {{countries:Array<{country:string,index:number}>,stickers:Array<{sticker:number,index:number}>,
+     * countryStickers:Array<{country:string,sticker:number,index:number}>}} rules
+     * @return {number}
+     */
+    function _getCountryPriority(country, stickers, rules) {
+      let bestIndex = Number.MAX_SAFE_INTEGER
+      rules.countries.forEach(rule => {
+        if (rule.country === country && rule.index < bestIndex) {
+          bestIndex = rule.index
+        }
+      })
+      rules.stickers.forEach(rule => {
+        if (stickers.includes(rule.sticker) && rule.index < bestIndex) {
+          bestIndex = rule.index
+        }
+      })
+      rules.countryStickers.forEach(rule => {
+        const isMatch = rule.country === country && stickers.includes(rule.sticker)
+        if (isMatch && rule.index < bestIndex) {
+          bestIndex = rule.index
+        }
+      })
+      return bestIndex
+    }
+
+    /**
+     * Sorts stickers inside a country by preference order, then album order.
+     * @param {string} country
+     * @param {number[]} stickers
+     * @param {{stickers:Array<{sticker:number,index:number}>,
+     * countryStickers:Array<{country:string,sticker:number,index:number}>}} rules
+     * @return {number[]}
+     */
+    function _sortStickersByPreferences(country, stickers, rules) {
+      const albumIndexMap = {}
+        ; (stickers || []).forEach((sticker, index) => {
+          albumIndexMap[sticker] = index
+        })
+      const getStickerPriority = sticker => {
+        let bestIndex = Number.MAX_SAFE_INTEGER
+        rules.stickers.forEach(rule => {
+          if (rule.sticker === sticker && rule.index < bestIndex) {
+            bestIndex = rule.index
+          }
+        })
+        rules.countryStickers.forEach(rule => {
+          const isMatch = rule.country === country && rule.sticker === sticker
+          if (isMatch && rule.index < bestIndex) {
+            bestIndex = rule.index
+          }
+        })
+        return bestIndex
+      }
+      return [...(stickers || [])].sort((left, right) => {
+        const leftPriority = getStickerPriority(left)
+        const rightPriority = getStickerPriority(right)
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority
+        }
+        return albumIndexMap[left] - albumIndexMap[right]
+      })
+    }
+
+    /**
+     * Sorts matched stickers by album completion.
+     * @param {Object<string,number[]>} matches
+     * @param {Object<string,number>} doneMap
+     * @return {Object<string,number[]>}
+     */
+    function _sortMatchesByCompletion(matches, doneMap) {
+      return Object.fromEntries(Object.entries(matches || {}).sort((a, b) => {
+        const completionA = doneMap[a[0]] || 0
+        const completionB = doneMap[b[0]] || 0
+        return completionB - completionA
+      }))
+    }
+
+    /**
+     * Limits the number of stickers by max limit preserving current order.
+     * @param {Object<string,number[]>} stickers
+     * @param {number} limit
+     * @returns {Object<string,number[]>}
+     */
+    function _limitTradeStickers(stickers, limit) {
+      const result = {}
+      let remaining = limit
+      Object.keys(stickers || {}).forEach(countryCode => {
+        if (remaining <= 0) {
+          return
+        }
+        const selected = stickers[countryCode].slice(0, remaining)
+        if (selected.length) {
+          result[countryCode] = selected
+          remaining -= selected.length
+        }
+      })
+      return result
+    }
+
+    return { // namespace
+      getPayload,
+      setBusy,
+      setMessage,
+      showMessage,
+      getValidationPayload,
+      renderPreview,
+      clearPreview,
+      clearQrPreview,
+      renderQrPreview,
+      formatTradeInput,
+      countMatches,
+      formatStickerMap,
+      renderMatches,
+      prepareTradeSelection
+    }
+  })()
+</script>

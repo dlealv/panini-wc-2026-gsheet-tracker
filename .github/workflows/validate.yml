@@ -30,10 +30,21 @@ jobs:
       - name: Setup Project Environment
         uses: ./.github/actions/setup-project
 
-      # 3. Run ESLint
+      # 3. Setup Python runtime for roster validation script
+      - name: Setup Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # Python runtime for data/clean_roster.py
+
+      # 4. Run roster cleanup validation script
+      # If the script raises SystemExit(1), this step fails and blocks the workflow.
+      - name: Run Roster Cleanup Validation
+        run: python data/clean_roster.py
+
+      # 5. Run ESLint
       - name: Run ESLint Quality Check
         run: npm run lint
 
-      # 4. Build project and execute unit tests
+      # 6. Build project and execute unit tests
       - name: Project Build and Run Jest Testing Suites
         run: npm test
