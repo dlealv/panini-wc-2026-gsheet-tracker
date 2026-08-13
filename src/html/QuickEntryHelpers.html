@@ -167,24 +167,6 @@
         // Private functions
 
         /**
-         * Builds preview text for import/export operations.
-         * - converts parsed countries into readable preview lines
-         * @export
-         */
-        function _renderPreviewData(result) {
-            if (!result || !Array.isArray(result.countries) || result.countries.length === 0) {
-                return ''
-            }
-            return result.countries.map(country => {
-                const stickers = Array.isArray(country.stickers)
-                    ? country.stickers.map(s => `${s.number}:${s.count}`).join(', ')
-                    : ''
-
-                return `${country.code} -> ${stickers}`
-            }).join('\n')
-        }
-
-        /**
          * Converts UI state into import/export payload.
          * - normalizes export settings
          * - guarantees predictable payload structure
@@ -214,30 +196,6 @@
                 document.querySelectorAll('button, input, select, textarea')
                     .forEach(el => (el.disabled = !!isBusy))
             }
-        }
-
-        /**
-         * Renders import/export preview text.
-         * - displays preview data
-         * - hides preview when no data exists
-         */
-        function _renderPreview(input) {
-            if (!global.previewEl) return
-
-            if (!input || !input.countries || input.countries.length === 0) {
-                global.previewEl.style.display = 'none'
-                global.previewEl.textContent = ''
-                return
-            }
-            global.previewEl.style.display = 'block'
-            const lines = input.countries.map(c => {
-                const stickers = (c.stickers || [])
-                    .map(s => `${s.number}:${s.count} `)
-                    .join(', ')
-                return `${c.code} -> ${stickers} `
-            })
-
-            global.previewEl.textContent = lines.join('\n')
         }
 
         /**

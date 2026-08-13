@@ -40,6 +40,22 @@ describe('TradeHelpers unit tests', () => {
       })
       expect(result).toEqual({ sortMode: 'album', maxStickerReceive: 1, maxStickerSend: 1 })
     })
+    test('defaults to album mode and zero limits when selectors are missing', () => {
+      const result = helpers.getPayload()
+      expect(result).toEqual({ sortMode: 'album', maxStickerReceive: 0, maxStickerSend: 0 })
+    })
+    test('returns preferences mode when selected', () => {
+      const result = helpers.getPayload({
+        sortModeSelect: { value: 'preferences' },
+        receiveLimitSelect: { value: '5' },
+        sendLimitSelect: { value: '4' }
+      })
+      expect(result).toEqual({
+        sortMode: 'preferences',
+        maxStickerReceive: 5,
+        maxStickerSend: 4
+      })
+    })
   })
 
   /** Builds validation payload from trade input fields. */
@@ -79,6 +95,16 @@ describe('TradeHelpers unit tests', () => {
       })
       expect(result).toEqual({ missingText: '', repeatsText: '' })
     })
+    test('returns empty string when input elements are missing', () => {
+      const result = helpers.getValidationPayload({
+        missingText: null,
+        repeatsText: null
+      })
+      expect(result).toEqual({
+        missingText: '',
+        repeatsText: ''
+      })
+    })
   })
 
   /** Renders trade info preview in the trade dialog. */
@@ -111,6 +137,13 @@ describe('TradeHelpers unit tests', () => {
       expect(() => {
         helpers.renderPreview({ tradeInfo: { missing: { MEX: [1] }, repeats: {} } })
       }).not.toThrow()
+    })
+    test('renders empty sections when trade info is missing', () => {
+      const previewEl = { textContent: 'old content', className: '', style: {} }
+      helpers.renderPreview({}, { previewEl })
+      expect(previewEl.className).toBe('preview')
+      expect(previewEl.textContent).toBe('Repeats:\n(none)\nMissing:\n(none)')
+      expect(previewEl.style.display).toBe('block')
     })
   })
 
@@ -232,6 +265,26 @@ describe('TradeHelpers unit tests', () => {
         helpers.renderQrPreview({ success: true, qrData: '{}', tradeInfo: { missing: {}, repeats: {} } }, { qrEl })
       }).not.toThrow()
     })
+    test('hides QR image when loading fails', () => {
+      const qrEl = { src: 'old', style: { display: 'block' } }
+      const hintEl = { style: { display: 'block' } }
+      helpers.renderQrPreview({ qrData: 'data', tradeInfo: { missing: {}, repeats: {} } }, { qrEl, hintEl })
+      expect(qrEl.style.display).toBe('none')
+      qrEl.onerror()
+      expect(qrEl.style.display).toBe('none')
+    })
+    test('uses src fallback when removeAttribute is unavailable', () => {
+      const qrEl = { src: 'old', style: {} }
+      helpers.renderQrPreview({ qrData: 'data', tradeInfo: { missing: {}, repeats: {} } }, { qrEl })
+      expect(qrEl.src).toBe(`https://quickchart.io/qr?size=800&ecLevel=H&text=${encodeURIComponent('data')}`)
+    })
+    test('renders QR preview without optional hint and info elements', () => {
+      const qrEl = { src: '', style: {} }
+      helpers.renderQrPreview({ qrData: 'data', tradeInfo: { missing: {}, repeats: {} } }, { qrEl })
+      expect(qrEl.style.display).toBe('none')
+      qrEl.onload()
+      expect(qrEl.style.display).toBe('block')
+    })
   })
 
   /** Clears QR preview display. */
@@ -311,6 +364,31 @@ describe('TradeHelpers unit tests', () => {
       )
       expect(sendPreviewEl.innerHTML).toBe('FWC, 2, <span class="trade-highlight">8</span>')
     })
+    test('renders only receive preview when send element is missing', () => {
+      const receivePreviewEl = { innerHTML: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { receivePreviewEl }
+      )
+      expect(receivePreviewEl.className).toBe('preview')
+      expect(receivePreviewEl.innerHTML).toBe('MEX, 1, 5')
+      expect(receivePreviewEl.style.display).toBe('block')
+    })
+    test('renders only send preview when receive element is missing', () => {
+      const sendPreviewEl = { innerHTML: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: { MEX: [1, 5] }, send: { FWC: [2, 8] } }, { sendPreviewEl }
+      )
+      expect(sendPreviewEl.className).toBe('preview')
+      expect(sendPreviewEl.innerHTML).toBe('FWC, 2, 8')
+      expect(sendPreviewEl.style.display).toBe('block')
+    })
+    test('uses default preview class when no preview class is provided', () => {
+      const receivePreviewEl = { innerHTML: '', className: '', style: {} }
+      helpers.renderMatches(
+        { receive: { MEX: [1, 5] }, send: {} }, { receivePreviewEl }
+      )
+      expect(receivePreviewEl.className).toBe('preview')
+    })
   })
 
   /** Formats sticker map data for display. */
@@ -345,78 +423,227 @@ describe('TradeHelpers unit tests', () => {
 
   /** Applies user-selected limits to trade matches. */
   describe('prepareTradeSelection()', () => {
-    test('limits receive and send stickers independently', () => {
-      const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3], BRA: [7] } }
+    const tradePreferences = ['ESP', 'CC', '1', '13', 'FRA20', 'POR15', 'ARG17']
+
+    test('sortby album: limits receive and send stickers independently', () => {
+      const matches = { receive: { FWC: [4, 5], MEX: [10] }, send: { FWC: [2, 3], MEX: [7] } }
       const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 2, maxStickerSend: 1 })
-      expect(result).toEqual({ receive: { MEX: [4, 5] }, send: { MEX: [2] } })
+      expect(result).toEqual({ receive: { FWC: [4, 5] }, send: { FWC: [2] } })
     })
-    test('preserves country order while applying the total limit', () => {
-      const matches = { receive: { MEX: [4], FWC: [10, 11], BRA: [20] }, send: {} }
+    test('sortby album: preserves album country order while applying the total limit', () => {
+      const matches = { receive: { FWC: [4], MEX: [10, 11], RSA: [20] }, send: {} }
       const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 3, maxStickerSend: 0 })
-      expect(result).toEqual({ receive: { MEX: [4], FWC: [10, 11] }, send: {} })
+      expect(result).toEqual({ receive: { FWC: [4], MEX: [10, 11] }, send: {} })
     })
-    test('returns all stickers when limits exceed available stickers', () => {
-      const matches = { receive: { MEX: [4, 5], FWC: [10] }, send: { MEX: [2, 3] } }
+    test('sortby album: returns all stickers when limits exceed available stickers', () => {
+      const matches = { receive: { FWC: [4, 5], MEX: [10] }, send: { FWC: [2, 3] } }
       const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 10, maxStickerSend: 10 })
       expect(result).not.toBe(matches)
       expect(result.receive).not.toBe(matches.receive)
     })
-    test('returns empty groups when limits are zero', () => {
-      const matches = { receive: { MEX: [4, 5] }, send: { MEX: [2, 3] } }
+    test('sortby album: returns empty groups when limits are zero', () => {
+      const matches = { receive: { FWC: [4, 5] }, send: { FWC: [2, 3] } }
       const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 0, maxStickerSend: 0 })
       expect(result).toEqual({ receive: {}, send: {} })
     })
-    test('returns empty groups when matches are empty', () => {
+    test('sortby album: returns empty groups when matches are empty', () => {
       const result = helpers.prepareTradeSelection({ receive: {}, send: {} }, { maxStickerReceive: 3, maxStickerSend: 3 })
       expect(result).toEqual({ receive: {}, send: {} })
     })
-    test('sorts matches by completion before applying limits', () => {
-      const matches = { receive: { MEX: [1], FWC: [2], BRA: [3] }, send: {} }
+    test('sortby album: keeps album order when sort mode is album', () => {
+      const matches = { receive: { FWC: [3, 1], MEX: [2] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 3, maxStickerSend: 0, sortMode: 'album' })
+      expect(result.receive).toEqual({ FWC: [3, 1], MEX: [2] })
+    })
+    test('sortby album: handles missing matches safely', () => {
+      const result = helpers.prepareTradeSelection(undefined, { maxStickerReceive: 3, maxStickerSend: 3 })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('sortby album: handles missing options safely', () => {
+      const result = helpers.prepareTradeSelection({ receive: { FWC: [1, 2] }, send: { MEX: [3] } })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('sortby album: handles missing receive matches', () => {
+      const result = helpers.prepareTradeSelection({ send: { MEX: [3, 4] } }, { maxStickerReceive: 2, maxStickerSend: 1 })
+      expect(result).toEqual({ receive: {}, send: { MEX: [3] } })
+    })
+    test('sortby album: handles missing send matches', () => {
+      const result = helpers.prepareTradeSelection({ receive: { FWC: [1, 2] } }, { maxStickerReceive: 1, maxStickerSend: 2 })
+      expect(result).toEqual({ receive: { FWC: [1] }, send: {} })
+    })
+    test('sortby album: keeps album order when sort mode is album', () => {
+      const matches = { receive: { BRA: [10], ARG: [10] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        sortMode: 'album',
+        tradePreferences: ['ARG'],
+        maxStickerReceive: 10,
+        maxStickerSend: 10
+      })
+      expect(Object.keys(result.receive)).toEqual(['BRA', 'ARG'])
+    })
+    test('sortby album: preserves send album order when sort mode is album', () => {
+      const matches = {
+        receive: { ARG: [1], BRA: [2] },
+        send: { BRA: [10], ARG: [20] }
+      }
+      const result = helpers.prepareTradeSelection(matches, {
+        sortMode: 'album',
+        maxStickerReceive: 10,
+        maxStickerSend: 10
+      })
+      expect(Object.keys(result.send)).toEqual(['BRA', 'ARG'])
+    })
+    test('sortby: completion: sorts matches by completion before applying limits', () => {
+      const matches = { receive: { FWC: [2], MEX: [1], BRA: [3] }, send: {} }
       const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 2,
         maxStickerSend: 0,
         sortMode: 'completion',
-        doneMap: { MEX: 50, FWC: 90, BRA: 20 }
+        doneMap: { FWC: 20, MEX: 90, BRA: 50 }
       })
+      expect(result.receive).toEqual({ MEX: [1], BRA: [3] })
+    })
+    test('sortby completion: falls back to album order when completion map is missing', () => {
+      const matches = { receive: { FWC: [2], MEX: [1] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, { maxStickerReceive: 2, maxStickerSend: 0, sortMode: 'completion' })
       expect(result.receive).toEqual({ FWC: [2], MEX: [1] })
     })
-    test('falls back to album order when completion map is missing', () => {
-      const matches = { receive: { MEX: [1], FWC: [2] }, send: {} }
-      const result = helpers.prepareTradeSelection(matches, {
-        maxStickerReceive: 2,
-        maxStickerSend: 0,
-        sortMode: 'completion'
-      })
-      expect(result.receive).toEqual({ MEX: [1], FWC: [2] })
-    })
-    test('keeps album order when sort mode is album', () => {
-      const matches = { receive: { MEX: [3, 1], FWC: [2] }, send: {} }
+    test('sortby completion: keeps album order when completion values are equal', () => {
+      const matches = { receive: { FWC: [2], MEX: [1], RSA: [3] }, send: {} }
       const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 3,
         maxStickerSend: 0,
-        sortMode: 'album'
+        sortMode: 'completion',
+        doneMap: { FWC: 50, MEX: 50, RSA: 50 }
       })
-      expect(result.receive).toEqual({ MEX: [3, 1], FWC: [2] })
+      expect(result.receive).toEqual({ FWC: [2], MEX: [1], RSA: [3] })
     })
-    test('sorts receive by preferences mode', () => {
-      const matches = { receive: { MEX: [2, 1], FWC: [7], POR: [9, 11] }, send: {} }
+    test('sortby completion: sorts receive by completion while preserving send album order', () => {
+      const matches = {
+        receive: { FWC: [2], MEX: [1], BRA: [3] },
+        send: { BRA: [10], ARG: [20] }
+      }
+      const result = helpers.prepareTradeSelection(matches, {
+        sortMode: 'completion',
+        doneMap: { FWC: 20, MEX: 80, BRA: 50 },
+        maxStickerReceive: 10,
+        maxStickerSend: 10
+      })
+      expect(Object.keys(result.receive)).toEqual(['MEX', 'BRA', 'FWC'])
+      expect(Object.keys(result.send)).toEqual(['BRA', 'ARG'])
+    })
+    test('sortby preferences: prioritizes preferred country', () => {
+      const matches = { receive: { MEX: [2], RSA: [3], BRA: [5], CC: [7] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10, maxStickerSend: 0, sortMode: 'preferences', tradePreferences
+      })
+      expect(result.receive).toEqual({ CC: [7], MEX: [2], RSA: [3], BRA: [5] })
+    })
+    test('sortby preferences: orders multiple preferred countries by preference', () => {
+      const matches = { receive: { MEX: [2], RSA: [3], BRA: [5], ESP: [7], CC: [8] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10, maxStickerSend: 0, sortMode: 'preferences', tradePreferences
+      })
+      expect(result.receive).toEqual({ ESP: [7], CC: [8], MEX: [2], RSA: [3], BRA: [5] })
+    })
+    test('sortby preferences: prioritizes countries containing a global sticker preference', () => {
+      const matches = { receive: { FWC: [2], MEX: [1, 5], RSA: [3], CZE: [1, 9], BRA: [7] }, send: {} }
       const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 10,
         maxStickerSend: 0,
         sortMode: 'preferences',
-        tradePreferences: ['FWC', '1', 'POR11']
+        tradePreferences
       })
-      expect(result.receive).toEqual({ FWC: [7], MEX: [1, 2], POR: [11, 9] })
+      expect(result.receive).toEqual({ MEX: [1, 5], CZE: [1, 9], FWC: [2], RSA: [3], BRA: [7] })
     })
-    test('falls back to album order when preferences list is empty', () => {
-      const matches = { receive: { MEX: [2, 1], FWC: [7] }, send: {} }
+    test('sortby preferences: prioritizes global sticker 13 and preserves higher priority sticker 1', () => {
+      const matches = { receive: { FWC: [2], MEX: [5, 13, 1], RSA: [3], CZE: [9, 13], BRA: [7] }, send: {} }
       const result = helpers.prepareTradeSelection(matches, {
         maxStickerReceive: 10,
         maxStickerSend: 0,
         sortMode: 'preferences',
-        tradePreferences: []
+        tradePreferences
       })
-      expect(result.receive).toEqual({ MEX: [2, 1], FWC: [7] })
+      expect(result.receive).toEqual({ MEX: [1, 13, 5], CZE: [13, 9], FWC: [2], RSA: [3], BRA: [7] })
+    })
+    test('sortby preferences: prioritizes country-specific sticker preference', () => {
+      const matches = { receive: { FWC: [2], MEX: [20, 5], BRA: [7, 20], FRA: [10, 20] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences
+      })
+      expect(result.receive).toEqual({ FRA: [20, 10], FWC: [2], MEX: [20, 5], BRA: [7, 20] })
+    })
+    test('sortby preferences: country-specific sticker preference competes with global sticker preference', () => {
+      const matches = { receive: { MEX: [1], BRA: [5], FRA: [10, 20] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences
+      })
+      expect(result.receive).toEqual({ MEX: [1], FRA: [20, 10], BRA: [5] })
+    })
+    test('sortby preferences: orders countries and stickers by multiple preferences', () => {
+      const matches = { receive: { MEX: [1, 13, 20], BRA: [5], FRA: [10, 20], CC: [2, 12] }, send: {} }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 10,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences
+      })
+      expect(result.receive).toEqual({ CC: [2, 12], MEX: [1, 13, 20], FRA: [20, 10], BRA: [5] })
+    })
+    test('sortby preferences: resolves multiple competing country and sticker preferences', () => {
+      const matches = {
+        receive: { MEX: [1, 2, 13], RSA: [2, 3], KOR: [5, 13], FRA: [10, 20], POR: [2, 15], CC: [2, 12], ESP: [5, 6], BRA: [7, 8] },
+        send: {}
+      }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 20,
+        maxStickerSend: 0,
+        sortMode: 'preferences',
+        tradePreferences
+      })
+      expect(result.receive).toEqual({
+        ESP: [5, 6],
+        CC: [2, 12],
+        MEX: [1, 13, 2],
+        KOR: [13, 5],
+        FRA: [20, 10],
+        POR: [15, 2],
+        RSA: [2, 3],
+        BRA: [7, 8]
+      })
+    })
+    test('sortby preferences: applies receive and send limits after sorting receive and send order is respected', () => {
+      const matches = {
+        receive: { MEX: [1, 2, 13], RSA: [2, 3], KOR: [5, 13], FRA: [10, 20], POR: [2, 15], CC: [2, 12], ESP: [5, 6], BRA: [7, 8] },
+        send: { MEX: [1, 2, 3], FWC: [4, 5], BRA: [6, 7] }
+      }
+      const result = helpers.prepareTradeSelection(matches, {
+        maxStickerReceive: 5,
+        maxStickerSend: 4,
+        sortMode: 'preferences',
+        tradePreferences
+      })
+      expect(result.receive).toEqual({ ESP: [5, 6], CC: [2, 12], MEX: [1] })
+      expect(result.send).toEqual({ MEX: [1, 2, 3], FWC: [4] })
+    })
+    test('sortby preferences: uses album order when countries have the same preference priority', () => {
+      const matches = {
+        receive: { BRA: [10], ARG: [10] },
+        send: {}
+      }
+      const result = helpers.prepareTradeSelection(matches, {
+        sortMode: 'preferences',
+        tradePreferences: ['10'],
+        maxStickerReceive: 10,
+        maxStickerSend: 10
+      })
+      expect(Object.keys(result.receive)).toEqual(['BRA', 'ARG'])
     })
   })
 })

@@ -10,12 +10,14 @@
   - Messages
   - Form controls
   */
-
+  
+  /* Main dialog heading for import and export panels */
   h2 {
     margin: 0 0 12px 0;
     font-size: var(--text-2xl);
   }
 
+  /* Section title used for grouped labels and inline icons */
   .section-title {
     margin: 0 0 10px 0;
     font-size: var(--text-md);
@@ -25,11 +27,12 @@
     gap: 6px;
   }
 
+  /* Hides empty section titles so spacing stays compact */
   .section-title:empty {
     display: none;
   }
 
-  /* label row: label text on the left, inline action button on the right */
+  /* Label row keeps the label and inline action button on one line */
   .label-row {
     display: flex;
     align-items: center;
@@ -37,15 +40,18 @@
     margin-bottom: 6px;
   }
 
+  /* Removes extra spacing from labels inside a label row */
   .label-row label {
     margin-bottom: 0;
   }
 
+  /* File inputs stretch to the full dialog width */
   input[type="file"] {
     width: 100%;
     padding: 8px;
   }
 
+  /* Textareas are sized for multiline input and preview content */
   textarea {
     width: 100%;
     min-height: 220px;
@@ -59,14 +65,17 @@
     color: var(--text);
   }
 
+  /* Export preview textarea gets more height for larger output */
   #exportText {
-    min-height: 380px;
+    min-height: 260px;
   }
 
+  /* Checkbox inputs keep a small gap from their labels */
   input[type="checkbox"] {
     margin-right: 6px;
   }
 
+  /* Disabled controls use muted colors to indicate inactive state */
   textarea:disabled,
   select:disabled,
   input[type="file"]:disabled {
@@ -74,20 +83,24 @@
     color: #5f6368;
   }
 
+  /* Helper list shown below action buttons */
   .actions-help {
     margin: 8px 0 0 18px;
     padding: 0;
   }
 
+  /* Spacing between helper list items */
   .actions-help li {
     margin: 4px 0;
   }
 
+  /* Checkbox row keeps option spacing tight and aligned */
   .checkbox-row {
     margin-top: 4px;
     /* was 10px */
   }
 
+  /* Checkbox labels align the control and text in a single row */
   .checkbox-row label {
     display: flex;
     align-items: center;
@@ -96,11 +109,12 @@
     font-weight: 500;
   }
 
-  /* tighten checkbox itself alignment */
+  /* Tightens checkbox alignment inside checkbox rows */
   .checkbox-row input[type="checkbox"] {
     margin: 0;
   }
 
+  /* Toolbar layout for export controls and status items */
   .export-toolbar {
     display: flex;
     align-items: center;
@@ -109,6 +123,7 @@
     margin-bottom: 10px;
   }
 
+  /* Small inline item inside the toolbar */
   .toolbar-item {
     display: flex;
     align-items: center;
@@ -118,12 +133,14 @@
     color: var(--muted);
   }
 
+  /* Action button row for primary dialog actions */
   .actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
 
+  /* Hidden preview panel used for formatted output */
   .preview {
     display: none;
     border: 1px solid var(--border);
@@ -137,7 +154,7 @@
     word-break: break-word;
   }
 
-  /* Info icon button — borderless, inline with section title */
+  /* Borderless help button used as an inline info icon */
   .help-btn {
     border: none;
     background: none;
@@ -149,12 +166,13 @@
     line-height: 1;
   }
 
+  /* Hover state for the help icon button */
   .help-btn:hover {
     color: var(--primary-hover);
     transform: scale(1.08);
   }
 
-  /* Format summary card — 3-row table, always visible */
+  /* Summary card showing export/import format details */
   .format-card {
     width: 100%;
     border-collapse: collapse;
@@ -162,6 +180,7 @@
     margin-top: 4px;
   }
 
+  /* Header cells for the format summary table */
   .format-card th {
     text-align: left;
     color: var(--muted);
@@ -170,31 +189,32 @@
     border-bottom: 1px solid var(--border);
   }
 
+  /* Body cells for the format summary table */
   .format-card td {
     padding: 4px 8px 4px 0;
     vertical-align: top;
   }
 
-  /* tip row inside actions section */
+  /* Small informational line shown below the actions area */
   .tip-row {
     margin-top: 10px;
     font-size: var(--text-xs);
     color: var(--muted);
   }
 
-  /* Adds top spacing to standalone hint blocks. */
+  /* Adds spacing when a hint block needs separation */
   .hint-spaced {
     margin-top: 8px;
   }
 
-  /* header row inside the help modal, with title and (+info) link */
+  /* Header row inside the help modal keeps title and link aligned */
   .help-header {
     display: flex;
     align-items: center;
     gap: 4px;
   }
 
-  /* slightly smaller font size for the modal header to fit the (+info) link better */
+  /* Modal title uses a slightly smaller size to fit the inline link */
   .help-header h3 {
     margin: 0;
     line-height: 1.1;
@@ -202,7 +222,7 @@
     /* optional slight reduction */
   }
 
-  /* Help modal */
+  /* Dialog base styling for the help modal */
   dialog {
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -214,16 +234,18 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
 
+  /* Backdrop overlay for the modal dialog */
   dialog::backdrop {
     background: rgba(0, 0, 0, 0.35);
   }
 
+  /* Modal heading style for consistency with dialog content */
   dialog h3 {
     margin: 0 0 12px 0;
     font-size: var(--text-lg);
   }
 
-  /* general note shown above all format sections */
+  /* Short note shown above the format sections inside the modal */
   dialog .modal-note {
     font-size: var(--text-xs);
     color: var(--muted);
@@ -231,10 +253,12 @@
     line-height: 1.6;
   }
 
+  /* Collapsible detail blocks inside the modal for each format section */
   dialog details {
     margin-bottom: 10px;
   }
 
+  /* Summary row for each collapsible detail block */
   dialog summary {
     font-weight: 700;
     cursor: pointer;
@@ -245,7 +269,7 @@
     gap: 6px;
   }
 
-  /* custom triangle for summary */
+  /* Custom triangle marker shown before each summary */
   dialog summary::before {
     content: '▶';
     font-size: var(--text-2xs);
@@ -253,16 +277,19 @@
     transition: transform 0.15s;
   }
 
+  /* Rotates the triangle when a detail block is open */
   dialog details[open] summary::before {
     transform: rotate(90deg);
   }
 
+  /* Body text inside the modal detail blocks */
   dialog .modal-body {
     padding: 8px 0 4px 14px;
     line-height: 1.7;
     color: var(--muted);
   }
 
+  /* Footer row that aligns modal actions to the right */
   dialog .modal-footer {
     margin-top: 14px;
     text-align: right;

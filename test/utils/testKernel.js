@@ -33,164 +33,34 @@ const TEST_DATA = {
   groupCodes: ['A', 'B', 'C']
 }
 
-/** Mock repository used across services */
-class MockStickerSheetRepository {
-  // instance constants for sticker number ranges and country bounds
-  constructor(ss) {
-    this.ss = ss || global.SpreadsheetApp.getActiveSpreadsheet()
-    this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
-    this.COUNTS_RANGE_NAME = 'COUNTS'
-    this.GROUPS_RANGE_NAME = 'GROUPS'
-    this.DONE_RANGE_NAME = 'DONE'
-    this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
-    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
-    this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
-    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
-
-    this.startCol = 1
-    this.numStickerCols = 21
-
-    this.sheet = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME).getSheet()
-
-    this.countriesRange = this.ss.getRangeByName(this.COUNTRIES_RANGE_NAME)
-    this.countsRange = this.ss.getRangeByName(this.COUNTS_RANGE_NAME)
-    this.groupsRange = this.ss.getRangeByName(this.GROUPS_RANGE_NAME)
-    this.doneRange = this.ss.getRangeByName(this.DONE_RANGE_NAME)
-    this.flagsUrlRange = this.ss.getRangeByName(this.FLAGS_URL_RANGE_NAME)
-    this.flagIconsRange = this.ss.getRangeByName(this.FLAG_ICONS_RANGE_NAME)
-    this.countryNamesRange = this.ss.getRangeByName(this.COUNTRY_NAMES_RANGE_NAME)
-    this.tradePreferencesRange = this.ss.getRangeByName(this.TRADE_PREFERENCES_RANGE_NAME)
-
-    const baseCountries = TEST_DATA.countries
-    this.countryMap =
-      Object.fromEntries(
-        baseCountries.map((c, index) => [
-          c.code.toUpperCase(),
-          { row: 1 + index, index }
-        ])
-      )
-  }
-
-  // static methods
-  static getCountryBounds() {
-    return new Map(
-      [
-        ['FWC', [0, 19]],
-        ['CC', [1, 12]],
-        ['TEAM', [1, 20]]
-      ])
-  }
-
-  static getStickerMin() { return 0 }
-
-  static getStickerMax() { return 20 }
-
-  static getMaxRows() { return 50 }
-
-  static getExpectedStickerColumns() {
-    return MockStickerSheetRepository.getStickerMax() -
-      MockStickerSheetRepository.getStickerMin() + 1
-  }
-
-  getCountriesRange() { return this.countriesRange }
-  getCountsRange() { return this.countsRange }
-  getDoneRange() { return this.doneRange }
-  getTradePreferencesRange() { return this.tradePreferencesRange }
-  getFlagIconsRange() { return this.flagIconsRange }
-  getFlagsUrlRange() { return this.flagsUrlRange }
-  getCountryNamesRange() { return this.countryNamesRange }
-  getCountries() { return TEST_DATA.countries }
-  getCountryMap() { return this.countryMap }
-  getGroupCodes() { return TEST_DATA.groupCodes }
-  getSheet() { return this.sheet }
-  getStartCol() { return this.startCol }
-  getNumRows() { return this.numRows }
-  getNumStickerCols() { return this.numStickerCols }
-  getTradePreferences() {
-    const range = this.getTradePreferencesRange()
-    if (!range) { return [] }
-    const values = range.getDisplayValues()
-    const flatValues = values.flat().filter(v => String(v || '').trim() !== '')
-    return [...new Set(flatValues.map(v => String(v).replace(/[\s,]+/g, '').toUpperCase()))]
-  }
-
-  getStickerCount(countryCode, stickerNumber) {
-    const country = TEST_DATA.countries.find(
-      item => item.code === countryCode
-    )
-    if (!country) {
-      throw new Error(`Country ${countryCode} not found`)
-    }
-    return Number(country.counts[stickerNumber] || 0)
-  }
-
-  updateStickerCounts(updates, mode = 'update') {
-    this.lastUpdates = updates
-    const range = this.getCountsRange()
-    if (mode === 'clean_all') {
-      range.clearContent()
-    }
-    const values = range.getValues()
-    const countries = updates.countries || []
-    if (mode === 'replace_countries') {
-      countries.forEach(country => {
-        const code = String(country.code).trim().toUpperCase()
-        const index = this.getCountryMap()[code].index
-        values[index].fill('')
-      })
-    }
-    countries.forEach(country => {
-      const code = String(country.code).trim().toUpperCase()
-      const index = this.getCountryMap()[code].index
-      const bounds = MockStickerSheetRepository.getCountryBounds()
-      const [minSticker, maxSticker] = bounds.get(code) || bounds.get('TEAM')
-      for (let sticker = 0; sticker < values[index].length; sticker++) {
-        // Invalid sticker positions are always reset to numeric zero.
-        // Example: TEAM sticker 0 and FWC sticker 20 are outside the allowed range.
-        if (sticker < minSticker || sticker > maxSticker) {
-          values[index][sticker] = 0
-        }
-      }
-      Object.entries(country.counts || {}).forEach(([sticker, count]) => {
-        const stickerNumber = Number(sticker)
-        // Valid imported zero counts are stored as blank cells to match sheet behavior.
-        if (stickerNumber >= minSticker && stickerNumber <= maxSticker) {
-          values[index][stickerNumber] = count === 0 ? '' : count
-        }
-      })
-    })
-    range.setValues(values)
-  }
-}
-
-/** Initializes full test environment */
-function initTestKernel() {
+/** Initializes the mocked spreadsheet with optional test-specific country records. */
+function initTestKernel(options = {}) {
   jest.resetModules()
-  initializeSpreadsheetAppMock()
-
-  global.StickerSheetRepository = MockStickerSheetRepository
+  initializeSpreadsheetAppMock(options.countries || TEST_DATA.countries)
+  const { StickerSheetRepository } = require('../../build/Commons.js')
+  global.StickerSheetRepository = StickerSheetRepository
   global.__writeRangeMock = writeRangeMock
 }
 
 /** Initializes a mock for the SpreadsheetApp environment. */
-function initializeSpreadsheetAppMock() {
+function initializeSpreadsheetAppMock(countries = TEST_DATA.countries) {
   const MAX_ROWS = 50
   const STICKER_COLS = 21
-  const buildCountsRow = (country) => {
+  const buildCountsRow = country => {
     const row = Array(STICKER_COLS).fill('')
-    Object.entries(country.counts).forEach(([sticker, count]) => {
+    Object.entries(country.counts || {}).forEach(([sticker, count]) => {
       row[Number(sticker)] = count
     })
     return row
   }
   const countriesValues = [
-    ...TEST_DATA.countries.map(country => [country.code]),
-    ...Array.from({ length: MAX_ROWS - TEST_DATA.countries.length }, () => [''])
+    ...countries.map(country => [country.code]),
+    ...Array.from({ length: MAX_ROWS - countries.length }, () => [''])
   ]
   const countsValues = [
-    ...TEST_DATA.countries.map(buildCountsRow),
+    ...countries.map(buildCountsRow),
     ...Array.from(
-      { length: MAX_ROWS - TEST_DATA.countries.length }, () => Array(STICKER_COLS).fill('')
+      { length: MAX_ROWS - countries.length }, () => Array(STICKER_COLS).fill('')
     )
   ]
 

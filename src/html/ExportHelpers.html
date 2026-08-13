@@ -104,11 +104,12 @@
       }, 1000)
     }
 
-    /** Reads current UI state from DOM inputs.
-     * @export
-     */
+    // PRIVATE FUNCTIONS
+
+    /** Reads current UI state from DOM inputs. */
     function _getUIState(deps = {}) {
-      const flagsEl = deps.includeFlagsCheckbox || includeFlagsCheckbox
+      const flagsEl = deps.includeFlagsCheckbox ||
+        (typeof includeFlagsCheckbox !== 'undefined' ? includeFlagsCheckbox : null)
       const sortDoneEl = deps.sortByDoneCheckbox ||
         (typeof sortByDoneCheckbox !== 'undefined' ? sortByDoneCheckbox : null)
       const compactEl = deps.isCompactCheckbox ||

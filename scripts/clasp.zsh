@@ -42,6 +42,7 @@ setopt null_glob # Enable nullglob to avoid issues with empty file patterns
 CMD=$1
 CUSTOM_SCRIPT_ID=$2
 CUSTOM_DEPLOYMENT_ID=$3
+CUSTOM_NAME_PREFIX=$4 # If present add a prefix to PROD_DEPLOYMENT_NAME
 
 # Default deployment for this environment
 # TEST_DEPLOYMENT_ID="AKfycbwbT1mHYqppChSPbDLVVChvdPgNpJC08lOqfnn_mYt3Hj9UA7IJVce3FO2pv8R-qfmjGg"
@@ -52,8 +53,11 @@ PROD_DEPLOYMENT_NAME="panini_FWC 2026"
 DEPLOYMENT_ID="${CUSTOM_DEPLOYMENT_ID:-$TEST_DEPLOYMENT_ID}"
 # Effective description name for deployment (used for logging and validation)
 DEPLOYMENT_NAME="$PROD_DEPLOYMENT_NAME"
-[[ "$DEPLOYMENT_ID" == "$TEST_DEPLOYMENT_ID" ]] && \
+if [[ "$DEPLOYMENT_ID" == "$TEST_DEPLOYMENT_ID" ]]; then
     DEPLOYMENT_NAME="$TEST_DEPLOYMENT_NAME"
+elif [[ -n "$CUSTOM_NAME_PREFIX" ]]; then
+    DEPLOYMENT_NAME="$CUSTOM_NAME_PREFIX $PROD_DEPLOYMENT_NAME"
+fi
 
 CLASP_TEMPLATE=".clasp.json.template"
 SRC_DIR="src"

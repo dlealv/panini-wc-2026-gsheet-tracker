@@ -252,7 +252,9 @@
      * - completion: sort by doneMap descending
      * - preferences: sort by TRADE_PREFERENCES rules
      * Send stickers are never sorted here and always keep backend order.
-     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches
+     * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} matches the order of both lists
+     * is coming from the backend and it is not altered by this function. The assumption is that the view
+     * is always supplying the backend order.
      * @param {{maxStickerReceive:number,maxStickerSend:number,sortMode?:string,doneMap?:Object<string,number>,
      * tradePreferences?:string[]}} options
      * @return {{receive:Object<string,number[]>,send:Object<string,number[]>}}
@@ -278,7 +280,7 @@
       }
     }
 
-    // Private helpers (not exported)
+    // PRIVATE FUNCTIONS
 
     /**
      * Builds the QR image URL from encoded trade data.

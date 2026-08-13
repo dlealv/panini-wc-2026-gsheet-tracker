@@ -40,9 +40,13 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - `TradeServiceMockDesign.md`: Mock UI design for the Trade service.
   - `TradeServiceRequirements.md`: Trade service specification.
 
+- Under the `images` folder:
+  - Added new images related to the Trade service.
+
 - Under the `src/html` folder:
   - `MobileTradeStyles.html`: Specific CSS styles for the Trade service on mobile devices.
   - `MobileTradeView.html`: Mobile wrapper for `TradeView.html`.
+  - `QRUtils.html`: Utility classes for processing and handling QR codes, using BarcodeDetector or jsQR libraries
   - `TradeDialog.html`: Desktop dialog for the Trade service.
   - `TradeStyles.html`: Specific CSS styles for the Trade service.
   - `TradeView.html`: Shared view for the Trade service.
@@ -77,7 +81,9 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - Added new images related to the Trade service.
 
 - Under the `scripts` folder:
-  - `clasp.zsh`: Added a timestamp at the beginning of script execution.
+  - `clasp.zsh`: 
+    - Added a timestamp at the beginning of script execution.
+    - Added a 4th input argument `CUSTOM_NAME_PREFIX` to allow define the prefix to be used for deployment name. Adjusted the logic for defining the `DEPLOYMENT_NAME` when this additional input argument is present to add as a prefix to the base name (production name).
 
 - Under the `src/html` folder:
   - `AboutView.html`: Updated the release information.
@@ -95,6 +101,8 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - `ImportExportStyles.html`:
     - Removed the `.btn-inline` style because it belongs in `CommonStyles.html`.
     - Removed the `.section-title-inline` style because it is not in use.
+    - Adjusted the property `min-height` in `#exportText` to ensure the entire dialog is visible.
+    - Added a comment to each definition.
   - `ImportHelpers.html`:
     - Updated `getUIState()` and `setBusy()` to read values from the DOM instead of global variables that are not visible outside the IIFE.
   - `ImportView.html`:
@@ -114,6 +122,7 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Adjusted styles to accommodate the new design in `MobileImportView.html`.
   - `QuickEntryHelpers.html`:
     - Updated `setMessage()` to set message information based on the changes in the view.
+    - Removed deadcode.
   - `QuickEntryStyles.html`:
     - Added the `qe-message` style.
   - `QuickEntryView.html`:
@@ -149,12 +158,18 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Added implementations for `getStickerCount()`, `getTradePreferences()`, `updateStickerCounts()` in the `MockStickerSheetRepository` class.
     - Adjusted `TEST_DATA` to represent the same data as `initializeSpreadsheetAppMock()`, making `TEST_DATA` the source of truth.
     - Exported `TEST_DATA` to make it available for modification in specific tests.
+    - Removed `MockStickerSheetRepository` since it is not required, mocking only the data and specific gsheet function, no need to mock the entire class.
+    - Updated `initializeSpreadsheetAppMock()` method to get as an input argument `countries` with default value `TEST_DATA` to have more flexible tests.
 
 - Under the `test` folder:
   - Adjusted regression tests that failed after the changes in `testKernel.js` to use `TEST_DATA` as the source of truth.
   - `Commons.unit.test.js`:
     - Updated the `getCountryCounts()` suite, including the `normalizes country code before lookup` test.
     - Updated tests related to `updateStickerCounts()` after the contract changed.
+    - Added tests for the case of `clear_all` after fixing the implementation to restore `0` for non-valid positions.
+  - `ExportHelpers.unit.test.js`: 
+    - Removed describe related to private functions.
+    - Increase coverage for public functions.
   - `ImportHelpers.html.js`:
     - Adjusted tests after modifying the source file.
   - `ImportService.unit.test.js`:
@@ -163,9 +178,13 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Added specific suites for `LineNormalize` and `ImportStickers` to validate behavior when the `options` input argument is provided.
     - Added coverage for `sortStickers` behavior, including conditional `stickerOrder` output and preservation of input order when sorting is disabled.
     - Added more detailed coverage for all Import modes.
+  - `QuickEntryHelpers.unit.test.js`: 
+    - Added tests to improve coverage.
+    - Removed tests related to private functions.
   - `QuickEntryService.unit.test.js`:
     - Updated tests for `applyPendingUpdates()` and `_normalizePendingUpdates()` because the `updateStickerCounts()` contract in `StickerSheetRepository` changed.
     - Added a specific test for `getVisibleCountries` for this case: `returns filtered visible countries search by name` to include the specific case of country name search.
+    - Added additional tess to improve coverage.
 
 - Under the root folder:
   - `.gitignore`:
@@ -173,6 +192,7 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - `cspell.json`:
     - Added `data/clean_roster.py` to the ignored files.
     - Added additional word exceptions to the code spell checker.
+  - `package.json`: Updated the definition of `deploy:test` and `deploy:all` to correctly accept non-optional input arguments.
   - `TODO.md`:
     - Added the Trade service and the refactoring of the data model to unify it.
   - `README.md`:
@@ -187,8 +207,10 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - The issue was caused by `ImportHelpers.html` relying on global variables that were not in the scope of the IIFE.
   - The helper now reads the required values from the DOM instead of relying on unavailable global variables.
   - Because the `mode` variable was not defined in the expected scope, the code incorrectly fell back to the default `update` mode.
+  - Fixed that import service under `clear_all` didn't restore `0`s for non-valid sticker positions.
 - Quick entry service:
   - Search by name didn't return the expected result, for example `bos` returns no result, expected to return `BIH`.
+- `package.json`: Adjusted the script task `deploy:test` and `deploy:all` to work as expected with optional input arguments.
 
 ---
 

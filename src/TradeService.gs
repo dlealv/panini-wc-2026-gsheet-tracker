@@ -163,35 +163,6 @@ class TradeService {
   }
 
   /**
-   * GAS entry point for refreshing the trade proposal.
-   * Creates a TradeService instance, recalculates the possible trade matches,
-   * applies the user-selected options, and serializes the proposal for transport
-   * to the client.
-   * @param {{otherTradeInfo:TradeInfo,sortMissing:boolean,
-   * maxStickerReceive:number,maxStickerSend:number}} payload
-   * Trade proposal options and external collector information.
-   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] Optional spreadsheet instance.
-   * @param {Object} [deps] Optional dependency injection for testing.
-   * @returns {{receive:string,send:string}}
-   *   receive and send are serialized JSON strings to preserve country and sticker order.
-   */
-  static refreshStickerTradeProposal(payload, ss = null, deps = {}) {
-    const service = new TradeService(ss, deps)
-    service.setOtherTradeInfo(payload.otherTradeInfo)
-
-    const proposal = service.refreshTradeProposal({
-      sortMissing: payload.sortMissing,
-      maxStickerReceive: payload.maxStickerReceive,
-      maxStickerSend: payload.maxStickerSend
-    })
-
-    return {
-      receive: JSON.stringify(proposal.receive),
-      send: JSON.stringify(proposal.send)
-    }
-  }
-
-  /**
    * GAS entry point for executing a confirmed trade.
    * Validates the confirmation and applies spreadsheet updates.
    * @param {{receive:Object<string,number[]>, send:Object<string,number[]>}} payload Confirmed trade information.
@@ -296,8 +267,11 @@ class TradeService {
    * Previews external collector input before using it in trade calculations.
    * Missing and Repeats are parsed independently so warnings can be reported
    * for each section separately.
+   * Rejects contradictory trade information when the same sticker is declared
+   * as both missing and repeated for the same country.
    * @param {{missingText:string,repeatsText:string}} payload Raw collector input.
    * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:TradeInfo}}
+   * @throws {Error} If a sticker is both missing and repeated for the same country.
    */
   previewOtherTradeInfo(payload) {
     const missingParsed = payload.missingText
@@ -306,10 +280,20 @@ class TradeService {
     const repeatsParsed = payload.repeatsText
       ? this._parseStickerInput(payload.repeatsText)
       : { countries: [], warnings: [] }
-    this.otherTradeInfo = this._buildOtherTradeInfo(
-      missingParsed,
-      repeatsParsed
-    )
+    const tradeInfo = this._buildOtherTradeInfo(missingParsed, repeatsParsed)
+    const conflictingStickers = []
+    Object.keys(tradeInfo.missing).forEach(countryCode => {
+      const missing = new Set(tradeInfo.missing[countryCode])
+        ; (tradeInfo.repeats[countryCode] || []).forEach(stickerNumber => {
+          if (missing.has(stickerNumber)) {
+            conflictingStickers.push(`${countryCode},${stickerNumber}`)
+          }
+        })
+    })
+    if (conflictingStickers.length) {
+      throw new Error(`Sticker(s) cannot be both missing and repeated. Please adjust the input: ${conflictingStickers.join(', ')}`)
+    }
+    this.otherTradeInfo = tradeInfo
     return {
       success: true,
       warnings: {
@@ -529,7 +513,7 @@ class TradeService {
           countries[countryCode] = {}
         }
         tradeInfo[countryCode].forEach(stickerNumber => {
-          const currentCount = this.getRepo().getStickerCount(countryCode, stickerNumber)
+          const currentCount = countries[countryCode][stickerNumber] ?? this.getRepo().getStickerCount(countryCode, stickerNumber)
           const newCount = currentCount + delta
           if (newCount < 0) {
             throw new Error(

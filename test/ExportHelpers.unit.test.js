@@ -39,94 +39,87 @@ describe('ExportHelpers unit tests', () => {
 
   /** Get payload for export based on current UI state. */
   describe('getPayload()', () => {
-    test('returns same result as getUIState', () => {
-      global.includeFlagsCheckbox = { checked: true }
-      expect(helpers.getPayload()).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
-      expect(helpers.getPayload()).toEqual(helpers._getUIState())
+    test('reads all UI options from DOM inputs', () => {
+      expect(helpers.getPayload({
+        includeFlagsCheckbox: { checked: true },
+        sortByDoneCheckbox: { checked: true },
+        isCompactCheckbox: { checked: true }
+      })).toEqual({ includeFlags: true, sortByDone: true, isCompact: true })
+    })
+    test('returns default values when UI inputs are missing', () => {
+      expect(helpers.getPayload({
+        includeFlagsCheckbox: null,
+        sortByDoneCheckbox: null,
+        isCompactCheckbox: null
+      })).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
     })
   })
-})
 
-/** Set the busy state for UI elements. */
-describe('setBusy()', () => {
-  test('disables all UI elements when busy', () => {
-    const buttons = [{ disabled: false }, { disabled: false }]
-    const controls = [{ disabled: false }, { disabled: false }, { disabled: false }, { disabled: false }]
-    const docMock = { querySelectorAll: jest.fn(() => buttons) }
-    helpers.setBusy(true, { document: docMock, controls })
-    buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
-    controls.forEach(control => { expect(control.disabled).toBe(true) })
-  })
-  test('ignores null controls while setting busy state', () => {
-    const buttons = [{ disabled: false }]
-    const docMock = { querySelectorAll: jest.fn(() => buttons) }
-    helpers.setBusy(true, { document: docMock, controls: [null, { disabled: false }] })
-    expect(buttons[0].disabled).toBe(true)
-  })
-})
-
-/** Copies export text to clipboard. */
-describe('copyToClipboard()', () => {
-  test('uses navigator clipboard when available', async () => {
-    const writeTextMock = jest.fn().mockResolvedValue()
-    await helpers.copyToClipboard('hello', {
-      clipboard: { writeText: writeTextMock }
+  /** Set the busy state for UI elements. */
+  describe('setBusy()', () => {
+    test('disables all UI elements when busy', () => {
+      const buttons = [{ disabled: false }, { disabled: false }]
+      const controls = [{ disabled: false }, { disabled: false }, { disabled: false }, { disabled: false }]
+      const docMock = { querySelectorAll: jest.fn(() => buttons) }
+      helpers.setBusy(true, { document: docMock, controls })
+      buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
+      controls.forEach(control => { expect(control.disabled).toBe(true) })
     })
-    expect(writeTextMock).toHaveBeenCalledWith('hello')
-  })
-  test('falls back to execCommand when clipboard fails', async () => {
-    const selectMock = jest.fn()
-    const execCommandMock = jest.fn()
-    await helpers.copyToClipboard('hello', {
-      clipboard: { writeText: jest.fn().mockRejectedValue(new Error('fail')) },
-      exportTextEl: { select: selectMock },
-      execCommand: execCommandMock
+    test('ignores null controls while setting busy state', () => {
+      const buttons = [{ disabled: false }]
+      const docMock = { querySelectorAll: jest.fn(() => buttons) }
+      helpers.setBusy(true, { document: docMock, controls: [null, { disabled: false }] })
+      expect(buttons[0].disabled).toBe(true)
     })
-    expect(selectMock).toHaveBeenCalledTimes(1)
-    expect(execCommandMock).toHaveBeenCalledWith('copy')
   })
-})
 
-/** Create and trigger a download link for the exported data. */
-describe('triggerDownload()', () => {
-  test('creates and triggers download link', () => {
-    const clickMock = jest.fn()
-    const appendMock = jest.fn()
-    const removeMock = jest.fn()
-    const createObjectURLMock = jest.fn(() => 'blob:url')
-    const revokeObjectURLMock = jest.fn()
-    const setTimeoutMock = jest.fn(fn => fn())
-    const docMock = {
-      createElement: jest.fn(() => ({ href: '', download: '', click: clickMock })),
-      body: { appendChild: appendMock, removeChild: removeMock }
-    }
-    const urlMock = { createObjectURL: createObjectURLMock, revokeObjectURL: revokeObjectURLMock }
-    helpers.triggerDownload('data', 'file.txt', {
-      document: docMock,
-      URL: urlMock,
-      setTimeoutFn: setTimeoutMock
+  /** Copies export text to clipboard. */
+  describe('copyToClipboard()', () => {
+    test('uses navigator clipboard when available', async () => {
+      const writeTextMock = jest.fn().mockResolvedValue()
+      await helpers.copyToClipboard('hello', {
+        clipboard: { writeText: writeTextMock }
+      })
+      expect(writeTextMock).toHaveBeenCalledWith('hello')
     })
-    expect(clickMock).toHaveBeenCalledTimes(1)
-    expect(createObjectURLMock).toHaveBeenCalledTimes(1)
-    expect(appendMock).toHaveBeenCalledTimes(1)
-    expect(removeMock).toHaveBeenCalledTimes(1)
-    expect(setTimeoutMock).toHaveBeenCalledTimes(1)
-    expect(revokeObjectURLMock).toHaveBeenCalledTimes(1)
+    test('falls back to execCommand when clipboard fails', async () => {
+      const selectMock = jest.fn()
+      const execCommandMock = jest.fn()
+      await helpers.copyToClipboard('hello', {
+        clipboard: { writeText: jest.fn().mockRejectedValue(new Error('fail')) },
+        exportTextEl: { select: selectMock },
+        execCommand: execCommandMock
+      })
+      expect(selectMock).toHaveBeenCalledTimes(1)
+      expect(execCommandMock).toHaveBeenCalledWith('copy')
+    })
   })
-})
 
-/** Get current UI state from input elements. */
-describe('_getUIState()', () => {
-  test('returns default values when inputs are missing', () => {
-    global.textInput = null
-    global.modeInput = null
-    global.includeFlagsCheckbox = null
-    const result = helpers._getUIState()
-    expect(result).toEqual({ includeFlags: false, sortByDone: false, isCompact: false })
-  })
-  test('reads values from DOM inputs', () => {
-    global.includeFlagsCheckbox = { checked: true }
-    const result = helpers._getUIState()
-    expect(result).toEqual({ includeFlags: true, sortByDone: false, isCompact: false })
+  /** Create and trigger a download link for the exported data. */
+  describe('triggerDownload()', () => {
+    test('creates and triggers download link', () => {
+      const clickMock = jest.fn()
+      const appendMock = jest.fn()
+      const removeMock = jest.fn()
+      const createObjectURLMock = jest.fn(() => 'blob:url')
+      const revokeObjectURLMock = jest.fn()
+      const setTimeoutMock = jest.fn(fn => fn())
+      const docMock = {
+        createElement: jest.fn(() => ({ href: '', download: '', click: clickMock })),
+        body: { appendChild: appendMock, removeChild: removeMock }
+      }
+      const urlMock = { createObjectURL: createObjectURLMock, revokeObjectURL: revokeObjectURLMock }
+      helpers.triggerDownload('data', 'file.txt', {
+        document: docMock,
+        URL: urlMock,
+        setTimeoutFn: setTimeoutMock
+      })
+      expect(clickMock).toHaveBeenCalledTimes(1)
+      expect(createObjectURLMock).toHaveBeenCalledTimes(1)
+      expect(appendMock).toHaveBeenCalledTimes(1)
+      expect(removeMock).toHaveBeenCalledTimes(1)
+      expect(setTimeoutMock).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURLMock).toHaveBeenCalledTimes(1)
+    })
   })
 })
