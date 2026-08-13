@@ -653,11 +653,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code `Node.js` project using `Jest`. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.2` `376` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.4` `555` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|93.77         |    81.73 |   91.89     |   94.71 |                                            
+|     95.05    |  80.42   |   94.76     |   95.73 |                                            
 
 ---
 
@@ -766,7 +766,7 @@ In alphabetical order and organized by folders:
   - `QuickEntryHelpers.unit.test.js`: Test file for testing `src/html/QuickEntryHelpers.gs`.
   - `QuickEntryRender.unit.test.js`: Test file for testing `src/html/QuickEntryRender.gs`.
   - `utils/testKernel.js`: Global test kernel for GAS unit tests.
-  - `jest.config.js`: `Jest` configuration file.
+  - `jest.config.js`: Jest configuration file.
 
 - Under root:
   - `clasp.json.template`: Template file used for clasp operations (create, edit, and deploy locally to Apps Script).
