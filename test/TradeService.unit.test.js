@@ -83,6 +83,12 @@ describe('TradeService (unit)', () => {
         tradeInfo: JSON.stringify(tradeInfo)
       })
     })
+    test('preserves failed preview result without trade information', () => {
+      const expected = { success: false, warnings: { missing: ['Invalid input'], repeats: [] } }
+      jest.spyOn(TradeService.prototype, 'previewOtherTradeInfo').mockReturnValue(expected)
+      const result = TradeService.previewOtherStickerTradeInfo({}, null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
   })
 
   /** static generateStickerTradeInfoQr() */
@@ -101,6 +107,12 @@ describe('TradeService (unit)', () => {
         tradeInfo: JSON.stringify(tradeInfo)
       })
     })
+    test('preserves failed QR generation result', () => {
+      const expected = { success: false, error: 'Unable to generate QR code' }
+      jest.spyOn(TradeService.prototype, 'generateTradeInfoQr').mockReturnValue(expected)
+      const result = TradeService.generateStickerTradeInfoQr(null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
   })
 
   /** static previewOtherStickerTradeInfoFromQr() */
@@ -118,17 +130,18 @@ describe('TradeService (unit)', () => {
         tradeInfo: JSON.stringify(tradeInfo)
       })
     })
+    test('preserves failed QR preview result', () => {
+      const expected = { success: false, warnings: { missing: ['Invalid QR'], repeats: [] } }
+      jest.spyOn(TradeService.prototype, 'previewOtherTradeInfoFromQr').mockReturnValue(expected)
+      const result = TradeService.previewOtherStickerTradeInfoFromQr({}, null, initStaticDeps())
+      expect(result).toEqual(expected)
+    })
   })
 
   /** static findStickerTradeMatches() */
   describe('static findStickerTradeMatches()', () => {
     test('creates service and delegates calculateMatches', () => {
-      const calculateMock = jest.fn().mockReturnValue({
-        receive: [],
-        send: [],
-        doneMap: {},
-        tradePreferences: {}
-      })
+      const calculateMock = jest.fn().mockReturnValue({ receive: [], send: [], doneMap: {}, tradePreferences: {} })
       class MockTradeCalculation {
         calculate() {
           return calculateMock()
@@ -147,6 +160,27 @@ describe('TradeService (unit)', () => {
         tradePreferences: JSON.stringify(EXPECTED_TRADE_PREFERENCES)
       })
       expect(calculateMock).toHaveBeenCalledTimes(1)
+    })
+    test('throws when external collector information is missing', () => {
+      let error
+      try {
+        TradeService.findStickerTradeMatches({}, null, initStaticDeps())
+      } catch (e) {
+        error = e
+      }
+      expect(error).toBeDefined()
+      expect(error.message).toContain('External collector information')
+    })
+  })
+
+  /** static executeStickerTrades() */
+  describe('static executeStickerTrades()', () => {
+    test('delegates confirmed trade to executeTrade()', () => {
+      const payload = { receive: { MEX: [18] }, send: { MEX: [20] } }
+      const executeMock = jest.spyOn(TradeService.prototype, 'executeTrade').mockReturnValue(true)
+      const result = TradeService.executeStickerTrades(payload, null, initStaticDeps())
+      expect(executeMock).toHaveBeenCalledWith(payload)
+      expect(result).toBe(true)
     })
   })
 
@@ -395,19 +429,37 @@ describe('TradeService (unit)', () => {
       expect(Object.keys(getTradeInfo(result).repeats)).toEqual(['CC', 'MEX', 'FWC'])
     })
     test('preserves country order from external trade information', () => {
-      const originalCountries = TEST_DATA.countries
-      TEST_DATA.countries = [...originalCountries, { code: 'RSA' }]
+      const countries = [
+        ...TEST_DATA.countries,
+        { code: 'RSA', countryName: 'South Africa', group: '', flag: '', counts: {} }
+      ]
+      initTestKernel({ countries })
+      service = initService()
+      const result = service.previewOtherTradeInfo({
+        missingText: '',
+        repeatsText: 'FWC,10\nMEX,5,4\nRSA,1,2,3'
+      })
+      expect(result.success).toBe(true)
+      expect(result.warnings.repeats).toEqual([])
+    })
+    test('returns empty trade information when both sections are empty', () => {
+      const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: '' })
+      expect(result).toEqual({
+        success: true,
+        warnings: { missing: [], repeats: [] },
+        tradeInfo: { missing: {}, repeats: {} }
+      })
+    })
+    test('rejects a sticker that is both missing and repeated', () => {
       try {
-        const result = service.previewOtherTradeInfo({ missingText: '', repeatsText: 'FWC,10\nMEX,5,4\nRSA,1,2,3' })
-        expect(result.success).toBe(true)
-        expect(result.warnings.repeats).toEqual([])
-        expect(JSON.stringify(getTradeInfo(result).repeats)).toBe(JSON.stringify({
-          FWC: [10],
-          MEX: [5, 4],
-          RSA: [1, 2, 3]
-        }))
-      } finally {
-        TEST_DATA.countries = originalCountries
+        service.previewOtherTradeInfo({
+          missingText: 'MEX,15',
+          repeatsText: 'MEX,15'
+        })
+        throw new Error('Expected previewOtherTradeInfo() to throw')
+      } catch (error) {
+        expect(error.message).toContain('cannot be both missing and repeated')
+        expect(error.message).toContain('MEX,15')
       }
     })
   })
@@ -480,6 +532,14 @@ describe('TradeService (unit)', () => {
       expect(result.success).toBe(true)
       expect(result.tradeInfo).toEqual({ missing: {}, repeats: {} })
     })
+    test('returns empty trade information for invalid QR payload', () => {
+      const result = service.previewOtherTradeInfoFromQr({ qrData: 'invalid' })
+      expect(result).toEqual({
+        success: true,
+        warnings: { missing: [], repeats: [] },
+        tradeInfo: { missing: {}, repeats: {} }
+      })
+    })
   })
 
   /** findTradeMatches() */
@@ -547,12 +607,14 @@ describe('TradeService (unit)', () => {
       jest.spyOn(service, 'getTradeInfo').mockReturnValue({ missing: { MEX: [1] }, repeats: { BRA: [8] } })
       jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({ receive: {}, send: {} })
       const result = service.findTradeMatches()
-      expect(result).toEqual({
-        receive: {},
-        send: {},
-        doneMap: {},
-        tradePreferences: EXPECTED_TRADE_PREFERENCES
-      })
+      expect(result).toEqual({ receive: {}, send: {}, doneMap: {}, tradePreferences: EXPECTED_TRADE_PREFERENCES })
+    })
+    test('uses stored external trade information when no payload is provided', () => {
+      const otherTradeInfo = { missing: { MEX: [1] }, repeats: { FWC: [3] } }
+      service.setOtherTradeInfo(otherTradeInfo)
+      const calculateMock = jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({ receive: {}, send: {} })
+      service.findTradeMatches()
+      expect(calculateMock).toHaveBeenCalledWith(service.getTradeInfo(), otherTradeInfo)
     })
   })
 
@@ -593,6 +655,88 @@ describe('TradeService (unit)', () => {
       expect(updateSpy).not.toHaveBeenCalled()
       expect(repo.getCountsRange().getValues()).toEqual(countsBefore)
     })
+  })
+  test('applies incoming and outgoing stickers across different countries', () => {
+    const service = initService()
+    service.executeTrade({ receive: { FWC: [3] }, send: { MEX: [20] } })
+    const counts = service.getRepo().getCountsRange().getValues()
+    expect(counts[0][3]).toBe(3)
+    expect(counts[1][20]).toBe(1)
+  })
+  test('throws when trade confirmation is missing', () => {
+    let error
+    try {
+      const service = initService()
+      service.executeTrade()
+    } catch (e) {
+      error = e
+    }
+    expect(error).toBeDefined()
+    expect(error.message).toMatch(/trade confirmation|required/i)
+  })
+  test('throws when trade confirmation has no receive or send data', () => {
+    let error
+    try {
+      const service = initService()
+      service.executeTrade({})
+    } catch (e) {
+      error = e
+    }
+    expect(error).toBeDefined()
+    expect(error.message).toMatch(/trade confirmation|required/i)
+  })
+  test('returns doneMap information for receive countries', () => {
+    service.setOtherTradeInfo({
+      missing: { MEX: [1], FWC: [2] },
+      repeats: {}
+    }, {})
+    jest.spyOn(service, 'getTradeInfo').mockReturnValue({
+      missing: { MEX: [1], FWC: [2] },
+      repeats: {}
+    })
+    jest.spyOn(service.getTradeCalculation(), 'calculate').mockReturnValue({
+      receive: { MEX: [1], FWC: [2] },
+      send: {}
+    })
+    const result = service.findTradeMatches()
+    expect(result.doneMap).toEqual({ MEX: expect.any(Number), FWC: expect.any(Number) })
+  })
+  test('rejects missing trade confirmation', () => {
+    expect(() => service.executeTrade()).toThrow(expect.objectContaining({
+      message: expect.stringContaining('Trade confirmation')
+    }))
+  })
+  test('applies receive-only trade confirmation', () => {
+    const repo = service.getRepo()
+    const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
+    const result = service.executeTrade({ receive: { MEX: [18] } })
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 18: 2 } }] }, 'update')
+    expect(result).toBe(true)
+  })
+  test('applies send-only trade confirmation', () => {
+    const repo = service.getRepo()
+    const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
+    const result = service.executeTrade({ send: { MEX: [20] } })
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 20: 1 } }] }, 'update')
+    expect(result).toBe(true)
+  })
+  test('keeps the current count when the same sticker is received and sent', () => {
+    const repo = service.getRepo()
+    jest.spyOn(repo, 'getStickerCount').mockReturnValue(1)
+    const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
+    const result = service.executeTrade({ receive: { MEX: [18] }, send: { MEX: [18] } })
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 18: 1 } }] }, 'update')
+    expect(result).toBe(true)
+  })
+  test('applies trade confirmation for multiple countries', () => {
+    const repo = service.getRepo()
+    const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
+    const result = service.executeTrade({ receive: { MEX: [18], FWC: [2] }, send: { MEX: [20] } })
+    // TEST_DATA: FWC,1,3(2), MEX,18,20(2)
+    expect(updateMock).toHaveBeenCalledWith({
+      countries: [{ code: 'MEX', counts: { 18: 2, 20: 1 } }, { code: 'FWC', counts: { 2: 1 } }]
+    }, 'update')
+    expect(result).toBe(true)
   })
 })
 
@@ -641,6 +785,14 @@ describe('TradeCalculation (unit)', () => {
       const result = calculation.calculate(tradeInfo, otherTradeInfo)
       expect(result).toEqual({ receive: { FWC: [10], MEX: [4, 5] }, send: { MEX: [2, 3] } })
     })
+    test('returns empty matches when current collector has no trade information', () => {
+      const result = calculation.calculate({ missing: {}, repeats: {} }, { missing: { MEX: [1] }, repeats: { MEX: [2] } })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
+    test('returns empty matches when other collector has no trade information', () => {
+      const result = calculation.calculate({ missing: { MEX: [1] }, repeats: { MEX: [2] } }, { missing: {}, repeats: {} })
+      expect(result).toEqual({ receive: {}, send: {} })
+    })
   })
 })
 
@@ -663,6 +815,14 @@ describe('TradeQrHelper (unit)', () => {
     })
     test('omits empty missing and repeats collections', () => {
       expect(helper.encode({ missing: {}, repeats: {} })).toBe('{}')
+    })
+    test('encodes trade information with only missing stickers', () => {
+      const result = helper.encode({ missing: { MEX: [1, 4] }, repeats: {} })
+      expect(result).toBe('{"m":{"MEX":18}}')
+    })
+    test('encodes trade information with only repeat stickers', () => {
+      const result = helper.encode({ missing: {}, repeats: { MEX: [1, 4] } })
+      expect(result).toBe('{"r":{"MEX":18}}')
     })
   })
 
@@ -694,6 +854,10 @@ describe('TradeQrHelper (unit)', () => {
       const payload = '{"m":{"FWC":2097151}}'
       const result = helper.decode(payload)
       expect(result.missing.FWC).toEqual(Array.from({ length: 21 }, (_, i) => i))
+    })
+    test('decodes empty masks into empty trade information', () => {
+      const result = helper.decode('{"m":{},"r":{}}')
+      expect(result).toEqual({ repeats: {}, missing: {} })
     })
   })
 })

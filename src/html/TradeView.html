@@ -594,7 +594,7 @@
         proposalMessageEl.textContent = '⚠ No valid trade matches found.'
         confirmTradeButtonEl.disabled = true
         state.proposal = { receive: {}, send: {} }
-        renderProposalPreview(false)
+        renderProposalPreview(true)
         return
       }
       confirmTradeButtonEl.disabled = false

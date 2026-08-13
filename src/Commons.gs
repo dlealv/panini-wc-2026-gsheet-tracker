@@ -388,12 +388,27 @@ class StickerSheetRepository {
    */
   updateStickerCounts(updates, mode = 'update') {
     const countries = updates && updates.countries
-    if (!Array.isArray(countries) || !countries.length) return
-    const range = this.getCountsRange()
-    if (mode === 'clean_all') {
-      range.clearContent()
+    if (!Array.isArray(countries) || !countries.length) {
+      return
     }
+    const range = this.getCountsRange()
     const values = range.getValues()
+    if (mode === 'clean_all') { // Clears valid positions and restores invalid positions for all countries.
+      const allCountries = this.getCountries()
+      const bounds = StickerSheetRepository.getCountryBounds()
+      for (const country of allCountries) {
+        const normalizedCountryCode = String(country.code).trim().toUpperCase()
+        const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+        const index = this.getCountryMap()[normalizedCountryCode].index
+        for (let sticker = 0; sticker < values[index].length; sticker++) {
+          if (sticker < minSticker || sticker > maxSticker) {
+            values[index][sticker] = 0
+          } else {
+            values[index][sticker] = ''
+          }
+        }
+      }
+    }
     if (mode === 'replace_countries') {
       countries.forEach(country => {
         const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
@@ -406,6 +421,8 @@ class StickerSheetRepository {
     })
     range.setValues(values)
   }
+
+  // PRIVATE METHODS
 
   /* Helper method to validate ranges with expected dimensions. */
   _validateRange(range, expectedRows, expectedCols, rangeName) {

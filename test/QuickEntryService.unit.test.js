@@ -14,6 +14,7 @@
  * The shared test kernel MUST initialize BEFORE loading
  * any compiled GAS build modules.
  */
+/* global __countsRange */
 
 const { initTestKernel } = require('./utils/testKernel.js')
 
@@ -254,7 +255,8 @@ describe('QuickEntryService (unit)', () => {
   describe('applyPendingUpdates()', () => {
     test('applies normalized updates and returns refreshed countries', () => {
       const result = service.applyPendingUpdates([{ countryCode: 'mex', stickerNumber: 4, count: 0 }])
-      expect(service.repo.lastUpdates).toEqual({ countries: [{ code: 'MEX', counts: { 4: 0 } }] })
+      const written = __countsRange.setValues.mock.calls[0][0]
+      expect(written[1][4]).toBe('')
       expect(result).toEqual({ success: true, message: 'Updated 1 sticker value(s).', countries: expect.any(Array) })
     })
     test('throws when no updates are provided', () => {

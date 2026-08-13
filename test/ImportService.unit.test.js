@@ -76,9 +76,6 @@ describe('ImportService (unit)', () => {
     test('clean_all mode clears all countries before importing multiple countries', () => {
       const result = service.import('FWC,1\nMEX,2', 'clean_all')
       expect(result.success).toBe(true)
-      expect(__countsRange.clearContent).toHaveBeenCalledTimes(1)
-      const repo = service.getRepo()
-      expect(repo.lastUpdates.countries).toHaveLength(2)
       const written = __countsRange.setValues.mock.calls[0][0]
       const fwcRow = written[0]
       checkStickers(fwcRow, [1], [20])

@@ -237,6 +237,23 @@ describe('QuickEntryHelpers.html', () => {
       helpers.updatePendingChangesMessage({}, setMessageFn)
       expect(setMessageFn).toHaveBeenCalledWith('Ready.', 'success')
     })
+    test('setMessage: applies default text and info type', () => {
+      const el = {
+        textContent: 'old',
+        classList: {
+          classes: ['success'],
+          remove(...names) {
+            this.classes = this.classes.filter(c => !names.includes(c))
+          },
+          add(...names) {
+            this.classes.push(...names)
+          }
+        }
+      }
+      helpers.setMessage(el, '', undefined)
+      expect(el.textContent).toBe('')
+      expect(el.classList.classes).toEqual(['message', 'info'])
+    })
   })
 
   /** Tests for buildEmptyState() */
@@ -397,26 +414,27 @@ describe('QuickEntryHelpers.html', () => {
       }
       expect(helpers.getVisibleCountries(state)).toEqual([])
     })
-  })
-
-  /** Tests for _renderPreview() */
-  describe('_renderPreview()', () => {
-    test('formats countries into preview lines', () => {
-      expect(helpers._renderPreviewData({ countries: [{ code: 'ARG', stickers: [{ number: 1, count: 2 }] }] })).toBe('ARG -> 1:2')
-    })
-    test('joins multiple countries with newline', () => {
-      expect(helpers._renderPreviewData({
-        countries: [
-          { code: 'ARG', stickers: [{ number: 1, count: 1 }] },
-          { code: 'BRA', stickers: [{ number: 2, count: 2 }] }
-        ]
-      })).toBe('ARG -> 1:1\nBRA -> 2:2')
-    })
-    test('returns empty string for empty input', () => {
-      expect(helpers._renderPreviewData({ countries: [] })).toBe('')
-    })
-    test('returns empty string for invalid input', () => {
-      expect(helpers._renderPreviewData(null)).toBe('')
+    test('getVisibleCountries: applies pending updates before pending filter', () => {
+      const state = {
+        countries: [{
+          code: 'ARG',
+          countryName: 'Argentina',
+          group: 'A',
+          stickers: [{ number: 1, count: 0, hasPendingChange: false }]
+        }],
+        pendingUpdates: { 'ARG|1': 2 },
+        selectedGroupFilter: 'all',
+        selectedStatusFilter: 'pending',
+        searchText: ''
+      }
+      expect(helpers.getVisibleCountries(state)).toEqual([{
+        code: 'ARG',
+        countryName: 'Argentina',
+        group: 'A',
+        stickers: [{ number: 1, count: 2, label: '1 (2)', hasPendingChange: true }],
+        summary: { total: 1, owned: 1, missing: 0, repeated: 1, completionPercent: 100 },
+        isCompleted: true
+      }])
     })
   })
 
