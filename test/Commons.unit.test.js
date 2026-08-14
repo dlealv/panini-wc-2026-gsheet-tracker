@@ -7,6 +7,25 @@ const { initTestKernel } = require('./utils/testKernel.js')
 
 const MAX_ROWS = StickerSheetRepository.getMaxRows()
 
+/**
+ * Helper function to check sticker values for a given country, it checks empty stickers (''),
+ * non empty and zero values
+ * */
+function checkStickers(row, stickersWithValues, stickersWithZero = []) {
+  row.forEach((value, index) => {
+    const stickerNumber = index
+    if (stickersWithValues.includes(stickerNumber)) {
+      expect(value).toBeGreaterThan(0)
+    }
+    if (stickersWithZero.includes(stickerNumber)) {
+      expect(value).toBe(0)
+    }
+    if (!stickersWithValues.includes(stickerNumber) && !stickersWithZero.includes(stickerNumber)) {
+      expect(value).toBe('')
+    }
+  })
+}
+
 /** Unit tests for StickerSheetRepository. */
 describe('StickerSheetRepository unit tests', () => {
   let repo
@@ -326,15 +345,10 @@ describe('StickerSheetRepository unit tests', () => {
     })
     test('update mode: groups updates and applies once per country', () => {
       repo._applyCountUpdates = jest.fn()
-      repo.updateStickerCounts({
-        countries: [
-          { code: 'FWC', counts: { 1: 2, 5: 4 } },
-          { code: 'MEX', counts: { 3: 1 } }
-        ]
-      })
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 2, 5: 4 } }, { code: 'MEX', counts: { 3: 1 } }] })
       expect(repo._applyCountUpdates).toHaveBeenCalledTimes(2)
-      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(1, { code: 'FWC', counts: { 1: 2, 5: 4 } }, expect.any(Array))
-      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(2, { code: 'MEX', counts: { 3: 1 } }, expect.any(Array))
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(1, { code: 'FWC', counts: { 1: 2, 5: 4 } }, expect.any(Array), false)
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(2, { code: 'MEX', counts: { 3: 1 } }, expect.any(Array), false)
       expect(countsRange.setValues).toHaveBeenCalledTimes(1)
     })
     test('update mode: writes all updated rows in a single setValues call', () => {
@@ -432,16 +446,27 @@ describe('StickerSheetRepository unit tests', () => {
       expect(values[1]).toEqual([6, 7, 8, 9, 10])
       expect(values[2]).toEqual([11, 12, 13, 14, 15])
     })
-    test('clean_all mode: clears and restores invalid positions', () => {
+    test('clean_all mode: clears all and restores invalid positions and update counts for one country', () => {
       repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 2 } }] }, 'clean_all')
-      const values = countsRange.setValues.mock.calls[0][0]
+      const written = countsRange.setValues.mock.calls[0][0]
       expect(countsRange.setValues).toHaveBeenCalledTimes(1)
-      expect(values[0][1]).toBe(2) // FWC row 0
-      expect(values[0][2]).toBe('')
-      expect(values[0][20]).toBe(0)
-      expect(values[1][0]).toBe(0) // MEX row 1
-      expect(values[1][18]).toBe('') // mock values cleared
-      expect(values[1][20]).toBe('') // mock values cleared
+      const fwcRow = written[0]
+      checkStickers(fwcRow, [1], [20])
+      expect(fwcRow[1]).toBe(2)
+      const mexRow = written[1]
+      checkStickers(mexRow, [], [0])
+    })
+    test('clean_all mode: clears all and restores invalid positions and update counts for two countries', () => {
+      const countries = [{ code: 'FWC', counts: { 1: 1 } }, { code: 'MEX', counts: { 2: 1 } }]
+      repo.updateStickerCounts({ countries }, 'clean_all')
+      const written = countsRange.setValues.mock.calls[0][0]
+      expect(countsRange.setValues).toHaveBeenCalledTimes(1)
+      const fwcRow = written[0]
+      checkStickers(fwcRow, [1], [20])
+      expect(fwcRow[1]).toBe(1)
+      const mexRow = written[1]
+      checkStickers(mexRow, [2], [0])
+      expect(mexRow[2]).toBe(1)
     })
   })
 

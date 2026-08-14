@@ -6,11 +6,11 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 
 ---
 
-## [1.1.4] 2026-08-11
+## [1.1.4] 2026-08-13
 
 ### Overview
 
-Implemented the Trade service for Apps Script. Centralized the Google Spreadsheet writing process in the `StickerSheetRepository` class. Fixed a bug in the Import service where selecting **Update counts clearing country counts** actually executed the **Update counts** option. Fixed Quick entry search by name not returning result. Improved `testKernel.js` to use `TEST_DATA` consistently. Standardized the look and feel by moving common styles to `CommonStyles.html` and `MobileStyles.html`. Updated `panini_fwc2026_roster.csv` with the correct player and sticker names based on the [Panini missing stickers website](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html), and updated club information using the player affiliations available when the Panini stickers were published.
+Implemented the Trade service for Apps Script. Centralized the Google Spreadsheet writing process in the `StickerSheetRepository` class. Fixed a bug in the Import service where selecting **Update counts clearing country counts** actually executed the **Update counts** option. Fixed Quick entry search by name not returning result. Improved `testKernel.js` to use `TEST_DATA` consistently. Standardized the look and feel by moving common styles to `CommonStyles.html` and `MobileStyles.html`. Updated `panini_fwc2026_roster.csv` with the correct player and sticker names based on the [Panini missing stickers website](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html), and updated club information using the player affiliations available when the Panini stickers were published. Updated deployment (`validate.yml`) to include `clean_roster.py` execution to validate roster file before merge to main.
 
 ### Google Spreadsheet template
 
@@ -78,7 +78,7 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Updated the responsibilities of the `StickerSheetRepository` class.
 
 - Under the `images` folder:
-  - Added new images related to the Trade service.
+  - Updated some images to include the changes in the `Lookup` and `Roster` tab.
 
 - Under the `scripts` folder:
   - `clasp.zsh`: 
@@ -128,7 +128,7 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
   - `QuickEntryView.html`:
     - Updated message output to use the specific `message info qe-message` style.
 
-- Under the `src` folder:
+- Under the `src` folder: Improved JSDOC documentation, to include examples and additional tags.
   - `Code.gs`:
     - Added Apps Script entry points for the Trade service.
   - `Commons.gs`:
@@ -137,9 +137,11 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Optimized the method to perform a bulk write of all rows instead of updating the `COUNTS` named range separately for each country.
     - Added attribute: `this.tradePreferences` and method: `getTradePreferences()`.
   - `ExportService.gs`:
-    - Renamed `filterStickerNumbersBy()` to `_filterStickerNumbersBy()` because it is an internal method now also used by the Trade service.
+    - Renamed `_filterStickerNumbersBy()` to `filterStickerNumbersBy()` because it is a public method now also used by the Trade service.
   - `ImportService.gs`:
     - Updated the `ImportStickers` and `LineNormalize` classes to support configurable sorting behavior through the `options` input argument. This is not required by the Import service but is required by the Trade service.
+    - Defined `COUNTRY_CODE_PATTERN` on top of the file, since it is used by more than one class.
+    - Defined also the corresponding regular expression `COUNTRY_CODE_REGEX`.
     - `LineNormalize`:
       - Added an optional `options` constructor argument to support configurable normalization behavior.
       - Added support for propagating sorting configuration while keeping the default behavior unchanged.
@@ -191,14 +193,16 @@ Implemented the Trade service for Apps Script. Centralized the Google Spreadshee
     - Added `panini_fwc2026_roster_clean.csv` because it is a working file generated during the cleanup process for `panini_fwc2026_roster.csv`.
   - `cspell.json`:
     - Added `data/clean_roster.py` to the ignored files.
+    - Added `data/panini_fwc2026_roster*.csv` to ignored files.
     - Added additional word exceptions to the code spell checker.
-  - `package.json`: Updated the definition of `deploy:test` and `deploy:all` to correctly accept non-optional input arguments.
+  - `package.json`: Updated the definition of `deploy:test` and `deploy:all` to correctly accept optional input arguments.
   - `TODO.md`:
     - Added the Trade service and the refactoring of the data model to unify it.
   - `README.md`:
     - Added a section describing the Trade service.
     - Updated the list of files.
     - Updated test coverage information.
+    - Added minor decoration and reviewed wording.
 
 #### Fixed
 

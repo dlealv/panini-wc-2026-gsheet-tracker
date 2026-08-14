@@ -289,6 +289,7 @@ class StickerSheetRepository {
    * If the COUNTRIES named range is empty, the country map will be an empty object.
    * If there are inconsistencies in the data (e.g., missing country codes), the method will still attempt to build 
    * the country map with whatever data is available, but it will log warnings for any issues encountered during the loading process.
+   * @returns {Object} An object mapping normalized country codes to their corresponding row and index in the named ranges.
    */
   getCountryMap() {
     if (!this.countryMap) {
@@ -393,31 +394,19 @@ class StickerSheetRepository {
     }
     const range = this.getCountsRange()
     const values = range.getValues()
-    if (mode === 'clean_all') { // Clears valid positions and restores invalid positions for all countries.
-      const allCountries = this.getCountries()
-      const bounds = StickerSheetRepository.getCountryBounds()
-      for (const country of allCountries) {
-        const normalizedCountryCode = String(country.code).trim().toUpperCase()
-        const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
-        const index = this.getCountryMap()[normalizedCountryCode].index
-        for (let sticker = 0; sticker < values[index].length; sticker++) {
-          if (sticker < minSticker || sticker > maxSticker) {
-            values[index][sticker] = 0
-          } else {
-            values[index][sticker] = ''
-          }
-        }
-      }
-    }
-    if (mode === 'replace_countries') {
-      countries.forEach(country => {
+    const countriesToClear = mode === 'clean_all' ? this.getCountries() : countries
+    if (mode === 'clean_all' || mode === 'replace_countries') {
+      countriesToClear.forEach(country => {
         const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
         values[index].fill('')
+        if (mode === 'clean_all') {
+          this._normalizeCountryRow(country, values[index])
+        }
       })
     }
     countries.forEach(country => {
       const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
-      this._applyCountUpdates(country, values[index])
+      this._applyCountUpdates(country, values[index], mode === 'clean_all')
     })
     range.setValues(values)
   }
@@ -544,25 +533,50 @@ class StickerSheetRepository {
     }, {})
   }
 
+  /** Normalizes one country row in memory, resetting invalid sticker positions to zero. 
+   * @param {{code:string,counts:Object<number,number>}} country - Country record in canonical form.
+   * Example: { code:'ARG', counts:{1:2,5:4} }
+   * @param {Array} values - Current sticker count row to modify. 
+   * Example: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
+   * This method retrieves the valid sticker number range for the given country code from the COUNTRY_BOUNDS map.
+  */
+  _normalizeCountryRow(country, values) {
+    const normalizedCountryCode = String(country.code).trim().toUpperCase()
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+    for (let sticker = 0; sticker < values.length; sticker++) {
+      if (sticker < minSticker || sticker > maxSticker) {
+        values[sticker] = 0
+      }
+    }
+  }
+
   /**
    * Applies canonical sticker count updates for one country row in memory.
    * Does not read or write the spreadsheet.
    * The caller is responsible for loading and persisting the COUNTS range.
    * Invalid sticker positions for the country are reset to zero to keep row data consistent.
    * @param {{code:string,counts:Object<number,number>}} country - Country update in canonical form.
-   * @param {Array} values - Current sticker count row to modify.
    * Example: { code:'ARG', counts:{1:2,5:4} }
+   * @param {Array} values - Current sticker count row to modify. 
+   * Example: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
+   * Example: { code:'ARG', counts:{1:2,5:4} }
+   * @param {boolean} isNormalized - If true, the country row is already normalized and does not need to be normalized again.
    */
-  _applyCountUpdates(country, values) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const normalizedCountryCode = String(country.code).trim().toUpperCase()
-    const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+  _applyCountUpdates(country, values, isNormalized = false) {
     const counts = country.counts || {}
+    let minSticker
+    let maxSticker
+    if (!isNormalized) {
+      const bounds = StickerSheetRepository.getCountryBounds()
+      const normalizedCountryCode = String(country.code).trim().toUpperCase(); // required ; here
+      [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+    }
     for (let sticker = 0; sticker < values.length; sticker++) {
       // Sticker positions outside the country's allowed range must always be reset.
       // These are structural invalid values, so they are stored as numeric zero.
       // Example: TEAM countries cannot have sticker 0, FWC cannot have sticker 20.
-      if (sticker < minSticker || sticker > maxSticker) {
+      if (!isNormalized && (sticker < minSticker || sticker > maxSticker)) {
         values[sticker] = 0
         continue
       }

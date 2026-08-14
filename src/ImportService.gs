@@ -7,11 +7,15 @@
  *  - ImportService which handles import operations (GAS entry points, data normalization,
  *    and sheet updates).
  *  - ImportStickers which validates and parses raw input text for imports.
- *  - InputLineNormalize which pre-normalizes one raw input line to Format 1 canonical form.
+ *  - LineNormalize which pre-normalizes one raw input line to Format 1 canonical form.
  * 
  * NOTE: the export tag in comments indicates classes that are intended to be testable, so they should not be
  * removed or altered without consideration of their role in the overall application architecture.
  */
+
+/** Country code pattern used by import parsing and normalization. */
+const COUNTRY_CODE_PATTERN = '[A-Z]{3}|CC'
+const COUNTRY_CODE_REGEX = new RegExp(`^(?:${COUNTRY_CODE_PATTERN})$`) // not capturing the group, used for validation only
 
 
 /** Creates an import application service. 
@@ -29,7 +33,11 @@ class ImportService {
     this.ss = ss || null
   }
 
-  /** Static GAS entrypoint for preview operation. 
+  /** 
+   * Static GAS entrypoint for preview operation. 
+   * @param {{ text: string }} payload - The input payload containing the raw text to preview.
+   * The text should be in the format of "MEX,1,2(3),5-7\nARG,1-3(2),5\nCC,1-5" where each line represents 
+   * a country and its sticker counts.
    * @returns {{ success: boolean, warnings: Array<string>, 
    *  countries: Array<{ code: string, stickers: Array<{ number: number, count: number }> }> }}
   */
@@ -38,17 +46,24 @@ class ImportService {
     return service.preview(payload && payload.text ? payload.text : '')
   }
 
-  /** Static GAS entrypoint for import operations. 
+  /** 
+   * Static GAS entrypoint for import operations. 
+   * @param {{ text: string, mode: string }} payload - The input payload containing the raw text to import and the import mode.
+   * The text should be in the format of "MEX,1,2(3),5-7\nARG,1-3(2),5\nCC,1-5" where each line represents 
+   * a country and its sticker counts. The mode can be 'update', 'clean_all', or 'replace_countries'.
    * @returns {{ success: boolean, warnings: Array<string>, message: string }}
+   * @see ImportService#import for details on the import modes and their behavior.
   */
   static importStickerData(payload) {
     const service = new ImportService()
     return service.import(payload && payload.text ? payload.text : '', payload && payload.mode ? payload.mode : 'update')
   }
 
-  /** Previews the parsed result of the input text without modifying the sheet. It does the validation of the 
+  /** 
+   * Previews the parsed result of the input text without modifying the sheet. It does the validation of the 
    * input data for import and returns a structured summary of the parsed countries and sticker counts, along 
    * with any warnings for flexible violations.
+   * @param {string} text - The raw input text to preview. Example: "MEX,1,2(3),5-7\nARG,1-3(2),5\nCC,1-5"
    * @returns { success: boolean, warnings: Array<string>, countries: Array<{ code: string, 
    *  stickers: Array<{ number: number, count: number }> }> }
   */
@@ -66,10 +81,12 @@ class ImportService {
     }
   }
 
-  /** Imports validated sticker data into the sheet using the selected mode. 
-   * Modes: - 'update' (default): updates counts for specified countries, preserving existing values for unspecified stickers and countries.
-   *        - 'clean_all': clears all sticker counts before importing.
-   *        - 'replace_countries': clears sticker counts for specified countries before importing.
+  /** Imports validated sticker data into the sheet using the selected mode.
+   * @param {string} text - The raw input text to import. Example: "MEX,1,2(3),5-7\nARG,1-3(2),5\nCC,1-5"
+   * @param {string} [mode='update'] - The import mode to use. Valid modes are:
+   *  - 'update' (default): updates counts for specified countries, preserving existing values for unspecified stickers and countries.
+   *  - 'clean_all': clears all sticker counts and restore invalid sticker positions to `0` before importing.
+   *  - 'replace_countries': clears sticker counts and restore invalid sticker positions to `0` for specified countries before importing.
    * @throws Error for invalid modes or if any country in the input data is not found in the sheet mapping.
    * @returns { success: boolean, warnings: Array<string>, message: string }
    */
@@ -94,9 +111,14 @@ class ImportService {
     return this.repo
   }
 
-  // Private methods
+  // PRIVATE METHODS
 
-  /** Writes parsed canonical import rows. Parsed rows already match the repository sparse update model. */
+  /** 
+   * Writes parsed canonical import rows. Parsed rows already match the repository sparse update model. 
+   * @param {Array<{ code: string, counts: { [stickerNumber]: number } }>} parsedRows - The parsed country rows to write.
+   * Ex.: [{ code: "MEX", counts: { "1": 1, "2": 3, "5": 1 } }, { code: "ARG", counts: { "1": 3, "2": 2, "5": 1 } }]
+   * @param {string} mode - The import mode to use. Valid modes are 'update', 'clean_all', 'replace_countries'.
+   */
   _writeCountries(parsedRows, mode) {
     this.getRepo().updateStickerCounts({ countries: parsedRows }, mode)
   }
@@ -109,8 +131,10 @@ class ImportService {
 class ImportStickers {
   /** Creates an ImportStickers instance using the available country codes. 
    * @param {Object<string, { row: number, col: number }>} countryMap - Map of valid country codes 
-   * to their sheet positions.
-   * @param {Object} options - Optional configuration options.
+   *  to their sheet positions. Example:
+   *  {"MEX": { row: 1, col: 1 }, "ARG": { row: 2, col: 1 }, "CC": { row: 3, col: 1 } }
+   * @param {Object} options - Optional configuration options. Used to control parsing behavior, such as whether to sort stickers 
+   *  or preserve input order.
   */
   constructor(countryMap, options = {}) {
     this.options = {
@@ -125,20 +149,28 @@ class ImportStickers {
    * Parses and validates the full import payload.
    * The returned sortStickers flag indicates whether countries are already sorted.
    * When sorting is disabled, each country includes stickerOrder preserving the normalized input order.
+   * @param {string} text - The raw input text to parse. Example: "MEX,1,2(3),5-7\nARG,1-3(2),5\nCC,1-5"
    * @return {{ sortStickers: boolean, countries: Array<{ code: string, 
    *  counts: { [stickerNumber]: number }, stickerOrder?: number[] }>, warnings: string[] }}
+   *  sortStickers if true, countries is organized by album order and stickerOrder is omitted. 
+   *  If false, countries preserve input order and stickerOrder is included.
+   *  Example: 
+   *  {
+   *    sortStickers: false,
+   *    countries: [
+   *      { code: "MEX", counts: { "1": 1, "2": 3, "5": 1 }, stickerOrder: [5, 3, 2] },
+   *      { code: "ARG", counts: { "1": 3, "2": 2, "5": 1 }, stickerOrder: [1, 5, 2] },
+   *      { code: "CC", counts: { "1": 5 }, stickerOrder: [1] }
+   *    ],
+   *    warnings: []
+   *  }
    */
   parse(text) {
-    const raw = String(text || '').
-      replace(/\r\n/g, '\n').
-      trim()
+    const raw = String(text || '').replace(/\r\n/g, '\n').trim()
     if (!raw) {
       throw new Error('No input provided. Paste content or upload a file.')
     }
-    const lines = raw.
-      split('\n').
-      map(line => line.trim()).
-      filter(Boolean)
+    const lines = raw.split('\n').map(line => line.trim()).filter(Boolean)
     if (!lines.length) {
       throw new Error('Input is empty.')
     }
@@ -147,20 +179,16 @@ class ImportStickers {
     const seenCountries = new Set()
     const countries = []
 
-    lines.forEach((line, lineIndex) => {
+    lines.forEach((line, lineIndex) => {// lines are in the order of the input
       const normalized = normalizer.normalizeLine(line)
       if (normalized.warnings && normalized.warnings.length) {
         warnings.push(...normalized.warnings)
       }
-      if (!normalized.line) return
+      if (!normalized.line) { return }
       const parsed = this._parseLine(normalized.line, lineIndex, seenCountries, warnings)
       if (parsed) countries.push(parsed)
     })
-    return {
-      sortStickers: this.options.sortStickers,
-      countries,
-      warnings
-    }
+    return { sortStickers: this.options.sortStickers, countries, warnings }
   }
 
   /**
@@ -170,7 +198,7 @@ class ImportStickers {
    * class, so only strict Format 1 syntax is accepted here.
    * The returned object contains the country code, sticker counts, and the sticker order according
    * to the configured sorting option.
-   * @param {string} line - The normalized Format 1 line to parse.
+   * @param {string} line - The normalized Format 1 line to parse. Example: "MEX,1,2(3),5,6,7"
    * @param {number} lineIndex - The index of the line in the original input for warning messages.
    * @param {Set<string>} seenCountries - A set of already processed country codes to detect duplicates.
    * @param {Array<string>} warnings - An array to collect warning messages for invalid or duplicate entries.
@@ -211,15 +239,21 @@ class ImportStickers {
 
   /** Validates one country code. Returns false and collects a warning when invalid or unknown. */
   _validateCountryCode(code, warnings) {
-    const COUNTRY_CODE_PATTERN = new RegExp(this.COUNTRY_CODE_PATTERN)
-    if (!COUNTRY_CODE_PATTERN.test(code) || !this.countryMap[code]) {
-      warnings.push(`Country1 "${code}": not valid, line skipped.`)
+    if (!COUNTRY_CODE_REGEX.test(code) || !this.countryMap[code]) {
+      warnings.push(`Country "${code}": not valid, line skipped.`)
       return false
     }
     return true
   }
 
-  /** Parses a fully normalized Format 1 token (atomic or N(X)). Skips with warning when out of range. */
+  /** Parses a fully normalized Format 1 token (atomic or N(X)). Skips with warning when out of range. 
+   * @param {string} token - The normalized Format 1 sticker token to parse. Example: "5" or "5(2)".
+   * @param {string} code - The country code associated with the token. Example: "MEX".
+   * @param {Object<number, number>} counts - The object to store sticker counts, keyed by sticker number. 
+   *  Example: { 1: 1, 2: 3, 5: 1 } for tokens "1", "2(3)", "5".
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid or duplicate entries.
+   * @param {Array<number>} stickerOrder - An array to maintain the order of stickers as they are parsed.
+  */
   _parseStickerToken(token, code, counts, warnings, stickerOrder) {
     const match = token.match(this.tokenRegex)
     if (!match) {
@@ -243,11 +277,14 @@ class ImportStickers {
    *
    * OUT_OF_ALBUM_STICKER values (e.g. CC,13 or MEX,0, FWC,20) are considered
    * valid by the parser and are handled later during import.
+   * @param {number} stickerNumber - The sticker number to validate. Ex.: 1, 2, 3, 4, 5.
+   * @param {string} code - The country code associated with the sticker number. Ex.: "MEX", "ARG", "CC".
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid or out-of-range sticker numbers.
+   * @return {boolean} - Returns true if the sticker number is valid, false if it is invalid and a warning was collected.
    */
   _validateStickerNumber(stickerNumber, code, warnings) {
     const min = StickerSheetRepository.getStickerMin()
     const max = StickerSheetRepository.getStickerMax()
-
     if (!Number.isInteger(stickerNumber) || stickerNumber < min || stickerNumber > max) {
       const bounds = StickerSheetRepository.getCountryBounds()
       const [countryMin, countryMax] = bounds.get(code) || bounds.get('TEAM')
@@ -261,7 +298,12 @@ class ImportStickers {
     return true
   }
 
-  /** Validates one explicit repeat count. */
+  /** Validates one explicit repeat count. 
+   * @param {number|null} explicitCount - The explicit repeat count to validate, or null if not specified. Ex.: 1, 2, 3, null.
+   * @param {string} token - The original sticker token being validated. Ex.: "5(2)", "5", "5-7(3)".
+   * @param {string} code - The country code associated with the sticker token. Ex.: "MEX", "ARG", "CC".
+   * @throws Error when the explicitCount is not a positive integer.
+  */
   _validateExplicitCount(explicitCount, token, code) {
     if (explicitCount !== null && (!Number.isInteger(explicitCount) || explicitCount <= 0)) {
       throw new Error(`Country "${code}": invalid repeat count in "${token}".`)
@@ -269,10 +311,12 @@ class ImportStickers {
   }
 
   /** Maps a parsed sticker token to the final count written into the sheet. 
-   * @param {string} code - The country code.
-   * @param {number} stickerNumber - The sticker number.
+   * @param {string} code - The country code. Ex.: "MEX", "ARG", "CC".
+   * @param {number} stickerNumber - The sticker number. Ex.: 1, 2, 3, 4, 5.
    * @param {number|null} explicitCount - The explicit repeat count, or null if not specified. 
    *  For example N(X) or A-B(X) would have explicitCount = X, while N or A-B would have explicitCount = null.
+   * @return {number} - The final count to be written into the sheet for the sticker. 
+   *  Returns 0 for out-of-album stickers, or the explicit count if specified, or 1 if not specified.
    */
   _mapTokenToCount(code, stickerNumber, explicitCount) {
     const bounds = StickerSheetRepository.getCountryBounds()
@@ -289,6 +333,9 @@ class ImportStickers {
  * Builds the sticker order exposed with the parsed country.
  * Preserves input order when sorting is disabled.
  * Uses numeric order when sorting is enabled.
+ * @param {Array<number>} order - The array of sticker numbers in the order they were parsed. Ex.: [5, 3, 2].
+ * @returns {Array<number>} - The array of sticker numbers in the final order to be exposed 
+ *  with the parsed country. Ex.: [2, 3, 5] when sorting is enabled, or [5, 3, 2] when sorting is disabled.
  */
   _buildStickerOrder(order) {
     if (this.options.sortStickers) {
@@ -308,17 +355,15 @@ class ImportStickers {
 class LineNormalize {
   /**
    * Creates a normalizer bound to the available country codes.
-   * countryMap must be keyed by uppercase 3-letter country code.
+   * countryMap must be keyed by uppercase country codes.
    * @param {Object<string, { row: number, col: number }>} countryMap - Map of valid country 
    *  codes to their sheet positions.
    * @param {Object} [options] - Optional configuration object.
    */
   constructor(countryMap, options = {}) {
-    /* Country code pattern for Format 2, including the special case of CC. */
-    this.COUNTRY_CODE_PATTERN = '[A-Z]{3}|CC'
 
     /* Format 2 token pattern: COUNTRY-STICKER or COUNTRYSTICKER. */
-    this.FORMAT2_COUNTRY_REGEX = new RegExp(`^(${this.COUNTRY_CODE_PATTERN})-?(\\d.*)$`)
+    this.FORMAT2_COUNTRY_REGEX = new RegExp(`^(${COUNTRY_CODE_PATTERN})-?(\\d.*)$`)
 
     /* Options for normalization behavior. */
     this.options = {
@@ -341,7 +386,10 @@ class LineNormalize {
    * STEP 4 expand tokens (format 2 + ranges)
    * STEP 5 deduplicate stickers (first occurrence wins)
    * STEP 6 resolve exclusion if present
-   * STEP 7 optionally sort stickers and build canonical output
+   * STEP 7 optionally sort stickers and build canonical output (Format 1).
+   * @param {string} rawLine - The raw input line to normalize. Ex.: "MEX,1,2(3),5-7" or "ARG-1-3(2),5" or "<>CC,1-5"
+   * @returns {{ line: string|null, warnings: Array<string> }} - The normalized line in Format 1 
+   *  or null if invalid, along with any warnings. Example: { line: "MEX,1,2(3),5,6,7", warnings: [] }
    */
   normalizeLine(rawLine) {
     const warnings = []
@@ -359,7 +407,6 @@ class LineNormalize {
     const { code, firstStickerToken } = this._extractCountryCode(tokens[0], warnings)
     if (!code) { return { line: null, warnings } }
     let stickerTokens = this._buildStickerTokens(tokens, code, firstStickerToken, warnings)
-
     stickerTokens = this._deduplicateStickers(stickerTokens, code, warnings)
     if (isExclusion) { // exclusion complement is already numerically sorted by _getValidPositions
       stickerTokens = this._computeExclusion(code, stickerTokens, warnings)
@@ -372,7 +419,8 @@ class LineNormalize {
       warnings.push(`Country "${code}": no valid stickers after normalization.`)
       return { line: null, warnings }
     }
-    return { line: this._buildCanonicalLine(code, stickerTokens), warnings }
+    const lineFormat1 = this._buildCanonicalLine(code, stickerTokens)
+    return { line: lineFormat1, warnings }
   }
 
   /**
@@ -381,15 +429,14 @@ class LineNormalize {
    * to uppercase for consistent processing.
    */
   _stripNonAsciiAndUpperCase(raw) {
-    return String(raw || '').
+    return String(raw || '')
       // eslint-disable-next-line no-control-regex
-      replace(/[^\x00-\x7F]/g, '').toUpperCase()
+      .replace(/[^\x00-\x7F]/g, '').toUpperCase()
   }
 
   /** Normalizes delimiters (';', ':', whitespace) to comma and removes repeated or leading/trailing commas.*/
   _normalizeDelimiters(line) {
-    return line.
-      replace(/;/g, ',').replace(/:+/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',').replace(/^,|,$/g, '')
+    return line.replace(/;/g, ',').replace(/:+/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',').replace(/^,|,$/g, '')
   }
 
   /**
@@ -406,11 +453,13 @@ class LineNormalize {
   }
 
   /**
- * Detects exclusion operator prefixes (<>, !=, ^) at the start of a line.
- * Any consecutive sequence of supported exclusion operators is treated as
- * a single exclusion marker and removed before further parsing.
- * Returns: {isExclusion: boolean, rest: string}
- */
+   * Detects exclusion operator prefixes (<>, !=, ^) at the start of a line.
+   * Any consecutive sequence of supported exclusion operators is treated as
+   * a single exclusion marker and removed before further parsing.
+   * @param {string} line - The input line to check for exclusion operators. Ex.: "<>MEX,1,2(3),5-7" or "!=ARG-1-3(2),5" or "^CC,1-5"
+   * @returns { isExclusion: boolean, rest: string } - An object indicating whether an exclusion operator was detected 
+   *  and the remaining line after removing the operator. Example: { isExclusion: true, rest: "MEX,1,2(3),5-7" }
+   */
   _detectExclusionOperator(line) {
     const rest = line.replace(/^(?:(?:<>)|(?:!=)|\^)+/, '')
     return {
@@ -426,26 +475,24 @@ class LineNormalize {
    * Example: "MEX-5(2)" would produce code "MEX" and firstStickerToken "5(2)",
    * "CC-5(2)" would produce code "CC" and firstStickerToken "5(2)",
    * while "MEX" or "CC" would produce the country code and null firstStickerToken.
+   * @param {string} firstToken - The first token of the line to extract the country code from. Ex.: "MEX-5(2)" 
+   *  or "CC-5(2)" or "MEX" or "CC".
    * @returns { code: string|null, firstStickerToken: string|null } For format 1 the firstStickerToken is null, 
-   * for format 2 it is the first sticker token.
- */
+   *  for format 2 it is the first sticker token (number or range).
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid country codes.
+   */
   _extractCountryCode(firstToken, warnings) {
-    const COUNTRY_CODE_PATTERN = this.COUNTRY_CODE_PATTERN
     const FORMAT2_COUNTRY_REGEX = this.FORMAT2_COUNTRY_REGEX
-    const format1Regex = new RegExp(`^${COUNTRY_CODE_PATTERN}$`)
-    if (format1Regex.test(firstToken) && this.countryCodes.has(firstToken)) { // Format 1 detected
+    if (COUNTRY_CODE_REGEX.test(firstToken) && this.countryCodes.has(firstToken)) { // Format 1 detected
       return { code: firstToken, firstStickerToken: null }
     }
-
     const f2Match = firstToken.match(FORMAT2_COUNTRY_REGEX)
     if (f2Match && this.countryCodes.has(f2Match[1])) { // Format 2 detected, returns the first sticker token too
       return { code: f2Match[1], firstStickerToken: f2Match[2] }
     }
-
     // best candidate for a meaningful warning: country code pattern if available, else raw token
     const codeCandidateMatch = firstToken.match(new RegExp(`^(${COUNTRY_CODE_PATTERN})`, 'i'))
     const codeCandidate = codeCandidateMatch ? codeCandidateMatch[1] : firstToken
-
     warnings.push(`Country "${codeCandidate}": not valid, line skipped.`)
     return { code: null, firstStickerToken: null }
   }
@@ -457,11 +504,16 @@ class LineNormalize {
    * The first token is treated separately to allow Format 2 country code extraction without
    * losing the first sticker token.
    * Returns an array of expanded sticker tokens, skipping any invalid tokens with warnings.
-   * Example: input tokens ["MEX-1", "MEX-3-5(2)", "7"] with code "MEX" would produce ["1", "3(2)", "4(2)", "5(2)", "7"].
+   * Example: input tokens (format 2) ["MEX-1", "MEX-3-5(2)", "7"] with code "MEX" would produce ["1", "3(2)", "4(2)", "5(2)", "7"].
    * Invalid tokens (e.g. wrong country code, malformed range) are skipped with a warning, but do not prevent processing 
    * of other valid tokens in the line.
    * This method does not perform any validation on sticker numbers or counts; it assumes the input is syntactically 
    * correct and relies on later validation steps to catch out-of-range values.
+   * @param {Array<string>} tokens - The array of raw sticker tokens to process. Ex.: ["MEX-1", "MEX-3-5(2)", "7"].
+   * @param {string} code - The country code associated with the tokens. Ex.: "MEX".
+   * @param {string|null} firstStickerToken - The first sticker token extracted from the first token, if applicable. Ex.: "1" or "3-5(2)".
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid tokens.
+   * @returns {Array<string>} - An array of expanded sticker tokens in canonical Format 1. Ex.: ["1", "3(2)", "4(2)", "5(2)", "7"].
    */
   _buildStickerTokens(tokens, code, firstStickerToken, warnings) {
     const result = []
@@ -489,6 +541,8 @@ class LineNormalize {
    * Note: this method does not perform any validation on sticker numbers or counts;
    *       it assumes the input is syntactically correct and relies on later validation steps
    *       to catch out-of-range values.
+   * @param {string} token - The sticker token to expand. Ex.: "5", "5(2)", "3-5", "3-5(2)".
+   * @returns {Array<string>} - An array of expanded sticker tokens in canonical Format 1. Ex.: ["3(2)", "4(2)", "5(2)"].
    */
   _expandStickerToken(token) {
     const rangeWithCountMatch = token.match(/^(\d+)-(\d+)\((\d+)\)$/)
@@ -515,6 +569,10 @@ class LineNormalize {
    * would be skipped with a warning since it doesn't match the country code.
    * For token "5(2)" returns the same token since it doesn't match the Format 2 pattern, allowing 
    * mixed formats in the same line would be skipped with a warning. It handles, non-team countries such as FWC and CC, as well.
+   * @param {string} token - The sticker token to normalize. Ex.: "MEX-5(2)", "ARG-3", "5(2)".
+   * @param {string} countryCode - The country code associated with the line. Ex.: "MEX".
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid tokens.
+   * @returns {string|null} - The normalized sticker token in numeric-only form, or null if skipped due to a different country code.
    */
   _normalizeToken(token, countryCode, warnings) {
     const F2_MATCH = token.match(this.FORMAT2_COUNTRY_REGEX)
@@ -534,6 +592,11 @@ class LineNormalize {
    * Removes duplicate stickers using first-occurrence wins while preserving input order.
    * Sticker number defines uniqueness; repeat counts are ignored for deduplication.
    * Emits a single consolidated warning listing duplicate numbers in first-occurrence order.
+   * @param {Array<string>} tokens - The array of sticker tokens to deduplicate. Ex.: ["1", "2(3)", "2(2)", "5"].
+   * @param {string} code - The country code associated with the tokens. Ex.: "MEX".
+   * @param {Array<string>} warnings - An array to collect warning messages for duplicate stickers.
+   * @returns {Array<string>} - An array of deduplicated sticker tokens, preserving the order of first occurrences. 
+   *  Ex.: ["1", "2(3)", "5"].
    */
   _deduplicateStickers(tokens, code, warnings) {
     const seen = new Set()
@@ -555,7 +618,6 @@ class LineNormalize {
       const unique = [...new Set(duplicates)]
       warnings.push(`Country "${code}": duplicate sticker(s) "${unique.join(',')}" ignored; first occurrence wins.`)
     }
-
     return Array.from(map.values())
   }
 
@@ -565,6 +627,11 @@ class LineNormalize {
    * and returns the remaining positions as string tokens with count 1.
    * Repeat counts in exclusion tokens are silently ignored per specification.
    * Returns null and adds a warning when the complement is empty.
+   * @param {string} countryCode - The country code associated with the exclusion line. Ex.: "MEX".
+   * @param {Array<string>} excludeTokens - The array of sticker tokens to exclude. Ex.: ["1", "2(3)", "5"].
+   * @param {Array<string>} warnings - An array to collect warning messages for invalid or empty exclusions.
+   * @returns {Array<string>|null} - The array of sticker tokens representing the complement set, or null if empty. 
+   *  Ex.: ["3", "4", "6", "7"].
    */
   _computeExclusion(countryCode, excludeTokens, warnings) {
     if (excludeTokens.length === 0) { // exclusion with no sticker tokens is meaningless; skip with warning
@@ -573,7 +640,6 @@ class LineNormalize {
     }
     const validPositions = this._getAlbumPositions(countryCode)
     const excluded = new Set()
-
     excludeTokens.forEach(token => { // repeat counts stripped silently; only sticker numbers used
       this._expandToStickerNumbers(token).forEach(n => excluded.add(n))
     })
@@ -586,10 +652,12 @@ class LineNormalize {
   }
 
   /**
- * Expands a token into raw sticker numbers (no counts preserved).
- * Used only for exclusion resolution; all repeat counts are ignored.
- * Supports N, N(X), A-B, A-B(X).
- */
+   * Expands a token into raw sticker numbers (no counts preserved).
+   * Used only for exclusion resolution; all repeat counts are ignored.
+   * Supports N, N(X), A-B, A-B(X).
+   * @param {string} token - The sticker token to expand. Ex.: "5", "5(2)", "3-5", "3-5(2)".
+   * @returns {Array<number>} - An array of sticker numbers represented by the token. Ex.: [3, 4, 5].
+   */
   _expandToStickerNumbers(token) {
     const rangeRepeat = token.match(/^(\d+)-(\d+)\(\d+\)$/)
     if (rangeRepeat) { return this._buildNumberRange(Number(rangeRepeat[1]), Number(rangeRepeat[2])) }
@@ -605,6 +673,8 @@ class LineNormalize {
   /**
    * Returns the array of valid sticker positions for a country code. It consider special cases for non-team countries such as
    * FWC and CC. The valid positions are determined by the country bounds defined in the StickerSheetRepository.
+   * @param {string} countryCode - The country code to get valid sticker positions for. Ex.: "MEX", "ARG", "CC".
+   * @returns {Array<number>} - An array of valid sticker positions for the country. Ex.: [1, 2, 3, 4, 5, 6, 7].
    */
   _getAlbumPositions(countryCode) {
     const bounds = StickerSheetRepository.getCountryBounds()
@@ -615,12 +685,19 @@ class LineNormalize {
   /**
    * Builds final Format 1 canonical output string.
    * Assumes all tokens are already expanded and deduplicated.
+   * @param {string} code - The country code. Ex.: "MEX", "ARG", "CC".
+   * @param {Array<string>} tokens - The array of sticker tokens in canonical Format 1. Ex.: ["1", "2(3)", "5"].
+   * @returns {string} - The final canonical Format 1 line. Ex.: "MEX,1,2(3),5".
    */
   _buildCanonicalLine(code, tokens) {
     return `${code},${tokens.join(',')}`
   }
 
-  /** Sorts sticker tokens by their numeric sticker number. */
+  /** 
+   * Sorts sticker tokens by their numeric sticker number.
+   * @param {Array<string>} tokens - The array of sticker tokens to sort. Ex.: ["2(3)", "1", "5"].
+   * @returns {Array<string>} - The sorted array of sticker tokens. Ex.: ["1", "2(3)", "5"].
+   */
   _sortStickers(tokens) {
     return tokens.sort((a, b) => {
       const aNum = Number(a.match(/^(\d+)/)[1])
@@ -630,12 +707,13 @@ class LineNormalize {
   }
 
   /**
-   * Builds inclusive numeric range [start..end].
-   * Used as a low-level helper for token expansion.
+   * Builds inclusive numeric range [start..end]. Used as a low-level helper for token expansion.
+   * @param {number} start - The starting number of the range (inclusive). Ex.: 3.
+   * @param {number} end - The ending number of the range (inclusive). Ex.: 5.
+   * @returns {Array<number>} - An array of numbers from start to end, inclusive. Ex.: [3, 4, 5].
    */
   _buildNumberRange(start, end) {
     const result = []
-
     for (let i = start; i <= end; i++) { result.push(i) }
     return result
   }

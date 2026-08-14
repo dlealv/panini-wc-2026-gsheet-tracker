@@ -137,7 +137,8 @@
   }
 
   /* Keeps long validation preview content contained inside the gray preview box. */
-  #view-trade #trade-preview {
+  #view-trade #trade-preview,
+  #view-trade #tradeQrInfo {
     max-height: 280px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -235,5 +236,13 @@
     margin-top: 8px;
     margin-bottom: 4px;
     font-weight: 700;
+  }
+
+  /*
+ * Separates consecutive sections within the mobile Trade workflow.
+ * Keeps consistent vertical spacing between Trade sections.
+ */
+  #view-trade .section+.section {
+    margin-top: 16px;
   }
 </style>
