@@ -172,8 +172,8 @@ Here is a common configuration for the `TRADE_PREFERENCE` named range:
 
 In case of a tie, the last criterion is the album country order. This is also enforced by having just one rule per row.
 
-> [!TIP]
-> Defining trade preferences ensures that, during the trading process, the stickers you are most interested in receiving are matched first.
+>[!TIP]
+>Defining trade preferences ensures that, during the trading process, the stickers you are most interested in receiving are matched first.
 
 ### How is the send sticker list prioritized?
 
@@ -258,7 +258,7 @@ This does **not automatically mean the spreadsheet is unsafe or malicious**. It 
 The scope of the script is limited by the manifesto file of the project [appsscript.json](appsscript.json) this file clearly specifies it makes changes to the **spreadsheets only** (`"https://www.googleapis.com/auth/spreadsheets"`). This is guarantee that the actions in the **Manage Panini** menu won't affect other resources from your google account. 
 
 >[!CAUTION]
-> Before version `1.1.0` the scope was more restricted: **this spreadsheet only** (`https://www.googleapis.com/auth/spreadsheets.currentonly`) but for mobile service the app needs to use `doGet()` service which requires a broader scope, i.e.  **spreadsheets only**.
+>Before version `1.1.0` the scope was more restricted: **this spreadsheet only** (`https://www.googleapis.com/auth/spreadsheets.currentonly`) but for mobile service the app needs to use `doGet()` service which requires a broader scope, i.e.  **spreadsheets only**.
 
 The source code is published in this repository so users can review what the script does before authorizing it.
 
