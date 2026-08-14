@@ -22,10 +22,15 @@ const { ImportService, ImportStickers, LineNormalize } = require('../build/Impor
 function checkStickers(row, stickersWithValues, stickersWithZero = []) {
   row.forEach((value, index) => {
     const stickerNumber = index
-    if (stickersWithValues.includes(stickerNumber) || stickersWithZero.includes(stickerNumber)) {
-      return
+    if (stickersWithValues.includes(stickerNumber)) {
+      expect(value).toBeGreaterThan(0)
     }
-    expect(value).toBe('')
+    if (stickersWithZero.includes(stickerNumber)) {
+      expect(value).toBe(0)
+    }
+    if (!stickersWithValues.includes(stickerNumber) && !stickersWithZero.includes(stickerNumber)) {
+      expect(value).toBe('')
+    }
   })
 }
 
@@ -72,22 +77,22 @@ describe('ImportService (unit)', () => {
    Tests for import() method covering successful parsing and import scenarios, including handling
   of multiple countries and different import modes, as well as validation of error handling for invalid modes.
   */
-  describe('import() modes', () => {
-    test('clean_all mode clears all countries before importing multiple countries', () => {
-      const result = service.import('FWC,1\nMEX,2', 'clean_all')
-      expect(result.success).toBe(true)
-      const written = __countsRange.setValues.mock.calls[0][0]
-      const fwcRow = written[0]
-      checkStickers(fwcRow, [1], [20])
-      expect(fwcRow[1]).toBe(1)
-      const mexRow = written[1]
-      checkStickers(mexRow, [2], [0])
-      expect(mexRow[2]).toBe(1)
-    })
+  describe('import()', () => {
     test('invalid mode throws', () => {
       expect(() => service.import('FWC,1', 'invalid')).toThrow(/Invalid import mode/)
     })
-    test('update mode updates multiple countries while preserving existing values', () => {
+    test('clean_all mode: clears all countries before importing multiple countries', () => {
+      const result = service.import('FWC,1\nMEX,2', 'clean_all')
+      expect(result.success).toBe(true)
+      const written = __countsRange.setValues.mock.calls[0][0]
+      const fwcRow = written[0] // FWC row
+      checkStickers(fwcRow, [1], [20])
+      expect(fwcRow[1]).toBe(1)
+      const mexRow = written[1] // MEX row
+      checkStickers(mexRow, [2], [0])
+      expect(mexRow[2]).toBe(1)
+    })
+    test('update mode: updates multiple countries while preserving existing values', () => {
       const values = __countsRange.getValues()
       values[0][5] = 7 // existing FWC sticker
       values[1][10] = 4 // existing MEX sticker
@@ -110,7 +115,7 @@ describe('ImportService (unit)', () => {
       expect(mexRow[18]).toBe(1)
       expect(mexRow[20]).toBe(2)
     })
-    test('replace_countries mode cleans each imported country before writing imported values', () => {
+    test('replace_countries mode: cleans each imported country before writing imported values', () => {
       const result = service.import('FWC,1\nMEX,2', 'replace_countries')
       expect(result.success).toBe(true)
       expect(result.message).toMatch(/Imported 2 country row/)
@@ -126,23 +131,23 @@ describe('ImportService (unit)', () => {
     })
   })
 
-  describe('sheet writing', () => {
+  describe('update mode: sheet writing', () => {
     test('FWC import always writes 0 at offset 20 (update mode)', () => {
       service.import('FWC,1,3(2)')
       const written = __countsRange.setValues.mock.calls[0][0][0]
       checkStickers(written, [1, 3], [20])
     })
-    test('non-FWC import always writes 0 at offset 0 (update mode)', () => {
+    test('update mode: non-FWC import always writes 0 at offset 0 (update mode)', () => {
       service.import('MEX,1,3(2)')
       const written = __countsRange.setValues.mock.calls[0][0][1]
       checkStickers(written, [1, 3, 18, 20], [0])
     })
-    test('CC import zeroes stickers outside its valid bounds', () => {
+    test('update mode: CC import zeroes stickers outside its valid bounds', () => {
       service.import('CC,1,12,13')
       const written = __countsRange.setValues.mock.calls[0][0][2]
       checkStickers(written, [1, 12], [0, 13, 14, 15, 16, 17, 18, 19, 20])
     })
-    test('update mode writes zero for out-of-album stickers', () => {
+    test('update mode: writes zero for out-of-album stickers', () => {
       service.import('MEX,0\nFWC,20')
       expect(__countsRange.setValues).toHaveBeenCalledTimes(1)
       const written = __countsRange.setValues.mock.calls[0][0]
@@ -310,6 +315,16 @@ describe('ImportStickers (unit)', () => {
     test('mixed ranges are accepted', () => {
       const result = parser.parse('MEX,1-3,18-20')
       expect(result.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1, 18: 1, 19: 1, 20: 1 })
+    })
+    describe('_validateCountryCode()', () => {
+      test('validates country code format independently of countryMap', () => {
+        const warnings = []
+        parser.countryMap.MEXICO = { row: 1, index: 0 }
+        expect(parser._validateCountryCode('MEX', warnings)).toBe(true)
+        expect(parser._validateCountryCode('CC', warnings)).toBe(true)
+        expect(parser._validateCountryCode('MEXICO', warnings)).toBe(false)
+        expect(warnings).toEqual(['Country "MEXICO": not valid, line skipped.'])
+      })
     })
   })
 

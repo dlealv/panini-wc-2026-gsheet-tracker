@@ -18,7 +18,8 @@ https://docs.google.com/spreadsheets/d/15-AosDygdRot_r7dOqZ7gmRlRjnJUS10hlLWkEUk
 
 Since the URL ends with `/copy`, clicking it creates your own copy of the template.
 
-**Apps Script note:** Some scripted features (**Manage Panini** custom menu) may trigger Google's authorization flow. 
+>[!IMPORTANT]
+>**Apps Script:** Some scripted features (**Manage Panini** custom menu) may trigger Google's authorization flow. 
 
 ---
 
@@ -109,7 +110,8 @@ After click on the help icon (ⓘ), it shows more detailed information about the
 
 Check the session **Input format** for more details.
 
-> Note: Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
+>[!TIP]
+> Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
 
 ### Export all stickers
 
@@ -152,7 +154,8 @@ RSA,2,3,6,7
 KOR,1,3,5,13,16
 ```
 
-> The link shown at the top points to this GitHub project.
+>[!TIP]
+> The URL shown at the top points to this GitHub project.
 
 The user can customize the output via the following checkboxes:
 
@@ -182,7 +185,7 @@ The output of Need Stickers can be sorted, look for the drop-down value to the r
 
 - **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
 
-
+>[!TIP]
 > This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Spreadsheet or Excel trackers, or simply for screen sharing in a more visual format.
 
 ### Review your progress
@@ -205,7 +208,8 @@ Review the generated **OUTPUT** section to see what you can offer and what you m
 
 ![Trade tab](images/tradeTabView.jpg)
 
-> Note: As you can see from the image it accepts different delimiters, flag icons, repeats and interprets correctly ranges in both forms: `A-B` and `A-B(X)`.
+>[!TIP]
+>As you can see in the image, it accepts different delimiters and flag icons, supports repeats, and correctly interprets ranges in both forms: `A-B` and `A-B(X)`.
 
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive/send.
 
@@ -221,9 +225,8 @@ When sorting is set to `%-Done`, the **Receive Stickers** output is ordered by t
 
 For example, Korea is closer to completion than Mexico, so obtaining a missing sticker from Korea is generally more beneficial than obtaining one from Mexico.
 
-> The main advantage of this tab is that it finds matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available repeats, but it does not identify matches with another collector.
-
-📌 This entire process is significantly simplified by the information provided in this tab.
+>[!IMPORTANT]
+>The main advantage of this tab is that it identifies matching trade opportunities. The **Export shared stickers** service from the **Manage Panini** menu only facilitates sharing information about the user's needs and available repeats; it does not identify matches with another collector. This tab significantly simplifies the entire process by using the information provided to identify potential trades.
 
 ### Trade stickers automation
 
@@ -233,16 +236,18 @@ Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new 
 - Upload a QR image containing another collector's missing and repeated stickers to find potential matches.
 - Generate a QR code containing your own missing and repeated stickers.
 - Validate another collector's information and automatically generate a trade proposal identifying the stickers to send and receive.
-- Adjust the trade proposal by changing the number of stickers to send and receive or by sorting the stickers to receive based on album completion.
+- Adjust the trade proposal by changing the number of stickers to send and receive or by sorting the stickers to receive using several sorting criteria.
 - Confirm the trade and automatically update the user's `Stickers` tab with the traded stickers.
 
-> **Note:** The trade service available in the `Trade` tab of the Google Spreadsheet differs from this service because it only identifies potential trades by finding matching stickers. It does not execute the trade or update the `Stickers` tab.
+>[!TIP]
+>The trade service available in the `Trade` tab of the Google Spreadsheet template differs from this service because it only identifies potential trades by finding matching stickers. It does not execute the trade or update the `Stickers` tab.
 
 The trade process is completed in two steps. The first screen provides two ways to enter another collector's information or, alternatively, generate your own trade information (missing and repeated stickers) as a QR code:
 
 ![Trade Service: Input Another Collector Info](images/tradeViewAnotherCollectorInfo.jpg)
 
-> **Note:** On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the device's camera. The user will see a **Capture QR image** button instead of **Upload QR code**.
+>[!NOTE]
+>On mobile devices, the interface is the same but adapted to the screen size. The only difference in this first step is that, instead of uploading another collector's QR code image, the user can scan the QR code directly using the device's camera. The user will see a **Capture QR image** button instead of **Upload QR code**.
 
 In the example above, the other collector has:
 
@@ -258,7 +263,8 @@ Missing (stickers needed)
 MEX,3,2,1
 ```
 
-> **Note:** The order of stickers and countries is determined by the user's input, and this order is respected by the trading process. This means that, in the missing stickers list, the user prefers to receive sticker `3` before `2` or `1`.
+>[!NOTE]
+>The order of stickers and countries is determined by the user's input and is respected by the trading process. This means that, in the missing stickers list, the user prefers to receive sticker `3` before `2` or `1`.
 
 The input format is the same as for the Import services. See the **Import format** section for more information.
 
@@ -279,13 +285,20 @@ As shown above, the quantity notation is removed and only a single copy of each 
 
 The validated data preserves the order provided by the other collector. The matching algorithm first processes countries in the order they were entered and then processes the stickers within each country in the same order. For example, if there is a match, sticker `3` will be the first sticker selected to send to the other collector.
 
+>[!CAUTION]
+>The validation process verifies that the same sticker for a given country cannot be included in both lists. If this occurs, it raises an ${\color{red}\textsf{Error}}$, since a sticker cannot be both missing and repeated at the same time.
+
 You can enter another collector's missing and repeated stickers manually, paste them, or upload them as a QR code containing the corresponding JSON data. For the previous example, the JSON content encoded in the QR code would be:
 
 ```text
 {"m":{"MEX":14},"r":{"MEX":48,"FWC":1040,"RSA":14}}
 ```
 
-where `r` represents repeated stickers and `m` represents missing stickers. The encoding process is optimized to minimize the number of characters in the JSON object. Each country's sticker list is represented as an integer bit mask using `21` bits, covering sticker numbers `0` through `20`. For more details about the encoding process, see the question *How is the QR code information represented?* in the [Faq.md](docs/FAQ.md) document.
+where
+- `r` represents repeated stickers.
+- `m` represents missing stickers.
+
+The encoding process is optimized to minimize the number of characters in the JSON object. Each country's sticker list is represented as a `21`-bit integer mask, covering sticker numbers `0` through `20`. For more details about the encoding process, see the question *How is the QR code information represented?* in the [FAQ](docs/FAQ.md) document.
 
 Once the mandatory validation step is completed, click **Continue** to generate the trade proposal.
 
@@ -299,7 +312,7 @@ The second step is the trade proposal. After clicking **Continue**, the service 
 
 ![Trade Service: Initial Trade Proposal](images/tradeViewInitialTradeProposal.jpg)
 
-This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a green background are included in the trade.
+This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a $\colorbox{LightGreen}{\textsf{green background}}$ are included in the trade.
 
 However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on different sorting criteria. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
 
@@ -309,11 +322,13 @@ To prioritize the stickers to receive according to a specific sorting criterion,
 
 - **Album** order, based on the order of the countries in the album. This is the default sorting.
 - **Completion**, i.e. country completion in descending order, using the `DONE` named range.
-- **Preferences**, i.e. the current user's preferences defined in the `TRADE_PREFERENCES` named range in the Google Spreadsheet template. The user can define more granular trade priorities by country, sticker number, or a specific country-sticker combination, such as `POR15` (Cristiano Ronaldo, for example). For more information on how to set up the `TRADE_PREFERENCES` named range, see the question *How to populate `TRADE_PREFERENCES` named range?* in [Faq.md](docs/FAQ.md). It explains how to populate the column and the prioritization rules that apply. For more technical details, see [TradeServiceRequirements.md](docs/TradeServiceRequirements.md), specifically section *9. Trade Matching Process*.
+- **Preferences**, i.e. the current user's preferences defined in the `TRADE_PREFERENCES` named range in the Google Spreadsheet template. The user can define more granular trade priorities by country, sticker number, or a specific country-sticker combination, such as `POR15` (Cristiano Ronaldo, for example). For more information on how to set up the `TRADE_PREFERENCES` named range, see the question *How to populate `TRADE_PREFERENCES` named range?* in [FAQ](docs/FAQ.md). It explains how to populate the column and the prioritization rules that apply. For more technical details, see [TradeServiceRequirements](docs/TradeServiceRequirements.md), specifically section *9. Trade Matching Process*.
 
 For example, if both collectors agree that the current user will receive every possible matching sticker, the **Stickers to receive** dropdown should be increased to its maximum value. If the **Sort by** dropdown is changed to **Completion**, clicking **Refresh** displays the updated proposal:
 
 ![Trade Service: Adjusted Trade Proposal](images/tradeViewAdjustedTradeProposal.jpg)
+
+Sort by **Completion**: changes the order of the stickers to receive. In this case, `MEX` has a higher completion rate than `FWC`, so the user wants to prioritize receiving stickers from Mexico. If the trade is limited to exchanging only one sticker, `MEX,4` will be the sticker to receive.
 
 The proposal can be adjusted and refreshed as many times as necessary until both collectors reach an agreement. Once the agreement is final, click **Confirm trade** to complete the exchange. When the trade is confirmed, the count of each sticker sent is decreased by one, and the count of each sticker received is increased by one. All updates are automatically reflected in the `Stickers` tab.
 
@@ -335,13 +350,13 @@ The information displayed is loaded from `data/panini_fwc2026_roster.csv` in the
 
 The roster is stored in its canonical form. This means that `Name/Description`, and `Club` values preserve their original non-ASCII characters. For the case of `Country/Category` the name of the countries as they are in the Album, therefore Türkiye instead of Turkey and Côte d'Ivoire instead of Ivory Coast.
 
-Collectors can perform lookups using the service provided in the `Lookup` tab. This is particularly useful during sticker trading, when other collectors share only the front side of a sticker. The lookup service helps identify the corresponding sticker ID based on the available information.
+Collectors can perform lookups using the service provided in the `Lookup` tab. This is particularly useful during sticker trading, when other collectors share only the front side of a sticker. The lookup service helps identify the corresponding sticker ID based on the available information. Another useful use case it to find players to add to `TRADE_PREFERENCES` named range, that is the reason this named range is on the right side of the lookup result in the same tab.
 
 ![Lookup tab](images/lookupTabView.jpg)
 
 The lookup service uses the data in the `Roster` tab including the hidden columns (helpers for drop-down) and `TB_ASCII` Google Spreadsheet table for doing the mapping of the non-ASCII characters.
 
-For more information check the [FAQ.md](docs/FAQ.md) document.
+For more information check the [FAQ](docs/FAQ.md) document.
 
 ### Mobile Services
 
@@ -367,6 +382,7 @@ The Web App is deployed under your own Google account, ensuring that only you ca
 
 ![Mobile Service: Web App deployed](images/webAppLinkDeployedView.jpg)
 
+>[!TIP]
 > If the URL is not displayed immediately, wait about a minute and open the **Mobile Web App Link** menu option again. This dialog is intended to make it easy to retrieve the Web App URL. Alternatively, once the deployment is complete, you can copy the URL directly from the **Manage Deployments** dialog, as shown below.
 
 ![Mobile Service: Manage Deployments](images/manageDeploymentsView.jpg)
@@ -385,7 +401,7 @@ Tap the hamburger menu (&#9776;) in the upper-left corner to access the availabl
 
 Although Google Apps Script does not natively support mobile add-ons, deploying the project as a Web App provides a practical and secure solution for accessing the Google Spreadsheet Tracker from smartphones and tablets.
 
-For more information check the [FAQ.md](docs/FAQ.md) document.
+For more information check the [FAQ](docs/FAQ.md) document.
 
 ---
 
@@ -412,6 +428,7 @@ In a similar way for Apps Script project, click on **Manage Panini** then **Abou
 
 ![Apps Script About](images/aboutView.jpg)
 
+>[!NOTE]
 > Template Version and Apps Script version don't need to match. Template version will be updated only if the release has changes impacting the template.
 
 ## Import format
@@ -556,6 +573,7 @@ The operator prefix may be applied to any valid import line format:
 - If the exclusion results in an empty set (all valid positions excluded), the line produces no sticker entries and a warning is issued.
 - Repeat values, if present in an exclusion line, are ignored — the complement always assigns count `1` to each resulting sticker position, and no warning is issued.
 
+>[!NOTE]
 > Note: This operation is intended to facilitate user entry, but internally it is converted into Format 1.
 
 ---
@@ -581,8 +599,8 @@ The operator prefix may be applied to any valid import line format:
 - `TRADE_PREFERENCES`: In `Lookup` tab, allows the user to define trade preferences for **Trade stickers** service in **Manage Panini** custom menu.
 
 ---
-
-**Note:** All column-based named ranges (such as `COUNTS`, `COUNTRIES`, etc.) must contain `50` rows, representing `48` country teams plus `FWC` and `CC`.
+>[!IMPORTANT]
+>All column-based named ranges (such as `COUNTS`, `COUNTRIES`, etc.) must contain `50` rows, representing `48` country teams plus `FWC` and `CC`.
 
 ## Named functions
 The Gsheet tracker has defined some custom functions to simplify the calculation process:
@@ -642,22 +660,24 @@ If you prefer not to authorize the script, you can still use the spreadsheet man
 
 Service-specific documents are available in the `docs/` folder:
 
-- `ImportServiceRequirements.md`: functional requirements and business rules for the import service.
-- `ExportServiceRequirements.md`: functional requirements and business rules for the export service.
-- `QuickEntryServiceRequirements.md`: functional requirements and business rules for the Quick Sticker Entry service.
-- `QuickEntryServiceMockDesign.md`: mock design notes and UI behavior references for the Quick Sticker Entry service.
-- `TechnicalArchitecture.md`: comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+- `ImportServiceRequirements.md`: Functional requirements and business rules for the import service.
+- `ExportServiceRequirements.md`: Functional requirements and business rules for the export service.
+- `QuickEntryServiceRequirements.md`: Functional requirements and business rules for the Quick Sticker Entry service.
+- `QuickEntryServiceMockDesign.md`: Mock design notes and UI behavior references for the Quick Sticker Entry service.
+- `TechnicalArchitecture.md`: Comprehensive technical overview of the system architecture, file structures, development lifecycle pipelines, and core engineering design constraints governing the project.
+- `TradeServiceRequirements.md`: Functional requirements for Trade stickers entry service.
+- `TradeServiceMockDesign.md`: Mock design notes and UI behavior  references for the Trade stickers entry service.
 - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
 ---
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md`. In version `1.1.4` `555` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.4` `557` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|     95.05    |  80.42   |   94.76     |   95.73 |                                            
+|     95.18    |  80.57   |   94.78     |   95.87 |                                            
 
 ---
 
@@ -695,8 +715,8 @@ In alphabetical order and organized by folders:
   - `workflows/validation.yml`: CI project validation, i.e. runs EsLint and tests.
 
 - Under the `data` folder:
-  - `panini_fwc2026_roster.csv`: panini sticker roster file.
-  - `clean_roster.py`: Helper script to standardize and validate the `panini_fwc2026_roster.csv` file. Cleans and standardizes the roster, validates the header and row structure, removes repeated headers and blank lines, normalizes Sticker IDs and club names, verifies sticker groups, field requirements, DOBs, positions, duplicates, and sorting, checks the consistency of Coca-Cola stickers with the corresponding player's information, and reports a final summary.
+  - `panini_fwc2026_roster.csv`: Panini sticker roster file. Player names and sticker numbers were validated against the [Panini Official Collection](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html) website. Players' clubs were validated based on the club they were with at the time the Panini stickers were published. The file also includes each player's position, date of birth, and special Coca-Cola stickers. It can be considered a trusted roster file.
+  - `clean_roster.py`: Helper script to standardize and validate the `panini_fwc2026_roster.csv` file. Cleans and standardizes the roster, validates the header and row structure, removes repeated headers and blank lines, normalizes Sticker IDs and club names, verifies sticker groups and field requirements, validates dates of birth and positions, checks for duplicates and correct sorting, verifies the consistency of Coca-Cola stickers with the corresponding player's information, and reports a final summary.
 
 - Under the `docs` folder:
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
@@ -774,10 +794,13 @@ In alphabetical order and organized by folders:
   - `.eslintignore`: Files and folders to ignore by ESLint.
   - `.eslintrc.js`: ESLint configuration (customizable rules).
   - `.gitignore`: Files and folders to ignore for git.
-  - `jsconfig.json`: JavaScript project configuration file.
-  - `package.json`: Node.js project configuration file (dependencies, scripts, automation tasks, etc.).
+  - `.style.yapf`: Configuration file for YAP python formatter.
   - `CHANGELOG.md`: Chronological summary of notable project changes.
+  - `cspell.json`: Configuration file for Code Spell Checker extension.
+  - `jsconfig.json`: JavaScript project configuration file.
+  - `package-lock.json`: An automatically generated manifest that locks the exact versions of dependencies installed for a Node.js project
+  - `package.json`: Node.js project configuration file (dependencies, scripts, automation tasks, etc.).
   - `README.md`: Main project overview for GitHub visitors, including features, screenshots, and usage guidance.
-  - `TODO.md`: Features planned for future releases. A check mark indicates that a feature has already been implemented.
+  - `TODO.md`: Features planned for future releases. A checked mark indicates that a feature has already been implemented.
 
 ---

@@ -144,17 +144,19 @@ Starting with version `1.1.4`, the **Manage Panini** custom menu includes a new 
 
 ### Can I manually edit the trade proposal?
 
-No. The trade proposal can only be adjusted using the dropdowns and the **Sort by** dropdown. This is intentional to ensure the proposed trade remains consistent with the user's current collection.
+No. The trade proposal can only be adjusted using the dropdowns **Stickers to Send/Receive** and  **Sort by** dropdowns. This is intentional to ensure the proposed trade remains consistent with the user's current collection.
 
 The other collector's information can be entered manually, but your own trade information is always obtained directly from the Google Spreadsheet template.
 
 ### How to populate `TRADE_PREFERENCE` named range?
 
+The named range is located in the `Lookup` tab on the right of the lookup result (column `L`). 
+
 The business rules are simple, and priorities are ranked from higher to lower, from top to bottom in the single column named range. Each row can contain one of the following possibilities:
 
 1. A **country Code**, i.e. `MEX`. If the receive sticker list contains stickers from Mexico, the country will be prioritized.
 2. A **sticker number**, i.e. `13`. This is a global prioritization across all countries in the receive sticker list. If any country contains the given sticker, that country will be prioritized. In addition, the sticker will be prioritized within the list of stickers for that country. For example: `ARG,13,2,3` instead of `ARG,2,3,13`. This ensures that during the trading process, sticker `13` is the first sticker to trade for Argentina.
-3. A **country-specific sticker**, i.e. `POR15` (Cristiano Ronaldo). If the receive sticker list contains the given sticker, the country is prioritized and, within the list of stickers, the country-specific sticker is prioritized. For example: `POR,15,2,3` instead of `POR,2,3,15`. Different delimiters can also be used, such as `POR,15` or `POR 15`.
+3. A **country-specific sticker**, i.e. `POR15` (Cristiano Ronaldo). If the receive sticker list contains the given sticker, the country is prioritized and, within the list of stickers, the country-specific sticker is prioritized. For example: `POR,15,2,3` instead of `POR,2,3,15`. Different delimiters can also be used, such as `POR,15` or `POR 15`. The column next to the named range, searches for such country-specific stickers and returns the name, so you can verify the sticker ID matches the player's name you want to prioritize.
 
 Here is a common configuration for the `TRADE_PREFERENCE` named range:
 
@@ -170,7 +172,8 @@ Here is a common configuration for the `TRADE_PREFERENCE` named range:
 
 In case of a tie, the last criterion is the album country order. This is also enforced by having just one rule per row.
 
-Defining trade preferences ensures that, during the trading process, the stickers you are most interested in receiving are matched first.
+> [!TIP]
+> Defining trade preferences ensures that, during the trading process, the stickers you are most interested in receiving are matched first.
 
 ### How is the send sticker list prioritized?
 
@@ -254,7 +257,8 @@ This does **not automatically mean the spreadsheet is unsafe or malicious**. It 
 
 The scope of the script is limited by the manifesto file of the project [appsscript.json](appsscript.json) this file clearly specifies it makes changes to the **spreadsheets only** (`"https://www.googleapis.com/auth/spreadsheets"`). This is guarantee that the actions in the **Manage Panini** menu won't affect other resources from your google account. 
 
-> Note: Before version `1.1.0` the scope was more restricted: **this spreadsheet only** (`https://www.googleapis.com/auth/spreadsheets.currentonly`) but for mobile service the app needs to use `doGet()` service which requires a broader scope, i.e.  **spreadsheets only**.
+>[!CAUTION]
+> Before version `1.1.0` the scope was more restricted: **this spreadsheet only** (`https://www.googleapis.com/auth/spreadsheets.currentonly`) but for mobile service the app needs to use `doGet()` service which requires a broader scope, i.e.  **spreadsheets only**.
 
 The source code is published in this repository so users can review what the script does before authorizing it.
 
