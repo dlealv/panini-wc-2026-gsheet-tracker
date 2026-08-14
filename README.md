@@ -54,7 +54,8 @@ One support column is hidden in the `Stickers` tab: `AD`, which stores the count
 
 ![Stickers tab](images/stickersTabView.jpg)
 
-**Note:** In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC` and `CC`. This applies throughout the tracker.
+>[!NOTE]
+>In this document, country code means the code of the soccer team in the Panini album and also includes special sticker groups such as `FWC` and `CC`. This applies throughout the tracker.
 
 ### Update/View sticker counts quickly
 
@@ -111,7 +112,7 @@ After click on the help icon (ⓘ), it shows more detailed information about the
 Check the session **Input format** for more details.
 
 >[!TIP]
-> Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
+>Clicking the (+info) link opens this document (`README.md`) in a new browser tab.
 
 ### Export all stickers
 
@@ -155,7 +156,7 @@ KOR,1,3,5,13,16
 ```
 
 >[!TIP]
-> The URL shown at the top points to this GitHub project.
+>The URL shown at the top points to this GitHub project.
 
 The user can customize the output via the following checkboxes:
 
@@ -186,7 +187,7 @@ The output of Need Stickers can be sorted, look for the drop-down value to the r
 - **Album**: This sorting option maintains the order of stickers as they appear in the album. This is particularly useful for large numbers of stickers to swap, making the process more streamlined and efficient.
 
 >[!TIP]
-> This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Spreadsheet or Excel trackers, or simply for screen sharing in a more visual format.
+>This export view provides information similar to the **Export shared stickers** service from **Manage Panini**. It is intended for sharing with other collectors using Google Spreadsheet or Excel trackers, or simply for screen sharing in a more visual format.
 
 ### Review your progress
 
@@ -213,7 +214,7 @@ Review the generated **OUTPUT** section to see what you can offer and what you m
 
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive/send.
 
-A green background in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
+A ${\color{green}\textsf{green background}}$ background in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
 
 In the **OUTPUT** section, the collector can sort the Receive Sticker output by either `%-Done` or `Album`. The drop-down values are located to the right of the `SORT` cell. These values have the same functionality and interpretation as in the **Share your swap status** section. For more information, please refer to the content of that section.
 
@@ -312,7 +313,7 @@ The second step is the trade proposal. After clicking **Continue**, the service 
 
 ![Trade Service: Initial Trade Proposal](images/tradeViewInitialTradeProposal.jpg)
 
-This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a $\colorbox{LightGreen}{\textsf{green background}}$ are included in the trade.
+This is the initial trade proposal and can be adjusted by either collector. If both collectors agree with the proposal, no further changes are required. Clicking **Confirm trade** performs a balanced trade, meaning both collectors exchange the same number of stickers in the displayed order. Therefore, only the stickers highlighted with a ${\color{green}\textsf{green background}}$ are included in the trade.
 
 However, the trade service also supports other scenarios, such as unbalanced trades or prioritizing the stickers to receive based on different sorting criteria. In these cases, the collectors may agree that one collector sends or receives more stickers while being compensated in another way.
 
@@ -574,7 +575,7 @@ The operator prefix may be applied to any valid import line format:
 - Repeat values, if present in an exclusion line, are ignored — the complement always assigns count `1` to each resulting sticker position, and no warning is issued.
 
 >[!NOTE]
-> Note: This operation is intended to facilitate user entry, but internally it is converted into Format 1.
+>This operation is intended to facilitate user entry, but internally it is converted into Format 1.
 
 ---
 
