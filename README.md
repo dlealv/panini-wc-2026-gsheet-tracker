@@ -214,7 +214,7 @@ Review the generated **OUTPUT** section to see what you can offer and what you m
 
 You can use it for trades where both collectors exchange the same number of stickers, or for cases where you receive more stickers and pay the difference. The `Cnt` column in the **OUTPUT** section shows the cumulative number of possible stickers to receive/send.
 
-A ${\color{green}\textsf{green background}}$ background in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
+A ${\color{green}\textsf{green background}}$ in `Cnt` highlights values that are less than or equal to the number of stickers you can send or receive, making it easier to identify balanced or smaller trade combinations first. The `TOTAL` value indicates the maximum number of matches in each direction in the **OUTPUT** section.
 
 In the **OUTPUT** section, the collector can sort the Receive Sticker output by either `%-Done` or `Album`. The drop-down values are located to the right of the `SORT` cell. These values have the same functionality and interpretation as in the **Share your swap status** section. For more information, please refer to the content of that section.
 
