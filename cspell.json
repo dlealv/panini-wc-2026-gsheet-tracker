@@ -39,6 +39,7 @@
     "newname",
     "nullglob",
     "octry",
+    "passthroughs",
     "qfmj",
     "quickentry",
     "Ronaldo",
@@ -50,6 +51,8 @@
     "thresholded",
     "transactionally",
     "Türkiye",
+    "undercount",
+    "undercounting",
     "uppercased",
     "yapf"
   ]

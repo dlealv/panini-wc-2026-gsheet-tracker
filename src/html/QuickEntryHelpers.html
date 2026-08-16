@@ -5,7 +5,6 @@
      * Quick entry helpers (pure logic layer - Jest safe).
      * - contains core state management and UI helper functions.
      * - designed for testability and separation of concerns.
-     * 
      * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for 
      * external use, so they should not be removed or altered without consideration of their role in the overall 
      * application architecture.
@@ -93,21 +92,22 @@
         }
 
         /**
-         * Converts pending update map into payload array.
+         * Converts pending update map into a payload array grouped by country.
          * - transforms UI state into backend-friendly format
          * @export
          * @public
          */
         function getPendingUpdates(pendingUpdates) {
-            return Object.keys(pendingUpdates || {}).map(k => {
-                const [countryCode, stickerNumber] = k.split('|')
+            const grouped = new Map()
 
-                return {
-                    countryCode,
-                    stickerNumber: Number(stickerNumber),
-                    count: pendingUpdates[k]
+            Object.keys(pendingUpdates || {}).forEach(k => {
+                const [code, number] = k.split('|')
+                if (!grouped.has(code)) {
+                    grouped.set(code, [])
                 }
+                grouped.get(code).push({ number: Number(number), count: pendingUpdates[k] })
             })
+            return Array.from(grouped.entries()).map(([code, stickers]) => ({ code, stickers }))
         }
 
         /**
@@ -140,13 +140,14 @@
          */
         function commitPendingUpdates(state, updates) {
             updates.forEach(update => {
-                const country = state.countries.find(c => c.code === update.countryCode)
+                const country = state.countries.find(c => c.code === update.code)
                 if (!country) return
-                const sticker = country.stickers.find(s => s.number === update.stickerNumber)
-                if (!sticker) return
-                sticker.count = update.count
-                sticker.label = `${sticker.number} (${update.count})`
-                sticker.hasPendingChange = false
+                update.stickers.forEach(({ number, count }) => {
+                    const sticker = country.stickers.find(s => s.number === number)
+                    if (!sticker) return
+                    sticker.count = count
+                    sticker.hasPendingChange = false
+                })
             })
         }
 
@@ -157,7 +158,9 @@
          * @public
          */
         function updatePendingChangesMessage(state, setMessageFn) {
-            const count = getPendingUpdates(state.pendingUpdates).length
+            // Counts individual sticker edits, not countries - state.pendingUpdates stays flat
+            // ("code|number" -> count) regardless of getPendingUpdates()'s grouped output shape.
+            const count = Object.keys(state.pendingUpdates || {}).length
             setMessageFn(
                 count ? `Pending changes: ${count}` : 'Ready.',
                 count ? 'pending' : 'success'
@@ -353,7 +356,7 @@
             // Text search: country code or name
             const search = searchText.toLowerCase()
             const code = String(country.code || '').toLowerCase()
-            const name = String(country.countryName || '').toLowerCase()
+            const name = String(country.name || '').toLowerCase()
             if (code.startsWith(search) || name.startsWith(search)) {
                 return country
             }
@@ -377,7 +380,6 @@
             return {
                 ...sticker,
                 count: pending,
-                label: `${sticker.number} (${pending})`,
                 hasPendingChange: true
             }
         }

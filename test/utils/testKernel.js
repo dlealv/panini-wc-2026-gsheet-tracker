@@ -26,9 +26,9 @@ const writeRangeMock = {
 */
 const TEST_DATA = {
   countries: [
-    { code: 'FWC', countryName: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 3: 2 } },
-    { code: 'MEX', countryName: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 18: 1, 20: 2 } },
-    { code: 'CC', countryName: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
+    { code: 'FWC', name: 'World Cup', group: 'A', flag: '🏆', counts: { 1: 1, 3: 2 } },
+    { code: 'MEX', name: 'Mexico', group: 'B', flag: '🇲🇽', counts: { 18: 1, 20: 2 } },
+    { code: 'CC', name: 'Coca-Cola', group: '', flag: '🥤', counts: {} }
   ],
   groupCodes: ['A', 'B', 'C']
 }

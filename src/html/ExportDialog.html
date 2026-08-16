@@ -3,20 +3,16 @@
   src/html/ExportDialog.html
 
   Provides the dialog used to export sticker data from the tracker.
-
   This HTML file is a thin adapter over ExportService.
   Export generation and formatting live in the backend.
   The UI is responsible only for collecting export options,
   invoking GAS functions, and rendering results.
-
   Supported export modes:
   1. export_all    — exports all owned stickers
   2. export_shared — exports repeated and missing stickers
-
   Template variables injected from Code.gs:
   - dialogMode: controls the export mode
     ('export_all' | 'export_shared')
-
   Helpers are loaded via include.
 -->
 <html>

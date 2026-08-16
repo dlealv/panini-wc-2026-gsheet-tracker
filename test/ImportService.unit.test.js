@@ -274,6 +274,19 @@ describe('ImportService (unit)', () => {
       expect(result.success).toBe(true)
       expect(result.warnings.some(w => w.includes('22'))).toBe(true)
     })
+    test('sorts stickers ascending by number regardless of input order', () => {
+      const result = service.preview('MEX,20,1,18')
+      expect(result.countries[0].stickers).toEqual([
+        { number: 1, count: 1 },
+        { number: 18, count: 1 },
+        { number: 20, count: 1 }
+      ])
+    })
+    test('sorts countries by album order (COUNTRIES range order) regardless of input order', () => {
+      // TEST_DATA album order is FWC, MEX, CC; input is given in reverse order.
+      const result = service.preview('CC,1\nMEX,2\nFWC,3')
+      expect(result.countries.map(c => c.code)).toEqual(['FWC', 'MEX', 'CC'])
+    })
   })
 })
 
@@ -285,7 +298,7 @@ describe('ImportStickers (unit)', () => {
   isolation and prevent state leakage between tests. */
   beforeEach(() => {
     jest.clearAllMocks()
-    parser = new ImportStickers({ FWC: true, MEX: true, CC: true })
+    parser = new ImportStickers(new Set(['FWC', 'MEX', 'CC']))
   })
 
   /**
@@ -296,35 +309,25 @@ describe('ImportStickers (unit)', () => {
     test('simple parsing returns correct structure', () => {
       const result1 = parser.parse('FWC,1,2,3')
       expect(result1.countries[0].code).toBe('FWC')
-      expect(result1.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1 })
+      expect(result1.countries[0].counts).toEqual(new Map([[1, 1], [2, 1], [3, 1]]))
       expect(result1.warnings.length).toBe(0)
       // Testing Coca-Cola
       const result2 = parser.parse('CC,1,2,3')
       expect(result2.countries[0].code).toBe('CC')
-      expect(result2.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1 })
+      expect(result2.countries[0].counts).toEqual(new Map([[1, 1], [2, 1], [3, 1]]))
       expect(result2.warnings.length).toBe(0)
     })
     test('repeat syntax expands correctly', () => {
       const result = parser.parse('FWC,2(2),5(3)')
-      expect(result.countries[0].counts).toEqual({ 2: 2, 5: 3 })
+      expect(result.countries[0].counts).toEqual(new Map([[2, 2], [5, 3]]))
     })
     test('range syntax works', () => {
       const result = parser.parse('FWC,1-5')
-      expect(result.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 })
+      expect(result.countries[0].counts).toEqual(new Map([[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]))
     })
     test('mixed ranges are accepted', () => {
       const result = parser.parse('MEX,1-3,18-20')
-      expect(result.countries[0].counts).toEqual({ 1: 1, 2: 1, 3: 1, 18: 1, 19: 1, 20: 1 })
-    })
-    describe('_validateCountryCode()', () => {
-      test('validates country code format independently of countryMap', () => {
-        const warnings = []
-        parser.countryMap.MEXICO = { row: 1, index: 0 }
-        expect(parser._validateCountryCode('MEX', warnings)).toBe(true)
-        expect(parser._validateCountryCode('CC', warnings)).toBe(true)
-        expect(parser._validateCountryCode('MEXICO', warnings)).toBe(false)
-        expect(warnings).toEqual(['Country "MEXICO": not valid, line skipped.'])
-      })
+      expect(result.countries[0].counts).toEqual(new Map([[1, 1], [2, 1], [3, 1], [18, 1], [19, 1], [20, 1]]))
     })
   })
 
@@ -355,22 +358,22 @@ describe('ImportStickers (unit)', () => {
     test('team sticker 0 is accepted and mapped to zero', () => {
       const result = parser.parse('MEX,0')
       expect(result.warnings).toEqual([])
-      expect(result.countries[0].counts).toEqual({ 0: 0 })
+      expect(result.countries[0].counts).toEqual(new Map([[0, 0]]))
     })
     test('FWC sticker 20 is accepted and mapped to zero', () => {
       const result = parser.parse('FWC,20')
       expect(result.warnings).toEqual([])
-      expect(result.countries[0].counts).toEqual({ 20: 0 })
+      expect(result.countries[0].counts).toEqual(new Map([[20, 0]]))
     })
     test('CC sticker 13 is accepted and mapped to zero', () => {
       const result = parser.parse('CC,13')
       expect(result.warnings).toEqual([])
-      expect(result.countries[0].counts).toEqual({ 13: 0 })
+      expect(result.countries[0].counts).toEqual(new Map([[13, 0]]))
     })
     test('CC sticker 20 is accepted and mapped to zero', () => {
       const result = parser.parse('CC,20')
       expect(result.warnings).toEqual([])
-      expect(result.countries[0].counts).toEqual({ 20: 0 })
+      expect(result.countries[0].counts).toEqual(new Map([[20, 0]]))
     })
   })
 
@@ -399,7 +402,7 @@ describe('ImportStickers (unit)', () => {
       const result = parser.parse('FWC,1,2\nFWC,3,4')
       expect(result.countries.length).toBe(1)
       expect(result.countries[0].code).toBe('FWC')
-      expect(result.countries[0].counts).toEqual({ 1: 1, 2: 1 })
+      expect(result.countries[0].counts).toEqual(new Map([[1, 1], [2, 1]]))
       expect(result.warnings.some(w => w.includes('duplicate country'))).toBe(true)
     })
   })
@@ -416,28 +419,21 @@ describe('ImportStickers (unit)', () => {
     })
   })
 
-  /** Tests for parse() options handling */
-  describe('parse() options handling', () => {
-    test('sortStickers false preserves sticker order for multiple countries', () => {
-      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: false })
+  /** Tests confirming parse() always preserves input order, with no sort option or bolt-on order field. */
+  describe('parse() order preservation', () => {
+    test('preserves sticker order for multiple countries', () => {
       const result = parser.parse('MEX,3,1,2\nFWC,5,4,6\nCC,9,7,8')
-      expect(result.sortStickers).toBe(false)
       expect(result.countries).toHaveLength(3)
-      expect(result.countries[0].stickerOrder).toEqual([3, 1, 2])
-      expect(result.countries[1].stickerOrder).toEqual([5, 4, 6])
-      expect(result.countries[2].stickerOrder).toEqual([9, 7, 8])
+      expect(Array.from(result.countries[0].counts.keys())).toEqual([3, 1, 2])
+      expect(Array.from(result.countries[1].counts.keys())).toEqual([5, 4, 6])
+      expect(Array.from(result.countries[2].counts.keys())).toEqual([9, 7, 8])
     })
-    test('sortStickers true does not include stickerOrder property', () => {
-      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: true })
-      const result = parser.parse('MEX,3,1,2\nFWC,5,4,6\nCC,9,7,8')
-      expect(result.sortStickers).toBe(true)
-      expect(result.countries).toHaveLength(3)
+    test('does not include sortStickers or stickerOrder in the result', () => {
+      const result = parser.parse('MEX,3,1,2')
+      expect(result).not.toHaveProperty('sortStickers')
       expect(result.countries[0]).not.toHaveProperty('stickerOrder')
-      expect(result.countries[1]).not.toHaveProperty('stickerOrder')
-      expect(result.countries[2]).not.toHaveProperty('stickerOrder')
     })
-    test('preserves country input order regardless of sticker sorting option', () => {
-      parser = new ImportStickers({ FWC: true, MEX: true, CC: true }, { sortStickers: true })
+    test('preserves country input order', () => {
       const result = parser.parse('CC,9,7,8\nMEX,3,1,2\nFWC,5,4,6')
       expect(result.countries.map(c => c.code)).toEqual(['CC', 'MEX', 'FWC'])
     })
@@ -450,7 +446,7 @@ describe('LineNormalizer (unit)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    normalize = new LineNormalize({ FWC: true, MEX: true, BRA: true, CPV: true, CC: true })
+    normalize = new LineNormalize(new Set(['FWC', 'MEX', 'BRA', 'CPV', 'CC']))
   })
 
   /* Tests for normalizeLine() method covering a wide range of input formats and edge cases, ensuring that
@@ -636,9 +632,9 @@ describe('LineNormalizer (unit)', () => {
       const result = normalize.normalizeLine('MEX-1,ARG-2,MEX3')
       expect(result.line).toBe('MEX,1,3')
     })
-    test('output order is stable regardless of input ordering', () => {
+    test('output preserves input order rather than sorting', () => {
       const result = normalize.normalizeLine('MEX3,MEX1,MEX2')
-      expect(result.line).toBe('MEX,1,2,3')
+      expect(result.line).toBe('MEX,3,1,2')
     })
     test('repeat counts in exclusion line do not produce a warning', () => {
       const result = normalize.normalizeLine('<>MEX,1-3(2)')
@@ -726,37 +722,18 @@ describe('LineNormalizer (unit)', () => {
     })
   })
 
-  /**
-   * Tests for normalizeLine() method with options, specifically focusing on the
-   * sortStickers option and its impact on output order and behavior.
-   */
-  describe('normalizeLine() with options', () => {
-    test('preserves sticker input order when sortStickers is false', () => {
-      const normalizeNoSort = new LineNormalize(
-        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
-      )
-      const result = normalizeNoSort.normalizeLine('MEX,15,1,10')
+  /** Tests confirming normalizeLine() always preserves input order, with no sorting step. */
+  describe('normalizeLine() order preservation', () => {
+    test('preserves sticker input order', () => {
+      const result = normalize.normalizeLine('MEX,15,1,10')
       expect(result.line).toBe('MEX,15,1,10')
     })
-    test('preserves first occurrence order after deduplication when sortStickers is false', () => {
-      const normalizeNoSort = new LineNormalize(
-        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
-      )
-      const result = normalizeNoSort.normalizeLine('MEX,15,1,15,10,1')
+    test('preserves first occurrence order after deduplication', () => {
+      const result = normalize.normalizeLine('MEX,15,1,15,10,1')
       expect(result.line).toBe('MEX,15,1,10')
     })
-    test('default sorting behavior remains unchanged when options are not provided', () => {
-      const normalizeDefault = new LineNormalize(
-        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }
-      )
-      const result = normalizeDefault.normalizeLine('MEX,15,1,10')
-      expect(result.line).toBe('MEX,1,10,15')
-    })
-    test('sortStickers option applies after range expansion', () => {
-      const normalizeNoSort = new LineNormalize(
-        { FWC: true, MEX: true, BRA: true, CPV: true, CC: true }, { sortStickers: false }
-      )
-      const result = normalizeNoSort.normalizeLine('MEX,15,3-5,1')
+    test('preserves order after range expansion', () => {
+      const result = normalize.normalizeLine('MEX,15,3-5,1')
       expect(result.line).toBe('MEX,15,3,4,5,1')
     })
   })

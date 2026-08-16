@@ -1,10 +1,10 @@
 <script>
   //src/html/QuickEntryRender.html
 
-  /** Renders the entire dialog content based on current state and layout.
+  /** 
+   * Renders the entire dialog content based on current state and layout.
    * DOM/UI rendering is not covered by automated tests yet, but functions have been designed to
    * facilitate testing in the future.
-   * 
    * NOTE: the export tag in comments indicates methods that are intended to be testable and exposed for
    * external use, so they should not be removed or altered without consideration of their role in the overall
    * application architecture.
@@ -63,14 +63,6 @@
     }
 
     // Private functions
-
-    /** Returns the CSS class for a sticker count.
-     * @export
-     */
-    function _getStickerCountClass(count) {
-      if (count >= 5) return 'count-5-plus'
-      return `count-${count}`
-    }
 
     /** Builds country header text.
      * @export
@@ -186,15 +178,16 @@
       if (sticker.hasPendingChange) {
         card.classList.add('pending-change')
       }
-      if (sticker.iconLabel) {
+      const iconLabel = country.iconLabels && country.iconLabels[sticker.number]
+      if (iconLabel) {
         const badge = document.createElement('div')
         badge.className = 'sticker-badge'
-        badge.textContent = sticker.iconLabel
+        badge.textContent = iconLabel
         card.appendChild(badge)
       }
       const label = document.createElement('div')
       label.className = 'sticker-label'
-      label.textContent = sticker.label || sticker.number
+      label.textContent = `${sticker.number} (${sticker.count})`
       const actions = document.createElement('div')
       actions.className = 'sticker-actions'
       const decrementButton = document.createElement('button')

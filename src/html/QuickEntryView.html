@@ -1,15 +1,12 @@
 <!--
   src/html/QuickEntryView.html
-
   Shared quick entry interface used by:
     - QuickEntryDialog.html (desktop)
     - MobileQuickEntryView.html (mobile web app)
-
   Purpose:
     - Render quick entry filters, legend, and country list
     - Handle sticker interactions and pending updates
     - Route backend requests based on context (desktop vs mobile)
-
   Responsibilities:
     - Display top bar with Update button, filters, and legend
     - Display message area and country list
@@ -18,14 +15,14 @@
     - Call appropriate backend methods based on execution context
 -->
 
-<div class="container">
-  <div class="section">
-    <div class="top-bar">
+<div class="container"><!-- view: Quick Entry -->
+  <div class="section"><!-- section: Top bar -->
+    <div class="top-bar"><!-- top-bar -->
       <div class="top-actions">
         <button id="qe-applyChangesButton" class="btn btn-primary" onclick="applyChanges()">Update</button>
       </div>
 
-      <div class="filters">
+      <div class="filters"><!-- filters -->
         <!-- Layout is adapted to desktop or mobile through CSS. -->
         <input type="text" id="qe-teamSearchInput" class="filter-input"
           placeholder="Search by country code/name or sticker #" oninput="handleFiltersChange()">
@@ -51,7 +48,7 @@
           onclick="setStatusFilter('pending')">Pending</button>
       </div> <!-- /filters -->
 
-      <div class="legend">
+      <div class="legend"><!-- legend -->
         <span class="legend-item">
           <span class="legend-swatch count-0"></span>
           <span>Missing</span>
@@ -87,14 +84,14 @@
       </div> <!-- /legend -->
 
     </div> <!-- /top-bar -->
-  </div> <!-- /section -->
+  </div><!-- /section: Top bar -->
 
   <div id="qe-message" class="message info qe-message"></div>
 
-  <div class="section country-list-wrapper">
+  <div class="section country-list-wrapper"><!-- section: Country list -->
     <div id="qe-countryList" class="country-list"></div>
-  </div>
-</div> <!-- /container -->
+  </div><!-- /section: Country list -->
+</div><!-- /view: Quick Entry -->
 
 <!-- Include shared helpers (QuickEntry namespace) and render logic (QuickEntryRender namespace)-->
 <?!= include('QuickEntryHelpers') ?>

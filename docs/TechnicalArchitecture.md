@@ -112,8 +112,13 @@ The Web app deployment process publishes a new version of an existing Google App
 The `clasp.zsh` script automates the synchronization and deployment workflow. It accepts the following arguments:
 
 1. **Action** (`pull`, `push`, or `deploy`) *(required)*.
-2. **`scriptId`** *(optional)*. By default, the generated `.clasp.json` file references the staging Apps Script project defined in `.clasp.json.template`. When synchronizing with another project (for example, the production Google Sheet), you can provide its `scriptId` as the second argument.
-3. **`deploymentId`** *(optional, `deploy` only)*. If omitted, the script uses the staging deployment ID configured within the script.
+2. **`scriptId`** *(optional)*. `.clasp.json.template` only carries a placeholder token (`__SCRIPT_ID__`), never a
+   real value. When omitted, the script substitutes the local TEST project's `scriptId`, loaded lazily from the
+   untracked `scripts/loadTESTConfig.zsh` (see **Local TEST Configuration** below). When synchronizing with
+   another project (for example, the production Google Sheet), provide its `scriptId` as the second argument
+   instead - this is exactly what CI does via `PRODUCTION_SCRIPT_ID`.
+3. **`deploymentId`** *(optional, `deploy` only)*. If omitted, the script substitutes the local TEST
+   deployment ID, also loaded lazily from `scripts/loadTESTConfig.zsh`.
 4. It accepts also as input argument `-h|--help|-help|help` to print out in the terminal the script usage. In such case no other action is carried except to print the help of the script.
 
 #### Dry-run Mode
@@ -151,11 +156,30 @@ At startup, the script prints the active configuration, for example:
 [BOOT] CONFIGURATION: LOG_LEVEL=0 DRY_RUN=false CMD=deploy
 ```
 
+#### Local TEST Configuration
+
+`scripts/.clasp.json.template` contains only placeholder tokens (`__SCRIPT_ID__`, `__ROOT_DIR__`) - it never
+carries a real value, and is safe to commit. The real local TEST `scriptId`/`deploymentId` live in
+`scripts/loadTESTConfig.zsh`, a gitignored file loaded lazily (only when the corresponding `scriptId`/
+`deploymentId` argument is omitted) via a `load_local_config()` helper inside `clasp.zsh`. This file does not
+exist in a fresh checkout - create it yourself at `scripts/loadTESTConfig.zsh` with this exact shape:
+
+```zsh
+TEST_SCRIPT_ID="<your TEST Apps Script project's scriptId>"
+TEST_DEPLOYMENT_ID="<your TEST Web app's deploymentId>"
+```
+
+Because the load is lazy and keyed off the missing argument (not an unconditional startup step), CI never needs
+this file - `.github/workflows/deploy.yml` always passes explicit `PRODUCTION_SCRIPT_ID`/
+`PRODUCTION_DEPLOYMENT_ID` arguments from GitHub Actions secrets, so `load_local_config()` is never reached on
+that path. If `scripts/loadTESTConfig.zsh` is missing or incomplete when it actually is needed (a bare local
+`pull`/`push`/`deploy` with no arguments), the script fails with an actionable error referencing this section,
+rather than a raw "no such file" error.
+
 ## 3. Directory Layout Specification
 
 ```text
 panini-wc-2026-gsheet-tracker/
-├── .clasp.json.template          # Template clasp configuration file, used in 'clasp.zsh'.
 |── .claspignore                  # Indicates folders/files to ignore by clasp.
 |── .cspell.json                  # Code Spell Checker extension configuration file (folder/files to exclude).
 |── .eslintignore                 # Indicates folders/files to ignore by ESLint (code analysis).
@@ -178,6 +202,8 @@ panini-wc-2026-gsheet-tracker/
 ├── scripts/                      # Folder for utility scripts.
 │   ├── build.js                  # JavaScript bridge extracting HTML blocks for local unit tests.
 │   ├── clasp.zsh                 # Unified, transactional shell sync-and-backup engine (local GAS ↔ repository).
+│   ├── .clasp.json.template      # Placeholder-only clasp config template, used by clasp.zsh.
+│   ├── loadTESTConfig.zsh        # GITIGNORED - not present by default; create manually, see §2 "Local TEST Configuration".
 |   ├── fix-jsdoc.js              # Fit short JSDOC comments into a single line.
 ├── src/                          # MUTABLE LOCAL SOURCE OF TRUTH.
 │   ├── appscript.json            # Project manifest. Central configuration file for a Google Apps Script project.
@@ -207,7 +233,60 @@ panini-wc-2026-gsheet-tracker/
 
 ---
 
-## 4. UI Layer Engineering Rules
+## 4. Data Model: Sticker & Country Representation
+
+Every backend service that reads, writes, or transports per-country sticker data follows the same representation rules, split into two layers: an internal canonical shape used inside the GAS runtime, and a wire-safe shape used whenever data crosses the `google.script.run` boundary to or from the browser. This section defines both layers, the field naming convention that goes with them, and the one deliberate exception (`TradeService.gs`).
+
+### Canonical In-Memory Shape
+
+- `Map<number, number>` — sticker number → count, built and read in encounter order. Example: `Map { 1 => 2, 5 => 0, 18 => 1 }` (sticker 1 has 2 copies, sticker 5 is missing, sticker 18 has 1 copy).
+- Used internally in `Commons.gs` (`StickerSheetRepository.getCountries()`, `getCountryCounts()`, `updateStickerCounts()`), `ImportService.gs` (`ImportStickers.parse()`), and `QuickEntryService.gs`.
+- Chosen specifically to avoid JavaScript's automatic reordering of integer-like object keys — a plain object such as `{"5":1,"1":3}` silently becomes `{"1":3,"5":1}` on essentially any object construction, including a fresh `JSON.parse()`. A `Map` is the only in-memory container that reliably preserves the order the data was built in.
+- Density depends on what the `Map` represents, not a single fixed rule:
+  - Rows read directly from the sheet (`getCountries()`, `getCountryCounts()`) are **dense**: one entry per sticker slot (0-20), including zero counts, because every slot has a real, known cell value. Example: `Map { 0=>0, 1=>1, 2=>0, ..., 18=>2, 20=>0 }` — every slot from 0 to 20 is present.
+  - Rows built from partial user input (`ImportStickers.parse()`) are **sparse**: only the stickers the user actually typed. Example: input `"MEX,4(2),5"` produces `Map { 4=>2, 5=>1 }` — no entries for any other sticker number.
+
+### Wire-Safe Shape (crossing `google.script.run`)
+
+- A `Map` cannot cross `google.script.run` at all — it serializes to `{}` and the data is silently lost. Every method that sends or receives sticker data converts at the boundary.
+- The wire shape is an array of `{number, count}` objects: `[{number:1,count:0}, {number:2,count:1}, ...]`.
+  - Used by `ImportService.preview()`'s `stickers` field and `QuickEntryService`'s `stickers` field (in `getInitialData()`/`applyPendingUpdates()`).
+  - A raw pairs array (`[[1,0],[2,1]]`) would be equally order-safe, but `{number,count}` objects were chosen for self-documenting call sites (`sticker.number` vs. `sticker[0]`).
+- **Never** a plain object keyed by sticker number, e.g. `{"1":0,"2":1}`. This is the one shape that is *not* safe on this boundary: JavaScript enumerates integer-like object keys in ascending numeric order regardless of insertion order, and the reordering happens again on every `JSON.parse()`/object construction — wrapping it in `JSON.stringify()` does not fix this, since the unsafety is a JavaScript object-property-ordering rule, not a transport-layer quirk. Arrays are the only container immune to it, because JSON always preserves array element order.
+- Pending-update payloads (received by the backend, not just sent) follow the same per-country grouping as everything else — e.g. `applyPendingUpdates([{code:'MEX', stickers:[{number:4,count:2}]}])` — never a flat list of per-sticker triples.
+
+### Field Naming
+
+A record's own context is never repeated in its field names:
+
+| Concept | Field name | Not |
+|---|---|---|
+| Country identifier | `code` | `countryCode` |
+| Country display name | `name` | `countryName` |
+| Sticker identifier | `number` | `sticker`, `stickerNumber` |
+
+This applies to record fields returned or consumed as data. It does not extend to function/method parameter names, which may still use a fully-qualified name for local clarity (e.g. `_buildStickerViews(countryCode, counts)`).
+
+### The Trade Exception
+
+- `TradeService.gs` deliberately does not use the `{number,count}` wire shape, because trading discards counts by design — `2(3)` and `2` both just mean "sticker 2 is present"; a collector either has a sticker to offer or doesn't.
+- Trade's wire shape is `Object<countryCode, number[]>` — a country-code-keyed object of plain sticker-number arrays — used throughout parsing, QR bit-mask encoding, matching, and rendering.
+- This is safe without any special handling: the outer keys are country codes, which are never numeric-like, so they are never subject to the integer-key reordering problem described above; sticker order is carried entirely by the array.
+- The canonical `Map<number,number>` reappears exactly once in the whole Trade flow — `TradeService.executeTrade()` → `_buildTradeUpdates()` — immediately before the final `updateStickerCounts()` write.
+- `TradeService.gs` also wraps several of its return fields in `JSON.stringify()` before sending them (`tradeInfo`, `receive`, `send`, `doneMap`, `tradePreferences`), even though none of the shapes involved are actually at risk by the rule above. This is a documented defensive safeguard against undocumented `google.script.run` marshalling behavior across execution contexts (dialog vs. mobile web app), not an order-preservation mechanism — see `NOTE 2` at the top of `TradeService.gs`.
+
+### Rule for New Methods
+
+Any new backend method that sends or receives per-country sticker data must:
+
+1. Use `Map<number,number>` internally.
+2. Convert to `[{number,count}, ...]` at the actual `google.script.run` boundary — never a plain object keyed by sticker number.
+3. Use `code`/`name`/`number`/`count` as record field names, consistent with the rest of the codebase.
+4. Document the payload with a concrete `@param`/`@returns` example in JSDoc, showing the exact wire shape — not just its type.
+
+---
+
+## 5. UI Layer Engineering Rules
 
 To ensure local testability while maintaining cross-platform consistency and synchronization safety, the user interface is organized into three distinct layers:
 
@@ -225,6 +304,7 @@ To ensure local testability while maintaining cross-platform consistency and syn
     * ❌ A View should not contain duplicated platform-specific implementations when the behavior can be controlled through configuration or wrapper initialization.
 * **Test Status**: Not tested locally; should remain lightweight to minimize execution risks.
 
+>[!IMPORTANT]
 > The Import service is the only exception. `ImportView.html` is not shared with the mobile application because the mobile import workflow is intentionally simplified and optimized for smaller screens.
 
 #### Layer 1.2: Mobile Home (`MobileHome.html`)
@@ -257,11 +337,12 @@ To ensure local testability while maintaining cross-platform consistency and syn
     * ❌ Must not depend on feature lifecycle orchestration.
 * **Test Status**: Partially tested locally using mocked DOM environments for functions marked with the `@export` tag.
 
+>[!IMPORTANT]
 > Functions defined in `*Helpers.html` and `*Render.html` files are encapsulated in namespaces to avoid polluting the browser's global scope. View controllers use local closures (IIFE pattern) to keep DOM references, state, and internal functions isolated while exposing only the required public interface.
 
 ---
 
-## 5. System Architecture
+## 6. System Architecture
 
 ### Overview
 
@@ -375,6 +456,7 @@ Examples:
     - Calls to the appropriate backend methods depending on whether it is running inside the desktop dialog or the mobile Web app.
     - Loads `QuickEntryHelpers.html` and `QuickEntryRender.html`.
 
+>[!IMPORTANT]
 > `ImportDialog.html` is the only desktop dialog that does not share its view with the mobile application. The mobile import workflow is intentionally simplified to better fit smaller screens.
 
 ### Mobile UI
@@ -501,9 +583,15 @@ Examples:
   - Responsive handling of incomplete sticker rows.
   - Pending-change indicators.
 
+- `MobileTradeStyles.html`: Mobile-specific styles for the Trade service.
+   - Trade toolbar and import hint
+   - Trade text areas
+   - Trade QR display
+   - Trade proposal layout and controls
+
 ---
 
-## 6. Automated Lifecycles & Developer Workflow Pipeline
+## 7. Automated Lifecycles & Developer Workflow Pipeline
 
 The shell script located at `scripts/clasp.zsh` controls all remote synchronizations. It handles configuration states transactionally to protect workspaces from configuration drift.
 
@@ -512,10 +600,16 @@ Before promoting code changes to GitHub or the Google Apps Script staging/produc
 ```bash
 npm run deploy:test
 ```
+
 This single gatekeeper script sequentially commands the local workspace to:
 1. Run ESLint structural syntax checks (`npm run lint`). In case of errors you can run `npm run lint:fix` to fix minor errors.
 2. Recompile testing artifacts (`build/`) and verify feature compliance across all test suites via Jest (`npm run test`).
-3. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass.
+3. Execute `clasp.zsh push` to deploy code to your configured sandbox environment if all checks pass. It is required to have the test configuration file `scripts/loadTESTConfig.zsh` defined with appropriate content see section above: **Local TEST Configuration**.
+
+If you want to provide different `scriptId` configuration you can also inject it as follows:
+```bash
+npm run deploy:test <specific script id>
+```
 
 If you want also to deploy the Web app for testing mobile services, you can use instead:
 
@@ -524,6 +618,12 @@ npm run deploy:all
 ```
 It runs the same steps as in `deploy:test` plus Web app deploy (`clasp.zsh deploy`) to generate a new deployment version, keeping the same description.
 
+If you want to provide different `scriptId` and `deploymentId` configuration you can also inject them as follows:
+```bash
+npm run deploy:all <specific scriptId> <specific deploymentId>
+```
+
+>[!IMPORTANT]
 > Keep in mind that Google Apps Script has a limit of 200 versions and in some Apps Script versions it doesn't offer a bulk process to delete old versions. That is why we have this separated script task, so the user just deploy the Web app when it is really needed.
 
 ### Transactional Configuration Swaps & Safety Cleanups
@@ -533,7 +633,8 @@ To safeguard the repository tracking environment from structural configuration c
 
 Whenever an active operation enters a task—such as modifying `rootDir` to a transient build directory or swapping out the active `scriptId` credential token—the system registers an emergency cleanup function. If the deployment succeeds cleanly or encounters a sudden crash, the system fires these safety hooks to automatically restore clasp configurations back to their safe, initial states:
 *   `"rootDir"` is reset to its default token placeholder (`"__ROOT_DIR__"`).
-*   `"scriptId"` is reset back to its original staging/development/testing sandbox credentials.
+*   `"scriptId"` is reset to its default token placeholder (`"__SCRIPT_ID__"`) - the template never carries a
+    real value, so there's nothing else to restore it to.
 
 ### Multi-Platform Cross-Run Environment Policy
 This synchronization tool framework (`scripts/clasp.zsh`) is written in `zsh` and relies on the native standard `find` command. It executes natively out-of-the-box on macOS and Linux computers. For engineers collaborating on **Windows workstations**, development environments must be configured to run the script inside **Git Bash** or **WSL (Windows Subsystem for Linux)**. Running this script natively inside default Windows Command Prompt (`cmd.exe`) or PowerShell instances will fail.
@@ -542,7 +643,7 @@ The script defines `sed_safe` function to ensure `sed` command works for both ma
 
 ---
 
-## 7. Continuous Integration (CI) Deployment Blueprint
+## 8. Continuous Integration (CI) Deployment Blueprint
 
 The Continuous Integration (CI) architecture leverages GitHub Actions to enforce automated quality gates before publishing validated artifacts to the production Google Apps Script environment.
 
@@ -570,7 +671,7 @@ git pull origin main    # Downloads and merges the latest changes from the remot
 ```bash
 git checkout -b <branchName>
 ```
-
+>[!TIP]
 > A common practice is to use a structured naming convention such as `feature/<branchName>`, although this is not enforced by the CI pipeline.
 
 Example:

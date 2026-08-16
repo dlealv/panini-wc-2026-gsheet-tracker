@@ -5,7 +5,7 @@
 const { helpers } = require('../build/ImportHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-describe('ImportHelpers unit tests', () => {
+describe('ImportHelpers.html unit tests', () => {
   /** Get payload for import based on current UI state. */
   describe('getPayload()', () => {
     test('returns default structure when inputs are empty', () => {
@@ -41,109 +41,108 @@ describe('ImportHelpers unit tests', () => {
       expect(() => helpers.setMessage('Hello', 'success')).not.toThrow()
     })
   })
-})
-
-/** Clear the preview area. */
-describe('clearPreview()', () => {
-  test('clears preview when element exists', () => {
-    const previewEl = { style: {}, textContent: 'old' }
-    helpers.clearPreview({ previewEl })
-    expect(previewEl.style.display).toBe('none')
-    expect(previewEl.textContent).toBe('')
-  })
-  test('does nothing when preview is null', () => {
-    expect(() => helpers.clearPreview({ previewEl: null })).not.toThrow()
-  })
-  test('uses global preview element when dependency is not provided', () => {
-    global.previewEl = { style: {}, textContent: 'old' }
-    helpers.clearPreview()
-    expect(global.previewEl.style.display).toBe('none')
-    expect(global.previewEl.textContent).toBe('')
-  })
-})
-
-/** Render a preview of the imported data. */
-describe('renderPreview()', () => {
-  test('renders grouped country data correctly', () => {
-    const previewEl = { style: {}, textContent: '' }
-    const input = {
-      countries: [
-        {
-          code: 'ARG',
-          stickers: [
-            { number: 1, count: 2 },
-            { number: 3, count: 1 }
-          ]
-        }
-      ]
-    }
-    helpers.renderPreview(input, { previewEl })
-    expect(previewEl.style.display).toBe('block')
-    expect(previewEl.textContent).toBe('ARG -> 1:2, 3:1')
-  })
-  test('clears preview when no data', () => {
-    const previewEl = { style: {}, textContent: 'old' }
-    helpers.renderPreview(null, { previewEl })
-    expect(previewEl.style.display).toBe('none')
-    expect(previewEl.textContent).toBe('')
-  })
-})
-
-/** Set the busy state for UI elements. */
-describe('setBusy()', () => {
-  test('disables all UI elements when busy', () => {
-    const buttons = [{ disabled: false }, { disabled: false }]
-    const controls = [{ disabled: false }, { disabled: false }, { disabled: false }, { disabled: false }]
-    const docMock = { querySelectorAll: jest.fn(() => buttons) }
-    helpers.setBusy(true, { document: docMock, controls })
-    buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
-    controls.forEach(control => { expect(control.disabled).toBe(true) })
-  })
-  test('uses document controls when controls dependency is missing', () => {
-    const fileInput = { disabled: false }
-    const modeInput = { disabled: false }
-    const textInput = { disabled: false }
-    const docMock = {
-      getElementById: jest.fn(id => ({
-        fileInput,
-        mode: modeInput,
-        textInput
-      }[id])),
-      querySelectorAll: jest.fn(() => [])
-    }
-    helpers.setBusy(true, { document: docMock })
-    expect(fileInput.disabled).toBe(true)
-    expect(modeInput.disabled).toBe(true)
-    expect(textInput.disabled).toBe(true)
-  })
-  test('enables controls when busy is false', () => {
-    const controls = [{ disabled: true }]
-    helpers.setBusy(false, {
-      document: { querySelectorAll: () => [] },
-      controls
+  /** Clear the preview area. */
+  describe('clearPreview()', () => {
+    test('clears preview when element exists', () => {
+      const previewEl = { style: {}, textContent: 'old' }
+      helpers.clearPreview({ previewEl })
+      expect(previewEl.style.display).toBe('none')
+      expect(previewEl.textContent).toBe('')
     })
-    expect(controls[0].disabled).toBe(false)
-  })
-})
-
-/** Get current UI state from input elements. */
-describe('getUIState()', () => {
-  test('returns default values when inputs are missing', () => {
-    global.textInput = null
-    global.modeInput = null
-    const result = helpers.getUIState()
-    expect(result).toEqual({ text: '', mode: 'update' })
-  })
-  test('reads values from DOM inputs', () => {
-    const result = helpers.getUIState({ textInput: { value: 'abc' }, modeInput: { value: 'update' } })
-    expect(result).toEqual({ text: 'abc', mode: 'update' })
-  })
-  test('uses dependency inputs when provided', () => {
-    const result = helpers.getUIState({
-      textInput: { value: 'from deps' },
-      modeInput: { value: 'clean' }
+    test('does nothing when preview is null', () => {
+      expect(() => helpers.clearPreview({ previewEl: null })).not.toThrow()
     })
-    expect(result).toEqual({ text: 'from deps', mode: 'clean' })
+    test('uses global preview element when dependency is not provided', () => {
+      global.previewEl = { style: {}, textContent: 'old' }
+      helpers.clearPreview()
+      expect(global.previewEl.style.display).toBe('none')
+      expect(global.previewEl.textContent).toBe('')
+    })
+  })
+
+  /** Render a preview of the imported data. */
+  describe('renderPreview()', () => {
+    test('renders grouped country data correctly', () => {
+      const previewEl = { style: {}, textContent: '' }
+      const input = {
+        countries: [
+          {
+            code: 'ARG',
+            stickers: [
+              { number: 1, count: 2 },
+              { number: 3, count: 1 }
+            ]
+          }
+        ]
+      }
+      helpers.renderPreview(input, { previewEl })
+      expect(previewEl.style.display).toBe('block')
+      expect(previewEl.textContent).toBe('ARG -> 1:2, 3:1')
+    })
+    test('clears preview when no data', () => {
+      const previewEl = { style: {}, textContent: 'old' }
+      helpers.renderPreview(null, { previewEl })
+      expect(previewEl.style.display).toBe('none')
+      expect(previewEl.textContent).toBe('')
+    })
+  })
+
+  /** Set the busy state for UI elements. */
+  describe('setBusy()', () => {
+    test('disables all UI elements when busy', () => {
+      const buttons = [{ disabled: false }, { disabled: false }]
+      const controls = [{ disabled: false }, { disabled: false }, { disabled: false }, { disabled: false }]
+      const docMock = { querySelectorAll: jest.fn(() => buttons) }
+      helpers.setBusy(true, { document: docMock, controls })
+      buttons.forEach(btn => { expect(btn.disabled).toBe(true) })
+      controls.forEach(control => { expect(control.disabled).toBe(true) })
+    })
+    test('uses document controls when controls dependency is missing', () => {
+      const fileInput = { disabled: false }
+      const modeInput = { disabled: false }
+      const textInput = { disabled: false }
+      const docMock = {
+        getElementById: jest.fn(id => ({
+          fileInput,
+          mode: modeInput,
+          textInput
+        }[id])),
+        querySelectorAll: jest.fn(() => [])
+      }
+      helpers.setBusy(true, { document: docMock })
+      expect(fileInput.disabled).toBe(true)
+      expect(modeInput.disabled).toBe(true)
+      expect(textInput.disabled).toBe(true)
+    })
+    test('enables controls when busy is false', () => {
+      const controls = [{ disabled: true }]
+      helpers.setBusy(false, {
+        document: { querySelectorAll: () => [] },
+        controls
+      })
+      expect(controls[0].disabled).toBe(false)
+    })
+  })
+
+  /** Get current UI state from input elements. */
+  describe('getUIState()', () => {
+    test('returns default values when inputs are missing', () => {
+      global.textInput = null
+      global.modeInput = null
+      const result = helpers.getUIState()
+      expect(result).toEqual({ text: '', mode: 'update' })
+    })
+    test('reads values from DOM inputs', () => {
+      const result = helpers.getUIState({ textInput: { value: 'abc' }, modeInput: { value: 'update' } })
+      expect(result).toEqual({ text: 'abc', mode: 'update' })
+    })
+    test('uses dependency inputs when provided', () => {
+      const result = helpers.getUIState({
+        textInput: { value: 'from deps' },
+        modeInput: { value: 'clean' }
+      })
+      expect(result).toEqual({ text: 'from deps', mode: 'clean' })
+    })
   })
 })
 

@@ -1,20 +1,15 @@
 <!--
   src/html/ImportView.html
 
-  Desktop Import view.
-
+  Desktop Import view
   Architectural constraint:
-    The complete Import desktop HTML structure must remain embedded inside
-    the import-view container. ImportDialog.html provides only the dialog
-    wrapper and includes this file as the view body.
-
+    The complete Import desktop HTML structure must remain embedded inside the import-view container. 
+    ImportDialog.html provides only the dialog wrapper and includes this file as the view body.
     NOTE: Do not move Import view elements outside import-view or split the 
       layout into additional top-level HTML fragments unless the dialog 
       architecture is intentionally changed.
-
   Owns the complete desktop user interface for the Import service,
   including:
-
     - File upload
     - Manual text input
     - Import mode selection
@@ -23,52 +18,42 @@
     - Import actions
     - Format guide
     - Help dialog (ImportHelp.html)
-
   Includes:
     - ImportHelp.html
     - ImportHelpers.html
-
-  This view is included by ImportDialog.html to keep the desktop
+  - This view is included by ImportDialog.html to keep the desktop
   wrapper small and focused.
-
-  Unlike the Export and Quick Entry services, the Import service
-  intentionally uses a separate mobile view because the mobile
-  workflow is significantly simplified for smaller screens.
-
-  The desktop and mobile views share reusable helper functions
-  through ImportHelpers.html, but keep separate layouts and
-  interaction flows.
-
-  Shared client-side logic is provided by ImportHelpers.html.
+  - Unlike the Export and Quick Entry services, the Import service intentionally uses a separate mobile view because 
+    the mobile workflow is significantly simplified for smaller screens.
+  - The desktop and mobile views share reusable helper functions through ImportHelpers.html, but keep separate layouts and
+    interaction flows.
+  - Shared client-side logic is provided by ImportHelpers.html.
 -->
 
 <!--NOTE: Keep all view inside the import-view container -->
-<div id="import-view" class="import-view container">
+<div id="import-view" class="import-view container"><!-- view: Import -->
 
-  <!-- Header Section -->
-  <div>
+  <div><!-- section: Header -->
     <h2>Sticker data</h2>
     <div class="hint">
       Load a text/CSV file or paste its content. Data will be written to the
       <span class="inline-code">COUNTS</span> named range in the
       <span class="inline-code">Stickers</span> tab, preserving formatting.
     </div>
-  </div>
+  </div><!-- /section: Header -->
 
-  <div id="importModeWrapper" class="import-sections">
+  <div id="importModeWrapper" class="import-sections"><!-- importModeWrapper -->
 
-    <!-- Section 1) Import using a file upload -->
-    <div class="section">
+    <div class="section"><!-- section: 1) Upload file -->
       <div class="section-title">1) Upload file</div>
       <label for="fileInput">Select a .txt or .csv file</label>
       <input type="file" id="fileInput" accept=".txt,.csv,text/plain">
       <div class="hint" style="margin-top:8px;">
         When a file is selected, its content will be loaded into the text area below.
       </div>
-    </div>
+    </div><!-- /section: 1) Upload file -->
 
-    <!-- Section 2) Import via paste data content -->
-    <div class="section">
+    <div class="section"><!-- section: 2) Or paste content -->
       <div class="section-title">2) Or paste content</div>
       <!-- Clear button sits inline with the label for immediate discoverability -->
       <div class="label-row">
@@ -77,10 +62,9 @@
       </div>
       <!-- placeholder shows one example per format for an immediate hint -->
       <textarea id="textInput" placeholder="MEX,1,3-7,10&#10;MEX-1,MEX-5(2),MEX3&#10;&lt;&gt;FWC,1-10,12-19"></textarea>
-    </div>
+    </div><!-- /section: 2) Or paste content -->
 
-    <!-- Import format: table with different formats and examples + ⓘ info icon -->
-    <div class="section">
+    <div class="section"><!-- section: Input format -->
       <?!= include('ImportHelp') ?>
       <div class="section-title">
         Input format
@@ -116,10 +100,9 @@
           </tr>
         </tbody>
       </table>
-    </div> <!-- /div.section: Input format -->
+    </div><!-- /section: Input format -->
 
-    <!-- Section 3) Import modes-->
-    <div class="section">
+    <div class="section"><!-- section: 3) Loading mode -->
       <div class="section-title">3) Loading mode</div>
       <label for="mode">Choose how to apply the load</label>
       <select id="mode">
@@ -136,20 +119,18 @@
         <li><strong>Update counts</strong>: overwrites only the sticker positions explicitly provided; all other
           values remain unchanged.</li>
       </ul>
-    </div><!--section: Import modes-->
+    </div><!-- /section: 3) Loading mode -->
 
-    <!-- Feedback -->
-    <div id="importMessageSection" class="section" style="display:none;">
+    <div id="importMessageSection" class="section" style="display:none;"><!-- section: Messages -->
       <div class="section-title">Messages</div>
       <div class="message-section">
         <div id="import-message" class="message info"></div>
         <div id="import-warnings" class="message warning hidden"></div>
         <div id="preview" class="preview hidden"></div>
       </div>
-    </div> <!-- /div.section: Feedback -->
+    </div><!-- /section: Messages -->
 
-    <!-- Actions -->
-    <div class="section">
+    <div class="section"><!-- section: Actions -->
       <div class="section-title">Actions</div>
       <div class="actions">
         <button class="btn" onclick="previewData()">Validate / Preview</button>
@@ -171,11 +152,11 @@
         📌 <strong>Tip:</strong> use <em>Validate / Preview</em> first to confirm how counts will be mapped before
         importing.
       </div>
-    </div><!-- /div.section: Actions -->
+    </div><!-- /section: Actions -->
 
-  </div> <!-- /importModeWrapper -->
+  </div><!-- /importModeWrapper -->
 
-</div> <!-- /import-view -->
+</div><!-- /view: Import -->
 
 <!-- Include shared helpers logic (under Import namespace) -->
 <?!= include('ImportHelpers') ?>

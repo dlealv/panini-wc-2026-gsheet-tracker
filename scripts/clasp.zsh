@@ -1,37 +1,38 @@
 #!/bin/zsh
 # /scripts/clasp.zsh
-# ------------------------------------------------------------------------------------
+#
 # clasp.zsh — Google Apps Script deployment orchestrator
-# ------------------------------------------------------------------------------------
 # Purpose:
 #   Provides controlled push, pull, and deployment workflows for Google Apps Script
 #   projects using clasp, while preserving a modular local "src/" architecture.
-#
 # Key responsibilities:
 #   - Converts between flat GAS structure and modular local structure
 #   - Creates automatic backups before destructive operations
 #   - Updates existing Apps Script deployments to the latest project version
 #   - Isolates all clasp execution in temporary workspaces
 #   - Prevents accidental state drift via controlled .clasp.json rewriting
-#
 # Safety guarantees:
 #   - All operations run in isolated /tmp workspaces
 #   - Remote state is always snapshotted before push
 #   - Local src/ is always backed up before pull overwrite
 #   - Deploy operations never modify local source files
 #   - Temporary artifacts are always cleaned up
-#
 # Dry-run mode:
 #   - No network calls (clasp pull/push/deploy is skipped)
 #   - No modifications to src/
 #   - Mock workspaces are generated for validation
 #   - Backup archives are still produced for pipeline verification
-#
 # Usage:
 #   zsh scripts/clasp.zsh pull [scriptId]
 #   zsh scripts/clasp.zsh push [scriptId]
 #   zsh scripts/clasp.zsh deploy [scriptId] [deploymentId]
-# when optional input arguments are not provided it takes default values from TEST gsheet and deployment.
+#   When invoking pull/push/deploy with no additional arguments, the script will attempt to load TEST 
+#   scriptId/deploymentId values from the untracked scripts/loadTESTConfig.zsh file. 
+#   This file is intentionally excluded from git and should be created locally for TEST runs.
+#   When optional input arguments are not provided it takes default values from TEST gsheet and deployment.
+#   The file is expected in the following format:
+#   TEST_SCRIPT_ID="your_test_script_id_here"
+#   TEST_DEPLOYMENT_ID="your_test_deployment_id_here"
 # -------------------------------------------------------------------------------------
 
 set -e # Exit immediately if a command exits with a non-zero status
@@ -44,26 +45,23 @@ CUSTOM_SCRIPT_ID=$2
 CUSTOM_DEPLOYMENT_ID=$3
 CUSTOM_NAME_PREFIX=$4 # If present add a prefix to PROD_DEPLOYMENT_NAME
 
-# Default deployment for this environment
-# TEST_DEPLOYMENT_ID="AKfycbwbT1mHYqppChSPbDLVVChvdPgNpJC08lOqfnn_mYt3Hj9UA7IJVce3FO2pv8R-qfmjGg"
-TEST_DEPLOYMENT_ID="AKfycbxQBn4aaKt7eKkRSI7T0l5KiuR18V6FK3Q259fMsEH5Wz70M8AC7smm30MXccsPWFWeZg"
-TEST_DEPLOYMENT_NAME="TEST_panini_FWC 2026"
+# Static (non-secret) deployment naming. The real TEST scriptId/deploymentId values live in the untracked
+# scripts/loadTESTConfig.zsh file and are loaded lazily via load_local_config() - only when a CUSTOM_* arg is
+# actually missing, so CI/PROD runs (which always pass explicit args) never need that file to exist.
+TEST_DEPLOYMENT_NAME="TEST template panini_FWC 2026"
 PROD_DEPLOYMENT_NAME="panini_FWC 2026"
-# Effective deployment ID
-DEPLOYMENT_ID="${CUSTOM_DEPLOYMENT_ID:-$TEST_DEPLOYMENT_ID}"
-# Effective description name for deployment (used for logging and validation)
-DEPLOYMENT_NAME="$PROD_DEPLOYMENT_NAME"
-if [[ "$DEPLOYMENT_ID" == "$TEST_DEPLOYMENT_ID" ]]; then
-    DEPLOYMENT_NAME="$TEST_DEPLOYMENT_NAME"
-elif [[ -n "$CUSTOM_NAME_PREFIX" ]]; then
-    DEPLOYMENT_NAME="$CUSTOM_NAME_PREFIX $PROD_DEPLOYMENT_NAME"
-fi
+# Resolved lazily by deploy_before() - only meaningful for the deploy pipeline.
+DEPLOYMENT_ID=""
+DEPLOYMENT_NAME=""
 
-CLASP_TEMPLATE=".clasp.json.template"
+SCRIPT_DIR="${0:A:h}"
+CLASP_TEMPLATE="$SCRIPT_DIR/.clasp.json.template"
+CLASP_LOCAL_CONFIG="$SCRIPT_DIR/loadTESTConfig.zsh"
 SRC_DIR="src"
 BACKUP_DIR="backup"
 DEFAULT_ROOT="__ROOT_DIR__"
-ORIGINAL_SCRIPT_ID=""
+DEFAULT_SCRIPT_ID="__SCRIPT_ID__"
+LOCAL_CONFIG_LOADED=false
 LOG_LEVEL=${LOG_LEVEL:-0} # 0 = minimal, 1 = normal
 DRY_RUN=${DRY_RUN:-false} # Toggle this to true to enable dry run mode (no actual file changes or network calls)
 
@@ -102,6 +100,11 @@ ENVIRONMENT VARIABLES
     LOG_LEVEL=0|1, 0 = minimal output (default), 1 = verbose logging
     DRY_RUN=true|false. true  = simulate execution without network calls
                         false = execute normally (default)
+LOCAL SETUP
+    For TEST-default runs (no scriptId/deploymentId args), create
+    scripts/loadTESTConfig.zsh with your TEST Apps Script scriptId/deploymentId
+    (gitignored, never committed). See Usage section in the script 
+    for file content and format.
 EXAMPLES
     zsh scripts/clasp.zsh pull
     zsh scripts/clasp.zsh push
@@ -109,7 +112,6 @@ EXAMPLES
     zsh scripts/clasp.zsh pull <scriptId>
     DRY_RUN=true zsh scripts/clasp.zsh push
     LOG_LEVEL=1 zsh scripts/clasp.zsh deploy <scriptId> <deploymentId>
-
 SAFETY
     • All clasp operations run in isolated temporary workspaces.
     • Remote projects are backed up before push.
@@ -218,6 +220,37 @@ sed_safe() {
     esac
 }
 
+# Lazily sources the untracked scripts/loadTESTConfig.zsh file to populate TEST_SCRIPT_ID and
+# TEST_DEPLOYMENT_ID. Idempotent - only sources once per run, even if called from multiple call sites. Exits
+# with an actionable error if the file is missing or incomplete. Only ever called from a code path that has
+# already confirmed a CUSTOM_* arg is missing, so CI/PROD (which always supplies explicit args) never triggers
+# this.
+load_local_config() {
+    if [[ "$LOCAL_CONFIG_LOADED" == "true" ]]; then
+        return
+    fi
+    if [[ ! -f "$CLASP_LOCAL_CONFIG" ]]; then
+        echo "ERROR: Missing local TEST configuration file:"
+        echo "       $CLASP_LOCAL_CONFIG"
+        echo
+        echo "This file holds your local TEST Apps Script scriptId/deploymentId and is"
+        echo "intentionally excluded from git. Create it with:"
+        echo
+        echo "       TEST_SCRIPT_ID=\"...\""
+        echo "       TEST_DEPLOYMENT_ID=\"...\""
+        echo
+        echo "See docs/TechnicalArchitecture.md (\"Local TEST Configuration\") for details."
+        exit 1
+    fi
+    source "$CLASP_LOCAL_CONFIG"
+    if [[ -z "$TEST_SCRIPT_ID" || -z "$TEST_DEPLOYMENT_ID" ]]; then
+        echo "ERROR: $CLASP_LOCAL_CONFIG is missing TEST_SCRIPT_ID or TEST_DEPLOYMENT_ID."
+        echo "       Fill in both values (see docs/TechnicalArchitecture.md, \"Local TEST Configuration\")."
+        exit 1
+    fi
+    LOCAL_CONFIG_LOADED=true
+}
+
 # Logs the current state of the .clasp.json configuration file for debugging purposes.
 log_clasp_state() {
     local context=$1
@@ -251,19 +284,21 @@ init_clasp_config() {
     fi
 }
 
-# Reads, tracks, and handles dynamic structural scriptId value swaps inside the active clasp configuration module.
+# Reads, tracks, and handles dynamic structural scriptId value swaps inside the active clasp configuration
+# module. On "start" always substitutes the __SCRIPT_ID__ placeholder with either CUSTOM_SCRIPT_ID or, when
+# that's empty, the TEST default loaded lazily from scripts/loadTESTConfig.zsh. On "rollback" resets back to
+# the placeholder - there's no real "original" value to restore since the template never carries one.
 update_script_id() {
     local phase=$1
-    if [[ -z "$CUSTOM_SCRIPT_ID" ]]; then
-        return
-    fi
     if [[ "$phase" == "start" ]]; then
-        ORIGINAL_SCRIPT_ID=$(sed -n 's|.*"scriptId":[[:space:]]*"\([^"]*\)".*|\1|p' "$CLASP_CONFIG")
-        sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$CUSTOM_SCRIPT_ID\",|" "$CLASP_CONFIG"
-    elif [[ "$phase" == "rollback" ]]; then
-        if [[ -n "$ORIGINAL_SCRIPT_ID" ]]; then
-            sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$ORIGINAL_SCRIPT_ID\",|" "$CLASP_CONFIG"
+        local effective_script_id="$CUSTOM_SCRIPT_ID"
+        if [[ -z "$effective_script_id" ]]; then
+            load_local_config
+            effective_script_id="$TEST_SCRIPT_ID"
         fi
+        sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$effective_script_id\",|" "$CLASP_CONFIG"
+    elif [[ "$phase" == "rollback" ]]; then
+        sed_safe "s|\"scriptId\":.*|\"scriptId\": \"$DEFAULT_SCRIPT_ID\",|" "$CLASP_CONFIG"
     fi
     log_clasp_state "after scriptId update ($phase)"
 }
@@ -514,9 +549,23 @@ push_after() {
 # DEPLOYMENT EXECUTION LOGIC
 # ------------------------------------------------------------
 
-# Executes pre-deployment tasks, including environment preparation and validation.
+# Executes pre-deployment tasks, including environment preparation and validation. Resolves the effective
+# DEPLOYMENT_ID/DEPLOYMENT_NAME here (not at script top) so pull/push never trigger a TEST config load - only
+# the deploy pipeline ever needs a deploymentId.
 deploy_before() {
     echo "Preparing workspace environment for deployment..."
+    local effective_deployment_id="$CUSTOM_DEPLOYMENT_ID"
+    if [[ -z "$effective_deployment_id" ]]; then
+        load_local_config
+        effective_deployment_id="$TEST_DEPLOYMENT_ID"
+    fi
+    DEPLOYMENT_ID="$effective_deployment_id"
+    DEPLOYMENT_NAME="$PROD_DEPLOYMENT_NAME"
+    if [[ -z "$CUSTOM_DEPLOYMENT_ID" ]]; then
+        DEPLOYMENT_NAME="$TEST_DEPLOYMENT_NAME"
+    elif [[ -n "$CUSTOM_NAME_PREFIX" ]]; then
+        DEPLOYMENT_NAME="$CUSTOM_NAME_PREFIX $PROD_DEPLOYMENT_NAME"
+    fi
 }
 
 # Executes clasp command to create a new version and update the deployment with the new version number.
@@ -600,7 +649,7 @@ fi
 # Ensure that any exit from the script (including interrupts) triggers a
 # cleanup of temporary workspaces and a rollback of any scriptId changes to prevent state drift.
 on_exit() {
-    if [[ -n "$CUSTOM_SCRIPT_ID" && -f "$CLASP_CONFIG" ]]; then
+    if [[ -f "$CLASP_CONFIG" ]]; then
         update_script_id "rollback"
     fi
     cleanup_workspace
@@ -612,9 +661,12 @@ else
     init_clasp_config
 fi
 
-update_script_id "start"
 # Set up a trap to ensure cleanup and rollback on exit, interrupt (Ctrl+C), or termination signals (kill).
+# Registered BEFORE update_script_id "start" - that call can now exit early (via load_local_config()'s
+# missing-file error), and the temp workspace created by init_clasp_config above must still be cleaned up
+# even in that case.
 trap on_exit EXIT INT TERM
+update_script_id "start"
 
 if [[ "$CMD" == "pull" ]]; then
     pull_before

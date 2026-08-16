@@ -2,25 +2,22 @@
   src/html/MobileExportView.html
 
   Mobile export view wrapper for the web application.
-
-  This template is injected into MobileHome.html and provides the mobile
-  export title, top hint, and shared export view content.
-
+  This template is injected into MobileHome.html and provides the mobile export title, top hint, 
+  and shared export view content.
   Responsibilities:
     - Render the mobile export container.
     - Display the export title and top hint.
     - Include the shared export view.
     - Own mobile export-specific view cleanup.
-
   Shared export behavior belongs to ExportView.html.
   Shared navigation belongs to MobileHome.html.
 -->
 
-<section id="view-export" class="view card hidden">
+<section id="view-export" class="view card hidden"><!-- view: Export -->
   <!--Include ExportView within section with id: view-export-->
   <?!= include('ExportView') ?>
   <div id="mobileMessage" class="message info"></div>
-</section>
+</section><!-- /view: Export -->
 
 <script>
 

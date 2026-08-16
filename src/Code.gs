@@ -62,13 +62,19 @@ function showImportDialogUpdate() {
   _showImportDialog('update')
 }
 
-/** Returns a preview of import data without writing to the sheet. */
+/**
+ * Returns a preview of import data without writing to the sheet.
+ * @see ImportService#preview for the payload/return shape and examples.
+ */
 function previewStickerData(payload) {
   const app = new ImportService()
   return app.preview(payload && payload.text ? payload.text : '')
 }
 
-/** Imports sticker data into the sheet using the selected mode. */
+/**
+ * Imports sticker data into the sheet using the selected mode.
+ * @see ImportService#import for the payload/return shape and examples.
+ */
 function importStickerData(payload) {
   const app = new ImportService()
   return app.import(payload && payload.text ? payload.text
@@ -101,13 +107,19 @@ function showExportSharedDialog() {
   _showExportDialog('export_shared')
 }
 
-/** Exports all sticker data from the sheet. */
+/**
+ * Exports all sticker data from the sheet.
+ * @see ExportService#exportAllStickerData for the payload/return shape and examples.
+ */
 function exportAllStickerData(payload) {
   const service = new ExportService()
   return service.exportAllStickerData(payload)
 }
 
-/** Exports shared sticker data from the sheet. */
+/**
+ * Exports shared sticker data from the sheet.
+ * @see ExportService#exportSharedStickerData for the payload/return shape and examples.
+ */
 function exportSharedStickerData(payload) {
   const service = new ExportService()
   return service.exportSharedStickerData(payload)
@@ -141,13 +153,19 @@ function showQuickStickerEntryDialog() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Quick Sticker Entry')
 }
 
-/** Returns the initial Quick Sticker Entry payload. */
+/**
+ * Returns the initial Quick Sticker Entry payload.
+ * @see QuickEntryService#getInitialData for the return shape and examples.
+ */
 function getQuickEntryInitialData() {
   const service = new QuickEntryService()
   return service.getInitialData()
 }
 
-/** Applies Quick Entry changes to the Stickers sheet. */
+/**
+ * Applies Quick Entry changes to the Stickers sheet.
+ * @see QuickEntryService#applyPendingUpdates for the payload/return shape and examples.
+ */
 function applyQuickEntryUpdates(payload) {
   const service = new QuickEntryService()
   const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
@@ -166,27 +184,42 @@ function showTradeDialog() {
   _showTradeDialog('desktop')
 }
 
-/** Returns a preview of another collector's trade information. */
+/**
+ * Returns a preview of another collector's trade information.
+ * @see TradeService.previewOtherStickerTradeInfo for the payload/return shape and examples.
+ */
 function previewOtherTradeInfo(payload) {
   return TradeService.previewOtherStickerTradeInfo(payload || {})
 }
 
-/** Returns a preview of another collector's trade information from QR image data. */
+/**
+ * Returns a preview of another collector's trade information from QR image data.
+ * @see TradeService.previewOtherStickerTradeInfoFromQr for the payload/return shape and examples.
+ */
 function previewOtherTradeInfoFromQr(payload) {
   return TradeService.previewOtherStickerTradeInfoFromQr(payload || {})
 }
 
-/** Generates the current collector QR payload. */
+/**
+ * Generates the current collector QR payload.
+ * @see TradeService.generateStickerTradeInfoQr for the return shape and examples.
+ */
 function generateTradeInfoQr() {
   return TradeService.generateStickerTradeInfoQr()
 }
 
-/** Finds all possible trade matches with another collector. */
+/**
+ * Finds all possible trade matches with another collector.
+ * @see TradeService.findStickerTradeMatches for the payload/return shape and examples.
+ */
 function findTradeMatches(payload) {
   return TradeService.findStickerTradeMatches(payload)
 }
 
-/** Applies the confirmed trade. */
+/**
+ * Applies the confirmed trade.
+ * @see TradeService.executeStickerTrades for the payload shape and examples.
+ */
 function executeTrade(payload) {
   return TradeService.executeStickerTrades(payload)
 }
@@ -239,8 +272,7 @@ function doGet(e) {
  * Mobile-context wrapper for import preview.
  * Resolves the bound spreadsheet via script properties instead of
  * getActiveSpreadsheet(), which returns null in web app call context.
- * @param {Object} payload - Import payload with text and optional mode fields.
- * @returns {{ success: boolean, warnings: string[], countries: Object[] }}
+ * @see ImportService#preview for the payload/return shape and examples.
  */
 function previewStickerDataMobile(payload) {
   const ss = _getMobileSpreadsheet()
@@ -252,8 +284,7 @@ function previewStickerDataMobile(payload) {
  * Mobile-context wrapper for import execution.
  * Resolves the bound spreadsheet via script properties instead of
  * getActiveSpreadsheet(), which returns null in web app call context.
- * @param {Object} payload - Import payload with text and mode fields.
- * @returns {{ success: boolean, warnings: string[], message: string }}
+ * @see ImportService#import for the payload/return shape and examples.
  */
 function importStickerDataMobile(payload) {
   const ss = _getMobileSpreadsheet()
@@ -283,6 +314,7 @@ function showWebAppLink() {
 /**
  * Mobile-context wrapper for exporting all stickers.
  * Uses spreadsheet resolved from script properties for web app context safety.
+ * @see ExportService#exportAllStickerData for the payload/return shape and examples.
  */
 function exportAllStickerDataMobile(payload) {
   const ss = _getMobileSpreadsheet()
@@ -293,6 +325,7 @@ function exportAllStickerDataMobile(payload) {
 /**
  * Mobile-context wrapper for exporting shared stickers.
  * Uses spreadsheet resolved from script properties for web app context safety.
+ * @see ExportService#exportSharedStickerData for the payload/return shape and examples.
  */
 function exportSharedStickerDataMobile(payload) {
   const ss = _getMobileSpreadsheet()
@@ -303,6 +336,7 @@ function exportSharedStickerDataMobile(payload) {
 /**
  * Mobile-context wrapper for Quick Entry initial data.
  * Uses spreadsheet resolved from script properties for web app context safety.
+ * @see QuickEntryService#getInitialData for the return shape and examples.
  */
 function getQuickEntryInitialDataMobile() {
   const ss = _getMobileSpreadsheet()
@@ -313,6 +347,7 @@ function getQuickEntryInitialDataMobile() {
 /**
  * Mobile-context wrapper for Quick Entry updates.
  * Uses spreadsheet resolved from script properties for web app context safety.
+ * @see QuickEntryService#applyPendingUpdates for the payload/return shape and examples.
  */
 function applyQuickEntryUpdatesMobile(payload) {
   const ss = _getMobileSpreadsheet()
