@@ -13,4 +13,5 @@ panini_fwc2026_roster_clean.csv
 .Trashes
 .fseventsd
 CLAUDE*.md
-scripts/loadTESTConfig.zsh
+scripts/*_clasp.cfg.zsh
+!scripts/ENV_clasp.cfg.zsh

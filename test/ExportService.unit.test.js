@@ -168,14 +168,18 @@ describe('ExportService (unit)', () => {
       const rows2 = service.getRows()
       expect(rows1).toBe(rows2)
     })
-    test('never calls getCountryCounts() per country (uses getCountries()\'s single bulk read instead)', () => {
-      // _buildRows() used to call repo.getCountryCounts(code) once per country, which re-reads the whole
+    test('never re-reads the COUNTS range per country (uses getCountries()\'s single bulk read instead)', () => {
+      // _buildRows() used to call repo.getCountryCounts(code) once per country, which re-read the whole
       // COUNTS range on every call. This asserts that per-country delegation is gone - counts now come
-      // entirely from the single, already-cached getCountries() bulk read.
+      // entirely from the single, already-cached getCountries() bulk read. getCountryCounts() itself is now
+      // an inner function of Commons.gs's getStickerCount(), so it can no longer be spied on directly -
+      // asserting on getCountsRange() (called exactly once, from _loadCountries()) instead. Spying on the
+      // range's own getValues() isn't reliable here: the DONE mock's getValues()/getNumRows() both simulate
+      // reading COUNTS internally, inflating the count independent of any per-country bug.
       const freshService = new ExportService()
-      const spy = jest.spyOn(freshService.getRepo(), 'getCountryCounts')
+      const spy = jest.spyOn(freshService.getRepo(), 'getCountsRange')
       freshService.getRows()
-      expect(spy).not.toHaveBeenCalled()
+      expect(spy).toHaveBeenCalledTimes(1)
     })
     test('icon/done are correctly aligned per country (not shifted) via getCountries()/getFlagIcons()/getDone() zip', () => {
       const rows = service.getRows()

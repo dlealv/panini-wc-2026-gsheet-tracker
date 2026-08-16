@@ -263,10 +263,38 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  /** Test getStickerCount() method */
+  /**
+   * Test getStickerCount() method. Also covers getCountryCounts(), an inner function of getStickerCount()
+   * (only ever called from there) - per the "public methods only" testing rule, its row-lookup/normalization
+   * behavior is exercised entirely through this public entry point instead of a dedicated describe block.
+   */
   describe('getStickerCount()', () => {
     test('returns one sticker count', () => {
       expect(repo.getStickerCount('FWC', 1)).toBe(1)
+      expect(repo.getStickerCount('FWC', 3)).toBe(2)
+    })
+    test('returns normalized counts across a multi-row COUNTS range', () => {
+      repo.countsRange = {
+        getValues: jest.fn(() => [['', 1, '2', -1], [3, '', null, 'abc']])
+      }
+      repo.countryCodes = new Set(['ARG'])
+      repo.countryIndexByCode = new Map([['ARG', 0]])
+      expect(repo.getStickerCount('ARG', 0)).toBe(0)
+      expect(repo.getStickerCount('ARG', 1)).toBe(1)
+      expect(repo.getStickerCount('ARG', 2)).toBe(2)
+      expect(repo.getStickerCount('ARG', 3)).toBe(0)
+    })
+    test('normalizes invalid values to zero', () => {
+      repo.countsRange = {
+        getValues: jest.fn(() => [['', null, 'abc', -1, 2]])
+      }
+      repo.countryCodes = new Set(['ARG'])
+      repo.countryIndexByCode = new Map([['ARG', 0]])
+      expect(repo.getStickerCount('ARG', 0)).toBe(0)
+      expect(repo.getStickerCount('ARG', 1)).toBe(0)
+      expect(repo.getStickerCount('ARG', 2)).toBe(0)
+      expect(repo.getStickerCount('ARG', 3)).toBe(0)
+      expect(repo.getStickerCount('ARG', 4)).toBe(2)
     })
     test('throws when counts row is empty (ARG setup)', () => {
       repo.countsRange = { getValues: jest.fn(() => []) }
@@ -278,61 +306,22 @@ describe('StickerSheetRepository unit tests', () => {
       repo.countsRange = { getValues: jest.fn(() => []) }
       expect(() => repo.getStickerCount('FWC', 1)).toThrow('No count data found for country "FWC"')
     })
+    test('throws when COUNTRIES range is empty', () => {
+      repo.countryCodes = new Set()
+      expect(() => repo.getStickerCount('FWC', 1)).toThrow()
+    })
     test('rejects invalid sticker number', () => {
       expect(() => repo.getStickerCount('ARG', 99)).
         toThrow('Sticker number 99 is outside allowed range 0-20.')
     })
     test('normalizes country code before lookup', () => {
       expect(repo.getStickerCount(' fwc ', 1)).toBe(1)
+      expect(repo.getStickerCount('mex', 18)).toBe(1)
+      expect(repo.getStickerCount('mex', 20)).toBe(2)
     })
     test('throws when country code does not exist', () => {
       expect(() => repo.getStickerCount('ARG', 1)).
         toThrow('Country code "ARG" was not found in the COUNTRIES named range.')
-    })
-  })
-
-  /** Test getCountryCounts() method */
-  describe('getCountryCounts()', () => {
-    test('returns country counts from repository', () => {
-      const counts = repo.getCountryCounts('FWC')
-      expect(counts.get(1)).toBe(1)
-      expect(counts.get(3)).toBe(2)
-    })
-    test('returns normalized counts', () => {
-      repo.countsRange = {
-        getValues: jest.fn(() => [['', 1, '2', -1], [3, '', null, 'abc']])
-      }
-      repo.countryCodes = new Set(['ARG'])
-      repo.countryIndexByCode = new Map([['ARG', 0]])
-      expect(repo.getCountryCounts('ARG')).toEqual(new Map([[0, 0], [1, 1], [2, 2], [3, 0]]))
-    })
-    test('normalizes invalid values to zero', () => {
-      repo.countsRange = {
-        getValues: jest.fn(() => [['', null, 'abc', -1, 2]])
-      }
-      repo.countryCodes = new Set(['ARG'])
-      repo.countryIndexByCode = new Map([['ARG', 0]])
-      expect(repo.getCountryCounts('ARG')).toEqual(new Map([[0, 0], [1, 0], [2, 0], [3, 0], [4, 2]]))
-    })
-    test('normalizes country code before lookup', () => {
-      expect(repo.getCountryCounts(' fwc ').get(1)).toBe(1)
-      const mexCounts = repo.getCountryCounts('mex')
-      expect(mexCounts.get(18)).toBe(1)
-      expect(mexCounts.get(20)).toBe(2)
-    })
-    test('throws when country code does not exist', () => {
-      expect(() => repo.getCountryCounts('ARG')).
-        toThrow('Country code "ARG" was not found in the COUNTRIES named range.')
-    })
-    test('getCountryCounts throws when COUNTRIES range is empty', () => {
-      repo.countryCodes = new Set()
-      expect(() => repo.getCountryCounts('FWC')).toThrow()
-    })
-    test('throws when counts row is missing (COUNTS/COUNTRIES range mismatch)', () => {
-      repo.countsRange = { getValues: jest.fn(() => []) }
-      repo.countryCodes = new Set(['ARG'])
-      repo.countryIndexByCode = new Map([['ARG', 0]])
-      expect(() => repo.getCountryCounts('ARG')).toThrow('No count data found for country "ARG"')
     })
   })
 

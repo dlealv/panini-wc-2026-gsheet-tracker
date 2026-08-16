@@ -42,7 +42,8 @@ class QuickEntryService {
   */
   getInitialData() {
     const countries = this.repo.getCountries({
-      onlyVisible: true, includeName: true, includeGroup: true, includeFlag: true, includeIcon: false, includeDone: false
+      onlyVisible: true, includeName: true, includeGroup: true,
+      includeFlag: true, includeIcon: false, includeDone: false
     })
     const groupCodes = this.repo.getGroupCodes()
     return {
@@ -75,7 +76,8 @@ class QuickEntryService {
       success: true,
       message: `Updated ${count} sticker value(s).`,
       countries: this._buildCountryViewModels(this.repo.getCountries({
-        onlyVisible: true, includeName: true, includeGroup: true, includeFlag: true, includeIcon: false, includeDone: false
+        onlyVisible: true, includeName: true, includeGroup: true,
+        includeFlag: true, includeIcon: false, includeDone: false
       }))
     }
   }
@@ -173,13 +175,7 @@ class QuickEntryService {
     const missing = stickers.filter(sticker => sticker.count === 0).length
     const repeated = stickers.filter(sticker => sticker.count > 1).length
     const completionPercent = total === 0 ? 0 : Math.round((owned / total) * 100)
-    return {
-      owned,
-      missing,
-      repeated,
-      total,
-      completionPercent
-    }
+    return { owned, missing, repeated, total, completionPercent }
   }
 
   /**
@@ -261,9 +257,7 @@ class QuickEntryService {
    * @throws {Error} When the sticker number is outside the country's visible range.
   */
   _validateVisibleSticker(countryCode, stickerNumber) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [min, max] = bounds.get(countryCode) || bounds.get('TEAM')
-
+    const [min, max] = StickerSheetRepository.getBoundsForCountry(countryCode)
     if (stickerNumber < min || stickerNumber > max) {
       throw new Error(`Sticker ${stickerNumber} is not valid for country code "${countryCode}".`)
     }

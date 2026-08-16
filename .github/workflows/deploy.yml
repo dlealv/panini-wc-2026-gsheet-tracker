@@ -43,13 +43,22 @@ jobs:
           printf '%s' '${{ secrets.CLASPRC_JSON_SECRET }}' > ~/.clasprc.json
           chmod 600 ~/.clasprc.json
 
-      # 6. Push project source to the Google Apps Script project
-      - name: Push Code Artifacts to GAS Production Server
-        run: zsh scripts/clasp.zsh push ${{ secrets.PRODUCTION_SCRIPT_ID }}
-
-      # 7. Create a new deployment version of the Apps Script Web App
-      - name: Deploy Web App for Mobile Services
+      # 6. Write the production clasp config file from secrets (clasp.zsh requires --env/--file; production
+      #    scriptId/deploymentId are secrets, so they can never live in a tracked scripts/*_clasp.cfg.zsh file -
+      #    this writes them to a runner-temp file instead, mirroring the .clasprc.json step above)
+      - name: Write Production Clasp Config
+        env:
+          SCRIPT_ID: ${{ secrets.PRODUCTION_SCRIPT_ID }}
+          DEPLOYMENT_ID: ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
         run: |
-          zsh scripts/clasp.zsh deploy \
-            ${{ secrets.PRODUCTION_SCRIPT_ID }} \
-            ${{ secrets.PRODUCTION_DEPLOYMENT_ID }}
+          echo "SCRIPT_ID=\"$SCRIPT_ID\"" > "$RUNNER_TEMP/prod_clasp.cfg.zsh"
+          echo "DEPLOYMENT_ID=\"$DEPLOYMENT_ID\"" >> "$RUNNER_TEMP/prod_clasp.cfg.zsh"
+          echo 'DEPLOYMENT_NAME="template panini_FWC 2026"' >> "$RUNNER_TEMP/prod_clasp.cfg.zsh"
+
+      # 7. Push project source to the Google Apps Script project
+      - name: Push Code Artifacts to GAS Production Server
+        run: zsh scripts/clasp.zsh push --file "$RUNNER_TEMP/prod_clasp.cfg.zsh"
+
+      # 8. Create a new deployment version of the Apps Script Web App
+      - name: Deploy Web App for Mobile Services
+        run: zsh scripts/clasp.zsh deploy --file "$RUNNER_TEMP/prod_clasp.cfg.zsh"

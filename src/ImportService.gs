@@ -121,7 +121,7 @@ class ImportService {
     return { success: true, warnings: parsed.warnings, message: `Imported ${countries.length} country row(s) successfully.` }
   }
 
-  // Getters
+  // GETTERS
 
   getRepo() {
     if (!this.repo) {
@@ -199,6 +199,8 @@ class ImportStickers {
     return { countries, warnings }
   }
 
+  // PRIVATE METHODS
+
   /**
    * Parses one normalized Format 1 line.
    * Returns null when the country is duplicate or invalid.
@@ -219,7 +221,6 @@ class ImportStickers {
     }
     if (seenCountries.has(code)) { // snippet = CODE + first 2 sticker tokens to help user locate the line
       const snippet = parts.slice(0, 3).join(',')
-
       warnings.push(
         `Country "${code}": starting with ${snippet} (line ${lineIndex + 1}) ` +
         `duplicate country "${code}" ignored; first occurrence wins.`
@@ -228,9 +229,7 @@ class ImportStickers {
     }
     if (!this._validateCountryCode(code, warnings)) { return null }
     seenCountries.add(code)
-
     const counts = new Map()
-
     for (let i = 1; i < parts.length; i++) {
       if (!parts[i] || parts[i].trim() === '') {
         throw new Error(`Country "${code}": empty token detected.`)
@@ -288,14 +287,11 @@ class ImportStickers {
     const min = StickerSheetRepository.getStickerMin()
     const max = StickerSheetRepository.getStickerMax()
     if (!Number.isInteger(stickerNumber) || stickerNumber < min || stickerNumber > max) {
-      const bounds = StickerSheetRepository.getCountryBounds()
-      const [countryMin, countryMax] = bounds.get(code) || bounds.get('TEAM')
-
-      warnings.push(
-        `Country "${code}": sticker number ${stickerNumber} ` +
+      const [countryMin, countryMax] = StickerSheetRepository.getBoundsForCountry(code)
+      const msg = `Country "${code}": sticker number ${stickerNumber} ` +
         `is outside allowed range ${countryMin}-${countryMax}. ` +
         'Sticker skipped.'
-      )
+      warnings.push( msg )
       return false
     }
     return true
@@ -324,9 +320,7 @@ class ImportStickers {
    *  Returns 0 for out-of-album stickers, or the explicit count if specified, or 1 if not specified.
    */
   _mapTokenToCount(code, stickerNumber, explicitCount) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [minSticker, maxSticker] = bounds.get(code) || bounds.get('TEAM')
-
+    const [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(code)
     // OUT_OF_ALBUM_STICKER: accepted by the parser but mapped to 0.
     if (stickerNumber < minSticker || stickerNumber > maxSticker) {
       return 0
@@ -383,7 +377,7 @@ class LineNormalize {
     const { code, firstStickerToken } = this._extractCountryCode(tokens[0], warnings)
     if (!code) { return { line: null, warnings } }
     let stickerTokens = this._buildStickerTokens(tokens, code, firstStickerToken, warnings)
-
+    // Processing at a token level
     stickerTokens = this._deduplicateStickers(stickerTokens, code, warnings)
     if (isExclusion) { // exclusion complement is already numerically sorted by _getValidPositions
       stickerTokens = this._computeExclusion(code, stickerTokens, warnings)
@@ -396,6 +390,8 @@ class LineNormalize {
     const lineFormat1 = this._buildCanonicalLine(code, stickerTokens)
     return { line: lineFormat1, warnings }
   }
+
+  // PRIVATE METHODS
 
   /**
    * Removes all non-ASCII characters from a raw string.
@@ -467,7 +463,7 @@ class LineNormalize {
     // best candidate for a meaningful warning: country code pattern if available, else raw token
     const codeCandidateMatch = firstToken.match(new RegExp(`^(${COUNTRY_CODE_PATTERN})`, 'i'))
     const codeCandidate = codeCandidateMatch ? codeCandidateMatch[1] : firstToken
-
+    // invalid country code, collect warning and skip line
     warnings.push(`Country "${codeCandidate}": not valid, line skipped.`)
     return { code: null, firstStickerToken: null }
   }
@@ -577,7 +573,6 @@ class LineNormalize {
     const seen = new Set()
     const map = new Map()
     const duplicates = []
-
     for (const token of tokens) {
       const match = token.match(/^(\d+)(?:\((\d+)\))?$/)
       if (!match) continue
@@ -616,7 +611,6 @@ class LineNormalize {
     }
     const validPositions = this._getAlbumPositions(countryCode)
     const excluded = new Set()
-
     excludeTokens.forEach(token => { // repeat counts stripped silently; only sticker numbers used
       this._expandToStickerNumbers(token).forEach(n => excluded.add(n))
     })
@@ -654,8 +648,7 @@ class LineNormalize {
    * @returns {Array<number>} - An array of valid sticker positions for the country. Ex.: [1, 2, 3, 4, 5, 6, 7].
    */
   _getAlbumPositions(countryCode) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [start, end] = bounds.get(countryCode) || bounds.get('TEAM')
+    const [start, end] = StickerSheetRepository.getBoundsForCountry(countryCode)
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
   }
 

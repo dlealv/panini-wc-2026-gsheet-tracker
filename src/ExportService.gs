@@ -29,7 +29,8 @@ class ExportService {
     this.rows = null
   }
 
-  /** GAS entrypoint for 'Export all stickers' operation.
+  /** 
+   * GAS entrypoint for 'Export all stickers' operation.
    * @param {{includeFlags:(boolean|string), isCompact:boolean}} payload - Export options.
    * Example: {includeFlags:true, isCompact:false}
    * @returns {{ success: boolean, text: string, lines: number }}
@@ -44,7 +45,8 @@ class ExportService {
     return result
   }
 
-  /** GAS entrypoint for 'Export shared list' operation.
+  /** 
+   * GAS entrypoint for 'Export shared list' operation.
    * @param {{includeFlags:(boolean|string), isCompact:boolean, sortByDone:boolean}} payload - Export options.
    * Example: {includeFlags:false, isCompact:true, sortByDone:true}
    * @returns {{ success: boolean, text: string, lines: number }}
@@ -70,7 +72,8 @@ class ExportService {
     return this.repo
   }
 
-  /** Lazy getter for rows to avoid unnecessary computation during initialization.
+  /** 
+   * Lazy getter for rows to avoid unnecessary computation during initialization.
    * Only used for export operations.
    * @returns {Array<{code:string,icon:string,done:number,counts:Map<number,number>}>}
   */
@@ -95,7 +98,8 @@ class ExportService {
    */
   _buildRows() {
     return this.getRepo().getCountries({
-      onlyVisible: true, includeName: false, includeGroup: false, includeFlag: false, includeIcon: true, includeDone: true
+      onlyVisible: true, includeName: false, includeGroup: false,
+      includeFlag: false, includeIcon: true, includeDone: true
     })
   }
 

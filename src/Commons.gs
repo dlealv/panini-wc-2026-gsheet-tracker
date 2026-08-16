@@ -74,6 +74,17 @@ class StickerSheetRepository {
     return new Map(COUNTRY_BOUNDS)
   }
 
+  /**
+   * Returns the valid sticker-number bounds for one country code, falling back to the shared 'TEAM' range
+   * for any code without its own entry (e.g. all Panini team countries).
+   * @param {string} code - Country code. Example: 'ARG', 'FWC', 'CC'.
+   * @returns {[number,number]} [min,max] sticker bounds, inclusive. Example for 'ARG': [1,20].
+   */
+  static getBoundsForCountry(code) {
+    const bounds = StickerSheetRepository.getCountryBounds()
+    return bounds.get(code) || bounds.get('TEAM')
+  }
+
   /* Returns the minimum sticker number allowed, which is 0. */
   static getStickerMin() {
     return STICKER_MIN
@@ -349,32 +360,11 @@ class StickerSheetRepository {
 
   // Main methods
 
-  /**
-   * Returns all sticker counts for one country.
-   * @param {string} countryCode - The country code to retrieve counts for.
-   * This method first normalizes and validates the provided country code against the country map built from the COUNTRIES
-   * named range.
-   * It then retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index.
-   * The raw values from the sheet are converted to non-negative integers using the _toCount helper method, which ensures
-   * that any empty, null, or invalid values are treated as zero. Finally, it returns the canonical dense sticker-count
-   * map for the specified country, keyed by sticker number (0-20) in ascending order.
-   * @returns {Map<number,number>} A dense sticker-number -> count map, one entry per sticker slot (0-20), including
-   * zero-count entries. Example return value for countryCode 'MEX': Map{0=>0,1=>1,2=>0,...,16=>1,18=>2,20=>0}
-   */
-  getCountryCounts(countryCode) {
-    const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-    const countryIndex = this._getCountryIndex(normalizedCountryCode)
-    const countValues = this.getCountsRange().getValues()[countryIndex]
-
-    if (!countValues) {
-      throw new Error(`No count data found for country "${countryCode}"`)
-    }
-    return new Map(countValues.map((value, index) => [index, this._toCount(value)]))
-  }
 
   /**
-   * Returns one stored sticker count. Delegates row lookup and normalization entirely to getCountryCounts(), then
-   * extracts one entry from the resulting dense Map.
+   * Returns one stored sticker count. Looks up the country's dense counts Map (always re-read fresh from the
+   * COUNTS range - see _getCountryIndex()'s note on why only row position is cached, never count values), then
+   * extracts one entry from it.
    * @param {string} countryCode - The country code to retrieve the sticker count for.
    * @param {number} stickerNumber - The sticker number (0-20) to retrieve the count for.
    * @returns {number} The count of the specified sticker number for the given country.
@@ -382,7 +372,26 @@ class StickerSheetRepository {
   */
   getStickerCount(countryCode, stickerNumber) {
     const validStickerNumber = this._validateStickerNumber(stickerNumber)
-    return this.getCountryCounts(countryCode).get(validStickerNumber)
+
+    /**
+     * Returns all sticker counts for one country, keyed by sticker number (0-20) in ascending order. Only
+     * used here, so kept as an inner function rather than its own class method.
+     * @param {string} code - The country code to retrieve counts for.
+     * @returns {Map<number,number>} A dense sticker-number -> count map, one entry per sticker slot (0-20),
+     * including zero-count entries. Example return value for code 'MEX': Map{0=>0,1=>1,2=>0,...,18=>2,20=>0}
+     */
+    const getCountryCounts = code => {
+      const normalizedCountryCode = this._normalizeCountryCode(code)
+      const countryIndex = this._getCountryIndex(normalizedCountryCode)
+      const countValues = this.getCountsRange().getValues()[countryIndex]
+
+      if (!countValues) {
+        throw new Error(`No count data found for country "${code}"`)
+      }
+      return new Map(countValues.map((value, index) => [index, this._toCount(value)]))
+    }
+
+    return getCountryCounts(countryCode).get(validStickerNumber)
   }
 
   /**
@@ -433,8 +442,7 @@ class StickerSheetRepository {
     if (onlyVisible) {
       /** Narrows one country's dense counts down to only its visible sticker range, still dense within it. */
       const toVisibleCountry = country => {
-        const bounds = StickerSheetRepository.getCountryBounds()
-        const [min, max] = bounds.get(country.code) || bounds.get('TEAM')
+        const [min, max] = StickerSheetRepository.getBoundsForCountry(country.code)
         const visibleCounts = new Map()
 
         for (let number = min; number <= max; number++) {
@@ -525,7 +533,7 @@ class StickerSheetRepository {
    * Returns the row index (0-based) of one country within the COUNTS/COUNTRIES named ranges.
    * Builds and caches a code->index lookup on first use. Only the position is cached, never sticker count
    * values, since row order is stable within an execution while counts can change after a write (see
-   * getCountryCounts()/getStickerCount(), which always re-read the COUNTS range fresh for that reason).
+   * getStickerCount(), which always re-reads the COUNTS range fresh for that reason).
    * @param {string} code - Normalized country code. Example: 'MEX'
    * @returns {number} The 0-based index of the country within the named ranges.
   */
@@ -614,8 +622,7 @@ class StickerSheetRepository {
   */
   _normalizeCountryRow(code, values) {
     const normalizedCountryCode = String(code).trim().toUpperCase()
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+    const [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
 
     for (let sticker = 0; sticker < values.length; sticker++) {
       if (sticker < minSticker || sticker > maxSticker) {
@@ -640,10 +647,9 @@ class StickerSheetRepository {
     let minSticker
     let maxSticker
     if (!isNormalized) {
-      const bounds = StickerSheetRepository.getCountryBounds()
       const normalizedCountryCode = String(country.code).trim().toUpperCase(); // required ; here
 
-      [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+      [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
     }
     for (let sticker = 0; sticker < values.length; sticker++) {
       // Sticker positions outside the country's allowed range must always be reset.

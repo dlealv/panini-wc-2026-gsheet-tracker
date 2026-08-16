@@ -678,11 +678,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.5` `541` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.5` `557` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|     95.36    |  80.36   |   95.67     |   95.9  |                                            
+|     95.37    |  80.76   |   95.73     |  95.91  |                                            
 
 ---
 
@@ -744,7 +744,7 @@ In alphabetical order and organized by folders:
   - `build.js`: Prepares the `src/*.gs` and `src/html/*[Helpers|Render].html` files to be tested with Jest. It moves the files to `build` folder, change extension `.gs` $\rightarrow$ `.js`, add export module with classes and functions with `@export` tag and indicate the source file on top.
   - `clasp.zsh`: zsh script to handle clasp operations (`pull`/`push`/`deploy`) to synchronize the local VS Code environment with the GAS remote server repository and deploy a Web app for mobile services. It creates a preventive backup zip file before updating the source code (local/server).
   - `.clasp.json.template`: Template file used by `clasp.zsh` to generate the real `.clasp.json` on the fly (in an isolated temp workspace, never committed). Contains only placeholder tokens (`__SCRIPT_ID__`, `__ROOT_DIR__`), no real values.
-  - `loadTESTConfig.zsh`: Gitignored, not committed - holds the real local TEST Apps Script `scriptId`/`deploymentId` values `clasp.zsh` falls back to when no explicit scriptId/deploymentId argument is given. Not present by default; see `docs/TechnicalArchitecture.md` ("Local TEST Configuration") for the exact file format to create.
+  - `ENV_clasp.cfg.zsh`: Tracked template (placeholder values only) for `clasp.zsh`'s `--env`/`--file` config files. Copy it to `scripts/<PREFIX>_clasp.cfg.zsh` and fill in real values to create a real profile (gitignored, never committed) - see `docs/TechnicalArchitecture.md` ("Local Clasp Configuration") for the exact file format.
   - `fix-jsdoc.js`: Used occasionally when ESLint doesn't fit short JSDoc comments into a single line and instead generates three-line comments.
 
 - Under the `src/html` folder:
