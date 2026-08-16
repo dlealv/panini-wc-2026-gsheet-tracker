@@ -2,24 +2,19 @@
   src/html/MobileImportView.html
 
   Import service view for the mobile web application.
-
   This template is injected into MobileHome.html and provides the user
   interface for importing sticker counts into the current spreadsheet.
-
   Responsibilities:
     - Collect import input.
     - Invoke mobile import backend services.
     - Display validation results, warnings, and import output.
-
   This view owns only the Import service.
   Shared navigation belongs to MobileHome.html.
 -->
 
-<!-- Import view -->
-<section id="view-import" class="view">
+<section id="view-import" class="view"><!-- view: Import -->
 
-  <!-- Import content -->
-  <div class="section">
+  <div class="section"><!-- section: Import content -->
     <div class="section-title">Import Sticker Counts</div>
 
     <!-- Input sticker data -->
@@ -45,20 +40,18 @@
       <span class="ic">MEX-1,MEX-5(2)</span> &mdash; country prefix per sticker<br>
       <span class="ic">&lt;&gt;FWC,1-10</span> &mdash; exclusion: imports all stickers <em>except</em> those listed
     </div>
-  </div><!-- /div.section: Import content -->
+  </div><!-- /section: Import content -->
 
-  <!-- Messages -->
-  <div id="import-feedback" class="section hidden">
+  <div id="import-feedback" class="section hidden"><!-- section: Messages -->
     <div class="section-title">Messages</div>
     <div class="message-section">
       <div id="import-message" class="message info"></div>
       <div id="import-warnings" class="message warning hidden"></div>
       <pre id="import-preview" class="preview hidden"></pre>
     </div>
-  </div><!-- /div.section: import-feedback-->
+  </div><!-- /section: Messages -->
 
-  <!-- Actions -->
-  <div class="section">
+  <div class="section"><!-- section: Actions -->
     <div class="section-title">Actions</div>
     <div class="actions import-actions">
       <div class="btn-row">
@@ -67,9 +60,9 @@
       </div>
       <button class="btn btn-primary" onclick="importData()">Import</button>
     </div>
-  </div><!-- /div.section: Actions -->
+  </div><!-- /section: Actions -->
 
-</section><!-- /section: Import view -->
+</section><!-- /view: Import -->
 
 <!-- shared helper functions for the Import view (Import namespace) -->
 <?!= include('ImportHelpers') ?>

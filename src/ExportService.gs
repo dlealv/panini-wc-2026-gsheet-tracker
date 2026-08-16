@@ -8,7 +8,6 @@
  *    reading sheet data and exposing export entry points.
  *  - ExportStickers, a pure business-logic class responsible for formatting
  *    precomputed sticker data into export text.
- *
  * NOTE: the export tag in comments indicates classes that are intended to be
  * testable, so they should not be removed or altered without consideration
  * of their role in the overall application architecture.
@@ -30,8 +29,12 @@ class ExportService {
     this.rows = null
   }
 
-  /** GAS entrypoint for 'Export all stickers' operation. 
+  /** 
+   * GAS entrypoint for 'Export all stickers' operation.
+   * @param {{includeFlags:(boolean|string), isCompact:boolean}} payload - Export options.
+   * Example: {includeFlags:true, isCompact:false}
    * @returns {{ success: boolean, text: string, lines: number }}
+   * Example: {success:true, text:'🇲🇽 MEX,1,2(3),5-7\nARG,1-3(2),5', lines:2}
   */
   exportAllStickerData(payload) {
     const service = new ExportService()
@@ -42,8 +45,12 @@ class ExportService {
     return result
   }
 
-  /** GAS entrypoint for 'Export shared list' operation. 
+  /** 
+   * GAS entrypoint for 'Export shared list' operation.
+   * @param {{includeFlags:(boolean|string), isCompact:boolean, sortByDone:boolean}} payload - Export options.
+   * Example: {includeFlags:false, isCompact:true, sortByDone:true}
    * @returns {{ success: boolean, text: string, lines: number }}
+   * Example: {success:true, text:'MEX,7(2)\nARG,15', lines:2}
   */
   exportSharedStickerData(payload) {
     const service = new ExportService()
@@ -65,9 +72,10 @@ class ExportService {
     return this.repo
   }
 
-  /** Lazy getter for rows to avoid unnecessary computation during initialization. 
+  /** 
+   * Lazy getter for rows to avoid unnecessary computation during initialization.
    * Only used for export operations.
-   * @returns {Array<{code:string,icon:string,done:number,counts:number[]}>}
+   * @returns {Array<{code:string,icon:string,done:number,counts:Map<number,number>}>}
   */
   getRows() {
     if (!this.rows) {
@@ -80,44 +88,19 @@ class ExportService {
 
   /**
    * Builds the canonical export row model consumed by ExportStickers.
-   * Centralizes all sheet-to-domain mapping required for export operations.
-   * @returns {Array<{code:string,icon:string,done:number,counts:number[]}>}
+   * Built entirely from a single StickerSheetRepository.getCountries() call, never a raw named range - export
+   * only needs code/counts/icon/done, never the country identity fields (name/group/flag), so those are
+   * explicitly excluded rather than carried along unused. `onlyVisible: true` narrows each country's `counts`
+   * to its own valid sticker range up front, so a row never contains an invalid sticker position for its
+   * country in the first place - ExportStickers can filter owned/missing/repeats without a separate per-position
+   * validity check.
+   * @returns {Array<{code:string,icon:string,done:number,counts:Map<number,number>}>}
    */
   _buildRows() {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const countryValues = repo.getCountriesRange().getValues()
-    const countValues = repo.getCountsRange().getValues()
-    const doneValues = repo.getDoneRange().getValues()
-    const flagValues = repo.getFlagIconsRange() ? repo.getFlagIconsRange().getDisplayValues() : []
-    const rows = []
-    for (let i = 0; i < countryValues.length; i++) {
-      const code = String(countryValues[i][0] || '').trim().toUpperCase()
-      if (!code) { continue }
-      rows.push({
-        code,
-        icon: String(flagValues[i] && flagValues[i][0] || '').trim(),
-        done: Number(doneValues[i] && doneValues[i][0]) || 0,
-        counts: this._normalizeCountsRow(countValues[i])
-      })
-    }
-    return rows
-  }
-
-  /** Normalizes a sticker count row into a fixed-size numeric array. 
-   * No GAS dependent logic, purely data transformation. It ensures that the counts array has a 
-   * consistent length and numeric values, filling missing entries with zeros.
-   * @returns {number[]}
-   */
-  _normalizeCountsRow(values) {
-    const EXPECTED_STICKER_COLUMNS = StickerSheetRepository.getExpectedStickerColumns()
-    const STICKER_MIN = StickerSheetRepository.getStickerMin()
-    const STICKER_MAX = StickerSheetRepository.getStickerMax()
-    const normalized = new Array(EXPECTED_STICKER_COLUMNS).fill(0)
-
-    for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
-      normalized[s] = Number(values && values[s]) || 0
-    }
-    return normalized
+    return this.getRepo().getCountries({
+      onlyVisible: true, includeName: false, includeGroup: false,
+      includeFlag: false, includeIcon: true, includeDone: true
+    })
   }
 
 }
@@ -135,7 +118,7 @@ class ExportService {
 class ExportStickers {
   /**
   * Creates an export use-case object from precomputed row data.
-  * @param {Array<{ code: string, icon: string, done: number, counts: number[] }>} rows
+  * @param {Array<{ code: string, icon: string, done: number, counts: Map<number,number> }>} rows
   * Precomputed and normalized export rows.
   */
   constructor(rows) {
@@ -165,7 +148,8 @@ class ExportStickers {
   }
 
   /**
-   * Builds shared export text for repeats/missing sticker analysis.
+   * Builds shared export text for repeats/missing sticker analysis. Each section header includes the total
+   * count of distinct repeated/missing sticker numbers across all countries, e.g. "🔄 Repeats (5)".
    * @param {Object} options - export options
    * @param {boolean} options.includeFlags - includes row icon (emoji) prefix in output line
    * @param {boolean} options.sortByDone - sorts rows by done descending
@@ -179,24 +163,28 @@ class ExportStickers {
     const missingRows = [...this.rows]
     if (sortByDone) missingRows.sort((a, b) => b.done - a.done)
     const missingLines = []
+    let repeatTotal = 0
+    let missingTotal = 0
     for (let i = 0; i < this.rows.length; i++) {
       const row = this.rows[i]
       const repeatItems = this.filterStickerNumbersBy(row, 'repeats')
+      repeatTotal += repeatItems.length
       const repeatTokens = this._formatStickerNumbers(repeatItems, { includeRepeats: false, isCompact: isCompact })
       if (repeatTokens.length) repeatLines.push(this._buildExportLine(row, repeatTokens, shouldIncludeFlags))
     }
     for (let i = 0; i < missingRows.length; i++) {
       const row = missingRows[i]
       const missingItems = this.filterStickerNumbersBy(row, 'missing')
+      missingTotal += missingItems.length
       const missingTokens = this._formatStickerNumbers(missingItems, { includeRepeats: false, isCompact: isCompact })
       if (missingTokens.length) missingLines.push(this._buildExportLine(row, missingTokens, shouldIncludeFlags))
     }
     const lines = []
     lines.push(PREAMBLE)
-    lines.push('🔄 Repeats')
+    lines.push(`🔄 Repeats (${repeatTotal})`)
     if (repeatLines.length) for (let i = 0; i < repeatLines.length; i++) lines.push(repeatLines[i])
     else lines.push('No repeated stickers available for trade.')
-    lines.push('\n❌ Missing')
+    lines.push(`\n❌ Missing (${missingTotal})`)
     if (missingLines.length) for (let i = 0; i < missingLines.length; i++) lines.push(missingLines[i])
     else lines.push('No missing stickers, album complete. Congratulations!')
     return { success: true, text: lines.join('\n'), lines: repeatLines.length + missingLines.length }
@@ -204,30 +192,28 @@ class ExportStickers {
 
   /**
    * Filters stickers by export category.
-   * Returns sticker/count pairs matching the requested category.
-   * @returns {Array<{ sticker: number, count: number }>}
+   * Returns number/count pairs matching the requested category. Iterates the row's own `counts` Map directly
+   * (in ascending sticker-number order) - no per-position validity check is needed here, since `_buildRows()`
+   * already narrows `counts` to only the sticker positions valid for that row's country (see getCountries()'s
+   * `onlyVisible: true`).
+   * @param {{code:string,counts:Map<number,number>}} row - Export row (see ExportService._buildRows()).
+   * @param {string} by - Category to filter by: 'owned' (count >= 1), 'missing' (count === 0), or
+   *  'repeats' (count >= 2).
+   * @returns {Array<{ number: number, count: number }>}
    */
   filterStickerNumbersBy(row, by) {
     const out = []
-    const STICKER_MIN = StickerSheetRepository.getStickerMin()
-    const STICKER_MAX = StickerSheetRepository.getStickerMax()
-    for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
-      if (!this._isExportableSticker(row.code, s)) { continue }
-      const n = Number(row.counts[s] || 0)
-      if (by === 'owned' && n >= 1) { out.push({ sticker: s, count: n }) }
-      else if (by === 'missing' && n === 0) {
-        out.push({ sticker: s, count: 0 })
-      }
-      else if (by === 'repeats' && n >= 2) {
-        out.push({ sticker: s, count: n })
-      }
+    for (const [number, count] of row.counts) {
+      if (by === 'owned' && count >= 1) { out.push({ number, count }) }
+      else if (by === 'missing' && count === 0) { out.push({ number, count: 0 }) }
+      else if (by === 'repeats' && count >= 2) { out.push({ number, count }) }
     }
     return out
   }
 
   /**
    * Formats sticker entries into export tokens.
-   * @param {Array<{ sticker: number, count: number }>} items - Sticker/count pairs.
+   * @param {Array<{ number: number, count: number }>} items - Number/count pairs.
    * @param {Object} [options={}] - Formatting options.
    * @param {boolean} [options.includeRepeats=false] - Include repeat counts as N(X).
    * @param {boolean} [options.isCompact=false] - Compact consecutive stickers into ranges.
@@ -239,11 +225,11 @@ class ExportStickers {
     }
     const out = []
     for (let i = 0; i < items.length; i++) {
-      const { sticker, count } = items[i]
+      const { number, count } = items[i]
       if (count >= 2) {
-        out.push(includeRepeats ? `${sticker}(${count})` : String(sticker))
+        out.push(includeRepeats ? `${number}(${count})` : String(number))
       } else {
-        out.push(String(sticker))
+        out.push(String(number))
       }
     }
     return out
@@ -257,27 +243,27 @@ class ExportStickers {
   * Examples: 
   * [0(2),1(2),2(2),4,5,9] => ['0-2', '4-5', '9'] when includeRepeats is false.
   * [0(2),1(2),2(2),4,5,9] => ['0-2(2)', '4-5', '9'] when includeRepeats is true.
-  * @param {Array<{ sticker: number, count: number }>} items - Sticker/count pairs. Assumed unsorted.
+  * @param {Array<{ number: number, count: number }>} items - Number/count pairs. Assumed unsorted.
   * @param {Object} [options={}] - Formatting options.
   * @param {boolean} [options.includeRepeats=false] - Include repeat counts as N(X)/A-B(X) in the range token.
   * @returns {string[]}
   */
   _compactStickerRanges(items, { includeRepeats = false } = {}) {
     if (!items.length) { return [] }
-    items = [...items].sort((a, b) => a.sticker - b.sticker)
+    items = [...items].sort((a, b) => a.number - b.number)
     const ranges = []
     let startItem = items[0]
     let endItem = items[0]
     for (let i = 1; i < items.length; i++) {
       const currentItem = items[i]
-      const isConsecutive = currentItem.sticker === endItem.sticker + 1
+      const isConsecutive = currentItem.number === endItem.number + 1
       const sameCount = currentItem.count === startItem.count
       if (isConsecutive && (!includeRepeats || sameCount)) {
         endItem = currentItem
         continue
       }
-      let value = startItem.sticker === endItem.sticker ? String(startItem.sticker)
-        : `${startItem.sticker}-${endItem.sticker}`
+      let value = startItem.number === endItem.number ? String(startItem.number)
+        : `${startItem.number}-${endItem.number}`
       if (includeRepeats && startItem.count > 1) {
         value += `(${startItem.count})`
       }
@@ -285,7 +271,7 @@ class ExportStickers {
       startItem = currentItem
       endItem = currentItem
     }
-    let value = startItem.sticker === endItem.sticker ? String(startItem.sticker) : `${startItem.sticker}-${endItem.sticker}`
+    let value = startItem.number === endItem.number ? String(startItem.number) : `${startItem.number}-${endItem.number}`
     if (includeRepeats && startItem.count > 1) {
       value += `(${startItem.count})`
     }
@@ -305,17 +291,6 @@ class ExportStickers {
     if (!shouldIncludeFlags) { return baseLine }
     if (!icon) { return baseLine }
     return `${icon} ${baseLine}`
-  }
-
-  /**
-   * Checks whether a sticker number is valid for export.
-   * Returns true when the sticker belongs to the country range.
-   * @returns {boolean}
-   */
-  _isExportableSticker(countryCode, stickerNumber) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [minSticker, maxSticker] = bounds.get(countryCode) || bounds.get('TEAM')
-    return stickerNumber >= minSticker && stickerNumber <= maxSticker
   }
 
 }

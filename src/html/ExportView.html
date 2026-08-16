@@ -1,16 +1,13 @@
 <!--
   src/html/ExportView.html
   Export view
-
   Shared export interface used by:
     - ExportDialog.html (desktop)
     - MobileHome.html (mobile web app)
-
   Purpose:
     - Render export options and output area.
     - Route export requests to backend based on selected mode.
     - Keep export mode handling deterministic across desktop and mobile containers.
-
   Notes:
     - This file contains no Apps Script template branching by mode.
     - Parent containers provide mode and lifecycle orchestration.
@@ -18,7 +15,7 @@
 -->
 
 
-<div class="section">
+<div class="section"><!-- section: Export -->
   <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
   <div class="section-title" id="exportTitle"></div>
 
@@ -44,26 +41,24 @@
   <!-- Output text area for exported payload. -->
   <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
   <div id="exportHint" class="hint hint-spaced"></div>
-</div>
+</div><!-- /section: Export -->
 
-<!-- Messages -->
-<div id="exportMessageSection" class="section" style="display:none;">
+<div id="exportMessageSection" class="section" style="display:none;"><!-- section: Messages -->
   <div class="section-title">Messages</div>
   <div class="message-section">
     <div id="export-message" class="message info"></div>
     <div id="export-warnings" class="message warning hidden"></div>
   </div>
-</div><!-- /div.section: MessageSection -->
+</div><!-- /section: Messages -->
 
-<!-- Actions -->
-<div class="section">
+<div class="section"><!-- section: Actions -->
   <div class="section-title">Actions</div>
   <div class="actions">
     <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
     <button class="btn" onclick="copyExport()">Copy</button>
     <button id="exportCloseButton" class="btn" onclick="closeExportView()">Close</button>
   </div>
-</div>
+</div><!-- /section: Actions -->
 
 <!-- Include shared export helpers (under Export namespace) -->
 <?!= include('ExportHelpers') ?>

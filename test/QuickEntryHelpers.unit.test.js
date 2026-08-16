@@ -47,13 +47,21 @@ describe('QuickEntryHelpers.html', () => {
 
   /** Tests for getPendingUpdates function */
   describe('getPendingUpdates()', () => {
-    test('getPendingUpdates converts state map to array', () => {
+    test('getPendingUpdates converts state map to array grouped by country', () => {
       // verifies UI pending map → backend payload conversion
       const state = { 'ARG|1': 2, 'BRA|10': 1 }
       const result = helpers.getPendingUpdates(state)
       expect(result).toEqual([
-        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
-        { countryCode: 'BRA', stickerNumber: 10, count: 1 }
+        { code: 'ARG', stickers: [{ number: 1, count: 2 }] },
+        { code: 'BRA', stickers: [{ number: 10, count: 1 }] }
+      ])
+    })
+    test('groups multiple pending stickers for the same country', () => {
+      const state = { 'ARG|1': 2, 'ARG|5': 0, 'BRA|10': 1 }
+      const result = helpers.getPendingUpdates(state)
+      expect(result).toEqual([
+        { code: 'ARG', stickers: [{ number: 1, count: 2 }, { number: 5, count: 0 }] },
+        { code: 'BRA', stickers: [{ number: 10, count: 1 }] }
       ])
     })
     test('handles undefined input safely', () => {
@@ -61,7 +69,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('correctly parses numeric sticker numbers', () => {
       expect(helpers.getPendingUpdates({ 'ARG|007': 3 })).toEqual([
-        { countryCode: 'ARG', stickerNumber: 7, count: 3 }
+        { code: 'ARG', stickers: [{ number: 7, count: 3 }] }
       ])
     })
   })
@@ -143,7 +151,7 @@ describe('QuickEntryHelpers.html', () => {
       const state = { pendingUpdates: { 'ARG|10': 3 } }
       expect(
         helpers._applyPendingStickerUpdate('ARG', sticker, state)
-      ).toEqual({ number: 10, count: 3, label: '10 (3)', hasPendingChange: true })
+      ).toEqual({ number: 10, count: 3, hasPendingChange: true })
     })
     test('keeps original sticker when no pending update exists', () => {
       expect(helpers._applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, { pendingUpdates: {} })).toEqual({ number: 5, count: 2, hasPendingChange: false })
@@ -152,8 +160,8 @@ describe('QuickEntryHelpers.html', () => {
       expect(helpers._applyPendingStickerUpdate('ARG', { number: 5, count: 2 }, {})).
         toEqual({ number: 5, count: 2, hasPendingChange: false })
     })
-    test('updates label with pending count when applied', () => {
-      expect(helpers._applyPendingStickerUpdate('ARG', { number: 7, count: 1 }, { pendingUpdates: { 'ARG|7': 9 } }).label).toBe('7 (9)')
+    test('applies the pending count value', () => {
+      expect(helpers._applyPendingStickerUpdate('ARG', { number: 7, count: 1 }, { pendingUpdates: { 'ARG|7': 9 } }).count).toBe(9)
     })
   })
 
@@ -162,28 +170,28 @@ describe('QuickEntryHelpers.html', () => {
     test('matches country name case-insensitively', () => {
       expect(helpers._applySearch({
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         stickers: []
       }, { searchText: 'argen' })).not.toBeNull()
     })
     test('matches country code prefix case-insensitively', () => {
       expect(helpers._applySearch({
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         stickers: []
       }, { searchText: 'ar' })).not.toBeNull()
     })
     test('returns null when no country text match is found', () => {
       expect(helpers._applySearch({
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         stickers: []
       }, { searchText: 'zzz' })).toBeNull()
     })
     test('returns only matching sticker for numeric search', () => {
       const result = helpers._applySearch({
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         stickers: [
           { number: 13, count: 1 },
           { number: 14, count: 2 }
@@ -194,14 +202,14 @@ describe('QuickEntryHelpers.html', () => {
     test('returns null when numeric sticker search does not exist', () => {
       expect(helpers._applySearch({
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         stickers: [
           { number: 13, count: 1 }
         ]
       }, { searchText: '99' })).toBeNull()
     })
     test('returns country unchanged when search is empty', () => {
-      const country = { code: 'ARG', countryName: 'Argentina', stickers: [{ number: 13, count: 1 }] }
+      const country = { code: 'ARG', name: 'Argentina', stickers: [{ number: 13, count: 1 }] }
       expect(helpers._applySearch(country, { searchText: '' })).toEqual(country)
     })
   })
@@ -232,27 +240,16 @@ describe('QuickEntryHelpers.html', () => {
       helpers.updatePendingChangesMessage({ pendingUpdates: { 'ARG|1': 2, 'BRA|2': 3 } }, setMessageFn)
       expect(setMessageFn).toHaveBeenCalledWith('Pending changes: 2', 'pending')
     })
+    test('counts individual sticker edits, not distinct countries', () => {
+      // ARG has 2 pending stickers, BRA has 1 - must report 3, not 2 (the country count)
+      const setMessageFn = jest.fn()
+      helpers.updatePendingChangesMessage({ pendingUpdates: { 'ARG|1': 2, 'ARG|5': 0, 'BRA|2': 3 } }, setMessageFn)
+      expect(setMessageFn).toHaveBeenCalledWith('Pending changes: 3', 'pending')
+    })
     test('handles undefined pendingUpdates safely', () => {
       const setMessageFn = jest.fn()
       helpers.updatePendingChangesMessage({}, setMessageFn)
       expect(setMessageFn).toHaveBeenCalledWith('Ready.', 'success')
-    })
-    test('setMessage: applies default text and info type', () => {
-      const el = {
-        textContent: 'old',
-        classList: {
-          classes: ['success'],
-          remove(...names) {
-            this.classes = this.classes.filter(c => !names.includes(c))
-          },
-          add(...names) {
-            this.classes.push(...names)
-          }
-        }
-      }
-      helpers.setMessage(el, '', undefined)
-      expect(el.textContent).toBe('')
-      expect(el.classList.classes).toEqual(['message', 'info'])
     })
   })
 
@@ -275,23 +272,41 @@ describe('QuickEntryHelpers.html', () => {
     })
   })
 
-  /** Tests for setMessage() */
-  test('updates message element text and class', () => {
-    const el = {
-      textContent: '',
-      classList: {
-        classes: [],
-        remove(...names) {
-          this.classes = this.classes.filter(c => !names.includes(c))
-        },
-        add(...names) {
-          this.classes.push(...names)
+  describe('setMessage()', () => {
+    test('setMessage: applies default text and info type', () => {
+      const el = {
+        textContent: 'old',
+        classList: {
+          classes: ['success'],
+          remove(...names) {
+            this.classes = this.classes.filter(c => !names.includes(c))
+          },
+          add(...names) {
+            this.classes.push(...names)
+          }
         }
       }
-    }
-    helpers.setMessage(el, 'Updated', 'success')
-    expect(el.textContent).toBe('Updated')
-    expect(el.classList.classes).toEqual(['message', 'success'])
+      helpers.setMessage(el, '', undefined)
+      expect(el.textContent).toBe('')
+      expect(el.classList.classes).toEqual(['message', 'info'])
+    })
+    test('updates message element text and class', () => {
+      const el = {
+        textContent: '',
+        classList: {
+          classes: [],
+          remove(...names) {
+            this.classes = this.classes.filter(c => !names.includes(c))
+          },
+          add(...names) {
+            this.classes.push(...names)
+          }
+        }
+      }
+      helpers.setMessage(el, 'Updated', 'success')
+      expect(el.textContent).toBe('Updated')
+      expect(el.classList.classes).toEqual(['message', 'success'])
+    })
   })
 
   /** Tests for applyLayout() */
@@ -320,7 +335,7 @@ describe('QuickEntryHelpers.html', () => {
   describe('getVisibleCountries()', () => {
     test('returns filtered visible countries, search by country code', () => {
       const state = {
-        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
+        countries: [{ code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -332,7 +347,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('returns filtered visible countries search by name', () => {
       const state = {
-        countries: [{ code: 'BIH', countryName: 'Bosnia-Herzegovina', group: 'B', stickers: [{ number: 1, count: 0 }] }],
+        countries: [{ code: 'BIH', name: 'Bosnia-Herzegovina', group: 'B', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'B',
         selectedStatusFilter: 'missing',
@@ -344,7 +359,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('filters out countries when group does not match', () => {
       const state = {
-        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
+        countries: [{ code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'B',
         selectedStatusFilter: 'missing',
@@ -354,7 +369,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('filters out countries when search does not match', () => {
       const state = {
-        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
+        countries: [{ code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -364,7 +379,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('removes countries with no stickers after status filtering', () => {
       const state = {
-        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
+        countries: [{ code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'A',
         selectedStatusFilter: 'missing',
@@ -375,8 +390,8 @@ describe('QuickEntryHelpers.html', () => {
     test('returns matching sticker number across all countries for numeric search', () => {
       const state = {
         countries: [
-          { code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }, { number: 13, count: 1 }] },
-          { code: 'BRA', countryName: 'Brazil', group: 'A', stickers: [{ number: 13, count: 2 }, { number: 20, count: 0 }] }
+          { code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 0 }, { number: 13, count: 1 }] },
+          { code: 'BRA', name: 'Brazil', group: 'A', stickers: [{ number: 13, count: 2 }, { number: 20, count: 0 }] }
         ],
         pendingUpdates: {},
         selectedGroupFilter: 'all',
@@ -391,8 +406,8 @@ describe('QuickEntryHelpers.html', () => {
     test('numeric search combines correctly with missing filter', () => {
       const state = {
         countries: [
-          { code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 13, count: 0 }] },
-          { code: 'BRA', countryName: 'Brazil', group: 'A', stickers: [{ number: 13, count: 1 }] }
+          { code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 13, count: 0 }] },
+          { code: 'BRA', name: 'Brazil', group: 'A', stickers: [{ number: 13, count: 1 }] }
         ],
         pendingUpdates: {},
         selectedGroupFilter: 'all',
@@ -406,7 +421,7 @@ describe('QuickEntryHelpers.html', () => {
     })
     test('returns no countries when sticker number does not exist', () => {
       const state = {
-        countries: [{ code: 'ARG', countryName: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
+        countries: [{ code: 'ARG', name: 'Argentina', group: 'A', stickers: [{ number: 1, count: 1 }] }],
         pendingUpdates: {},
         selectedGroupFilter: 'all',
         selectedStatusFilter: 'all',
@@ -418,7 +433,7 @@ describe('QuickEntryHelpers.html', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          countryName: 'Argentina',
+          name: 'Argentina',
           group: 'A',
           stickers: [{ number: 1, count: 0, hasPendingChange: false }]
         }],
@@ -429,9 +444,9 @@ describe('QuickEntryHelpers.html', () => {
       }
       expect(helpers.getVisibleCountries(state)).toEqual([{
         code: 'ARG',
-        countryName: 'Argentina',
+        name: 'Argentina',
         group: 'A',
-        stickers: [{ number: 1, count: 2, label: '1 (2)', hasPendingChange: true }],
+        stickers: [{ number: 1, count: 2, hasPendingChange: true }],
         summary: { total: 1, owned: 1, missing: 0, repeated: 1, completionPercent: 100 },
         isCompleted: true
       }])
@@ -480,7 +495,7 @@ describe('QuickEntryHelpers.html', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          countryName: 'Argentina',
+          name: 'Argentina',
           group: 'A',
           stickers: [{ number: 1, count: 0 }]
         }],
@@ -495,22 +510,22 @@ describe('QuickEntryHelpers.html', () => {
       expect(result[0].isCompleted).toBe(true)
     })
   })
+
   /** Tests for commitPendingUpdates() */
   describe('commitPendingUpdates()', () => {
-    test('updates sticker count and label', () => {
+    test('updates sticker count', () => {
       const state = {
         countries: [{
           code: 'MEX',
-          stickers: [{ number: 3, count: 3, label: '3 (3)', hasPendingChange: true }]
+          stickers: [{ number: 3, count: 3, hasPendingChange: true }]
         }]
       }
-      helpers.commitPendingUpdates(state, [{ countryCode: 'MEX', stickerNumber: 3, count: 2 }])
+      helpers.commitPendingUpdates(state, [{ code: 'MEX', stickers: [{ number: 3, count: 2 }] }])
       const sticker = state.countries[0].stickers[0]
       expect(sticker.count).toBe(2)
-      expect(sticker.label).toBe('3 (2)')
       expect(sticker.hasPendingChange).toBe(false)
     })
-    test('updates multiple stickers', () => {
+    test('updates multiple stickers for one country', () => {
       const state = {
         countries: [
           {
@@ -520,67 +535,76 @@ describe('QuickEntryHelpers.html', () => {
                 {
                   number: 1,
                   count: 0,
-                  label: '1 (0)',
                   hasPendingChange: true
-                }, { number: 2, count: 1, label: '2 (1)', hasPendingChange: true }
+                }, { number: 2, count: 1, hasPendingChange: true }
               ]
           }]
       }
       helpers.commitPendingUpdates(state, [
-        { countryCode: 'ARG', stickerNumber: 1, count: 2 },
-        { countryCode: 'ARG', stickerNumber: 2, count: 0 }
+        { code: 'ARG', stickers: [{ number: 1, count: 2 }, { number: 2, count: 0 }] }
       ])
       expect(state.countries[0].stickers[0].count).toBe(2)
       expect(state.countries[0].stickers[1].count).toBe(0)
       expect(state.countries[0].stickers[0].hasPendingChange).toBe(false)
       expect(state.countries[0].stickers[1].hasPendingChange).toBe(false)
     })
+    test('updates stickers across multiple countries', () => {
+      const state = {
+        countries: [
+          { code: 'ARG', stickers: [{ number: 1, count: 0, hasPendingChange: true }] },
+          { code: 'BRA', stickers: [{ number: 2, count: 1, hasPendingChange: true }] }
+        ]
+      }
+      helpers.commitPendingUpdates(state, [
+        { code: 'ARG', stickers: [{ number: 1, count: 2 }] },
+        { code: 'BRA', stickers: [{ number: 2, count: 0 }] }
+      ])
+      expect(state.countries[0].stickers[0].count).toBe(2)
+      expect(state.countries[1].stickers[0].count).toBe(0)
+    })
     test('ignores unknown country', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+          stickers: [{ number: 1, count: 1, hasPendingChange: true }]
         }]
       }
-      helpers.commitPendingUpdates(state, [{ countryCode: 'BRA', stickerNumber: 1, count: 5 }])
+      helpers.commitPendingUpdates(state, [{ code: 'BRA', stickers: [{ number: 1, count: 5 }] }])
       expect(state.countries[0].stickers[0].count).toBe(1)
-      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
       expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
     })
     test('ignores unknown sticker', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+          stickers: [{ number: 1, count: 1, hasPendingChange: true }]
         }]
       }
-      helpers.commitPendingUpdates(state, [{ countryCode: 'ARG', stickerNumber: 99, count: 4 }])
+      helpers.commitPendingUpdates(state, [{ code: 'ARG', stickers: [{ number: 99, count: 4 }] }])
       expect(state.countries[0].stickers[0].count).toBe(1)
-      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
       expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
     })
     test('handles empty updates', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          stickers: [{ number: 1, count: 1, label: '1 (1)', hasPendingChange: true }]
+          stickers: [{ number: 1, count: 1, hasPendingChange: true }]
         }]
       }
       helpers.commitPendingUpdates(state, [])
       expect(state.countries[0].stickers[0].count).toBe(1)
-      expect(state.countries[0].stickers[0].label).toBe('1 (1)')
       expect(state.countries[0].stickers[0].hasPendingChange).toBe(true)
     })
     test('continues processing after skipping an invalid update', () => {
       const state = {
         countries: [{
           code: 'ARG',
-          stickers: [{ number: 1, count: 0, label: '1 (0)', hasPendingChange: true }]
+          stickers: [{ number: 1, count: 0, hasPendingChange: true }]
         }]
       }
       helpers.commitPendingUpdates(state, [
-        { countryCode: 'XXX', stickerNumber: 1, count: 9 },
-        { countryCode: 'ARG', stickerNumber: 1, count: 2 }
+        { code: 'XXX', stickers: [{ number: 1, count: 9 }] },
+        { code: 'ARG', stickers: [{ number: 1, count: 2 }] }
       ])
       expect(state.countries[0].stickers[0].count).toBe(2)
     })

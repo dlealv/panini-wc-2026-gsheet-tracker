@@ -1,6 +1,8 @@
 // test/QuickEntryRender.unit.test.js
 
 const { helpers } = require('../build/QuickEntryRender.html.js')
+const { initTestKernel } = require('./utils/testKernel.js')
+const { QuickEntryService } = require('../build/QuickEntryService.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
 global.document = {
@@ -216,16 +218,29 @@ describe('QuickEntryRender.html', () => {
       buttons[1].onclick()
       expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 3)
     })
-    test('_buildStickerCard adds badge when sticker has icon label', () => {
+    test('_buildStickerCard adds badge when the country has an icon label for this sticker', () => {
       const el = helpers._buildStickerCard(
-        { code: 'ARG' }, {
+        { code: 'ARG', iconLabels: { 1: 'TEAM' } }, {
           number: 1,
-          count: 2,
-          iconLabel: 'TEAM'
+          count: 2
         }, { isBusy: false }, () => { }
       )
       expect(el.children[0].className).toBe('sticker-badge')
       expect(el.children[0].textContent).toBe('TEAM')
+    })
+    test('_buildStickerCard omits badge when the country has no icon label for this sticker', () => {
+      const el = helpers._buildStickerCard(
+        { code: 'ARG', iconLabels: { 1: 'CREST' } }, {
+          number: 5,
+          count: 2
+        }, { isBusy: false }, () => { }
+      )
+      expect(el.children.find(c => c.className === 'sticker-badge')).toBeUndefined()
+    })
+    test('_buildStickerCard builds the label text from number and count', () => {
+      const el = helpers._buildStickerCard({ code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, () => { })
+      const label = el.children.find(c => c.className === 'sticker-label')
+      expect(label.textContent).toBe('5 (2)')
     })
   })
 
@@ -267,5 +282,39 @@ describe('QuickEntryRender.html', () => {
       const el = helpers._buildAlbumStickerGrid(country, state, { stickersPerRow: 2 }, () => { })
       expect(el.children.length).toBe(2) // 2 rows
     })
+  })
+})
+
+/**
+ * Cross-layer integration scenarios: feeds a real country view model produced by
+ * QuickEntryService.getInitialData() (backend) into QuickEntryRender.buildCountrySection() (UI), end-to-end.
+ * Isolated unit tests on each side independently assert against the *documented* view-model shape
+ * ({code, name, stickers:[{number,count}], iconLabels, summary, isCompleted}), but neither one calls the other -
+ * this is the one test that would catch the two layers silently drifting apart (e.g. a field renamed on one side
+ * only, or a shape change like the {number,count}/iconLabels split not being carried through to the renderer).
+ */
+describe('QuickEntryService/QuickEntryRender integration scenarios', () => {
+  let service
+
+  beforeEach(() => {
+    initTestKernel()
+    service = new QuickEntryService()
+  })
+
+  test('backend country view model renders correctly in the UI', () => {
+    const data = service.getInitialData()
+    const mexCountry = data.countries.find(c => c.code === 'MEX')
+    const state = { selectedStatusFilter: 'all', isBusy: false }
+    const layout = { stickersPerRow: 5 }
+
+    const section = helpers.buildCountrySection(mexCountry, state, layout, () => { })
+
+    expect(section.className).toContain('country-section')
+    // MEX is a team country - _buildIconLabels() always includes sticker 1 (CREST), regardless of counts,
+    // and _buildStickerCard() must find it via country.iconLabels[sticker.number], not a per-sticker field.
+    const grid = section.children[1]
+    const stickerOneCard = grid.children[0].children ? grid.children[0].children[0] : grid.children[0]
+    expect(stickerOneCard.children[0].className).toBe('sticker-badge')
+    expect(stickerOneCard.children[0].textContent).toBe('CREST')
   })
 })

@@ -5,7 +5,7 @@
 const { helpers } = require('../build/ExportHelpers.html.js')
 
 /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
-describe('ExportHelpers unit tests', () => {
+describe('ExportHelpers.html unit tests', () => {
   /** DOM mock for Node test environment. Enables testing DOM-related helpers without jsdom. */
   describe('buildExportFileName()', () => {
     test('formats date correctly type=all, now=2026-01-05T09:04:07', () => {

@@ -43,242 +43,142 @@ describe('QuickEntryService (unit)', () => {
       expect(result.selectedStatusFilter).toBe('all')
       expect(result.selectedGroupFilter).toBe('all')
     })
-  })
+    test('builds full country view model shape', () => {
+      const mex = service.getInitialData().countries.find(country => country.code === 'MEX')
+      expect(mex.name).toBe('Mexico')
+      expect(mex.group).toBe('B')
+      expect(mex.flag).toBe('https://flagcdn.com/w160/mx.png')
+      expect(mex.stickers[0]).toEqual({ number: 1, count: 0 })
+    })
+    test('computes visible sticker ranges per country type (FWC/CC/TEAM bounds)', () => {
+      const countries = service.getInitialData().countries
+      const byCode = code => countries.find(country => country.code === code)
 
-  /** Tests for functions that determine sticker status based on count. */
-  describe('_getStickerStatus()', () => {
-    test('returns missing for zero', () => {
-      expect(service._getStickerStatus(0)).toBe('missing')
-    })
-    test('returns all for one', () => {
-      expect(service._getStickerStatus(1)).toBe('all')
-    })
-    test('returns repeated for values above one', () => {
-      expect(service._getStickerStatus(2)).toBe('repeated')
-      expect(service._getStickerStatus(5)).toBe('repeated')
-    })
-  })
+      const fwc = byCode('FWC').stickers
+      expect(fwc[0].number).toBe(0)
+      expect(fwc[fwc.length - 1].number).toBe(19)
+      expect(fwc).toHaveLength(20)
 
-  /** Tests for mapping sticker counts to CSS classes for UI rendering. */
-  describe('_getStickerColorClass()', () => {
-    test('maps zero correctly', () => {
-      expect(service._getStickerColorClass(0)).toBe('count-0')
-    })
-    test('maps one correctly', () => {
-      expect(service._getStickerColorClass(1)).toBe('count-1')
-    })
-    test('maps two correctly', () => {
-      expect(service._getStickerColorClass(2)).toBe('count-2')
-    })
-    test('maps three correctly', () => {
-      expect(service._getStickerColorClass(3)).toBe('count-3')
-    })
-    test('maps four correctly', () => {
-      expect(service._getStickerColorClass(4)).toBe('count-4')
-    })
-    test('maps values above four correctly', () => {
-      expect(service._getStickerColorClass(5)).toBe('count-5-plus')
-      expect(service._getStickerColorClass(10)).toBe('count-5-plus')
-    })
-  })
+      const cc = byCode('CC').stickers
+      expect(cc[0].number).toBe(1)
+      expect(cc[cc.length - 1].number).toBe(12)
+      expect(cc).toHaveLength(12)
 
-  /** Tests for functions that generate number ranges. */
-  describe('_buildNumberRange()', () => {
-    test('builds inclusive ranges', () => {
-      expect(service._buildNumberRange(1, 5)).
-        toEqual([1, 2, 3, 4, 5])
+      const mex = byCode('MEX').stickers
+      expect(mex[0].number).toBe(1)
+      expect(mex[mex.length - 1].number).toBe(20)
+      expect(mex).toHaveLength(20)
     })
-    test('supports zero start', () => {
-      expect(service._buildNumberRange(0, 3)).
-        toEqual([0, 1, 2, 3])
+    test('computes summary and completion values per country', () => {
+      const countries = service.getInitialData().countries
+      const byCode = code => countries.find(country => country.code === code)
+
+      // FWC counts {1:1, 3:2} over 20 visible stickers (0-19).
+      expect(byCode('FWC').summary).toEqual({ owned: 2, missing: 18, repeated: 1, total: 20, completionPercent: 10 })
+      expect(byCode('FWC').isCompleted).toBe(false)
+      // CC has no counts at all.
+      expect(byCode('CC').summary).toEqual({ owned: 0, missing: 12, repeated: 0, total: 12, completionPercent: 0 })
     })
-    test('supports single value ranges', () => {
-      expect(service._buildNumberRange(7, 7)).
-        toEqual([7])
+    test('returns sparse icon labels only for team countries (never FWC/CC)', () => {
+      const countries = service.getInitialData().countries
+      const byCode = code => countries.find(country => country.code === code)
+
+      expect(byCode('MEX').iconLabels).toEqual({ 1: 'CREST', 13: 'TEAM' })
+      expect(byCode('FWC').iconLabels).toEqual({})
+      expect(byCode('CC').iconLabels).toEqual({})
     })
   })
 
-  /** Tests for functions that generate icon labels for stickers. */
-  describe('_getStickerIconLabel()', () => {
-    test('FWC/CC never returns labels', () => {
-      expect(service._getStickerIconLabel('FWC', 1)).toBe('')
-      expect(service._getStickerIconLabel('FWC', 13)).toBe('')
-      expect(service._getStickerIconLabel('CC', 1)).toBe('')
-      expect(service._getStickerIconLabel('CC', 13)).toBe('')
-    })
-    test('sticker 1 returns CREST', () => {
-      expect(service._getStickerIconLabel('ARG', 1)).
-        toBe('CREST')
-    })
-    test('sticker 13 returns TEAM', () => {
-      expect(service._getStickerIconLabel('ARG', 13)).
-        toBe('TEAM')
-    })
-    test('other stickers return empty string', () => {
-      expect(service._getStickerIconLabel('ARG', 5)).
-        toBe('')
-    })
-  })
-
-  /** Tests for functions that normalize country codes. */
-  describe('_normalizeCountryCode()', () => {
-    test('normalizes formatting', () => {
-      expect(service._normalizeCountryCode(' arg ')).
-        toBe('ARG')
-    })
-    test('rejects empty values', () => {
-      expect(() => service._normalizeCountryCode('')).
-        toThrow('Country code is required.')
-    })
-  })
-
-  /** Tests for functions that normalize pending updates. */
-  describe('_normalizePendingUpdates()', () => {
-    test('normalizes valid updates', () => {
-      const result = service._normalizePendingUpdates([{ countryCode: 'arg', stickerNumber: 1, count: 2 }])
-      expect(result).toEqual({ countries: [{ code: 'ARG', counts: { 1: 2 } }] })
-    })
-    test('groups multiple updates by country', () => {
-      const result = service._normalizePendingUpdates([
-        { countryCode: 'mex', stickerNumber: 1, count: 2 },
-        { countryCode: 'mex', stickerNumber: 3, count: 1 },
-        { countryCode: 'arg', stickerNumber: 5, count: 4 }
-      ])
-      expect(result).toEqual({
-        countries: [
-          { code: 'MEX', counts: { 1: 2, 3: 1 } },
-          { code: 'ARG', counts: { 5: 4 } }
-        ]
-      })
-    })
-    test('rejects empty arrays', () => {
-      expect(() => service._normalizePendingUpdates([])).
-        toThrow('There are no pending updates to apply.')
-    })
-  })
-
-  /** Tests for functions that validate visible stickers based on country and number. */
-  describe('_validateVisibleSticker()', () => {
-    test('accepts valid stickers', () => {
-      expect(() =>
-        service._validateVisibleSticker('ARG', 1)
-      ).not.toThrow()
-    })
-    test('rejects invalid stickers', () => {
-      expect(() =>
-        service._validateVisibleSticker('ARG', 99)
-      ).toThrow(
-        'Sticker 99 is not valid for country code "ARG".'
-      )
-    })
-  })
-
-  /** Tests for summary calculations. */
-  describe('_buildSummary()', () => {
-    test('calculates summary correctly', () => {
-      const summary = service._buildSummary([
-        { count: 0 },
-        { count: 1 },
-        { count: 2 }
-      ])
-      expect(summary).toEqual({ owned: 2, missing: 1, repeated: 1, total: 3, completionPercent: 67 })
-    })
-    test('handles empty stickers safely', () => {
-      const summary = service._buildSummary([])
-      expect(summary).toEqual({ owned: 0, missing: 0, repeated: 0, total: 0, completionPercent: 0 })
-    })
-  })
-
-  /** Tests for building sticker view models for the UI. */
-  describe('_buildStickerView()', () => {
-    test('builds correct sticker view model', () => {
-      const view = service._buildStickerView('ARG', 1, 2)
-      expect(view).toEqual({
-        number: 1,
-        count: 2,
-        status: 'repeated',
-        colorClass: 'count-2',
-        iconLabel: 'CREST',
-        label: '1 (2)'
-      })
-    })
-    test('FWC disables icon labels', () => {
-      const view = service._buildStickerView('FWC', 0, 0)
-      expect(view.iconLabel).toBe('')
-    })
-  })
-
-  /** Tests for determining visible sticker numbers based on country code. */
-  describe('_getVisibleStickerNumbers()', () => {
-    test('FWC returns 0-19 range', () => {
-      const result = service._getVisibleStickerNumbers('FWC')
-      expect(result[0]).toBe(0)
-      expect(result[result.length - 1]).toBe(19)
-      expect(result).toHaveLength(20)
-    })
-    test('CC returns 1-12 range', () => {
-      const result = service._getVisibleStickerNumbers('CC')
-      expect(result[0]).toBe(1)
-      expect(result[result.length - 1]).toBe(12)
-      expect(result).toHaveLength(12)
-    })
-    test('normal country returns 1-20 range', () => {
-      const result = service._getVisibleStickerNumbers('ARG')
-      expect(result[0]).toBe(1)
-      expect(result[result.length - 1]).toBe(20)
-      expect(result).toHaveLength(20)
-    })
-  })
-
-  /** Tests for building country view models for the UI. */
-  describe('_buildCountryViewModel()', () => {
-    test('builds full country view model', () => {
-      const country = {
-        code: 'ARG',
-        countryName: 'Argentina',
-        group: 'A',
-        flag: 'flag-url',
-        counts: {
-          1: 1,
-          2: 0
-        }
-      }
-      const result = service._buildCountryViewModel(country)
-      expect(result.code).toBe('ARG')
-      expect(result.countryName).toBe('Argentina')
-      expect(result.isCompleted).toBe(false)
-      expect(result.stickers.length).toBeGreaterThan(0)
-      expect(result.summary).toHaveProperty('missing')
-    })
-  })
   /** Tests for applyPendingUpdates(). */
   describe('applyPendingUpdates()', () => {
     test('applies normalized updates and returns refreshed countries', () => {
-      const result = service.applyPendingUpdates([{ countryCode: 'mex', stickerNumber: 4, count: 0 }])
+      const result = service.applyPendingUpdates([{ code: 'mex', stickers: [{ number: 4, count: 0 }] }])
       const written = __countsRange.setValues.mock.calls[0][0]
       expect(written[1][4]).toBe('')
       expect(result).toEqual({ success: true, message: 'Updated 1 sticker value(s).', countries: expect.any(Array) })
     })
+    test('normalizes country code casing and groups multiple countries', () => {
+      const spy = jest.spyOn(service.repo, 'updateStickerCounts')
+      service.applyPendingUpdates([
+        { code: 'mex', stickers: [{ number: 4, count: 2 }, { number: 5, count: 1 }] },
+        { code: 'fwc', stickers: [{ number: 1, count: 3 }] }
+      ])
+      expect(spy).toHaveBeenCalledWith({
+        countries: [
+          { code: 'MEX', counts: new Map([[4, 2], [5, 1]]) },
+          { code: 'FWC', counts: new Map([[1, 3]]) }
+        ]
+      })
+    })
+    test('counts individual sticker updates across countries, not country entries', () => {
+      const result = service.applyPendingUpdates([
+        { code: 'mex', stickers: [{ number: 4, count: 2 }, { number: 5, count: 1 }] },
+        { code: 'fwc', stickers: [{ number: 1, count: 3 }] }
+      ])
+      expect(result.message).toBe('Updated 3 sticker value(s).')
+    })
     test('throws when no updates are provided', () => {
       expect(() => service.applyPendingUpdates([])).toThrow('There are no pending updates to apply.')
     })
+    test('rejects an empty country code', () => {
+      expect(() =>
+        service.applyPendingUpdates([{ code: '', stickers: [{ number: 1, count: 1 }] }])
+      ).toThrow('Country code is required.')
+    })
+    test('rejects a country entry with no sticker updates', () => {
+      expect(() =>
+        service.applyPendingUpdates([{ code: 'mex', stickers: [] }])
+      ).toThrow('No sticker updates provided for MEX.')
+    })
     test('rejects invalid sticker number', () => {
       expect(() =>
-        service.applyPendingUpdates([{ countryCode: 'MEX', stickerNumber: 99, count: 1 }])
+        service.applyPendingUpdates([{ code: 'MEX', stickers: [{ number: 99, count: 1 }] }])
       ).toThrow('Sticker 99 is not valid for country code "MEX".')
     })
     test('rejects negative counts', () => {
       expect(() =>
-        service.applyPendingUpdates([{ countryCode: 'MEX', stickerNumber: 1, count: -1 }])
+        service.applyPendingUpdates([{ code: 'MEX', stickers: [{ number: 1, count: -1 }] }])
       ).toThrow('Invalid count "-1" for MEX sticker 1.')
     })
-    test('sends canonical payload to repository', () => {
-      const spy = jest.spyOn(service.repo, 'updateStickerCounts')
-      service.applyPendingUpdates([
-        { countryCode: 'mex', stickerNumber: 4, count: 2 },
-        { countryCode: 'mex', stickerNumber: 5, count: 1 }
-      ])
-      expect(spy).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 4: 2, 5: 1 } }] })
+  })
+})
+
+/**
+ * Cross-layer integration scenarios: feeds the actual payload produced by
+ * QuickEntryHelpers.getPendingUpdates() (client) into the real
+ * QuickEntryService.applyPendingUpdates() (backend), end-to-end. Isolated unit tests on
+ * each side independently assert against the *documented* wire shape, but neither one
+ * calls the other - this is the one test that would catch the two layers silently
+ * drifting apart (e.g. one side re-flattening the payload, or miscounting sticker
+ * edits per country the way applyPendingUpdates()/updatePendingChangesMessage() both
+ * once did before being fixed).
+ */
+describe('QuickEntryService/QuickEntryHelpers integration scenarios', () => {
+  const { helpers } = require('../build/QuickEntryHelpers.html.js')
+  let service
+
+  beforeEach(() => {
+    initTestKernel()
+    service = new QuickEntryService()
+  })
+
+  test('client pending-update payload is accepted end-to-end by the backend', () => {
+    // Simulates the UI state after two edits on MEX and one on FWC.
+    const clientState = { 'MEX|18': 2, 'MEX|20': 0, 'FWC|1': 3 }
+    const payload = helpers.getPendingUpdates(clientState)
+
+    const spy = jest.spyOn(service.repo, 'updateStickerCounts')
+    const result = service.applyPendingUpdates(payload)
+
+    expect(spy).toHaveBeenCalledWith({
+      countries: [
+        { code: 'MEX', counts: new Map([[18, 2], [20, 0]]) },
+        { code: 'FWC', counts: new Map([[1, 3]]) }
+      ]
     })
+    expect(result.success).toBe(true)
+    // 3 individual sticker edits across 2 countries - would read "Updated 2 sticker value(s)."
+    // if the message were (incorrectly) counting grouped country entries instead.
+    expect(result.message).toBe('Updated 3 sticker value(s).')
   })
 })

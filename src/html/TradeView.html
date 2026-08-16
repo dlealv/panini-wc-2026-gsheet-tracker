@@ -4,27 +4,24 @@
   Shared Trade interface used by:
     - TradeDialog.html (desktop)
     - MobileTradeView.html (mobile web app)
-
   Purpose:
     - Render the Trade workflow.
     - Coordinate user interactions.
     - Invoke backend services.
     - Keep the Trade workflow consistent across desktop and mobile.
-
   Host integration:
     - This view is loaded by platform-specific containers.
     - Parent containers provide configuration through initializeTradeView().
     - The platform configuration controls host-specific behavior only
       (for example, QR upload vs camera capture and dialog closing).
     - Business logic and Trade workflow remain shared here.
-
   Notes:
     - TradeDialog.html acts as the desktop adapter.
     - MobileTradeView.html acts as the mobile adapter.
     - Parent containers should not implement Trade workflow logic.
 -->
 
-<div id="tradeInputView">
+<div id="tradeInputView"><!-- view: Trade input -->
   <div class="section"><!-- section: Generate your trade information QR code -->
     <div class="section-title">Generate your trade information QR code</div>
     <div class="trade-toolbar">
@@ -73,11 +70,11 @@
       <button id="continueButton" class="btn btn-primary">Continue</button>
       <button id="closeTradeButton" class="btn">Close</button>
     </div><!-- /actions -->
-  </div><!-- /section: Action-->
-</div><!-- /tradeInputView -->
+  </div><!-- /section: Action -->
+</div><!-- /view: Trade input -->
 
-<div id="generateQrView" style="display:none;">
-  <div class="label-row">
+<div id="generateQrView" style="display:none;"><!-- view: Generate QR -->
+  <div class="label-row"><!-- label-row -->
     <div class="section-title">Generate trade QR code</div>
     <div class="trade-information-actions">
       <button class="backQrButton btn btn-inline">Back</button>
@@ -98,22 +95,22 @@
       <div id="tradeQrInfo" class="preview"></div>
     </div>
   </div><!-- /section: Message -->
-  <div class="section"><!--Action section-->
+  <div class="section"><!-- section: Action -->
     <div class="section-title">Actions</div>
     <div class="actions">
       <button class="backQrButton btn btn-primary">Back</button>
       <button id="closeQrButton" class="btn">Close</button>
     </div><!-- /actions -->
   </div><!-- /section: Action -->
-</div><!-- /generateQrView -->
+</div><!-- /view: Generate QR -->
 
-<div id="tradeProposalView" style="display:none;">
-  <div class="label-row">
+<div id="tradeProposalView" style="display:none;"><!-- view: Trade proposal -->
+  <div class="label-row"><!-- label-row -->
     <div class="section-title">Trade proposal</div>
     <div class="trade-information-actions"></div>
   </div><!-- /label-row -->
-  <div class="proposal-container">
-    <div class="proposal-actions">
+  <div class="proposal-container"><!-- proposal-container -->
+    <div class="proposal-actions"><!-- proposal-actions -->
       <div id="proposalHint" class="hint"></div>
       <div id="proposalLegend" class="hint" style="display:none;">
         Legend: 🟩 Included in current proposal</div>
@@ -158,14 +155,14 @@
         </div>
       </div>
     </div><!-- /section: Proposal limits -->
-    <div id="proposalMessageSection" class="section" style="display:none;">
+    <div id="proposalMessageSection" class="section" style="display:none;"><!-- section: Proposal messages -->
       <div class="section-title">Messages</div>
       <div class="message-section">
         <div id="proposal-message" class="message info"></div>
       </div>
     </div><!-- /section: Proposal messages -->
   </div><!-- /proposal-container -->
-  <div class="section">
+  <div class="section"><!-- section: Actions -->
     <div class="section-title">Actions</div>
     <div class="actions">
       <button id="backToTradeInputButton" class="btn">Back</button>
@@ -174,7 +171,7 @@
       <button id="closeProposalButton" class="btn">Close</button>
     </div><!-- /actions -->
   </div><!-- /section: Actions -->
-</div><!-- /tradeProposalView -->
+</div><!-- /view: Trade proposal -->
 
 <!--
   Third-party dependency:

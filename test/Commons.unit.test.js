@@ -92,8 +92,8 @@ describe('StickerSheetRepository unit tests', () => {
   }
 
   /** Test each range getter with shared behaviors. */
-  describe('getCountriesRange()', () => {
-    testRangeGetter('getCountriesRange')
+  describe('getCountryCodesRange()', () => {
+    testRangeGetter('getCountryCodesRange')
   })
 
   /** Test each range getter with shared behaviors. */
@@ -182,38 +182,27 @@ describe('StickerSheetRepository unit tests', () => {
     testCachedNumberGetter('getNumStickerCols', 1)
   })
 
-  /** Test getCountryMap() method */
-  describe('getCountryMap()', () => {
-    test('returns valid country map object', () => {
-      const map = repo.getCountryMap()
-      expect(map).toBeDefined()
-      expect(typeof map).toBe('object')
-      expect(map.FWC).toEqual({ row: 1, index: 0 })
-      expect(map.MEX).toEqual({ row: 2, index: 1 })
+  /** Test getCountryCodes() method */
+  describe('getCountryCodes()', () => {
+    test('returns normalized codes in album order (COUNTRIES range order)', () => {
+      repo.countryCodeRange = { getValues: jest.fn(() => [['fwc'], [' mex '], ['ARG']]) }
+      expect(repo.getCountryCodes()).toEqual(new Set(['FWC', 'MEX', 'ARG']))
     })
-    test('caches value', () => {
-      const first = repo.getCountryMap()
-      const second = repo.getCountryMap()
+    test('filters empty and whitespace-only rows', () => {
+      repo.countryCodeRange = { getValues: jest.fn(() => [['FWC'], [''], ['   '], ['MEX']]) }
+      expect(repo.getCountryCodes()).toEqual(new Set(['FWC', 'MEX']))
+    })
+    test('caches value and reads the range only once', () => {
+      const getValues = jest.fn(() => [['FWC'], ['MEX']])
+      repo.countryCodeRange = { getValues }
+      const first = repo.getCountryCodes()
+      const second = repo.getCountryCodes()
       expect(first).toBe(second)
+      expect(getValues).toHaveBeenCalledTimes(1)
     })
-    test('uses getStartRow for row offset', () => {
-      repo.countries = [{ code: 'FWC' }, { code: 'MEX' }]
-      repo.getStartRow = jest.fn(() => 10)
-      expect(repo.getCountryMap()).toEqual({ FWC: { row: 10, index: 0 }, MEX: { row: 11, index: 1 } })
-    })
-    test('uses startRow property fallback', () => {
-      repo.countries = [{ code: 'ARG' }]
-      repo.startRow = 25
-      expect(repo.getCountryMap()).toEqual({ ARG: { row: 25, index: 0 } })
-    })
-    test('returns empty object when no countries exist', () => {
-      repo.countries = []
-      expect(repo.getCountryMap()).toEqual({})
-    })
-    test('last duplicate country code wins', () => {
-      repo.countries = [{ code: 'ARG' }, { code: 'BRA' }, { code: 'ARG' }]
-      repo.startRow = 1
-      expect(repo.getCountryMap()).toEqual({ ARG: { row: 3, index: 2 }, BRA: { row: 2, index: 1 } })
+    test('returns empty set when no valid codes exist', () => {
+      repo.countryCodeRange = { getValues: jest.fn(() => [[''], [' '], [null]]) }
+      expect(repo.getCountryCodes()).toEqual(new Set())
     })
   })
 
@@ -234,68 +223,105 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
-  /** Test getStickerCount() method */
+  /** Test getFlagIcons() method */
+  describe('getFlagIcons()', () => {
+    test('returns positional flag icon values, trimmed, blank rows preserved as empty string', () => {
+      const icons = repo.getFlagIcons()
+      expect(icons[0]).toBe('🏆')
+      expect(icons[1]).toBe('🇲🇽')
+      expect(icons[2]).toBe('')
+      expect(icons).toHaveLength(50)
+    })
+    test('trims surrounding whitespace', () => {
+      repo.flagIconsRange = { getDisplayValues: jest.fn(() => [[' 🏆 '], ['🇲🇽']]) }
+      expect(repo.getFlagIcons()).toEqual(['🏆', '🇲🇽'])
+    })
+    test('caches value', () => {
+      const first = repo.getFlagIcons()
+      const second = repo.getFlagIcons()
+      expect(first).toBe(second)
+    })
+  })
+
+  /** Test getDone() method */
+  describe('getDone()', () => {
+    test('returns positional Done values computed from the DONE named range', () => {
+      const done = repo.getDone()
+      expect(done[0]).toBe(2) // FWC: stickers 1,3 owned (see TEST_DATA)
+      expect(done[1]).toBe(2) // MEX: stickers 18,20 owned
+      expect(done[2]).toBe(0) // CC: none owned
+      expect(done).toHaveLength(50)
+    })
+    test('normalizes invalid/blank values to zero', () => {
+      repo.doneRange = { getValues: jest.fn(() => [[''], [null], ['abc'], [3]]) }
+      expect(repo.getDone()).toEqual([0, 0, 0, 3])
+    })
+    test('caches value', () => {
+      const first = repo.getDone()
+      const second = repo.getDone()
+      expect(first).toBe(second)
+    })
+  })
+
+  /**
+   * Test getStickerCount() method. Also covers getCountryCounts(), an inner function of getStickerCount()
+   * (only ever called from there) - per the "public methods only" testing rule, its row-lookup/normalization
+   * behavior is exercised entirely through this public entry point instead of a dedicated describe block.
+   */
   describe('getStickerCount()', () => {
     test('returns one sticker count', () => {
       expect(repo.getStickerCount('FWC', 1)).toBe(1)
+      expect(repo.getStickerCount('FWC', 3)).toBe(2)
+    })
+    test('returns normalized counts across a multi-row COUNTS range', () => {
+      repo.countsRange = {
+        getValues: jest.fn(() => [['', 1, '2', -1], [3, '', null, 'abc']])
+      }
+      repo.countryCodes = new Set(['ARG'])
+      repo.countryIndexByCode = new Map([['ARG', 0]])
+      expect(repo.getStickerCount('ARG', 0)).toBe(0)
+      expect(repo.getStickerCount('ARG', 1)).toBe(1)
+      expect(repo.getStickerCount('ARG', 2)).toBe(2)
+      expect(repo.getStickerCount('ARG', 3)).toBe(0)
+    })
+    test('normalizes invalid values to zero', () => {
+      repo.countsRange = {
+        getValues: jest.fn(() => [['', null, 'abc', -1, 2]])
+      }
+      repo.countryCodes = new Set(['ARG'])
+      repo.countryIndexByCode = new Map([['ARG', 0]])
+      expect(repo.getStickerCount('ARG', 0)).toBe(0)
+      expect(repo.getStickerCount('ARG', 1)).toBe(0)
+      expect(repo.getStickerCount('ARG', 2)).toBe(0)
+      expect(repo.getStickerCount('ARG', 3)).toBe(0)
+      expect(repo.getStickerCount('ARG', 4)).toBe(2)
     })
     test('throws when counts row is empty (ARG setup)', () => {
       repo.countsRange = { getValues: jest.fn(() => []) }
-      repo.countryMap = { ARG: { index: 0, row: 1 } }
+      repo.countryCodes = new Set(['ARG'])
+      repo.countryIndexByCode = new Map([['ARG', 0]])
       expect(() => repo.getStickerCount('ARG', 1)).toThrow('No count data found for country "ARG"')
     })
     test('throws when counts row is empty (FWC kernel case)', () => {
       repo.countsRange = { getValues: jest.fn(() => []) }
       expect(() => repo.getStickerCount('FWC', 1)).toThrow('No count data found for country "FWC"')
     })
+    test('throws when COUNTRIES range is empty', () => {
+      repo.countryCodes = new Set()
+      expect(() => repo.getStickerCount('FWC', 1)).toThrow()
+    })
     test('rejects invalid sticker number', () => {
-      repo.countryMap = { ARG: { index: 0, row: 1 } }
       expect(() => repo.getStickerCount('ARG', 99)).
         toThrow('Sticker number 99 is outside allowed range 0-20.')
     })
     test('normalizes country code before lookup', () => {
       expect(repo.getStickerCount(' fwc ', 1)).toBe(1)
+      expect(repo.getStickerCount('mex', 18)).toBe(1)
+      expect(repo.getStickerCount('mex', 20)).toBe(2)
     })
     test('throws when country code does not exist', () => {
       expect(() => repo.getStickerCount('ARG', 1)).
         toThrow('Country code "ARG" was not found in the COUNTRIES named range.')
-    })
-  })
-
-  /** Test getCountryCounts() method */
-  describe('getCountryCounts()', () => {
-    test('returns country counts from repository', () => {
-      const counts = repo.getCountryCounts('FWC')
-      expect(counts[1]).toBe(1)
-      expect(counts[3]).toBe(2)
-    })
-    test('returns normalized counts', () => {
-      repo.countsRange = {
-        getValues: jest.fn(() => [['', 1, '2', -1], [3, '', null, 'abc']])
-      }
-      repo.countryMap = { ARG: { index: 0, row: 1 } }
-      expect(repo.getCountryCounts('ARG')).toEqual([0, 1, 2, 0])
-    })
-    test('normalizes invalid values to zero', () => {
-      repo.countsRange = {
-        getValues: jest.fn(() => [['', null, 'abc', -1, 2]])
-      }
-      repo.countryMap = { ARG: { index: 0, row: 1 } }
-      expect(repo.getCountryCounts('ARG')).toEqual([0, 0, 0, 0, 2])
-    })
-    test('normalizes country code before lookup', () => {
-      expect(repo.getCountryCounts(' fwc ')[1]).toBe(1)
-      const mexCounts = repo.getCountryCounts('mex')
-      expect(mexCounts[18]).toBe(1)
-      expect(mexCounts[20]).toBe(2)
-    })
-    test('throws when country code does not exist', () => {
-      expect(() => repo.getCountryCounts('ARG')).
-        toThrow('Country code "ARG" was not found in the COUNTRIES named range.')
-    })
-    test('getCountryCounts throws when COUNTRIES range is empty', () => {
-      repo.countryMap = {}
-      expect(() => repo.getCountryCounts('FWC')).toThrow()
     })
   })
 
@@ -336,7 +362,8 @@ describe('StickerSheetRepository unit tests', () => {
   describe('updateStickerCounts()', () => {
     let countsRange
     beforeEach(() => {
-      repo.countryMap = { FWC: { index: 0, row: 1 }, MEX: { index: 1, row: 2 }, CC: { index: 2, row: 3 } }
+      repo.countryCodes = new Set(['FWC', 'MEX', 'CC'])
+      repo.countryIndexByCode = new Map([['FWC', 0], ['MEX', 1], ['CC', 2]])
       countsRange = {
         getValues: jest.fn(() => [Array(21).fill(''), Array(21).fill(''), Array(21).fill('')]),
         setValues: jest.fn()
@@ -345,20 +372,20 @@ describe('StickerSheetRepository unit tests', () => {
     })
     test('update mode: groups updates and applies once per country', () => {
       repo._applyCountUpdates = jest.fn()
-      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 2, 5: 4 } }, { code: 'MEX', counts: { 3: 1 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: new Map([[1, 2], [5, 4]]) }, { code: 'MEX', counts: new Map([[3, 1]]) }] })
       expect(repo._applyCountUpdates).toHaveBeenCalledTimes(2)
-      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(1, { code: 'FWC', counts: { 1: 2, 5: 4 } }, expect.any(Array), false)
-      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(2, { code: 'MEX', counts: { 3: 1 } }, expect.any(Array), false)
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(1, { code: 'FWC', counts: new Map([[1, 2], [5, 4]]) }, expect.any(Array), false)
+      expect(repo._applyCountUpdates).toHaveBeenNthCalledWith(2, { code: 'MEX', counts: new Map([[3, 1]]) }, expect.any(Array), false)
       expect(countsRange.setValues).toHaveBeenCalledTimes(1)
     })
     test('update mode: writes all updated rows in a single setValues call', () => {
       repo._applyCountUpdates = jest.fn((country, row) => {
-        Object.entries(country.counts).forEach(([s, c]) => { row[s] = c })
+        country.counts.forEach((c, s) => { row[s] = c })
       })
       repo.updateStickerCounts({
         countries: [
-          { code: 'FWC', counts: { 1: 2 } },
-          { code: 'MEX', counts: { 3: 1 } }
+          { code: 'FWC', counts: new Map([[1, 2]]) },
+          { code: 'MEX', counts: new Map([[3, 1]]) }
         ]
       })
       const values = countsRange.setValues.mock.calls[0][0]
@@ -376,28 +403,28 @@ describe('StickerSheetRepository unit tests', () => {
           return row
         })()
       ])
-      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: { 20: 0 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: new Map([[20, 0]]) }] })
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[1][17]).toBe(1)
       expect(values[1][20]).toBe('')
     })
     test('update mode: stores 0 for invalid FWC sticker 20', () => {
-      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 20: 0 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: new Map([[20, 0]]) }] })
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[0][20]).toBe(0)
     })
     test('update mode: stores 0 for invalid CC sticker 13', () => {
-      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: { 13: 0 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: new Map([[13, 0]]) }] })
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[2][13]).toBe(0)
     })
     test('update mode: stores 0 for invalid CC sticker 13 with positive count', () => {
-      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: { 13: 1 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'CC', counts: new Map([[13, 1]]) }] })
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[2][13]).toBe(0)
     })
     test('update mode: stores 0 for invalid MEX sticker 0', () => {
-      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: { 0: 0 } }] })
+      repo.updateStickerCounts({ countries: [{ code: 'MEX', counts: new Map([[0, 0]]) }] })
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[1][0]).toBe(0)
     })
@@ -411,8 +438,8 @@ describe('StickerSheetRepository unit tests', () => {
       repo._applyCountUpdates = jest.fn()
       repo.updateStickerCounts({
         countries: [
-          { code: 'MEX', counts: { 1: 1 } },
-          { code: 'FWC', counts: { 1: 1 } }
+          { code: 'MEX', counts: new Map([[1, 1]]) },
+          { code: 'FWC', counts: new Map([[1, 1]]) }
         ]
       })
       expect(repo._applyCountUpdates.mock.calls.map(call => call[0].code)).toEqual(['MEX', 'FWC'])
@@ -422,8 +449,8 @@ describe('StickerSheetRepository unit tests', () => {
       countsRange.setValues = jest.fn()
       repo.updateStickerCounts({
         countries: [
-          { code: 'FWC', counts: { 1: 2, 5: 4 } },
-          { code: 'MEX', counts: { 3: 1 } }
+          { code: 'FWC', counts: new Map([[1, 2], [5, 4]]) },
+          { code: 'MEX', counts: new Map([[3, 1]]) }
         ]
       })
       expect(countsRange.getValues).toHaveBeenCalledTimes(1)
@@ -436,9 +463,9 @@ describe('StickerSheetRepository unit tests', () => {
         [11, 12, 13, 14, 15]
       ])
       repo._applyCountUpdates = jest.fn((country, row) => {
-        row[1] = country.counts[1]
+        row[1] = country.counts.get(1)
       })
-      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 99 } }] }, 'replace_countries')
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: new Map([[1, 99]]) }] }, 'replace_countries')
       const values = countsRange.setValues.mock.calls[0][0]
       expect(values[0][0]).toBe('')
       expect(values[0][1]).toBe(99)
@@ -447,7 +474,7 @@ describe('StickerSheetRepository unit tests', () => {
       expect(values[2]).toEqual([11, 12, 13, 14, 15])
     })
     test('clean_all mode: clears all and restores invalid positions and update counts for one country', () => {
-      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: { 1: 2 } }] }, 'clean_all')
+      repo.updateStickerCounts({ countries: [{ code: 'FWC', counts: new Map([[1, 2]]) }] }, 'clean_all')
       const written = countsRange.setValues.mock.calls[0][0]
       expect(countsRange.setValues).toHaveBeenCalledTimes(1)
       const fwcRow = written[0]
@@ -457,7 +484,7 @@ describe('StickerSheetRepository unit tests', () => {
       checkStickers(mexRow, [], [0])
     })
     test('clean_all mode: clears all and restores invalid positions and update counts for two countries', () => {
-      const countries = [{ code: 'FWC', counts: { 1: 1 } }, { code: 'MEX', counts: { 2: 1 } }]
+      const countries = [{ code: 'FWC', counts: new Map([[1, 1]]) }, { code: 'MEX', counts: new Map([[2, 1]]) }]
       repo.updateStickerCounts({ countries }, 'clean_all')
       const written = countsRange.setValues.mock.calls[0][0]
       expect(countsRange.setValues).toHaveBeenCalledTimes(1)
@@ -477,19 +504,19 @@ describe('StickerSheetRepository unit tests', () => {
       expect(countries).toHaveLength(3)
       expect(countries[0]).toMatchObject({
         code: 'FWC',
-        countryName: 'World Cup',
+        name: 'World Cup',
         group: 'A',
         flag: 'https://upload.wikimedia.org/wikipedia/commons/1/10/Flag_of_FIFA.svg'
       })
-      expect(countries[0].counts[1]).toBe(1)
-      expect(countries[0].counts[3]).toBe(2)
+      expect(countries[0].counts.get(1)).toBe(1)
+      expect(countries[0].counts.get(3)).toBe(2)
     })
     test('preserves sheet order', () => {
       const res = repo.getCountries()
       expect(res[0].code).toBe('FWC')
     })
     test('handles missing optional metadata safely', () => {
-      repo.countriesRange = { getValues: () => [['FWC'], ['CC']] }
+      repo.countryCodeRange = { getValues: () => [['FWC'], ['CC']] }
       repo.groupsRange = { getValues: () => [['A']] }
       repo.flagsUrlRange = { getDisplayValues: () => [['flag']] }
       repo.countryNamesRange = { getDisplayValues: () => [['World Cup'], ['Club Cup']] }
@@ -499,7 +526,7 @@ describe('StickerSheetRepository unit tests', () => {
       expect(res[1].flag).toBe('')
     })
     test('normalizes country fields (trim + uppercase)', () => {
-      repo.countriesRange = { getValues: () => [[' arg ']] }
+      repo.countryCodeRange = { getValues: () => [[' arg ']] }
       repo.groupsRange = { getValues: () => [[' b ']] }
       repo.flagsUrlRange = { getDisplayValues: () => [[' flag ']] }
       repo.countryNamesRange = { getDisplayValues: () => [[' Argentina ']] }
@@ -509,57 +536,57 @@ describe('StickerSheetRepository unit tests', () => {
       expect(res.code).toBe('ARG')
       expect(res.group).toBe('B')
       expect(res.flag).toBe('flag')
-      expect(res.countryName).toBe('Argentina')
+      expect(res.name).toBe('Argentina')
     })
     test('normalizes invalid counts to zero', () => {
       repo.countsRange = { getValues: () => [['', null, 'abc', -1, 2], Array(5).fill('')] }
       const res = repo.getCountries()[0].counts
-      expect(res).toEqual([0, 0, 0, 0, 2])
+      expect(res).toEqual(new Map([[0, 0], [1, 0], [2, 0], [3, 0], [4, 2]]))
     })
     test('returns empty array when no valid countries exist', () => {
-      repo.countriesRange = { getValues: () => [['']] }
+      repo.countryCodeRange = { getValues: () => [['']] }
       const res = repo.getCountries()
       expect(res).toEqual([])
     })
     test('filters out rows with empty country codes', () => {
-      repo.countriesRange = { getValues: () => [['FWC'], [''], ['   '], ['MEX']] }
+      repo.countryCodeRange = { getValues: () => [['FWC'], [''], ['   '], ['MEX']] }
       const res = repo.getCountries()
       expect(res.map(c => c.code)).toEqual(['FWC', 'MEX'])
     })
     test('keeps data aligned across all named ranges', () => {
-      repo.countriesRange = { getValues: () => [['FWC'], ['MEX']] }
+      repo.countryCodeRange = { getValues: () => [['FWC'], ['MEX']] }
       repo.groupsRange = { getValues: () => [['A'], ['B']] }
       repo.flagsUrlRange = { getDisplayValues: () => [['f1'], ['f2']] }
       repo.countryNamesRange = { getDisplayValues: () => [['WC'], ['MX']] }
       repo.countsRange = { getValues: () => [[1], [2]] }
       const res = repo.getCountries()
-      expect(res[0]).toMatchObject({ code: 'FWC', group: 'A', countryName: 'WC' })
-      expect(res[1]).toMatchObject({ code: 'MEX', group: 'B', countryName: 'MX' })
+      expect(res[0]).toMatchObject({ code: 'FWC', group: 'A', name: 'WC' })
+      expect(res[1]).toMatchObject({ code: 'MEX', group: 'B', name: 'MX' })
     })
     test('keeps valid numeric counts unchanged', () => {
       repo.countsRange = { getValues: () => [[0, 1, 2, 20]] }
       const res = repo.getCountries()[0].counts
-      expect(res).toEqual([0, 1, 2, 20])
+      expect(res).toEqual(new Map([[0, 0], [1, 1], [2, 2], [3, 20]]))
     })
     test('handles missing optional metadata gracefully', () => {
       repo.groupsRange = { getValues: () => [[]] }
       repo.flagsUrlRange = { getDisplayValues: () => [[]] }
       repo.countryNamesRange = { getDisplayValues: () => [[]] }
-      repo.countriesRange = { getValues: () => [['FWC']] }
+      repo.countryCodeRange = { getValues: () => [['FWC']] }
       repo.countsRange = { getValues: () => [[1]] }
       const res = repo.getCountries()[0]
       expect(res.group).toBe('')
       expect(res.flag).toBe('')
-      expect(res.countryName).toBe('')
+      expect(res.name).toBe('')
     })
     test('handles missing counts row safely', () => {
-      repo.countriesRange = { getValues: () => [['FWC'], ['MEX']] }
+      repo.countryCodeRange = { getValues: () => [['FWC'], ['MEX']] }
       repo.groupsRange = { getValues: () => [['A'], ['B']] }
       repo.flagsUrlRange = { getDisplayValues: () => [['f1'], ['f2']] }
       repo.countryNamesRange = { getDisplayValues: () => [['WC'], ['MX']] }
       repo.countsRange = { getValues: () => [[1, 2, 3]] } // ❌ only 1 row
       const res = repo.getCountries()
-      expect(res[1].counts).toEqual([])
+      expect(res[1].counts).toEqual(new Map())
     })
     test('returns cached reference (mutation affects cache)', () => {
       const first = repo.getCountries()
@@ -570,7 +597,7 @@ describe('StickerSheetRepository unit tests', () => {
       expect(second).toBe(first)
     })
     test('filters empty and whitespace-only country rows', () => {
-      repo.countriesRange = { getValues: () => [['FWC'], [''], ['   '], ['MEX']] }
+      repo.countryCodeRange = { getValues: () => [['FWC'], [''], ['   '], ['MEX']] }
       expect(repo.getCountries().map(c => c.code)).toEqual(['FWC', 'MEX'])
     })
     test('getCountries returns cached reference (mutations affect cache)', () => {
@@ -580,6 +607,81 @@ describe('StickerSheetRepository unit tests', () => {
       const second = repo.getCountries()
       expect(second).toBe(first)
       expect(second.length).toBe(lenBefore + 1)
+    })
+
+    describe('onlyVisible=true', () => {
+      test('narrows counts to each country type\'s visible bounds', () => {
+        const [fwc, mex, cc] = repo.getCountries({ onlyVisible: true })
+        expect(Array.from(fwc.counts.keys())).toEqual(Array.from({ length: 20 }, (_, i) => i)) // 0-19
+        expect(Array.from(mex.counts.keys())).toEqual(Array.from({ length: 20 }, (_, i) => i + 1)) // 1-20
+        expect(Array.from(cc.counts.keys())).toEqual(Array.from({ length: 12 }, (_, i) => i + 1)) // 1-12
+      })
+      test('preserves count values within the visible range', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true })
+        expect(fwc.counts.get(1)).toBe(1)
+        expect(fwc.counts.get(3)).toBe(2)
+      })
+      test('preserves non-counts fields unchanged', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true })
+        expect(fwc).toMatchObject({ code: 'FWC', name: 'World Cup', group: 'A' })
+      })
+      test('does not affect the default (dense) result', () => {
+        const dense = repo.getCountries()
+        expect(Array.from(dense[0].counts.keys())).toHaveLength(21) // untouched, still 0-20
+      })
+      test('caches the visible variant separately from the dense one', () => {
+        const first = repo.getCountries({ onlyVisible: true })
+        const second = repo.getCountries({ onlyVisible: true })
+        expect(first).toBe(second)
+      })
+      test('dense and visible calls in the same execution do not corrupt each other, in either order', () => {
+        const dense1 = repo.getCountries()
+        const visible1 = repo.getCountries({ onlyVisible: true })
+        const dense2 = repo.getCountries()
+        const visible2 = repo.getCountries({ onlyVisible: true })
+        expect(Array.from(dense1[0].counts.keys())).toHaveLength(21)
+        expect(Array.from(visible1[0].counts.keys())).toHaveLength(20)
+        expect(dense2).toBe(dense1)
+        expect(visible2).toBe(visible1)
+      })
+    })
+
+    describe('includeIcon/includeDone/includeName/includeGroup/includeFlag', () => {
+      test('includeIcon=true adds the icon field, zipped by row position', () => {
+        const [fwc, mex] = repo.getCountries({ includeIcon: true })
+        expect(fwc.icon).toBe('🏆')
+        expect(mex.icon).toBe('🇲🇽')
+      })
+      test('includeDone=true adds the done field, zipped by row position', () => {
+        const [fwc, mex] = repo.getCountries({ includeDone: true })
+        expect(typeof fwc.done).toBe('number')
+        expect(typeof mex.done).toBe('number')
+      })
+      test('includeIcon/includeDone default to false (absent from the default record)', () => {
+        const [fwc] = repo.getCountries()
+        expect(fwc).not.toHaveProperty('icon')
+        expect(fwc).not.toHaveProperty('done')
+      })
+      test('includeName/includeGroup/includeFlag=false excludes those fields', () => {
+        const [fwc] = repo.getCountries({ includeName: false, includeGroup: false, includeFlag: false })
+        expect(fwc).not.toHaveProperty('name')
+        expect(fwc).not.toHaveProperty('group')
+        expect(fwc).not.toHaveProperty('flag')
+        expect(fwc).toMatchObject({ code: 'FWC' })
+        expect(fwc.counts).toBeInstanceOf(Map)
+      })
+      test('a non-default shape is not cached (fresh array each call)', () => {
+        const first = repo.getCountries({ includeIcon: true })
+        const second = repo.getCountries({ includeIcon: true })
+        expect(first).not.toBe(second)
+        expect(first).toEqual(second)
+      })
+      test('combines onlyVisible with includeIcon/includeDone', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true, includeIcon: true, includeDone: true })
+        expect(Array.from(fwc.counts.keys())).toHaveLength(20)
+        expect(fwc).toHaveProperty('icon')
+        expect(fwc).toHaveProperty('done')
+      })
     })
   })
 })

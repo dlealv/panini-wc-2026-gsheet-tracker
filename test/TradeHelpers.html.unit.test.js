@@ -607,16 +607,7 @@ describe('TradeHelpers unit tests', () => {
         sortMode: 'preferences',
         tradePreferences
       })
-      expect(result.receive).toEqual({
-        ESP: [5, 6],
-        CC: [2, 12],
-        MEX: [1, 13, 2],
-        KOR: [13, 5],
-        FRA: [20, 10],
-        POR: [15, 2],
-        RSA: [2, 3],
-        BRA: [7, 8]
-      })
+      expect(result.receive).toEqual({ ESP: [5, 6], CC: [2, 12], MEX: [1, 13, 2], KOR: [13, 5], FRA: [20, 10], POR: [15, 2], RSA: [2, 3], BRA: [7, 8] })
     })
     test('sortby preferences: applies receive and send limits after sorting receive and send order is respected', () => {
       const matches = {

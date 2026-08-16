@@ -1,39 +1,88 @@
 /** @OnlyCurrentDoc */
-//src/Commons.gs
+// src/Commons.gs
 
 /**
  * Provides shared spreadsheet access, named range validation, and common lookup utilities.
  * This file centralizes reusable data access for import/export and Quick Entry flows.
- * 
- * NOTE: the export tag in comments indicates classes intended to be testable and exposed for 
- * external use, so they should not be removed or altered without consideration of their role in the overall 
+ * NOTE: the export tag in comments indicates classes intended to be testable and exposed for
+ * external use, so they should not be removed or altered without consideration of their role in the overall
  * application architecture.
  */
 
 // Constants used in the class
-const STICKER_MIN = 0    // start index position
-const STICKER_MAX = 20   // end index position
-const MAX_ROWS = 50      // 48 teams plus FWC and CCC
+const STICKER_MIN = 0 // start index position
+const STICKER_MAX = 20 // end index position
+const MAX_ROWS = 50 // 48 teams plus FWC and CCC
 const EXPECTED_STICKER_COLUMNS = STICKER_MAX - STICKER_MIN + 1
-
-/** Defines valid sticker number ranges for specific countries, used for validation during import and updates. 
+/**
+ * Defines valid sticker number ranges for specific countries, used for validation during import and updates.
  * `TEAM` represents all standard teams, `FWC` represents the World Cup team, and `CC` represents the Coca-Cola team.
- * The bounds are inclusive.*/
+ * The bounds are inclusive.
+ */
 const COUNTRY_BOUNDS = new Map([
-  ['FWC', [STICKER_MIN, STICKER_MAX - 1]],  // FWC has stickers 0-19
-  ['CC', [STICKER_MIN + 1, 12]],            // Coca-Cola has stickers 1-12
-  ['TEAM', [STICKER_MIN + 1, STICKER_MAX]]  // All teams have 1-20 stickers.
+  ['FWC', [STICKER_MIN, STICKER_MAX - 1]], // FWC has stickers 0-19
+  ['CC', [STICKER_MIN + 1, 12]], // Coca-Cola has stickers 1-12
+  ['TEAM', [STICKER_MIN + 1, STICKER_MAX]] // All teams have 1-20 stickers.
 ])
 
-/** Provides shared access to sticker sheet data stored in named ranges. 
+/**
+ * Provides shared access to sticker sheet data stored in named ranges.
  * @export
  */
 class StickerSheetRepository {
-
   // Static getter methods (are used outside of the class):
-  /** Returns the country bounds map, which defines valid sticker number ranges for specific countries.*/
+  /**
+   * Creates a repository for sticker data.
+   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
+   *   Defaults to SpreadsheetApp.getActiveSpreadsheet() for normal dialog context.
+   *   Pass an explicit instance when operating from a web app context where
+   *   getActiveSpreadsheet() returns null (e.g. doGet or google.script.run from a web app).
+   */
+  constructor(ss) {
+    // Constants
+    this.COUNTRY_CODES_RANGE_NAME = 'COUNTRIES'
+    this.COUNTS_RANGE_NAME = 'COUNTS'
+    this.GROUPS_RANGE_NAME = 'GROUPS'
+    this.DONE_RANGE_NAME = 'DONE'
+    this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
+    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
+    this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
+    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
+    this.ss = ss || SpreadsheetApp.getActiveSpreadsheet()
+    this.countryCodeRange = null
+    this.countsRange = null
+    this.groupsRange = null
+    this.flagsUrlRange = null
+    this.flagIconsRange = null
+    this.countryNamesRange = null
+    this.doneRange = null
+    this.sheet = null
+    this.startRow = null
+    this.startCol = null
+    this.numRows = null
+    this.numStickerCols = null
+    this.countryIndexByCode = null
+    this.countryCodes = null
+    this.countries = null
+    this.groupCodes = null
+    this.tradePreferencesRange = null
+    this.tradePreferences = null
+  }
+
+  /** Returns the country bounds map, which defines valid sticker number ranges for specific countries. */
   static getCountryBounds() {
     return new Map(COUNTRY_BOUNDS)
+  }
+
+  /**
+   * Returns the valid sticker-number bounds for one country code, falling back to the shared 'TEAM' range
+   * for any code without its own entry (e.g. all Panini team countries).
+   * @param {string} code - Country code. Example: 'ARG', 'FWC', 'CC'.
+   * @returns {[number,number]} [min,max] sticker bounds, inclusive. Example for 'ARG': [1,20].
+   */
+  static getBoundsForCountry(code) {
+    const bounds = StickerSheetRepository.getCountryBounds()
+    return bounds.get(code) || bounds.get('TEAM')
   }
 
   /* Returns the minimum sticker number allowed, which is 0. */
@@ -51,82 +100,52 @@ class StickerSheetRepository {
     return MAX_ROWS
   }
 
-  /* Returns the expected number of sticker columns*/
+  /* Returns the expected number of sticker columns */
   static getExpectedStickerColumns() {
     return EXPECTED_STICKER_COLUMNS
   }
 
   // Instance methods:
 
-  /** Creates a repository for sticker data.
-   * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss] - Optional spreadsheet instance.
-   *   Defaults to SpreadsheetApp.getActiveSpreadsheet() for normal dialog context.
-   *   Pass an explicit instance when operating from a web app context where
-   *   getActiveSpreadsheet() returns null (e.g. doGet or google.script.run from a web app).
-   */
-  constructor(ss) {
-    // Constants
-    this.COUNTRIES_RANGE_NAME = 'COUNTRIES'
-    this.COUNTS_RANGE_NAME = 'COUNTS'
-    this.GROUPS_RANGE_NAME = 'GROUPS'
-    this.DONE_RANGE_NAME = 'DONE'
-    this.FLAGS_URL_RANGE_NAME = 'FLAGS_URL'
-    this.FLAG_ICONS_RANGE_NAME = 'FLAG_ICONS'
-    this.COUNTRY_NAMES_RANGE_NAME = 'COUNTRY_NAMES'
-    this.TRADE_PREFERENCES_RANGE_NAME = 'TRADE_PREFERENCES'
-
-    this.ss = ss || SpreadsheetApp.getActiveSpreadsheet()
-    this.countriesRange = null
-    this.countsRange = null
-    this.groupsRange = null
-    this.flagsUrlRange = null
-    this.flagIconsRange = null
-    this.countryNamesRange = null
-    this.doneRange = null
-    this.sheet = null
-    this.startRow = null
-    this.startCol = null
-    this.numRows = null
-    this.numStickerCols = null
-    this.countryMap = null
-    this.countries = null
-    this.groupCodes = null
-    this.tradePreferencesRange = null
-    this.tradePreferences = null
-  }
-
   // Getters for named ranges and sheet info
 
-  /** Lazy loads and validates the COUNTRIES named range, ensuring it has the correct shape and dimensions. */
-  getCountriesRange() {
-    if (!this.countriesRange) {
-      const COUNTRIES_RANGE_NAME = this.COUNTRIES_RANGE_NAME
-      this.countriesRange = this.ss.getRangeByName(COUNTRIES_RANGE_NAME)
-      this._validateRange(this.countriesRange, MAX_ROWS, 1, COUNTRIES_RANGE_NAME)
+  /**
+   * Lazy loads and validates the COUNTRIES named range (country codes only), ensuring it has the correct shape
+   * and dimensions.
+   */
+  getCountryCodesRange() {
+    if (!this.countryCodeRange) {
+      const COUNTRY_CODES_RANGE_NAME = this.COUNTRY_CODES_RANGE_NAME
+
+      this.countryCodeRange = this.ss.getRangeByName(COUNTRY_CODES_RANGE_NAME)
+      this._validateRange(this.countryCodeRange, MAX_ROWS, 1, COUNTRY_CODES_RANGE_NAME)
     }
-    return this.countriesRange
+    return this.countryCodeRange
   }
 
   /** Lazy loads and validates the COUNTRY_NAMES named range, ensuring it has the correct shape and dimensions. */
   getCountryNamesRange() {
     if (!this.countryNamesRange) {
       const COUNTRY_NAMES_RANGE_NAME = this.COUNTRY_NAMES_RANGE_NAME
+
       this.countryNamesRange = this.ss.getRangeByName(COUNTRY_NAMES_RANGE_NAME)
       this._validateRange(this.countryNamesRange, MAX_ROWS, 1, COUNTRY_NAMES_RANGE_NAME)
     }
     return this.countryNamesRange
   }
 
-  /** Lazy loads and validates the COUNTS named range, ensuring it has the correct shape and dimensions. 
-   * This method also initializes related properties such as startRow, startCol, numRows, and numStickerCols 
-   * based on the dimensions of the COUNTS range. The COUNTS range is expected to have a number of rows equal to 
-   * MAX_ROWS and a number of columns equal to EXPECTED_STICKER_COLUMNS, which corresponds to the range of sticker 
-   * numbers (0-20). If the named range is not found or does not have the expected dimensions, an error will be 
+  /**
+   * Lazy loads and validates the COUNTS named range, ensuring it has the correct shape and dimensions.
+   * This method also initializes related properties such as startRow, startCol, numRows, and numStickerCols
+   * based on the dimensions of the COUNTS range. The COUNTS range is expected to have a number of rows equal to
+   * MAX_ROWS and a number of columns equal to EXPECTED_STICKER_COLUMNS, which corresponds to the range of sticker
+   * numbers (0-20). If the named range is not found or does not have the expected dimensions, an error will be
    * thrown to alert the developer of the misconfiguration in the spreadsheet.
   */
   getCountsRange() {
     if (!this.countsRange) {
       const COUNTS_RANGE_NAME = this.COUNTS_RANGE_NAME
+
       this.countsRange = this.ss.getRangeByName(COUNTS_RANGE_NAME)
       this._validateRange(this.countsRange, MAX_ROWS, EXPECTED_STICKER_COLUMNS, COUNTS_RANGE_NAME)
       this.startRow = this.countsRange.getRow()
@@ -138,22 +157,24 @@ class StickerSheetRepository {
   }
 
   /**
-   * Lazy loads and validates the DONE named range, ensuring it 
-   * has the correct shape and dimensions. 
+   * Lazy loads and validates the DONE named range, ensuring it
+   * has the correct shape and dimensions.
    */
   getDoneRange() {
     if (!this.doneRange) {
       const DONE_RANGE_NAME = this.DONE_RANGE_NAME
+
       this.doneRange = this.ss.getRangeByName(DONE_RANGE_NAME)
       this._validateRange(this.doneRange, MAX_ROWS, 1, DONE_RANGE_NAME)
     }
     return this.doneRange
   }
 
-  /** 
-   * Lazy loads and validates the TRADE_PREFERENCES named range, ensuring it has 
-   * the correct shape and dimensions. The content of the range could be empty, in 
-   * case the user didn't define any preference.*/
+  /**
+   * Lazy loads and validates the TRADE_PREFERENCES named range, ensuring it has
+   * the correct shape and dimensions. The content of the range could be empty, in
+   * case the user didn't define any preference.
+   */
   getTradePreferencesRange() {
     if (!this.tradePreferencesRange) {
       const TRADE_PREFERENCES_RANGE_NAME = this.TRADE_PREFERENCES_RANGE_NAME
@@ -235,7 +256,7 @@ class StickerSheetRepository {
   /**
    * Returns normalized trade preferences from TRADE_PREFERENCES named range.
    * Values are uppercased and stripped from separators/spaces to match TradeHelpers format.
-   * @return {string[]} Array of normalized unique tokens preserving sheet order or 
+   * @return {string[]} Array of normalized unique tokens preserving sheet order or
    * empty array if the range is empty or not defined.
    */
   getTradePreferences() {
@@ -250,10 +271,10 @@ class StickerSheetRepository {
 
     /** Normalizes one trade preference token to TradeHelpers-compatible format. */
     function normalizeTradePreferenceToken(value) {
-      return String(value || '')
-        .trim()
-        .toUpperCase()
-        .replace(/[\s,]+/g, '')
+      return String(value || '').
+        trim().
+        toUpperCase().
+        replace(/[\s,]+/g, '')
     }
 
     const rawValues = range.getDisplayValues()
@@ -269,112 +290,188 @@ class StickerSheetRepository {
         normalized.push(token)
       })
     })
-
     this.tradePreferences = normalized
     return this.tradePreferences
   }
 
   /**
-   * Builds a mapping of country codes to their row and index in the named ranges.
-   * @returns {Object} countryMap mapping country codes to their row and index in the named ranges.
-   * Example structure of countryMap:
-   *  {
-   *    "FWC": { row: 1, index: 0 },
-   *    "MEX": { row: 2, index: 1 }
-   *  }
-   * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in the country map. 
-   * If there are duplicate country codes in the COUNTRIES named range, the last occurrence will overwrite previous ones 
-   * in the map, which is why it is important to ensure that the COUNTRIES range is properly maintained with unique and valid 
-   * country codes.
-   * If the COUNTRIES named range is empty, the country map will be an empty object.
-   * If there are inconsistencies in the data (e.g., missing country codes), the method will still attempt to build 
-   * the country map with whatever data is available, but it will log warnings for any issues encountered during the loading process.
-   * @returns {Object} An object mapping normalized country codes to their corresponding row and index in the named ranges.
-   */
-  getCountryMap() {
-    if (!this.countryMap) {
-      this.countryMap = this._buildCountryMap()
+   * Returns the set of valid normalized country codes, in album order (COUNTRIES named range order). Reads the
+   * COUNTRIES range directly rather than getCountries(), since only the codes are needed here. Intended for
+   * external callers that only need to validate or order by country code, without the internal row/index
+   * bookkeeping used by this repository (see _getCountryIndex()).
+   * @returns {Set<string>} Set of normalized country codes. Example: Set {"FWC", "MEX", "ARG"}
+  */
+  getCountryCodes() {
+    if (!this.countryCodes) {
+      this.countryCodes = new Set(
+        this.getCountryCodesRange().getValues().map(row => String(row[0] || '').trim().toUpperCase()).filter(Boolean)
+      )
     }
-    return this.countryMap
+    return this.countryCodes
   }
 
-  /** Returns all distinct group codes in sheet order. 
-   * This method retrieves all group codes from the GROUPS named range, normalizes them by trimming whitespace and 
-   * converting to uppercase, and then filters out any empty values. Finally, it returns an array of unique group codes 
-   * while preserving their original order in the sheet. This allows the application to provide accurate group filtering 
+  /**
+   * Returns all distinct group codes in sheet order.
+   * This method retrieves all group codes from the GROUPS named range, normalizes them by trimming whitespace and
+   * converting to uppercase, and then filters out any empty values. Finally, it returns an array of unique group codes
+   * while preserving their original order in the sheet. This allows the application to provide accurate group filtering
    * options based on the data defined in the spreadsheet.
    * Example return value: ['A', 'B', 'C']
   */
   getGroupCodes() {
     if (!this.groupCodes) {
-      const groups = this.getGroupsRange().getValues()
-        .map(row => String(row[0] || '').trim().toUpperCase())
-        .filter(Boolean)
+      const groups = this.getGroupsRange().getValues().
+        map(row => String(row[0] || '').trim().toUpperCase()).
+        filter(Boolean)
 
       this.groupCodes = Array.from(new Set(groups))
     }
     return this.groupCodes
   }
 
-  // Main methods
-
-  /** Returns all sticker counts for one country.
-   * @param {string} countryCode - The country code to retrieve counts for.
-   * This method first normalizes and validates the provided country code against the country map built from the COUNTRIES 
-   * named range. 
-   * It then retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index. 
-   * The raw values from the sheet are converted to non-negative integers using the _toCount helper method, which ensures 
-   * that any empty, null, or invalid values are treated as zero. Finally, it returns an array of sticker counts for the 
-   * specified country, where each index corresponds to a sticker number (0-20).
-   * @returns {Array} An array of sticker counts for the specified country, where each index corresponds to a sticker number (0-20).
-   * Example return value for countryCode 'MEX': [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0]
+  /**
+   * Returns flag icon (emoji) values from the FLAG_ICONS named range, in sheet order - one entry per row,
+   * including blank rows (never filtered), so the result stays positionally aligned with getCountries() for
+   * callers that need to zip country data by row index. Relies on the sheet invariant that unused rows are
+   * always trailing padding, never interspersed among real entries - the same assumption getCountries()'s own
+   * row/COUNTS alignment already depends on.
+   * @returns {string[]} One flag icon per row. Example: ['🏆', '🇲🇽', '', ...]
    */
-  getCountryCounts(countryCode) {
-    const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-    const countryIndex = this.getCountryMap()[normalizedCountryCode].index
-    const countValues = this.getCountsRange().getValues()[countryIndex]
-    return countValues.map(value => this._toCount(value))
+  getFlagIcons() {
+    if (!this.flagIcons) {
+      this.flagIcons = this.getFlagIconsRange().getDisplayValues().map(row => String(row[0] || '').trim())
+    }
+    return this.flagIcons
   }
 
-  /** Returns one stored sticker count. 
+  /**
+   * Returns Done values (completion count per row) from the DONE named range, in sheet order - one entry per
+   * row, including blank rows (never filtered), so the result stays positionally aligned with getCountries()
+   * for callers that need to zip country data by row index. Same trailing-blanks-only assumption as
+   * getFlagIcons().
+   * @returns {number[]} One Done value per row. Example: [12, 8, 0, ...]
+   */
+  getDone() {
+    if (!this.done) {
+      this.done = this.getDoneRange().getValues().map(row => Number(row[0]) || 0)
+    }
+    return this.done
+  }
+
+  // Main methods
+
+
+  /**
+   * Returns one stored sticker count. Looks up the country's dense counts Map (always re-read fresh from the
+   * COUNTS range - see _getCountryIndex()'s note on why only row position is cached, never count values), then
+   * extracts one entry from it.
    * @param {string} countryCode - The country code to retrieve the sticker count for.
    * @param {number} stickerNumber - The sticker number (0-20) to retrieve the count for.
-   * This method first validates the provided sticker number to ensure it is an integer within the allowed range (0-20). 
-   * It then normalizes and validates the provided country code against the country map built from the COUNTRIES named range. 
-   * The method retrieves the corresponding row of sticker counts from the COUNTS named range based on the country's index, and then accesses the specific count for the given sticker number. The raw value from the sheet is converted to a non-negative integer using the _toCount helper method, which ensures that any empty, null, or invalid values are treated as zero. Finally, it returns the count for the specified sticker number and country.
    * @returns {number} The count of the specified sticker number for the given country.
    * Example return value for countryCode 'MEX' and stickerNumber 17: 1
   */
   getStickerCount(countryCode, stickerNumber) {
     const validStickerNumber = this._validateStickerNumber(stickerNumber)
-    const normalizedCountryCode = this._normalizeCountryCode(countryCode)
-    const countryIndex = this.getCountryMap()[normalizedCountryCode].index
-    const countValues = this.getCountsRange().getValues()[countryIndex]
 
-    if (!countValues) {
-      throw new Error(`No count data found for country "${countryCode}"`)
+    /**
+     * Returns all sticker counts for one country, keyed by sticker number (0-20) in ascending order. Only
+     * used here, so kept as an inner function rather than its own class method.
+     * @param {string} code - The country code to retrieve counts for.
+     * @returns {Map<number,number>} A dense sticker-number -> count map, one entry per sticker slot (0-20),
+     * including zero-count entries. Example return value for code 'MEX': Map{0=>0,1=>1,2=>0,...,18=>2,20=>0}
+     */
+    const getCountryCounts = code => {
+      const normalizedCountryCode = this._normalizeCountryCode(code)
+      const countryIndex = this._getCountryIndex(normalizedCountryCode)
+      const countValues = this.getCountsRange().getValues()[countryIndex]
+
+      if (!countValues) {
+        throw new Error(`No count data found for country "${code}"`)
+      }
+      return new Map(countValues.map((value, index) => [index, this._toCount(value)]))
     }
-    return countValues.map(v => this._toCount(v))[validStickerNumber]
+
+    return getCountryCounts(countryCode).get(validStickerNumber)
   }
 
-  /** Returns all countries with group, flag, country name, and count data. It is lazy-loaded. 
-   * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL, 
-   * country name, and an array of sticker counts. 
-   * Example of a country record:
+  /**
+   * Returns all countries with count data, plus whichever optional fields are requested. It is lazy-loaded.
+   * `code` and `counts` are always present - every known caller needs at least one of them. The remaining
+   * fields split into two groups with opposite defaults, reflecting what each group actually is:
+   *  - `name`/`group`/`flag` are core country identity, already part of the base loaded record - they default
+   *    to true (today's behavior, unchanged) and can be explicitly excluded by callers that don't use them
+   *    (e.g. ExportService/TradeService only need code/counts/icon/done, never identity fields).
+   *  - `icon`/`done` are additive display/state data from separate named ranges (FLAG_ICONS/DONE) - they
+   *    default to false (never part of the base record) and must be explicitly requested.
+   * @param {Object} [options={}] - Optional shaping flags.
+   * @param {boolean} [options.onlyVisible=false] - When true, each country's `counts` Map is filtered down to
+   * only the sticker numbers visible for that country's type (see getCountryBounds()) - e.g. FWC's Map only has
+   * entries 0-19, not the full 0-20. Filtering is a cheap in-memory operation over the already-cached dense
+   * data - it never triggers an extra range read, and is cached separately from the dense result so calling
+   * this method with different onlyVisible values in the same execution never returns stale/wrong-mode data.
+   * @param {boolean} [options.includeName=true] - Include the country name.
+   * @param {boolean} [options.includeGroup=true] - Include the group code.
+   * @param {boolean} [options.includeFlag=true] - Include the flag URL.
+   * @param {boolean} [options.includeIcon=false] - Include the flag icon (emoji, from getFlagIcons()), zipped
+   * in by row position.
+   * @param {boolean} [options.includeDone=false] - Include the DONE completion count (from getDone()), zipped
+   * in by row position.
+   * @returns {Array} An array of country records shaped per the options above.
+   * Example of a country record (default options):
    * {
    *   code: 'MEX',
-   *   countryName: 'Mexico',
+   *   name: 'Mexico',
    *   group: 'B',
    *   flag: 'https://example.com/flags/mexico.png',
-   *   counts: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
+   *   counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
    * }
    * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in
   */
-  getCountries() {
+  getCountries({
+    onlyVisible = false,
+    includeName = true,
+    includeGroup = true,
+    includeFlag = true,
+    includeIcon = false,
+    includeDone = false
+  } = {}) {
     if (!this.countries) {
       this.countries = this._loadCountries()
     }
-    return this.countries
+    let baseCountries = this.countries
+    if (onlyVisible) {
+      /** Narrows one country's dense counts down to only its visible sticker range, still dense within it. */
+      const toVisibleCountry = country => {
+        const [min, max] = StickerSheetRepository.getBoundsForCountry(country.code)
+        const visibleCounts = new Map()
+
+        for (let number = min; number <= max; number++) {
+          visibleCounts.set(number, country.counts.get(number))
+        }
+        return { ...country, counts: visibleCounts }
+      }
+      if (!this.visibleCountries) {
+        this.visibleCountries = this.countries.map(toVisibleCountry)
+      }
+      baseCountries = this.visibleCountries
+    }
+    const isDefaultShape = includeName && includeGroup && includeFlag && !includeIcon && !includeDone
+    if (isDefaultShape) {
+      return baseCountries
+    }
+    // Not cached (unlike baseCountries above): each non-default shape is a cheap in-memory map over already
+    // -cached data, and caching every possible option combination would need a cache slot per combination.
+    const flagIcons = includeIcon ? this.getFlagIcons() : null
+    const doneValues = includeDone ? this.getDone() : null
+    return baseCountries.map((country, index) => {
+      const record = { code: country.code, counts: country.counts }
+      if (includeName) record.name = country.name
+      if (includeGroup) record.group = country.group
+      if (includeFlag) record.flag = country.flag
+      if (includeIcon) record.icon = flagIcons[index] || ''
+      if (includeDone) record.done = doneValues[index] || 0
+      return record
+    })
   }
 
   /**
@@ -382,9 +479,9 @@ class StickerSheetRepository {
    * The input is a sparse country-based update model where only changed sticker numbers are provided.
    * The method loads the COUNTS range once, applies every update in memory, and persists the modified
    * values with a single `setValues()` call so the operation can be undone with one Ctrl+Z action.
-   * @param {{countries:Array<{code:string,counts:Object<number,number>}>}} updates
+   * @param {{countries:Array<{code:string,counts:Map<number,number>}>}} updates -
    * Canonical sticker update payload.
-   * Example: { countries: [{ code:'ARG', counts:{1:2,5:4} }, { code:'BRA', counts:{3:1} }] }
+   * Example: { countries: [{ code:'ARG', counts:Map{1=>2,5=>4} }, { code:'BRA', counts:Map{3=>1} }] }
    * @param {string} mode - The update mode, which can be 'update', 'clean_all', or 'replace_countries'.
    */
   updateStickerCounts(updates, mode = 'update') {
@@ -394,18 +491,20 @@ class StickerSheetRepository {
     }
     const range = this.getCountsRange()
     const values = range.getValues()
-    const countriesToClear = mode === 'clean_all' ? this.getCountries() : countries
+    const codesToClear = mode === 'clean_all' ? this.getCountryCodes() : countries.map(country => country.code)
     if (mode === 'clean_all' || mode === 'replace_countries') {
-      countriesToClear.forEach(country => {
-        const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
+      codesToClear.forEach(code => {
+        const index = this._getCountryIndex(this._normalizeCountryCode(code))
+
         values[index].fill('')
         if (mode === 'clean_all') {
-          this._normalizeCountryRow(country, values[index])
+          this._normalizeCountryRow(code, values[index])
         }
       })
     }
     countries.forEach(country => {
-      const index = this.getCountryMap()[this._normalizeCountryCode(country.code)].index
+      const index = this._getCountryIndex(this._normalizeCountryCode(country.code))
+
       this._applyCountUpdates(country, values[index], mode === 'clean_all')
     })
     range.setValues(values)
@@ -430,50 +529,44 @@ class StickerSheetRepository {
     }
   }
 
-  /** Builds a country map for direct lookup. 
-   * @return {Object} countryMap mapping country codes to their row and index in the named ranges.
-   * The country map is built by iterating through the countries defined in the COUNTRIES named range and creating an object where each key is a normalized country code, and the value is an object containing the row number in the sheet and the index of the country in the named range. This allows for efficient lookup of country data when updating counts or retrieving information based on country codes.
-   * Example structure of countryMap:
-   *  {"FWC": { row: 1, index: 0 },"MEX": { row: 2, index: 1 }}
+  /**
+   * Returns the row index (0-based) of one country within the COUNTS/COUNTRIES named ranges.
+   * Builds and caches a code->index lookup on first use. Only the position is cached, never sticker count
+   * values, since row order is stable within an execution while counts can change after a write (see
+   * getStickerCount(), which always re-reads the COUNTS range fresh for that reason).
+   * @param {string} code - Normalized country code. Example: 'MEX'
+   * @returns {number} The 0-based index of the country within the named ranges.
   */
-  _buildCountryMap() {
-    const countryMap = {}
-    this.getCountries().forEach((country, index) => {
-      countryMap[country.code] = {
-        row: this.getStartRow() + index,
-        index
-      }
-    })
-    return countryMap
+  _getCountryIndex(code) {
+    if (!this.countryIndexByCode) {
+      this.countryIndexByCode = new Map(this.getCountries().map((country, index) => [country.code, index]))
+    }
+    return this.countryIndexByCode.get(code)
   }
 
   /**
    * Loads all country records from the named ranges and constructs a comprehensive list of country data.
-   * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL, 
-   * country name, and an array of sticker counts.
+   * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL,
+   * country name, and a dense sticker-number -> count map.
    * Example of a country record:
-   * {code: 'MEX', countryName: 'Mexico', group: 'B', flag: 'https://example.com/flags/mexico.png',
-   *  counts: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
+   * {code: 'MEX', name: 'Mexico', group: 'B', flag: 'https://example.com/flags/mexico.png',
+   *  counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
    * }
    */
   _loadCountries() {
-    const countryValues = this.getCountriesRange().getValues()
+    const countryValues = this.getCountryCodesRange().getValues()
     const countValues = this.getCountsRange().getValues()
     const groupValues = this.getGroupsRange().getValues()
     const flagValues = this.getFlagsUrlRange().getDisplayValues()
     const countryNameValues = this.getCountryNamesRange().getDisplayValues()
 
-    return countryValues
-      .map((row, index) => {
+    return countryValues.
+      map((row, index) => {
         return this._buildCountryRecord(
-          row,
-          groupValues[index],
-          flagValues[index],
-          countryNameValues[index],
-          countValues[index]
+          row, groupValues[index], flagValues[index], countryNameValues[index], countValues[index]
         )
-      })
-      .filter(Boolean)
+      }).
+      filter(Boolean)
   }
 
   /** Builds one country record from named range rows. */
@@ -483,14 +576,14 @@ class StickerSheetRepository {
       return null
     }
     const groupCode = String((groupRow && groupRow[0]) || '').trim().toUpperCase()
-    const countryName = String(countryNameRow[0] || '').trim()
+    const name = String(countryNameRow[0] || '').trim()
 
     return {
       code: countryCode,
-      countryName,
+      name,
       group: groupCode,
       flag: String((flagRow && flagRow[0]) || '').trim(),
-      counts: (countRow ?? []).map(value => this._toCount(value))
+      counts: new Map((countRow ?? []).map((value, index) => [index, this._toCount(value)]))
     }
   }
 
@@ -498,7 +591,7 @@ class StickerSheetRepository {
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
 
-    if (!this.getCountryMap()[normalizedCountryCode]) {
+    if (!this.getCountryCodes().has(normalizedCountryCode)) {
       throw new Error(`Country code "${countryCode}" was not found in the COUNTRIES named range.`)
     }
 
@@ -515,35 +608,22 @@ class StickerSheetRepository {
       throw new Error(
         `Sticker number ${numericStickerNumber} is outside allowed range ` +
         `${STICKER_MIN}-${STICKER_MAX}.`
-      );
-
+      )
     }
     return numericStickerNumber
   }
 
-  /** Groups pending updates by country code. */
-  _groupUpdatesByCountry(updates) {
-    return updates.reduce((grouped, update) => {
-      if (!grouped[update.countryCode]) {
-        grouped[update.countryCode] = []
-      }
-
-      grouped[update.countryCode].push(update)
-      return grouped
-    }, {})
-  }
-
-  /** Normalizes one country row in memory, resetting invalid sticker positions to zero. 
-   * @param {{code:string,counts:Object<number,number>}} country - Country record in canonical form.
-   * Example: { code:'ARG', counts:{1:2,5:4} }
-   * @param {Array} values - Current sticker count row to modify. 
+  /**
+   * Normalizes one country row in memory, resetting invalid sticker positions to zero.
+   * @param {string} code - Country code. Example: 'ARG'
+   * @param {Array} values - Current sticker count row to modify.
    * Example: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
    * This method retrieves the valid sticker number range for the given country code from the COUNTRY_BOUNDS map.
   */
-  _normalizeCountryRow(country, values) {
-    const normalizedCountryCode = String(country.code).trim().toUpperCase()
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+  _normalizeCountryRow(code, values) {
+    const normalizedCountryCode = String(code).trim().toUpperCase()
+    const [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
+
     for (let sticker = 0; sticker < values.length; sticker++) {
       if (sticker < minSticker || sticker > maxSticker) {
         values[sticker] = 0
@@ -556,21 +636,20 @@ class StickerSheetRepository {
    * Does not read or write the spreadsheet.
    * The caller is responsible for loading and persisting the COUNTS range.
    * Invalid sticker positions for the country are reset to zero to keep row data consistent.
-   * @param {{code:string,counts:Object<number,number>}} country - Country update in canonical form.
-   * Example: { code:'ARG', counts:{1:2,5:4} }
-   * @param {Array} values - Current sticker count row to modify. 
+   * @param {{code:string,counts:Map<number,number>}} country - Country update in canonical form.
+   * Example: { code:'ARG', counts:Map{1=>2,5=>4} }
+   * @param {Array} values - Current sticker count row to modify.
    * Example: [0, 1, 0, 0, 2, ...] // array of counts for stickers 0-20
-   * Example: { code:'ARG', counts:{1:2,5:4} }
    * @param {boolean} isNormalized - If true, the country row is already normalized and does not need to be normalized again.
    */
   _applyCountUpdates(country, values, isNormalized = false) {
-    const counts = country.counts || {}
+    const counts = country.counts || new Map()
     let minSticker
     let maxSticker
     if (!isNormalized) {
-      const bounds = StickerSheetRepository.getCountryBounds()
       const normalizedCountryCode = String(country.code).trim().toUpperCase(); // required ; here
-      [minSticker, maxSticker] = bounds.get(normalizedCountryCode) || bounds.get('TEAM')
+
+      [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
     }
     for (let sticker = 0; sticker < values.length; sticker++) {
       // Sticker positions outside the country's allowed range must always be reset.
@@ -583,8 +662,8 @@ class StickerSheetRepository {
       // Only update stickers explicitly included in the import payload.
       // A valid imported count of zero is represented as a blank cell in the sheet.
       // This preserves the spreadsheet convention where empty cells mean zero counts.
-      if (Object.prototype.hasOwnProperty.call(counts, sticker)) {
-        values[sticker] = counts[sticker] === 0 ? '' : counts[sticker]
+      if (counts.has(sticker)) {
+        values[sticker] = counts.get(sticker) === 0 ? '' : counts.get(sticker)
       }
     }
   }
@@ -597,5 +676,4 @@ class StickerSheetRepository {
     }
     return numericValue
   }
-
 }

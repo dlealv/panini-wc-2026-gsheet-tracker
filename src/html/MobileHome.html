@@ -4,17 +4,14 @@
 
   Mobile web application shell served by doGet() from the Apps Script project
   bound to each user's copy of the tracker spreadsheet.
-
   Purpose:
     Provides the shared mobile shell, layout, and navigation for the app.
     Individual service views (Import, Export, Quick Entry, etc.) are injected
     into the main content area using include() directives.
-
   Responsibilities:
     - Defines the common application layout.
     - Displays the navigation drawer.
     - Switches between service views.
-
   This file intentionally contains only the common application shell and
   navigation logic. Service-specific UI and behavior belong to the
   corresponding Mobile*View.html files.
@@ -35,25 +32,24 @@
 
 <body>
   <div class="mobile-page">
-    <!-- Application header -->
-    <header class="header">
+    <header class="header"><!-- header -->
       <div class="header-title">🎴 Panini WC 2026</div>
       <button class="menu-btn" onclick="toggleMenu()">&#9776;</button>
       <!-- Spreadsheet title injected by doGet(). -->
       <div class="header-sub">
         <?= spreadsheetTitle ?>
       </div>
-    </header>
+    </header><!-- /header -->
 
     <!-- Navigation drawer: The order of the items is different than from desktop menu.-->
-    <div id="drawer" class="drawer hidden">
+    <div id="drawer" class="drawer hidden"><!-- drawer -->
       <div class="drawer-item" onclick="showQuickEntryView()"> Quick Entry </div>
       <div class="drawer-item" onclick="showTradeView()"> Trade </div>
       <div class="drawer-item" onclick="showView('import')"> Import </div>
       <div class="drawer-item" onclick="showExportView('export_all')"> Export all </div>
       <div class="drawer-item" onclick="showExportView('export_shared')"> Export shared </div>
       <div class="drawer-item" onclick="showAboutView()"> About </div>
-    </div>
+    </div><!-- /drawer -->
 
     <!-- Overlay shown while the navigation drawer is open. -->
     <div id="overlay" class="overlay hidden" onclick="toggleMenu()"></div>
@@ -61,7 +57,7 @@
       Service views are injected at template-render time.
       Only one view is visible at a time.
     -->
-    <main>
+    <main><!-- main: Service views -->
       <?!= include('MobileImportView') ?>
       <?!= include('MobileExportView') ?>
       <?!= include('MobileQuickEntryView') ?>
@@ -83,7 +79,7 @@
           }
         })
       </script>
-    </main>
+    </main><!-- /main: Service views -->
   </div>
 
   <script>

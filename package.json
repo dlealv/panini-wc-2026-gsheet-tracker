@@ -14,12 +14,12 @@
     "fix-jsdoc": "node scripts/fix-jsdoc.js --fix",
     "fix-jsdoc:dry-run": "node scripts/fix-jsdoc.js",
     "clasp:login": "clasp login",
-    "clasp:pull": "zsh scripts/clasp.zsh pull",
-    "clasp:push": "zsh scripts/clasp.zsh push",
+    "clasp:pull": "sh -c 'zsh scripts/clasp.zsh pull ${@:---env TEST}' --",
+    "clasp:push": "sh -c 'zsh scripts/clasp.zsh push ${@:---env TEST}' --",
     "clasp:open": "clasp open",
-    "clasp:deploy": "zsh scripts/clasp.zsh deploy",
-    "deploy:test": "sh -c 'npm run lint && npm run test && npm run clasp:push -- \"$@\"' --",
-    "deploy:all": "sh -c 'npm run lint && npm run test && npm run clasp:push -- \"$@\" && npm run clasp:deploy -- \"$@\"' --",
+    "clasp:deploy": "sh -c 'zsh scripts/clasp.zsh deploy ${@:---env TEST}' --",
+    "deploy:test": "sh -c 'npm run lint && npm run test && npm run clasp:push -- ${@:---env TEST}' --",
+    "deploy:all": "sh -c 'npm run lint && npm run test && npm run clasp:push -- ${@:---env TEST} && npm run clasp:deploy -- ${@:---env TEST}' --",
     "backup": "zip -rq panini-wc-2026-gsheet-tracker.zip . -x 'node_modules/*' -x 'images/*' -x 'build/*'"
   },
   "standard": {

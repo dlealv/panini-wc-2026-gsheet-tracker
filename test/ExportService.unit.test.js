@@ -102,15 +102,22 @@ function parseExportAllData(text, { includeFlags = false } = {}) {
 }
 
 /**
- * Helper function to build counts array from parser output pairs for easier to populate input values.
- * @param {Array<{sticker:number,count:number}>} pairs - Array of sticker/count objects.
- * @returns {Array<number>} - Array of counts indexed by sticker number.
+ * Helper function to build a counts Map bounded to one country type's valid sticker range, matching what
+ * StickerSheetRepository.getCountries({ onlyVisible: true }) produces (one entry per valid sticker slot only -
+ * ExportService._buildRows() never hands ExportStickers a row containing an out-of-range sticker position).
+ * @param {Array<{number:number,count:number}>} pairs - Array of number/count objects. Any pair outside
+ *  `bounds` is ignored, matching real rows, which never carry one in the first place.
+ * @param {[number,number]} [bounds=[1,20]] - Inclusive [min,max] sticker range for this country type.
+ * @returns {Map<number,number>} - Sticker-number -> count map, one entry per valid sticker slot.
  */
-const buildCounts = (pairs = []) => {
-  const counts = Array(21).fill(0)
+const buildCounts = (pairs = [], [min, max] = [1, 20]) => {
+  const counts = new Map()
+  for (let number = min; number <= max; number++) {
+    counts.set(number, 0)
+  }
   for (const pair of pairs) {
-    if (!pair) { continue }
-    counts[pair.sticker] = pair.count
+    if (!pair || pair.number < min || pair.number > max) { continue }
+    counts.set(pair.number, pair.count)
   }
   return counts
 }
@@ -118,7 +125,7 @@ const buildCounts = (pairs = []) => {
 /**
  * Computes album completion count from sticker/count pairs.
  * A sticker contributes when count >= 1.
- * @param {Array<{sticker:number,count:number}>} pairs - Array of sticker/count objects.
+ * @param {Array<{number:number,count:number}>} pairs - Array of number/count objects.
  * @returns {number}
  */
 const computeDone = (pairs = []) => {
@@ -153,13 +160,32 @@ describe('ExportService (unit)', () => {
         expect(row).toHaveProperty('icon')
         expect(row).toHaveProperty('done')
         expect(row).toHaveProperty('counts')
-        expect(Array.isArray(row.counts)).toBe(true)
+        expect(row.counts).toBeInstanceOf(Map)
       }
     })
     test('returns consistent data on multiple calls (caching)', () => {
       const rows1 = service.getRows()
       const rows2 = service.getRows()
       expect(rows1).toBe(rows2)
+    })
+    test('never re-reads the COUNTS range per country (uses getCountries()\'s single bulk read instead)', () => {
+      // _buildRows() used to call repo.getCountryCounts(code) once per country, which re-read the whole
+      // COUNTS range on every call. This asserts that per-country delegation is gone - counts now come
+      // entirely from the single, already-cached getCountries() bulk read. getCountryCounts() itself is now
+      // an inner function of Commons.gs's getStickerCount(), so it can no longer be spied on directly -
+      // asserting on getCountsRange() (called exactly once, from _loadCountries()) instead. Spying on the
+      // range's own getValues() isn't reliable here: the DONE mock's getValues()/getNumRows() both simulate
+      // reading COUNTS internally, inflating the count independent of any per-country bug.
+      const freshService = new ExportService()
+      const spy = jest.spyOn(freshService.getRepo(), 'getCountsRange')
+      freshService.getRows()
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+    test('icon/done are correctly aligned per country (not shifted) via getCountries()/getFlagIcons()/getDone() zip', () => {
+      const rows = service.getRows()
+      const mex = rows.find(row => row.code === 'MEX')
+      expect(mex.icon).toBe('🇲🇽')
+      expect(mex.done).toBe(2)
     })
   })
 
@@ -211,12 +237,12 @@ describe('ExportStickers (unit)', () => {
   and avoid redundancy. */
   beforeAll(() => {
     inputStickers = [
-      { sticker: 19, count: 1 }, { sticker: 20, count: 2 },
-      { sticker: 0, count: 1 }, { sticker: 1, count: 1 }, { sticker: 2, count: 1 }, { sticker: 3, count: 2 },
-      { sticker: 4, count: 1 }, { sticker: 5, count: 1 }, { sticker: 6, count: 2 }, { sticker: 8, count: 1 },
-      { sticker: 9, count: 3 }, { sticker: 10, count: 3 }, { sticker: 11, count: 3 }
+      { number: 19, count: 1 }, { number: 20, count: 2 },
+      { number: 0, count: 1 }, { number: 1, count: 1 }, { number: 2, count: 1 }, { number: 3, count: 2 },
+      { number: 4, count: 1 }, { number: 5, count: 1 }, { number: 6, count: 2 }, { number: 8, count: 1 },
+      { number: 9, count: 3 }, { number: 10, count: 3 }, { number: 11, count: 3 }
     ]
-    mexInputStickers = [...inputStickers, { sticker: 15, count: 1 }] // add sticker 1 for MEX to create a difference with FWC
+    mexInputStickers = [...inputStickers, { number: 15, count: 1 }] // add sticker 1 for MEX to create a difference with FWC
 
     // normal: 🏆 FWC,0,1,2,3(2),4,5,6(2),8,9(3),10(3),11(3),19, done = 12
     // compact: 🏆 FWC,0-2,3(2),4-5,6(2),8,9-11(3),19
@@ -224,7 +250,7 @@ describe('ExportStickers (unit)', () => {
       code: 'FWC',
       icon: '🏆',
       done: computeDone(inputStickers),
-      counts: buildCounts(inputStickers)
+      counts: buildCounts(inputStickers, [0, 19])
     }
     // normal: 🇲🇽 MEX,1,2,3(2),4,5,6(2),8,9(3),10(3),11(3),15,19,20(2), done = 13
     // compact: 🇲🇽 MEX,1-2,3(2),4-5,6(2),8,9-11(3),15,19,20(2)
@@ -232,7 +258,7 @@ describe('ExportStickers (unit)', () => {
       code: 'MEX',
       icon: '🇲🇽',
       done: computeDone(mexInputStickers),
-      counts: buildCounts(mexInputStickers)
+      counts: buildCounts(mexInputStickers, [1, 20])
     }
     fwcExportStickers = new ExportStickers([fwcLine])
     mexExportStickers = new ExportStickers([mexLine])
@@ -246,11 +272,11 @@ describe('ExportStickers (unit)', () => {
     exportStickers = new ExportStickers([fwcLine, mexLine])
 
     // Coca-Cola stickers
-    const ccStickers = [ // CC,1,2(2),3(3), 13-> mapped to 0
-      { sticker: 1, count: 1 }, { sticker: 2, count: 2 },
-      { sticker: 3, count: 3 }, { sticker: 13, count: 1 }
+    const ccStickers = [ // CC,1,2(2),3(3); sticker 13 is out of CC's [1,12] range, dropped by buildCounts()
+      { number: 1, count: 1 }, { number: 2, count: 2 },
+      { number: 3, count: 3 }, { number: 13, count: 1 }
     ]
-    const ccLine = { code: 'CC', icon: '🥤', done: computeDone(ccStickers), counts: buildCounts(ccStickers) }
+    const ccLine = { code: 'CC', icon: '🥤', done: computeDone(ccStickers), counts: buildCounts(ccStickers, [1, 12]) }
     ccExportStickers = new ExportStickers([ccLine])
   })
 
@@ -322,7 +348,7 @@ describe('ExportStickers (unit)', () => {
       })
     })
     test('exportAllData returns correct contract with empty dataset', () => {
-      const exportStickers = new ExportStickers([{ code: 'FWC', icon: '🏆', done: 0, counts: buildCounts() }])
+      const exportStickers = new ExportStickers([{ code: 'FWC', icon: '🏆', done: 0, counts: buildCounts([], [0, 19]) }])
       const result = exportStickers.exportAllData({ includeFlags: false, isCompact: false })
       expect(result).toEqual(expect.objectContaining({
         success: true,
@@ -338,31 +364,45 @@ describe('ExportStickers (unit)', () => {
   describe('exportSharedData()', () => {
     test('exportSharedData fallback when no repeats exist', () => {
       const exportStickers = new ExportStickers([
-        { code: 'FWC', icon: '🏆', done: computeDone([]), counts: buildCounts([]) },
-        { code: 'MEX', icon: '🇲🇽', done: computeDone([]), counts: buildCounts([]) }
+        { code: 'FWC', icon: '🏆', done: computeDone([]), counts: buildCounts([], [0, 19]) },
+        { code: 'MEX', icon: '🇲🇽', done: computeDone([]), counts: buildCounts([], [1, 20]) }
       ])
       const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: false })
       const parsed = parseExportSharedData(result.text, { includeFlags: false })
       expect(parsed.repeats.fallback).toBe('No repeated stickers available for trade.')
       expect(parsed.repeats.items).toEqual([])
+      expect(result.text).toContain('🔄 Repeats (0)')
     })
     test('exportSharedData fallback when album complete', () => {
-      const full = Array.from({ length: 21 }, (_, i) => ({ sticker: i, count: 1 }))
+      const full = Array.from({ length: 21 }, (_, i) => ({ number: i, count: 1 }))
       const exportStickers = new ExportStickers([
-        { code: 'FWC', icon: '🏆', done: computeDone(full), counts: buildCounts(full) },
-        { code: 'MEX', icon: '🇲🇽', done: computeDone(full), counts: buildCounts(full) }
+        { code: 'FWC', icon: '🏆', done: computeDone(full), counts: buildCounts(full, [0, 19]) },
+        { code: 'MEX', icon: '🇲🇽', done: computeDone(full), counts: buildCounts(full, [1, 20]) }
       ])
       const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: false })
       const parsed = parseExportSharedData(result.text, { includeFlags: false })
       expect(parsed.missing.fallback).toBe('No missing stickers, album complete. Congratulations!')
       expect(parsed.missing.items).toEqual([])
+      expect(result.text).toContain('❌ Missing (0)')
+    })
+    test('exportSharedData section headers include totals of distinct repeated/missing sticker numbers', () => {
+      const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: false })
+      // FWC repeats: 5 (3,6,9,10,11), MEX repeats: 6 (3,6,9,10,11,20) -> 11 total
+      expect(result.text).toContain('🔄 Repeats (11)')
+      // FWC missing: 8, MEX missing: 7 -> 15 total
+      expect(result.text).toContain('❌ Missing (15)')
+    })
+    test('exportSharedData header totals are unaffected by isCompact range formatting', () => {
+      const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: true })
+      expect(result.text).toContain('🔄 Repeats (11)')
+      expect(result.text).toContain('❌ Missing (15)')
     })
     test('exportSharedData repeats + missing both exist', () => {
-      const fwc = [{ sticker: 3, count: 2 }]
+      const fwc = [{ number: 3, count: 2 }]
       const mex = []
       const exportStickers = new ExportStickers([
-        { code: 'FWC', icon: '🏆', done: computeDone(fwc), counts: buildCounts(fwc) },
-        { code: 'MEX', icon: '🇲🇽', done: computeDone(mex), counts: buildCounts(mex) }
+        { code: 'FWC', icon: '🏆', done: computeDone(fwc), counts: buildCounts(fwc, [0, 19]) },
+        { code: 'MEX', icon: '🇲🇽', done: computeDone(mex), counts: buildCounts(mex, [1, 20]) }
       ])
       const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: false })
       const parsed = parseExportSharedData(result.text, { includeFlags: false })
@@ -387,8 +427,8 @@ describe('ExportStickers (unit)', () => {
 
     test('exportSharedData correct contract for FWC, MEX, { includeFlags: true, isCompact: false }', () => {
       const exportStickers = new ExportStickers([
-        { code: 'FWC', icon: '🏆', done: computeDone([]), counts: buildCounts([]) },
-        { code: 'MEX', icon: '🇲🇽', done: computeDone([]), counts: buildCounts([]) }
+        { code: 'FWC', icon: '🏆', done: computeDone([]), counts: buildCounts([], [0, 19]) },
+        { code: 'MEX', icon: '🇲🇽', done: computeDone([]), counts: buildCounts([], [1, 20]) }
       ])
       const result = exportStickers.exportSharedData({ includeFlags: false, sortByDone: false, isCompact: false })
       expect(result.text.indexOf('🔄 Repeats')).toBeLessThan(result.text.indexOf('❌ Missing'))

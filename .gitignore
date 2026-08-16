@@ -3,7 +3,6 @@ backup/
 coverage/
 node_modules/
 tmp_clasp/
-backup/
 *.zip
 panini_fwc2026_roster_clean.csv
 .DS_Store
@@ -13,3 +12,6 @@ panini_fwc2026_roster_clean.csv
 .Spotlight-V100
 .Trashes
 .fseventsd
+CLAUDE*.md
+scripts/*_clasp.cfg.zsh
+!scripts/ENV_clasp.cfg.zsh

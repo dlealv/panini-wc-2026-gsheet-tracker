@@ -2,16 +2,14 @@
   src/html/AboutView.html
 
   About view
-
   Displays application metadata and useful project links.
-
   Notes:
     - Metadata is maintained locally in APP_INFO.
     - Update this file when publishing a new release.
 -->
 
-<div class="section">
-  <div class="about-card">
+<div class="section"><!-- section: About -->
+  <div class="about-card"><!-- about-card -->
     <table class="about-table">
       <tbody>
         <tr>
@@ -38,7 +36,7 @@
     </table>
 
   </div><!-- /about-card -->
-</div> <!-- /section-->
+</div><!-- /section: About -->
 
 <script>
 
@@ -52,10 +50,10 @@
 
     const APP_INFO = Object.freeze({
       NAME: 'Panini WC 2026 Google Spreadsheet Tracker',
-      VERSION: '1.1.4',
-      RELEASE_DATE: '2026-08-13',
+      VERSION: '1.1.5',
+      RELEASE_DATE: '2026-08-16',
       PROJECT_URL: 'https://github.com/dlealv/panini-wc-2026-gsheet-tracker',
-      RELEASE_URL: 'https://github.com/dlealv/panini-wc-2026-gsheet-tracker/releases/tag/v1.1.4',
+      RELEASE_URL: 'https://github.com/dlealv/panini-wc-2026-gsheet-tracker/releases/tag/v1.1.5',
     })
 
     const appNameEl = document.getElementById('aboutAppName')

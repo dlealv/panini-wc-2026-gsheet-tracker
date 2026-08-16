@@ -431,7 +431,7 @@ describe('TradeService (unit)', () => {
     test('preserves country order from external trade information', () => {
       const countries = [
         ...TEST_DATA.countries,
-        { code: 'RSA', countryName: 'South Africa', group: '', flag: '', counts: {} }
+        { code: 'RSA', name: 'South Africa', group: '', flag: '', counts: {} }
       ]
       initTestKernel({ countries })
       service = initService()
@@ -710,14 +710,14 @@ describe('TradeService (unit)', () => {
     const repo = service.getRepo()
     const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
     const result = service.executeTrade({ receive: { MEX: [18] } })
-    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 18: 2 } }] }, 'update')
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: new Map([[18, 2]]) }] }, 'update')
     expect(result).toBe(true)
   })
   test('applies send-only trade confirmation', () => {
     const repo = service.getRepo()
     const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
     const result = service.executeTrade({ send: { MEX: [20] } })
-    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 20: 1 } }] }, 'update')
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: new Map([[20, 1]]) }] }, 'update')
     expect(result).toBe(true)
   })
   test('keeps the current count when the same sticker is received and sent', () => {
@@ -725,7 +725,7 @@ describe('TradeService (unit)', () => {
     jest.spyOn(repo, 'getStickerCount').mockReturnValue(1)
     const updateMock = jest.spyOn(repo, 'updateStickerCounts').mockReturnValue(true)
     const result = service.executeTrade({ receive: { MEX: [18] }, send: { MEX: [18] } })
-    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: { 18: 1 } }] }, 'update')
+    expect(updateMock).toHaveBeenCalledWith({ countries: [{ code: 'MEX', counts: new Map([[18, 1]]) }] }, 'update')
     expect(result).toBe(true)
   })
   test('applies trade confirmation for multiple countries', () => {
@@ -734,7 +734,10 @@ describe('TradeService (unit)', () => {
     const result = service.executeTrade({ receive: { MEX: [18], FWC: [2] }, send: { MEX: [20] } })
     // TEST_DATA: FWC,1,3(2), MEX,18,20(2)
     expect(updateMock).toHaveBeenCalledWith({
-      countries: [{ code: 'MEX', counts: { 18: 2, 20: 1 } }, { code: 'FWC', counts: { 2: 1 } }]
+      countries: [
+        { code: 'MEX', counts: new Map([[18, 2], [20, 1]]) },
+        { code: 'FWC', counts: new Map([[2, 1]]) }
+      ]
     }, 'update')
     expect(result).toBe(true)
   })

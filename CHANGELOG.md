@@ -6,6 +6,183 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 
 ---
 
+## [1.1.5] 2026-08-16
+
+### Overview
+Unified the data model across all services, with a standard sticker representation documented in `TechnicalArchitecture.md`. Expanded `StickerSheetRepository` with additional, more flexible methods that centralize Google Spreadsheet access, so the service layer can rely on it directly instead of reading named ranges itself.
+
+Improved the `clasp.zsh` script: test configuration (`scriptId`, `deploymentId`, `deploymentName`) is now read from a local, gitignored config file instead of being hardcoded in tracked files. The script now takes named options - `--env PREFIX` to select a profile by prefix (`scripts/PREFIX_clasp.cfg.zsh`) or `--file PATH` to point at a config file directly - replacing the previous positional arguments.
+
+### Google Spreadsheet template
+
+### Added
+
+No added a new element to the template.
+
+#### Changes
+
+- Under `Conf` tab (hidden) corrected the range of `COUNTRY_NAMES` pointing to the correct column.
+
+#### Fixed
+
+- `COUNTRY_NAMES` named range pointed to the incorrect column, so searching by country name in Quick entry service, didn't provide a correct result. After fix the search works as expected.
+
+### Apps Script
+
+#### Added
+
+- Under `docs` folder:
+  - `CodeStyleGuideline.md`: Coding style used in this project.
+
+- Under `scripts` folder:
+  - `ENV_clasp.cfg.zsh`: Tracked template (placeholder values only) for `clasp.zsh`'s `--env`/`--file` configuration files, providing `SCRIPT_ID`, `DEPLOYMENT_ID`, and `DEPLOYMENT_NAME`.
+
+
+#### Changed
+
+- Under the `docs` folder:
+  - `TechnicalArchitecture.md`:
+    - Added a new `4. Data Model: Sticker & Country Representation` section - the canonical `Map<number,number>` in-memory shape (with dense-vs-sparse examples), the wire-safe `[{number,count}]` array shape and why a plain object keyed by sticker number is never safe on the `google.script.run` boundary even with `JSON.stringify`, the `code`/`name`/`number` field-naming table, the Trade exception (`Object<countryCode, number[]>` and why it's safe), and a 4-point rule for any future method touching this data. Sections 4-7 renumbered to 5-8 to make room; no other cross-references in the document needed updating.
+    - Added a "Local Clasp Configuration" subsection under the `clasp.zsh` docs explaining the `--env`/`--file` config-file mechanism (see `scripts` folder below); updated the argument descriptions, directory tree, CI example, and `deploy:test`/`deploy:all` usage examples to match; corrected the scriptId rollback description (now resets to the `__SCRIPT_ID__` placeholder, not "original staging credentials" - there's no longer a real value to restore).
+
+- Under the `.github` folder:
+  - `workflows/deploy.yml`: added a step that writes a temporary clasp config file to `$RUNNER_TEMP` from the `PRODUCTION_SCRIPT_ID`/`PRODUCTION_DEPLOYMENT_ID` secrets (mirroring the existing `~/.clasprc.json` step's "write a secret to a file just before use" pattern), since `clasp.zsh` now always requires `--env`/`--file` and production credentials can never live in a tracked `scripts/*_clasp.cfg.zsh` file under any name. `push`/`deploy` steps updated to pass `--file` pointing at it.
+
+- Under the `image` folder;
+  - Updated `exportSharedStickersView.jpg` to include the totals added for each data section.
+
+- Under the `scripts` folder:
+  - `.clasp.json.template`: Relocated from the repo root (`git mv`, same filename) - confirmed via investigation that `.clasp.json` is never actually created in the repo root (the script always builds it inside an isolated `/tmp/clasp_run_$$/` workspace), so this only changes where the source template lives. Its hardcoded real `scriptId` value replaced with a `__SCRIPT_ID__` placeholder token, mirroring the existing `__ROOT_DIR__` token.
+  - `clasp.zsh`:
+    - Removed the hardcoded real `TEST_DEPLOYMENT_ID` value (a real Web App deployment ID that was tracked in this public repo).
+    - Every invocation now requires an explicit `--env PREFIX` (loads `scripts/PREFIX_clasp.cfg.zsh`) or `--file PATH` (loads `PATH` directly - a bare filename resolves under `scripts/`, anything containing `/` is used as given, relative or absolute) - there is no bare/default invocation. Missing both, or giving both, is a hard error. A config file - rather than individual scriptId/deploymentId flags on the command line - is deliberate: both values are long, opaque, easily-confused strings, so naming each one inside a file makes it self-labeling and keeps both out of shell history and process listings entirely. Implemented via new `parse_options()`/`resolve_config_path()`/`resolve_and_load_config()` helpers, called once near the top of `main`, before any temp workspace is created.
+    - Config file format is `SCRIPT_ID`/`DEPLOYMENT_ID`/`DEPLOYMENT_NAME` (all three required regardless of command - `pull`/`push` only use `SCRIPT_ID`), sourced directly into globals of the same name. Each profile states its own deployment name directly, replacing the old `TEST_DEPLOYMENT_NAME`/`PROD_DEPLOYMENT_NAME` constants and a name-prefix flag with a single, simpler mechanism.
+    - `update_script_id()`/`deploy_before()` simplified accordingly - `SCRIPT_ID`/`DEPLOYMENT_ID`/`DEPLOYMENT_NAME` are already resolved and validated by the time either function runs, so neither needs its own fallback/resolution logic anymore; `deploy_before()` is now just a log line.
+    - `on_exit()` always calls `update_script_id "rollback"`; the `trap on_exit EXIT INT TERM` registration stays positioned right after the temp workspace is created (`init_clasp_config`), so any later failure still cleans it up.
+    - Self-locates `CLASP_TEMPLATE`/`SCRIPT_DIR` via `${0:A:h}` (reusing the exact idiom `create_zip_backup()` already used for `BACKUP_DIR`) instead of a bare relative path that only worked because every caller happens to `cd` to repo root first.
+    - Removed the now-dead `# cspell:ignore AKfycbyo ...` comment (whitelisted the removed hardcoded string). `show_help()` rewritten for the `--env`/`--file` contract, including the config file format and examples.
+    - The startup log now prints a `[CONFIG]` line with `LOG_LEVEL`/`DRY_RUN`/`CMD`/`OPTION` (e.g. `OPTION='--env TEST'` or `OPTION='--file <path>'`, showing which of `--env`/`--file` was used and its value), followed by a second `[CONFIG]` line with the resolved values from the loaded config file: `scriptId=...` for `pull`/`push`, plus `scriptId`/`deploymentId`/`deploymentName` for `deploy`. Shown unconditionally at `LOG_LEVEL=0`, in both dry-run and real runs. Previously the resolved config-file values were only visible at `LOG_LEVEL=1` (via `.clasp.json` state dumps) or, for `deploy`, only the deployment ID - never the scriptId for `pull`/`push` at all. Lets a terse run still confirm which project/deployment is actually being targeted before trusting the result. `deploy`'s `[DRY RUN] Would create new version...` message also now includes the deployment name, not just the ID.
+    - Console output at the default `LOG_LEVEL=0` is now terse: exactly one result line per completed pipeline step (e.g. `[PREP] Workspace environment for production build deployment created.`, `[BACKUP] SUCCESS. Created: ...`, `[CLASP] Push process completed successfully.`, `[CLEANUP] completed`), instead of narrating every intermediate action. Added a general-purpose `log(level, message)` helper - prints only when `LOG_LEVEL >= level` - and routed every step-starting/intermediate message (and error/warning message) through it, replacing the previous mix of unconditional `echo` calls and one-off `LOG_LEVEL` checks. `LOG_LEVEL=1` still shows the full previous detail, including raw `clasp` command output and simulated per-file DRY RUN actions, now also routed through the same helper. `deploy_after()`'s/`pull_after()`'s completion line and `cleanup_workspace()` call were reordered so the terse completion line always prints before the terse `[CLEANUP] completed` line, matching `push`'s existing order (its cleanup already happened via the exit trap, after `push_after()` returns).
+  - `ENV_clasp.cfg.zsh` (new, tracked): template for `clasp.zsh`'s config files - placeholder values only, safe to commit. Real profiles (`scripts/*_clasp.cfg.zsh`, e.g. `TEST_clasp.cfg.zsh`) are gitignored and created locally by copying this template.
+
+
+- Under the `src/html` folder: 
+  - Comment audit: Added comments for all html files to easy identify html blocks such as sections or view. For example using this format: `<!-- view/section: X -->` on start of the block and `<!-- /view/section: X -->` on the end of the block identifying the section or the view.
+  - `ExportView.html`
+    - Comment audit - top-level blocks with no comments at all.
+  - `ImportView.html`: Comment audit
+  - `MobileHome.html`: Comment audit
+  - `QuickEntryHelpers.html`:
+    - `commitPendingUpdates()` and `_applyPendingStickerUpdate()` no longer write a `label` field onto sticker objects - that field was removed from the canonical sticker shape in the `QuickEntryService.gs` step above; `QuickEntryRender.html` now builds the label text fresh on every render instead of trusting a stored value.
+    - Pending-update record field renames (`countryCode`→`code`, `stickerNumber`→`number`).
+    - `getPendingUpdates()` now groups the flat `state.pendingUpdates` map (`"code|number" -> count`, itself unchanged) into the new `[{code, stickers:[{number,count}]}]` shape before returning, using an internal `Map` for the grouping step (order-preserving, never crosses any boundary itself - converted to a plain array before the function returns, consistent with this project's "Map internal, plain shape at the wire" pattern used everywhere else).
+    - `commitPendingUpdates()` updated to iterate the new nested `update.stickers` array per country instead of reading `.number`/`.count` directly off a flat `update`.
+    - Fixed the same class of bug as `applyPendingUpdates()` above: `updatePendingChangesMessage()`'s "Pending changes: N" count used `getPendingUpdates(...).length`, which would have silently become the number of countries with pending edits instead of the number of pending sticker edits. Changed to `Object.keys(state.pendingUpdates || {}).length`, which reads the still-flat internal state directly and doesn't depend on `getPendingUpdates()`'s (now grouped) output shape at all.
+  - `QuickEntryRender.html`:
+    - `_buildStickerCard()`'s badge lookup changed from the removed per-sticker `sticker.iconLabel` to the new country-level sparse lookup, `country.iconLabels && country.iconLabels[sticker.number]` (guarded for fixtures/countries that omit `iconLabels`). Its label text changed from `sticker.label || sticker.number` to an inline `` `${sticker.number} (${sticker.count})` `` build, since `label` no longer exists on the sticker.
+    - Removed `_getStickerCountClass()` (dead code - zero call sites, a near-duplicate of the actually-used `_getStickerColorClass()`).
+  - `QuickEntryView.html`: Comment audit several top-level blocks with no comments at all.
+  - `TradeView.html`: Comment audit.
+
+- Under the `src` folder:
+  - `Code.gs`: Added `@see` references pointing at the documented service method to every GAS entry point that was previously undocumented or only partially documented (`previewStickerData`, `importStickerData`, `exportAllStickerData`, `exportSharedStickerData`, `getQuickEntryInitialData`, `applyQuickEntryUpdates`, all five Trade wrappers, and their five mobile-context counterparts). `Code.gs` functions are thin passthroughs, so this avoids duplicating (and risking drift from) the full type/example docs already added to the underlying service methods, following the same `@see` pattern `ImportService.importStickerData()` already used.
+  - `Commons.gs` (`StickerSheetRepository`):
+    - Renamed `COUNTRIES_RANGE_NAME` to `COUNTRY_CODES_RANGE_NAME` and `getCountriesRange()` to `getCountryCodesRange()` to clarify that the named range only contains country codes.
+    - `getCountryCounts()` is no longer its own class method - `getStickerCount()` is its only caller, so it's now an inner function scoped inside `getStickerCount()` itself; the "no count data found" guard lives there too, so a COUNTS/COUNTRIES range-size mismatch throws a clear message instead of a raw `TypeError`.
+    - Added `getCountryCodes()`, returning the set of valid normalized country codes in album order (`COUNTRIES` named range order), read directly instead of routing through `getCountries()`.
+    - `updateStickerCounts()`/`_applyCountUpdates()`: the per-country `counts` payload is a `Map<number,number>` instead of a plain object, so callers no longer depend on JS object key ordering. `clean_all` mode sources the codes to clear from `getCountryCodes()` instead of `getCountries()`.
+    - `_normalizeCountryRow(country, values)` simplified to `_normalizeCountryRow(code, values)`, since it only ever used `country.code`.
+    - Removed the public `getCountryMap()` method (and the dead `row` field it produced). Replaced with a private `_getCountryIndex(code)`, which looks up a country's row position via a lazily-built, cached `Map<string,number>` (`countryIndexByCode`) - only the position is cached, never count values, since `getStickerCount()` still re-reads the COUNTS range fresh every call. `_normalizeCountryCode()` now validates existence via `getCountryCodes().has(code)`.
+    - `getCountries()`/`getStickerCount()`: `counts` is the canonical dense `Map<number,number>` (one entry per sticker slot 0-20, including zero counts) instead of a plain positional `Array<number>`.
+    - Country record field renamed `countryName` → `name`.
+    - Removed `_groupUpdatesByCountry()` (dead code, zero call sites).
+    - Added `getFlagIcons()`/`getDone()`, two positional-array getters (one entry per row, in sheet order, never filtered, cached) mirroring the existing pattern used for other named-range-derived data.
+    - `getCountries()` gained a full options bag: `getCountries({ onlyVisible = false, includeName = true, includeGroup = true, includeFlag = true, includeIcon = false, includeDone = false } = {})`. `onlyVisible` narrows each country's `counts` Map to only the sticker numbers visible for that country's type (`getCountryBounds()`) - e.g. `FWC`'s Map has entries `0-19`, not the full `0-20`. `includeIcon`/`includeDone` zip in the `FLAG_ICONS`/`DONE` ranges by row position. `includeName`/`includeGroup`/`includeFlag` default `true`, so a bare `getCountries()` call is unchanged from before. The narrowing/zipping is a cheap in-memory operation over already-cached data (no extra range reads); the exact-default shape is still returned from a cache slot (`this.countries`/`this.visibleCountries`, preserving reference-identity for callers that mutate the result), while any other option combination is computed fresh per call.
+    - Added `getBoundsForCountry(code)`, a static helper returning one country's `[min,max]` sticker bounds (falling back to the shared `'TEAM'` range), consolidating the `bounds.get(code) || bounds.get('TEAM')` lookup that was previously duplicated inline in seven places across `Commons.gs`, `ImportService.gs`, and `QuickEntryService.gs`. `getCountries()`'s `onlyVisible` narrowing, `_normalizeCountryRow()`, and `_applyCountUpdates()` now call it instead of repeating the lookup.
+  - `ExportService.gs`:
+    - `ExportService`:
+      - Updated the call to `getCountriesRange()` to the renamed `getCountryCodesRange()`.
+      - `getRows()`/`_buildRows()`'s `counts` field is the canonical dense `Map<number,number>` instead of a plain positional `Array<number>`.
+      - `_buildRows()` builds the row model entirely from a single `repo.getCountries({ onlyVisible: true, includeName: false, includeGroup: false, includeFlag: false, includeIcon: true, includeDone: true })` call - no raw named-range access and no per-country COUNTS range read (`getCountryCounts()`, `getStickerCount()`'s inner helper, used to be called once per country, re-reading the whole COUNTS range each time). `onlyVisible: true` means every row's `counts` is already narrowed to that country's valid sticker range before `ExportStickers` ever sees it.
+    - `ExportStickers`:
+      - Internal sticker/count pairs renamed `{sticker,count}` → `{number,count}` (`filterStickerNumbersBy()`, `_formatStickerNumbers()`, `_compactStickerRanges()`, and their JSDoc), matching the `{number,count}` convention used elsewhere in the codebase. Never crosses the wire - Export's UI-facing payload is a formatted text string, not structured JSON.
+      - `exportSharedData()`: section headers now include the total count of distinct repeated/missing sticker numbers across all countries, e.g. `🔄 Repeats (11)` / `❌ Missing (15)`.
+      - `filterStickerNumbersBy()` simplified to iterate a row's `counts` Map directly (`for...of`, already in ascending sticker-number order) and classify each entry as owned/missing/repeats - no separate per-position bounds check needed, since `_buildRows()` now hands it an already-narrowed row. `_isExportableSticker()` deleted as a result. Added the `@param` JSDoc this method had been missing.
+  - `ImportService.gs`:
+    - `ImportService`:
+      - `preview()`/`import()` now call `getRepo().getCountryCodes()` instead of the removed `getRepo().getCountryMap()`.
+      - `_writeCountries()` is a straight passthrough to `updateStickerCounts()` - `ImportStickers` produces a `Map` natively, so the old conversion adapter is gone.
+      - `preview()`: display order is now an explicit, documented step - ascending sticker sort per country, plus country-level album-order sort via `getCountryCodes()` (new behavior; sorting stays out of `ImportStickers`/`LineNormalize` and the HTML layer entirely).
+    - `ImportStickers`/`LineNormalize`:
+      - Dropped the `options`/`sortStickers` mechanism entirely (`_buildStickerOrder()`, `LineNormalize._sortStickers()` removed) - both classes are now unconditionally order-preserving.
+      - Constructors take `countryCodes` (`Set<string>`) instead of the `{row, col}`-shaped `countryMap`, since only code validation was ever needed.
+      - `ImportStickers.parse()`/`_parseLine()`/`_parseStickerToken()`: per-country `counts` is a `Map<number,number>` built in encounter order, replacing the `counts:{}` + `stickerOrder:[]` pair. `parse()` no longer returns a `sortStickers` flag.
+      - `_validateStickerNumber()`, `_mapTokenToCount()`, and `_getAlbumPositions()` now call `StickerSheetRepository.getBoundsForCountry(code)` instead of each repeating the same `bounds.get(code) || bounds.get('TEAM')` lookup inline.
+  - `QuickEntryService.gs`:
+    - Documented every method with complete JSDoc (`@param`/`@returns`/`@throws` plus data examples).
+    - Field naming consistency: country records' `countryName` → `name`; pending-update records' `countryCode` → `code` and `stickerNumber` → `number`, so an identifier is spelled the same way regardless of which record it appears on. Method/local parameter names that aren't themselves record fields (e.g. `_validateVisibleSticker(countryCode, stickerNumber)`) were left as-is.
+    - `applyPendingUpdates()`'s wire-input contract changed from a flat list of per-sticker triples (`[{code, number, count}]`) to grouped-by-country (`[{code, stickers:[{number, count}]}]`), matching the shape `getInitialData()` already returns. `_normalizePendingUpdate()` replaced by `_normalizeCountryUpdate()`/`_normalizeStickerUpdate()` to match the new nesting; `_normalizePendingUpdates()` itself is now a single `.map()` over the grouped input. Fixed the "Updated N sticker value(s)." message, previously computed from `pendingUpdates.length` (silently countries, not stickers, under the new shape) - now sums `counts.size` across the normalized countries.
+    - Sticker view model rebuilt around `getCountries({ onlyVisible: true, includeName: true, includeGroup: true, includeFlag: true, includeIcon: false, includeDone: false })`, which delivers each country's `counts` already narrowed to its visible sticker range. `_buildStickerView()`, `_buildStickerViews()`, `_getVisibleStickerNumbers()`, and `_buildNumberRange()` deleted - stickers are built directly from `country.counts` (`Array.from(counts, ([number,count]) => ({number,count}))`), dropping the `status`/`colorClass` fields (dead - `QuickEntryRender.html` recomputes `colorClass` itself and never reads `status`) and `label` (redundant - the HTML already reconstructs an equivalent string). `_validateVisibleSticker()` simplified to a direct min/max bounds comparison via `StickerSheetRepository.getBoundsForCountry(countryCode)`. Added `_buildIconLabels(countryCode)`, a sparse per-country `{1:'CREST', 13:'TEAM'}` lookup, replacing a per-sticker `iconLabel` field that padded most stickers with an empty string. `QuickEntryHelpers.html`/`QuickEntryRender.html` updated to match - see the `src/html` entries below.
+  - `TradeService.gs` (`TradeService`; no changes to `TradeCalculation`/`TradeQrHelper` this release):
+    - Updated the call to `getCountriesRange()` to the renamed `getCountryCodesRange()`.
+    - `_parseStickerInput()`: now calls `getRepo().getCountryCodes()` instead of `getRepo().getCountryMap()`; dropped the `{sortStickers: false}` option since `ImportStickers` is unconditionally order-preserving now.
+    - `_buildOtherTradeInfo()`: removed the `sortStickers`/`stickerOrder` branching - reads sticker order directly via `Array.from(country.counts.keys())` against the `Map` `ImportStickers` now always returns.
+    - `_buildTradeUpdates()`: accumulator builds a `Map` directly per country, matching the standard shape end-to-end with no separate adapter needed. Its stale JSDoc `@returns` (still describing the old flat `{countryCode,stickerNumber,count}` shape) fixed to match: `{countries:[{code,counts:Map}]}`.
+    - `_buildTradeInfo()` updated to read `item.number` instead of `item.sticker`, since it consumes `ExportStickers.filterStickerNumbersBy()`'s output directly.
+    - `_getCountryDoneMap()` rebuilt from `repo.getCountryCodes()` (ordered, already-filtered) zipped by index against `repo.getDone()`, instead of raw `getCountryCodesRange().getValues()`/`getDoneRange().getValues()` access - no per-country range re-reads, and no dependency on `getCountries()` for fields (`counts`/`name`/`group`/`flag`) this method never uses.
+
+- Under the `test` folder:
+  - `Commons.unit.test.js`:
+    - Renamed mocks/describe blocks for `getCountriesRange()`/`countriesRange` to match the `getCountryCodesRange()`/`countryCodeRange` rename.
+    - Added a `getCountryCodes()` test suite: normalization, album ordering, caching, empty-range filtering.
+    - Removed the `getCountryMap()` describe block (method no longer exists); coverage now implicit through `getStickerCount()`/`updateStickerCounts()`, whose fixtures seed `countryCodes`/`countryIndexByCode` directly.
+    - Updated `updateStickerCounts()`/`getCountries()` assertions to `Map`-based `counts`.
+    - The former `getCountryCounts()` describe block was folded into `getStickerCount()`'s (row lookup, normalization, and error-case coverage, including the "no count data found" guard) - `getCountryCounts()` is an inner function now, scoped inside `getStickerCount()` and inaccessible anywhere else, so per the "public methods only" testing rule its behavior is exercised entirely through that public entry point instead of its own describe block.
+    - Added test coverage for `getFlagIcons()`/`getDone()`: values against the shared fixture, whitespace trimming, invalid/blank-value normalization, caching.
+    - Added `getCountries()` coverage for its full options bag: `onlyVisible` bounds per country type (FWC 0-19, CC 1-12, TEAM/MEX 1-20) and separate caching from the dense result; `includeIcon`/`includeDone`/`includeName`/`includeGroup`/`includeFlag` field presence/absence; the exact-default shape returning the cached array (reference-equal) while any other combination returns a fresh array each call; dense and visible calls interleaved in the same execution (both orders) not corrupting each other's cache.
+  - `ExportService.unit.test.js`:
+    - Renamed `{sticker,count}` fixtures and the `buildCounts()`/`computeDone()` helpers' `pair.sticker` references to `{number,count}`/`pair.number`, matching the `ExportService.gs` rename.
+    - `buildCounts(pairs, [min,max])` builds a `Map<number,number>` bounded to one country type's valid sticker range (default `[1,20]`), matching what `getCountries({ onlyVisible: true })` hands `ExportStickers` in production - any pair outside `[min,max]` is ignored. `getRows()`'s structure test updated from `Array.isArray(row.counts)` to `row.counts instanceof Map`.
+    - Added coverage for the `exportSharedData()` header totals: exact counts against the shared FWC/MEX fixture, invariance under `isCompact: true`, and `(0)` in both fallback cases (no repeats / album complete).
+    - Added coverage proving `_buildRows()` never re-reads the COUNTS range per-country (`getCountryCounts()` is now an inner function of `getStickerCount()`, unreachable from `_buildRows()` entirely, so this asserts on `getCountsRange()`'s call count instead), and that `icon`/`done` land on the correct country (no positional shift).
+  - `ImportService.unit.test.js`:
+    - `ImportStickers`/`LineNormalize`: updated fixtures to construct with `Set<string>` country codes instead of a `countryMap` object; updated `counts` assertions to `Map`; rewrote the `sortStickers`-option test blocks to confirm the new unconditional order-preserving behavior. Removed the direct `_validateCountryCode()` describe block - the scenario it tested is unreachable via the public `parse()` path (`LineNormalize._extractCountryCode()` already gates on the same check), and remains covered through `LineNormalize.normalizeLine()`'s own tests.
+    - `ImportService`: added coverage for `preview()`'s ascending sticker sort and new album-order country sort.
+  - `QuickEntryHelpers.unit.test.js`:
+    - `getPendingUpdates()`/`commitPendingUpdates()` fixtures and assertions rewritten for the grouped shape, including multi-sticker/multi-country grouping cases.
+    - Strengthened `updatePendingChangesMessage()`'s count test with a fixture that distinguishes "count of stickers" from "count of countries" (the previous fixture made both numbers equal).
+    - Renamed `countryCode`/`countryName` fields to `code`/`name`, and `stickerNumber` to `number`, throughout.
+    - Removed `label` from every fixture/assertion (field no longer exists on the sticker shape).
+  - `QuickEntryRender.unit.test.js`:
+    - `_buildStickerCard()`'s badge test updated to pass `iconLabels` on the country argument instead of `iconLabel` on the sticker argument; added a no-match case and a test asserting the label text is built from `number`/`count`.
+    - Added a `QuickEntryService`/`QuickEntryRender` integration scenarios block, feeding a real country view model from `QuickEntryService.getInitialData()` into `QuickEntryRender.buildCountrySection()` to confirm the produced shape matches what the renderer expects.
+  - `QuickEntryService.unit.test.js`:
+    - `_normalizePendingUpdates()`/`applyPendingUpdates()` fixtures rewritten for the grouped `[{code, stickers:[{number,count}]}]` input shape and `Map`-based `counts`; added coverage for an empty `stickers` array (rejected) and the sticker-count-vs-country-count message fix.
+    - Removed the `_getStickerStatus()`, `_getStickerColorClass()`, and `_buildStickerView()` describe blocks (methods no longer exist); coverage for the new sticker/`iconLabels` shape added through `_buildCountryViewModel()` instead.
+    - Renamed `countryCode`/`countryName` fields to `code`/`name`, and `stickerNumber` to `number`, throughout.
+    - Added a `QuickEntryService`/`QuickEntryHelpers` integration scenarios block, running a client-side pending-updates map through the real `getPendingUpdates()` → `applyPendingUpdates()` path.
+    - Removed all 8 `describe` blocks that tested private methods directly, per the project's "public methods only" testing rule - their behavior is exercised through `getInitialData()`/`applyPendingUpdates()` instead.
+  - `TradeService.unit.test.js`: Updated `executeTrade()` assertions to expect `Map`-based `counts` in the `updateStickerCounts()` payload. Renamed the one-off `countryName` fixture field to `name`.
+  - `testKernel.js`: `TEST_DATA.countries[].countryName` → `.name`.
+
+- Under the root folder:
+  - `.gitignore`:
+    - Removed a duplicate `backup/` line.
+    - Added `CLAUDE*.md` (wildcard, replacing the old exact-match `CLAUDE.md` entry, so an archived `CLAUDE_<phase>.md` file also stays untracked).
+    - Added `scripts/*_clasp.cfg.zsh` with `!scripts/ENV_clasp.cfg.zsh` negated back in - every real `clasp.zsh` config profile is gitignored except the tracked placeholder template (see `scripts` folder below).
+  - `package.json`: `clasp:pull`/`clasp:push`/`clasp:deploy`/`deploy:test`/`deploy:all` all default to `--env TEST` when no extra args are given (`${@:---env TEST}`), so the routine local commands stay `npm run clasp:push`/`npm run deploy:test`/etc. - `clasp.zsh` no longer has its own bare-invocation default, so this default now lives one level up, at the npm-script layer, and is still fully overridable (`npm run clasp:push -- --env DAVID`, `-- --file <path>`). Verified the default doesn't double-apply when `deploy:test`/`deploy:all` forward into `clasp:push`/`clasp:deploy`, which each have the same default themselves.
+  - `README.md`:
+    - Moved the `.clasp.json.template` bullet from "Under root" into "Under the `scripts` folder" (its new location) and added a bullet for the new, tracked `scripts/ENV_clasp.cfg.zsh` template.
+    - Updated the **Export shared stickers** example output to match `exportSharedData()`'s new header totals (`🔄 Repeats (15)` / `❌ Missing (15)`) and, in passing, fixed a pre-existing mismatch unrelated to this change: the example showed `🔄 Repeated stickers`/`❌ Missing stickers`, but the code has always emitted `🔄 Repeats`/`❌ Missing`.
+  - `cspell.json`: Removed the `.clasp.json.template` entry from `ignorePaths` - the relocated template now contains only placeholder tokens, no real secret string left to whitelist.
+
+#### Fixed
+
+- Adjusted the named range `COUNTRIES` pointing to the correct column in the `Config` hidden tab.
+- `scripts/clasp.zsh`'s `is_dry_run()` did a strict string match (`[[ "$DRY_RUN" == "true" ]]`), so any other truthy-looking value - `DRY_RUN=1` in particular - silently evaluated as "not dry run" and ran real `clasp` commands (a real deploy, or a real pull overwriting `src/`) with no `[DRY RUN]` indication anywhere in the output. Found live: a `DRY_RUN=1` deploy actually redeployed the TEST Web App to a new version. Fixed by explicitly recognizing `true`/`1`/`yes`/`on` and `false`/`0`/`no`/`off` (case-insensitive), and - since this flag is safety-critical - treating any other, unrecognized value as a hard error instead of silently defaulting to a real run.
+
+---
+
 ## [1.1.4] 2026-08-13
 
 ### Overview
