@@ -6,12 +6,12 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 
 ---
 
-## [1.1.5] 2026-08-XX
+## [1.1.5] 2026-08-16
 
 ### Overview
-Unified the data model across all services, with a standard sticker representation documented in `TechnicalArchitecture.md`. Expanded `StickerSheetRepository` with more, flexible methods that centralize Google Spreadsheet access, so the service layer can rely on it directly instead of reading named ranges itself.
+Unified the data model across all services, with a standard sticker representation documented in `TechnicalArchitecture.md`. Expanded `StickerSheetRepository` with additional, more flexible methods that centralize Google Spreadsheet access, so the service layer can rely on it directly instead of reading named ranges itself.
 
-Improved the `clasp.zsh` script: test configuration (`scriptId`, `deploymentId`) is now read from an external local file that isn't tracked in the GitHub repo, keeping that information out of source control.
+Improved the `clasp.zsh` script: test configuration (`scriptId`, `deploymentId`, `deploymentName`) is now read from a local, gitignored config file instead of being hardcoded in tracked files. The script now takes named options - `--env PREFIX` to select a profile by prefix (`scripts/PREFIX_clasp.cfg.zsh`) or `--file PATH` to point at a config file directly - replacing the previous positional arguments.
 
 ### Google Spreadsheet template
 
