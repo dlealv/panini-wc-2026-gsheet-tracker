@@ -223,6 +223,46 @@ describe('StickerSheetRepository unit tests', () => {
     })
   })
 
+  /** Test getFlagIcons() method */
+  describe('getFlagIcons()', () => {
+    test('returns positional flag icon values, trimmed, blank rows preserved as empty string', () => {
+      const icons = repo.getFlagIcons()
+      expect(icons[0]).toBe('🏆')
+      expect(icons[1]).toBe('🇲🇽')
+      expect(icons[2]).toBe('')
+      expect(icons).toHaveLength(50)
+    })
+    test('trims surrounding whitespace', () => {
+      repo.flagIconsRange = { getDisplayValues: jest.fn(() => [[' 🏆 '], ['🇲🇽']]) }
+      expect(repo.getFlagIcons()).toEqual(['🏆', '🇲🇽'])
+    })
+    test('caches value', () => {
+      const first = repo.getFlagIcons()
+      const second = repo.getFlagIcons()
+      expect(first).toBe(second)
+    })
+  })
+
+  /** Test getDone() method */
+  describe('getDone()', () => {
+    test('returns positional Done values computed from the DONE named range', () => {
+      const done = repo.getDone()
+      expect(done[0]).toBe(2) // FWC: stickers 1,3 owned (see TEST_DATA)
+      expect(done[1]).toBe(2) // MEX: stickers 18,20 owned
+      expect(done[2]).toBe(0) // CC: none owned
+      expect(done).toHaveLength(50)
+    })
+    test('normalizes invalid/blank values to zero', () => {
+      repo.doneRange = { getValues: jest.fn(() => [[''], [null], ['abc'], [3]]) }
+      expect(repo.getDone()).toEqual([0, 0, 0, 3])
+    })
+    test('caches value', () => {
+      const first = repo.getDone()
+      const second = repo.getDone()
+      expect(first).toBe(second)
+    })
+  })
+
   /** Test getStickerCount() method */
   describe('getStickerCount()', () => {
     test('returns one sticker count', () => {
@@ -578,6 +618,81 @@ describe('StickerSheetRepository unit tests', () => {
       const second = repo.getCountries()
       expect(second).toBe(first)
       expect(second.length).toBe(lenBefore + 1)
+    })
+
+    describe('onlyVisible=true', () => {
+      test('narrows counts to each country type\'s visible bounds', () => {
+        const [fwc, mex, cc] = repo.getCountries({ onlyVisible: true })
+        expect(Array.from(fwc.counts.keys())).toEqual(Array.from({ length: 20 }, (_, i) => i)) // 0-19
+        expect(Array.from(mex.counts.keys())).toEqual(Array.from({ length: 20 }, (_, i) => i + 1)) // 1-20
+        expect(Array.from(cc.counts.keys())).toEqual(Array.from({ length: 12 }, (_, i) => i + 1)) // 1-12
+      })
+      test('preserves count values within the visible range', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true })
+        expect(fwc.counts.get(1)).toBe(1)
+        expect(fwc.counts.get(3)).toBe(2)
+      })
+      test('preserves non-counts fields unchanged', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true })
+        expect(fwc).toMatchObject({ code: 'FWC', name: 'World Cup', group: 'A' })
+      })
+      test('does not affect the default (dense) result', () => {
+        const dense = repo.getCountries()
+        expect(Array.from(dense[0].counts.keys())).toHaveLength(21) // untouched, still 0-20
+      })
+      test('caches the visible variant separately from the dense one', () => {
+        const first = repo.getCountries({ onlyVisible: true })
+        const second = repo.getCountries({ onlyVisible: true })
+        expect(first).toBe(second)
+      })
+      test('dense and visible calls in the same execution do not corrupt each other, in either order', () => {
+        const dense1 = repo.getCountries()
+        const visible1 = repo.getCountries({ onlyVisible: true })
+        const dense2 = repo.getCountries()
+        const visible2 = repo.getCountries({ onlyVisible: true })
+        expect(Array.from(dense1[0].counts.keys())).toHaveLength(21)
+        expect(Array.from(visible1[0].counts.keys())).toHaveLength(20)
+        expect(dense2).toBe(dense1)
+        expect(visible2).toBe(visible1)
+      })
+    })
+
+    describe('includeIcon/includeDone/includeName/includeGroup/includeFlag', () => {
+      test('includeIcon=true adds the icon field, zipped by row position', () => {
+        const [fwc, mex] = repo.getCountries({ includeIcon: true })
+        expect(fwc.icon).toBe('🏆')
+        expect(mex.icon).toBe('🇲🇽')
+      })
+      test('includeDone=true adds the done field, zipped by row position', () => {
+        const [fwc, mex] = repo.getCountries({ includeDone: true })
+        expect(typeof fwc.done).toBe('number')
+        expect(typeof mex.done).toBe('number')
+      })
+      test('includeIcon/includeDone default to false (absent from the default record)', () => {
+        const [fwc] = repo.getCountries()
+        expect(fwc).not.toHaveProperty('icon')
+        expect(fwc).not.toHaveProperty('done')
+      })
+      test('includeName/includeGroup/includeFlag=false excludes those fields', () => {
+        const [fwc] = repo.getCountries({ includeName: false, includeGroup: false, includeFlag: false })
+        expect(fwc).not.toHaveProperty('name')
+        expect(fwc).not.toHaveProperty('group')
+        expect(fwc).not.toHaveProperty('flag')
+        expect(fwc).toMatchObject({ code: 'FWC' })
+        expect(fwc.counts).toBeInstanceOf(Map)
+      })
+      test('a non-default shape is not cached (fresh array each call)', () => {
+        const first = repo.getCountries({ includeIcon: true })
+        const second = repo.getCountries({ includeIcon: true })
+        expect(first).not.toBe(second)
+        expect(first).toEqual(second)
+      })
+      test('combines onlyVisible with includeIcon/includeDone', () => {
+        const [fwc] = repo.getCountries({ onlyVisible: true, includeIcon: true, includeDone: true })
+        expect(Array.from(fwc.counts.keys())).toHaveLength(20)
+        expect(fwc).toHaveProperty('icon')
+        expect(fwc).toHaveProperty('done')
+      })
     })
   })
 })

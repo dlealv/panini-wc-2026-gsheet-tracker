@@ -318,6 +318,35 @@ class StickerSheetRepository {
     return this.groupCodes
   }
 
+  /**
+   * Returns flag icon (emoji) values from the FLAG_ICONS named range, in sheet order - one entry per row,
+   * including blank rows (never filtered), so the result stays positionally aligned with getCountries() for
+   * callers that need to zip country data by row index. Relies on the sheet invariant that unused rows are
+   * always trailing padding, never interspersed among real entries - the same assumption getCountries()'s own
+   * row/COUNTS alignment already depends on.
+   * @returns {string[]} One flag icon per row. Example: ['🏆', '🇲🇽', '', ...]
+   */
+  getFlagIcons() {
+    if (!this.flagIcons) {
+      this.flagIcons = this.getFlagIconsRange().getDisplayValues().map(row => String(row[0] || '').trim())
+    }
+    return this.flagIcons
+  }
+
+  /**
+   * Returns Done values (completion count per row) from the DONE named range, in sheet order - one entry per
+   * row, including blank rows (never filtered), so the result stays positionally aligned with getCountries()
+   * for callers that need to zip country data by row index. Same trailing-blanks-only assumption as
+   * getFlagIcons().
+   * @returns {number[]} One Done value per row. Example: [12, 8, 0, ...]
+   */
+  getDone() {
+    if (!this.done) {
+      this.done = this.getDoneRange().getValues().map(row => Number(row[0]) || 0)
+    }
+    return this.done
+  }
+
   // Main methods
 
   /**
@@ -357,10 +386,29 @@ class StickerSheetRepository {
   }
 
   /**
-   * Returns all countries with group, flag, country name, and count data. It is lazy-loaded.
-   * @returns {Array} An array of country records, where each record contains the country code, group code, flag URL,
-   * country name, and a dense sticker-number -> count map.
-   * Example of a country record:
+   * Returns all countries with count data, plus whichever optional fields are requested. It is lazy-loaded.
+   * `code` and `counts` are always present - every known caller needs at least one of them. The remaining
+   * fields split into two groups with opposite defaults, reflecting what each group actually is:
+   *  - `name`/`group`/`flag` are core country identity, already part of the base loaded record - they default
+   *    to true (today's behavior, unchanged) and can be explicitly excluded by callers that don't use them
+   *    (e.g. ExportService/TradeService only need code/counts/icon/done, never identity fields).
+   *  - `icon`/`done` are additive display/state data from separate named ranges (FLAG_ICONS/DONE) - they
+   *    default to false (never part of the base record) and must be explicitly requested.
+   * @param {Object} [options={}] - Optional shaping flags.
+   * @param {boolean} [options.onlyVisible=false] - When true, each country's `counts` Map is filtered down to
+   * only the sticker numbers visible for that country's type (see getCountryBounds()) - e.g. FWC's Map only has
+   * entries 0-19, not the full 0-20. Filtering is a cheap in-memory operation over the already-cached dense
+   * data - it never triggers an extra range read, and is cached separately from the dense result so calling
+   * this method with different onlyVisible values in the same execution never returns stale/wrong-mode data.
+   * @param {boolean} [options.includeName=true] - Include the country name.
+   * @param {boolean} [options.includeGroup=true] - Include the group code.
+   * @param {boolean} [options.includeFlag=true] - Include the flag URL.
+   * @param {boolean} [options.includeIcon=false] - Include the flag icon (emoji, from getFlagIcons()), zipped
+   * in by row position.
+   * @param {boolean} [options.includeDone=false] - Include the DONE completion count (from getDone()), zipped
+   * in by row position.
+   * @returns {Array} An array of country records shaped per the options above.
+   * Example of a country record (default options):
    * {
    *   code: 'MEX',
    *   name: 'Mexico',
@@ -370,11 +418,52 @@ class StickerSheetRepository {
    * }
    * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in
   */
-  getCountries() {
+  getCountries({
+    onlyVisible = false,
+    includeName = true,
+    includeGroup = true,
+    includeFlag = true,
+    includeIcon = false,
+    includeDone = false
+  } = {}) {
     if (!this.countries) {
       this.countries = this._loadCountries()
     }
-    return this.countries
+    let baseCountries = this.countries
+    if (onlyVisible) {
+      /** Narrows one country's dense counts down to only its visible sticker range, still dense within it. */
+      const toVisibleCountry = country => {
+        const bounds = StickerSheetRepository.getCountryBounds()
+        const [min, max] = bounds.get(country.code) || bounds.get('TEAM')
+        const visibleCounts = new Map()
+
+        for (let number = min; number <= max; number++) {
+          visibleCounts.set(number, country.counts.get(number))
+        }
+        return { ...country, counts: visibleCounts }
+      }
+      if (!this.visibleCountries) {
+        this.visibleCountries = this.countries.map(toVisibleCountry)
+      }
+      baseCountries = this.visibleCountries
+    }
+    const isDefaultShape = includeName && includeGroup && includeFlag && !includeIcon && !includeDone
+    if (isDefaultShape) {
+      return baseCountries
+    }
+    // Not cached (unlike baseCountries above): each non-default shape is a cheap in-memory map over already
+    // -cached data, and caching every possible option combination would need a cache slot per combination.
+    const flagIcons = includeIcon ? this.getFlagIcons() : null
+    const doneValues = includeDone ? this.getDone() : null
+    return baseCountries.map((country, index) => {
+      const record = { code: country.code, counts: country.counts }
+      if (includeName) record.name = country.name
+      if (includeGroup) record.group = country.group
+      if (includeFlag) record.flag = country.flag
+      if (includeIcon) record.icon = flagIcons[index] || ''
+      if (includeDone) record.done = doneValues[index] || 0
+      return record
+    })
   }
 
   /**

@@ -551,22 +551,26 @@ class TradeService {
 
   /**
    * Builds a lookup of DONE values for the provided countries.
-   * Used to prioritize countries by album completion when sorting is enabled.
+   * Used to prioritize countries by album completion when sorting is enabled. Built from repo.getCountryCodes()
+   * (ordered, already-filtered country codes) zipped by array index against repo.getDone() (positional DONE
+   * values) - never touches a raw named range directly. Doesn't use getCountries(): only code/done are needed
+   * here, and getCountries() would pull in the COUNTS/GROUPS/FLAGS_URL/COUNTRY_NAMES reads that back the
+   * counts/name/group/flag fields this method never reads.
    * @param {string[]} countryCodes - Country codes to retrieve DONE values for.
    * @returns {Object<string,number>} Map of country codes to completed sticker counts.
    */
   _getCountryDoneMap(countryCodes) {
     const repo = this.getRepo()
-    const countries = repo.getCountryCodesRange().getValues()
-    const doneValues = repo.getDoneRange().getValues()
     const wanted = new Set(countryCodes || [])
+    const codes = Array.from(repo.getCountryCodes())
+    const doneValues = repo.getDone()
     const doneMap = {}
 
-    for (let i = 0; i < countries.length; i++) {
-      const code = String(countries[i][0] || '').trim().toUpperCase()
-      if (!wanted.has(code)) { continue }
-      doneMap[code] = Number(doneValues[i] && doneValues[i][0]) || 0
-    }
+    codes.forEach((code, index) => {
+      if (wanted.has(code)) {
+        doneMap[code] = doneValues[index]
+      }
+    })
     return doneMap
   }
 

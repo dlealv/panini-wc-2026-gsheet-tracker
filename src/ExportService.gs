@@ -85,29 +85,18 @@ class ExportService {
 
   /**
    * Builds the canonical export row model consumed by ExportStickers.
-   * Centralizes all sheet-to-domain mapping required for export operations. Reuses
-   * StickerSheetRepository.getCountryCounts() for the counts field instead of re-reading/normalizing the COUNTS
-   * range independently, so this stays aligned with the canonical dense Map<number,number> model used everywhere
-   * else in the codebase.
+   * Built entirely from a single StickerSheetRepository.getCountries() call, never a raw named range - export
+   * only needs code/counts/icon/done, never the country identity fields (name/group/flag), so those are
+   * explicitly excluded rather than carried along unused. `onlyVisible: true` narrows each country's `counts`
+   * to its own valid sticker range up front, so a row never contains an invalid sticker position for its
+   * country in the first place - ExportStickers can filter owned/missing/repeats without a separate per-position
+   * validity check.
    * @returns {Array<{code:string,icon:string,done:number,counts:Map<number,number>}>}
    */
   _buildRows() {
-    const repo = this.getRepo() // ensure repo is initialized for range access
-    const countryValues = repo.getCountryCodesRange().getValues()
-    const doneValues = repo.getDoneRange().getValues()
-    const flagValues = repo.getFlagIconsRange() ? repo.getFlagIconsRange().getDisplayValues() : []
-    const rows = []
-    for (let i = 0; i < countryValues.length; i++) {
-      const code = String(countryValues[i][0] || '').trim().toUpperCase()
-      if (!code) { continue }
-      rows.push({
-        code,
-        icon: String(flagValues[i] && flagValues[i][0] || '').trim(),
-        done: Number(doneValues[i] && doneValues[i][0]) || 0,
-        counts: repo.getCountryCounts(code)
-      })
-    }
-    return rows
+    return this.getRepo().getCountries({
+      onlyVisible: true, includeName: false, includeGroup: false, includeFlag: false, includeIcon: true, includeDone: true
+    })
   }
 
 }
@@ -199,23 +188,21 @@ class ExportStickers {
 
   /**
    * Filters stickers by export category.
-   * Returns number/count pairs matching the requested category.
+   * Returns number/count pairs matching the requested category. Iterates the row's own `counts` Map directly
+   * (in ascending sticker-number order) - no per-position validity check is needed here, since `_buildRows()`
+   * already narrows `counts` to only the sticker positions valid for that row's country (see getCountries()'s
+   * `onlyVisible: true`).
+   * @param {{code:string,counts:Map<number,number>}} row - Export row (see ExportService._buildRows()).
+   * @param {string} by - Category to filter by: 'owned' (count >= 1), 'missing' (count === 0), or
+   *  'repeats' (count >= 2).
    * @returns {Array<{ number: number, count: number }>}
    */
   filterStickerNumbersBy(row, by) {
     const out = []
-    const STICKER_MIN = StickerSheetRepository.getStickerMin()
-    const STICKER_MAX = StickerSheetRepository.getStickerMax()
-    for (let s = STICKER_MIN; s <= STICKER_MAX; s++) {
-      if (!this._isExportableSticker(row.code, s)) { continue }
-      const n = row.counts.get(s)
-      if (by === 'owned' && n >= 1) { out.push({ number: s, count: n }) }
-      else if (by === 'missing' && n === 0) {
-        out.push({ number: s, count: 0 })
-      }
-      else if (by === 'repeats' && n >= 2) {
-        out.push({ number: s, count: n })
-      }
+    for (const [number, count] of row.counts) {
+      if (by === 'owned' && count >= 1) { out.push({ number, count }) }
+      else if (by === 'missing' && count === 0) { out.push({ number, count: 0 }) }
+      else if (by === 'repeats' && count >= 2) { out.push({ number, count }) }
     }
     return out
   }
@@ -300,17 +287,6 @@ class ExportStickers {
     if (!shouldIncludeFlags) { return baseLine }
     if (!icon) { return baseLine }
     return `${icon} ${baseLine}`
-  }
-
-  /**
-   * Checks whether a sticker number is valid for export.
-   * Returns true when the sticker belongs to the country range.
-   * @returns {boolean}
-   */
-  _isExportableSticker(countryCode, stickerNumber) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [minSticker, maxSticker] = bounds.get(countryCode) || bounds.get('TEAM')
-    return stickerNumber >= minSticker && stickerNumber <= maxSticker
   }
 
 }

@@ -41,9 +41,10 @@ class QuickEntryService {
    *  groupCodes:['A','B','C'], selectedStatusFilter:'all', selectedGroupFilter:'all' }
   */
   getInitialData() {
-    const countries = this.repo.getCountries()
+    const countries = this.repo.getCountries({
+      onlyVisible: true, includeName: true, includeGroup: true, includeFlag: true, includeIcon: false, includeDone: false
+    })
     const groupCodes = this.repo.getGroupCodes()
-
     return {
       countries: this._buildCountryViewModels(countries),
       groupCodes,
@@ -73,25 +74,29 @@ class QuickEntryService {
     return {
       success: true,
       message: `Updated ${count} sticker value(s).`,
-      countries: this._buildCountryViewModels(this.repo.getCountries())
+      countries: this._buildCountryViewModels(this.repo.getCountries({
+        onlyVisible: true, includeName: true, includeGroup: true, includeFlag: true, includeIcon: false, includeDone: false
+      }))
     }
   }
 
   /**
    * Builds country view models for the UI.
    * @param {Array<{code:string,name:string,group:string,flag:string,counts:Map<number,number>}>} countries -
-   *  Country records as returned by StickerSheetRepository.getCountries().
+   *  Country records as returned by StickerSheetRepository.getCountries({ onlyVisible: true }) - counts already
+   *  narrowed to each country's visible sticker range, so no per-country bounds lookup is needed here.
    * @returns {Array<Object>} One view model per input country. See _buildCountryViewModel() for the shape.
   */
   _buildCountryViewModels(countries) {
-    return countries.map(country => this._buildCountryViewModel(country))
+    return countries.map(country => this._buildCountryViewModel(country)) // only visible stickers
   }
 
   /**
    * Builds one country section view model.
    * @param {{code:string,name:string,group:string,flag:string,counts:Map<number,number>}} country -
    *  Country record. Example: { code:'MEX', name:'Mexico', group:'B', flag:'https://...',
-   *  counts:Map{0=>0,1=>1,2=>0,...,18=>2,20=>0} } // dense, one entry per sticker (0-20)
+   *  counts:Map{1=>1,2=>0,...,18=>2,20=>0} } // dense over MEX's own visible range (1-20) - see
+   *  StickerSheetRepository.getCountries({ onlyVisible: true })
    * @returns {{code:string,name:string,group:string,flag:string,isCompleted:boolean,
    *  stickers:Array<{number:number,count:number}>,iconLabels:Object<number,string>,summary:Object}} Country view
    *  model. Example: { code:'MEX', name:'Mexico', group:'B', flag:'https://...', isCompleted:false,
@@ -99,10 +104,9 @@ class QuickEntryService {
    *  summary:{owned:5,missing:15,repeated:2,total:20,completionPercent:25} }
   */
   _buildCountryViewModel(country) {
-    const stickers = this._buildStickerViews(country.code, country.counts)
+    const stickers = Array.from(country.counts, ([number, count]) => ({ number, count }))
     const summary = this._buildSummary(stickers)
     const isCompleted = summary.missing === 0
-
     return {
       code: country.code,
       name: country.name,
@@ -116,24 +120,6 @@ class QuickEntryService {
   }
 
   /**
-   * Builds sticker cards for one country. Each card is the canonical {number,count} pair only - corner labels
-   * live separately in _buildIconLabels(), since they only ever apply to 2 of the ~20 stickers per country.
-   * @param {string} countryCode - Normalized country code. Example: 'MEX'
-   * @param {Map<number,number>} counts - Sticker-number -> count map. Must be dense over the country's visible
-   *  sticker range (an entry for every visible sticker number, including zero counts) - a sparse map would make
-   *  .get() return undefined for a legitimately-absent sticker, silently producing an undefined count instead of 0.
-   *  Example: Map{0=>0,1=>1,2=>0,...,18=>2,20=>0}
-   * @returns {Array<{number:number,count:number}>} One entry per visible sticker number, ascending.
-   *  Example: [{number:0,count:0}, {number:1,count:1}, ...]
-  */
-  _buildStickerViews(countryCode, counts) {
-    return this._getVisibleStickerNumbers(countryCode).map(stickerNumber => ({
-      number: stickerNumber,
-      count: counts.get(stickerNumber)
-    }))
-  }
-
-  /**
    * Builds the sparse corner-label lookup for one country's special stickers (team crest/captain).
    * @param {string} countryCode - Normalized country code. Example: 'MEX'
    * @returns {Object<number,string>} Sticker-number -> label, containing only the stickers that actually have a
@@ -144,7 +130,6 @@ class QuickEntryService {
     const iconLabels = {}
     const crest = this._getStickerIconLabel(countryCode, 1)
     const team = this._getStickerIconLabel(countryCode, 13)
-
     if (crest) {
       iconLabels[1] = crest
     }
@@ -163,7 +148,6 @@ class QuickEntryService {
   */
   _getStickerIconLabel(countryCode, stickerNumber) {
     const isTeam = !StickerSheetRepository.getCountryBounds().has(countryCode)
-
     if (!isTeam) {
       return ''
     }
@@ -173,36 +157,7 @@ class QuickEntryService {
     if (stickerNumber === 13) {
       return 'TEAM'
     }
-
     return ''
-  }
-
-  /**
-   * Returns visible sticker numbers for one country.
-   * @param {string} countryCode - Normalized country code. Example: 'FWC'
-   * @returns {number[]} Inclusive range of valid sticker numbers for the country. Example: [0,1,...,19] for FWC
-  */
-  _getVisibleStickerNumbers(countryCode) {
-    const bounds = StickerSheetRepository.getCountryBounds()
-    const [start, end] = bounds.get(countryCode) || bounds.get('TEAM')
-
-    return this._buildNumberRange(start, end)
-  }
-
-  /**
-   * Builds an inclusive number range.
-   * @param {number} start - Range start (inclusive). Example: 1
-   * @param {number} end - Range end (inclusive). Example: 5
-   * @returns {number[]} Example: [1, 2, 3, 4, 5]
-  */
-  _buildNumberRange(start, end) {
-    const numbers = []
-
-    for (let value = start; value <= end; value++) {
-      numbers.push(value)
-    }
-
-    return numbers
   }
 
   /**
@@ -218,7 +173,6 @@ class QuickEntryService {
     const missing = stickers.filter(sticker => sticker.count === 0).length
     const repeated = stickers.filter(sticker => sticker.count > 1).length
     const completionPercent = total === 0 ? 0 : Math.round((owned / total) * 100)
-
     return {
       owned,
       missing,
@@ -258,7 +212,6 @@ class QuickEntryService {
   _normalizeCountryUpdate(update) {
     const code = this._normalizeCountryCode(update && update.code)
     const stickers = (update && update.stickers) || []
-
     if (!Array.isArray(stickers) || !stickers.length) {
       throw new Error(`No sticker updates provided for ${code}.`)
     }
@@ -280,13 +233,10 @@ class QuickEntryService {
   _normalizeStickerUpdate(code, sticker) {
     const number = Number(sticker && sticker.number)
     const count = Number(sticker && sticker.count)
-
     this._validateVisibleSticker(code, number)
-
     if (!Number.isInteger(count) || count < 0) {
       throw new Error(`Invalid count "${sticker && sticker.count}" for ${code} sticker ${number}.`)
     }
-
     return [number, count]
   }
 
@@ -298,11 +248,9 @@ class QuickEntryService {
   */
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
-
     if (!normalizedCountryCode) {
       throw new Error('Country code is required.')
     }
-
     return normalizedCountryCode
   }
 
@@ -313,7 +261,10 @@ class QuickEntryService {
    * @throws {Error} When the sticker number is outside the country's visible range.
   */
   _validateVisibleSticker(countryCode, stickerNumber) {
-    if (!this._getVisibleStickerNumbers(countryCode).includes(stickerNumber)) {
+    const bounds = StickerSheetRepository.getCountryBounds()
+    const [min, max] = bounds.get(countryCode) || bounds.get('TEAM')
+
+    if (stickerNumber < min || stickerNumber > max) {
       throw new Error(`Sticker ${stickerNumber} is not valid for country code "${countryCode}".`)
     }
   }
