@@ -960,7 +960,8 @@ The user must be able to:
 - Change the number of stickers to send.
 - Sort stickers to receive by album order or collection completion percentage.
 
-Changing trade quantities must automatically update the corresponding sticker lists.
+Changing trade quantities or the sort criteria does not update the displayed sticker lists automatically.
+The user must select **Refresh** to regenerate the proposal using the new limits and/or sorting, per §10.1.
 
 The displayed proposal must represent only the current possible trade and must not modify the user's collection.
 

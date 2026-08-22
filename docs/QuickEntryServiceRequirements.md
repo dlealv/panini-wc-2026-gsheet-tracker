@@ -17,7 +17,7 @@ This service covers:
 - Loading country data and sticker counts from the spreadsheet.
 - Handles country teams and special stickers such us FIFA World Cup (`FWC`) and Coca-Cola (`CC`).
 - Rendering countries as interactive visual sections.
-- Filtering countries by search text by country code and country name.
+- Filtering countries by search text by country code, country name, or sticker number.
 - Filtering countries by group.
 - Filtering stickers by status.
 - Showing per-country completion summaries.
@@ -134,10 +134,17 @@ A country section must be visually identifiable as complete when it has no missi
 The dialog must allow incremental search by:
 - Country code.
 - Country name.
+- Sticker number.
 
 Search behavior:
 - Matching must be case-insensitive.
-- Partial matches must be supported.
+- Matches are partial in the left-to-right (prefix) sense: the search text must match the beginning of the
+  country code or country name, not any position within it. For example, `m` matches any code starting with
+  `M` (e.g. `MEX` and `MAR`), and typing further to `me` narrows the same search down to codes starting with `me` (e.g.
+  only `MEX`). The same left-to-right matching applies to country names (e.g. `bos` matches `Bosnia and
+  Herzegovina`).
+- If the search text is entirely numeric, it is interpreted as a sticker number instead of a country code/name
+  search: within each visible country section, only the sticker card matching that number is shown.
 - The visible country list must refresh without writing to the spreadsheet.
 
 ### Group filter behavior

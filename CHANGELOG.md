@@ -6,6 +6,70 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 
 ---
 
+## [1.1.6] 2026-08-XX
+
+### Overview
+
+Audit of the UI with respect the requirement and mock document for all services. Adjusted the documentation in case the UI behavior is correct or adjusted the UI when the requirements are not correctly satisfied.
+
+### Google Spreadsheet template
+
+No changes to the template. Current version is kept.
+
+### Apps Script
+
+#### Added
+
+- Under `data` folder:
+  - `TEST_panini-stickers-all.txt`: File used to set the state of the `Sticker`tab for testing purpose.
+
+- Under `doc`folder:
+  - `ImportServiceMockDesign.md`: Mock design for import services based on requirements document `ImportServiceRequirements.md`.
+
+#### Changes
+
+- Under the `docs` folder:
+  - `ExportServiceRequirements.md`: "Export shared stickers requirements" section updated to match the actual implementation - the worked example and both section header definitions now show `🔄 Repeats (N)` / `❌ Missing (N)` (with a note on how the counts add up), replacing the previous `🔄 Repeated stickers` / `❌ Missing stickers` wording that the code had already moved away from.
+  - `ImportServiceRequirements.md`: "Import validation rules" section clarified - the "Strict rules" heading now explicitly states it means a literal thrown `Error` with parsing stopped immediately; removed "no valid sticker entries remain to import" from that list, since that case never actually throws; added a new paragraph after the flexible-rules table documenting the real behavior instead: when every line in the input ends up flexible-skipped, the operation still completes normally (`Imported 0 country row(s) successfully.` plus the per-line warnings already generated).
+  - `QuickEntryServiceMockDesign.md`: "Filter behavior" → "Search input" reworded to describe the actual left-to-right/prefix matching behavior instead of the ambiguous "Partial matches are allowed"; added the undocumented sticker-number search to both ASCII mock placeholder strings, the "Top action and filter area" placeholder description, and the "Recommended decisions" bullet.
+  - `QuickEntryServiceRequirements.md`: "Scope" and "Search behavior" updated to document sticker-number search (an all-digits search term filters to that specific sticker) alongside country code/name search; "Partial matches must be supported" replaced with an explicit left-to-right/prefix description and worked examples (`m`→`MEX`/`MAR`, `me`→`MEX` only, `bos`→`Bosnia and Herzegovina`).
+  - `TradeServiceMockDesign.md`: Both ASCII mock blocks ("View 1: Initial view" and "View 2: Trade proposal updated (after Refresh)") and the two "Provide customized hint information..." prose bullets updated to include the new Confirm-trade `COUNTS`-update disclosure text (see `TradeView.html` below).
+  - `TradeServiceRequirements.md`: §14.4 reworded to match §10.1's explicit-refresh model, cross-referencing §10.1 directly, instead of contradicting it with "Changing trade quantities must automatically update the corresponding sticker lists."
+  - `ImportServiceMockDesign.md`: removed the "Open Import Dialog → Update counts" line from the menu-entry/pre-selected-mode list (that menu entry no longer exists — see `src/Code.gs` below) and renumbered the remaining 3 entries.
+
+- Under the `images` folder:
+  - `tradeViewInitialTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
+  - `tradeViewAdjustedTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
+  - `managePaniniMenuView.jpg`: Updated the image to included the updated version of the input services.
+
+- Under `src/html` folder:
+  - `ExportView.html`: Wrapped the "Export result"/"Messages"/"Actions" sections in a new `export-sections` div (mirroring Import's `import-sections` and Trade's `tradeInputView` wrappers), so the three sections sit flush with no visual gap between them, matching Import's and Trade's look and feel. Shared by both the desktop dialog and the mobile view.
+  - `ImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearInput()`.
+  - `MobileImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearForm()`.
+  - `TradeView.html`: `renderProposalPreview()`'s two hint-text states (initial proposal view and post-Refresh view) now disclose that clicking Confirm trade updates `COUNTS`, referencing the named range with the same `.inline-code` styling Import/Export's own hints already use.
+
+- Under `src` folder:
+  - `Code.gs`: 
+    - Removed the redundant `'Open import dialog'` entry from the `Manage Panini` menu in `onOpen()`, and the now-unreachable `showImportDialog()` function it called (functionally identical to `showImportDialogUpdate()`). Desktop-only — mobile has no equivalent menu.
+    - Reordered the import options, now the order is: `Update counts`, `Update counts clearing country counts`, `Import dialog`.
+
+- Under the root folder:
+  - `.gitignore` Added `.claude` folder.
+  - `README.md`: 
+    - Reworded the sentence naming the "Open import dialog" menu entry to instead describe all three `Manage Panini` import menu entries opening the same dialog, pre-set to the corresponding mode. The `managePaniniMenuView.jpg` screenshot will be retaken after redeploy.
+    - Updated the Documentation section to include the file `ImportServiceMockDesign.md`.
+    - Updated the Files section to include the file `data/TEST_panini-stickers-all.txt`.
+
+#### Fixed
+
+- Under `src/html` folder:
+  - `ImportView.html`: `clearInput()` no longer resets the **Loading mode** selector back to `update` when
+    **Clear** is clicked — it now leaves whatever mode was pre-selected (by the menu entry point) or chosen
+    by the user untouched, matching `docs/ImportServiceMockDesign.md` §2.1.
+  - `MobileImportView.html`: same fix applied to `clearForm()`, matching §3.1 of the same doc.
+
+---
+
 ## [1.1.5] 2026-08-16
 
 ### Overview

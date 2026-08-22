@@ -15,50 +15,61 @@
 -->
 
 
-<div class="section"><!-- section: Export -->
-  <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
-  <div class="section-title" id="exportTitle"></div>
+<!--
+  Wrapper keeps the Export/Messages/Actions sections flush against each other
+  (no gap), matching Import's #importModeWrapper.import-sections and Trade's
+  #tradeInputView pattern. Without this wrapper, these three .section divs
+  would be direct children of the host dialog's .container (flex, gap:12px),
+  which visibly separates them -- see F-EXP-001.
+-->
+<div class="export-sections"><!-- export-sections -->
 
-  <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
-  <div class="export-toolbar">
-    <label class="toolbar-item">
-      <input type="checkbox" id="includeFlagsCheckbox">
-      Flags
-    </label>
-    <label class="toolbar-item">
-      <input type="checkbox" id="isCompactCheckbox">
-      Compact (using ranges)
-    </label>
-    <label id="sortByDoneContainer" class="toolbar-item" style="display:none;">
-      <input type="checkbox" id="sortByDoneCheckbox">
-      Sort by Done (descending) missing stickers
-    </label>
-    <button class="btn btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
-      Refresh
-    </button>
-  </div>
+  <div class="section"><!-- section: Export -->
+    <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
+    <div class="section-title" id="exportTitle"></div>
 
-  <!-- Output text area for exported payload. -->
-  <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
-  <div id="exportHint" class="hint hint-spaced"></div>
-</div><!-- /section: Export -->
+    <!-- Export toolbar: checkboxes and refresh action kept in one horizontal row. -->
+    <div class="export-toolbar">
+      <label class="toolbar-item">
+        <input type="checkbox" id="includeFlagsCheckbox">
+        Flags
+      </label>
+      <label class="toolbar-item">
+        <input type="checkbox" id="isCompactCheckbox">
+        Compact (using ranges)
+      </label>
+      <label id="sortByDoneContainer" class="toolbar-item" style="display:none;">
+        <input type="checkbox" id="sortByDoneCheckbox">
+        Sort by Done (descending) missing stickers
+      </label>
+      <button class="btn btn-inline" onclick="refreshExportData()" style="margin-left:auto;">
+        Refresh
+      </button>
+    </div>
 
-<div id="exportMessageSection" class="section" style="display:none;"><!-- section: Messages -->
-  <div class="section-title">Messages</div>
-  <div class="message-section">
-    <div id="export-message" class="message info"></div>
-    <div id="export-warnings" class="message warning hidden"></div>
-  </div>
-</div><!-- /section: Messages -->
+    <!-- Output text area for exported payload. -->
+    <textarea id="exportText" readonly placeholder="Exported sticker data will appear here."></textarea>
+    <div id="exportHint" class="hint hint-spaced"></div>
+  </div><!-- /section: Export -->
 
-<div class="section"><!-- section: Actions -->
-  <div class="section-title">Actions</div>
-  <div class="actions">
-    <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
-    <button class="btn" onclick="copyExport()">Copy</button>
-    <button id="exportCloseButton" class="btn" onclick="closeExportView()">Close</button>
-  </div>
-</div><!-- /section: Actions -->
+  <div id="exportMessageSection" class="section" style="display:none;"><!-- section: Messages -->
+    <div class="section-title">Messages</div>
+    <div class="message-section">
+      <div id="export-message" class="message info"></div>
+      <div id="export-warnings" class="message warning hidden"></div>
+    </div>
+  </div><!-- /section: Messages -->
+
+  <div class="section"><!-- section: Actions -->
+    <div class="section-title">Actions</div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="downloadExport()">Download file</button>
+      <button class="btn" onclick="copyExport()">Copy</button>
+      <button id="exportCloseButton" class="btn" onclick="closeExportView()">Close</button>
+    </div>
+  </div><!-- /section: Actions -->
+
+</div><!-- /export-sections -->
 
 <!-- Include shared export helpers (under Export namespace) -->
 <?!= include('ExportHelpers') ?>

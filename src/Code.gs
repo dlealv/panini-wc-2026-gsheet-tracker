@@ -11,10 +11,9 @@ function onOpen() {
   _saveMobileConfig()
   SpreadsheetApp.getUi()
     .createMenu('Manage Panini')
-    .addItem('Open import dialog', 'showImportDialog')
-    .addItem('Import data', 'showImportDialogCleanAll')
-    .addItem('Update counts clearing country counts', 'showImportDialogReplaceCountries')
     .addItem('Update counts', 'showImportDialogUpdate')
+    .addItem('Update counts clearing country counts', 'showImportDialogReplaceCountries')
+    .addItem('Import data', 'showImportDialogCleanAll')
     .addSeparator()
     .addItem('Export all stickers', 'showExportAllDialog')
     .addItem('Export shared stickers', 'showExportSharedDialog')
@@ -37,15 +36,8 @@ function createJsonOutput(obj) {
 }
 
 // #region Import
-//==============================================================================
-// Import Dialog
-//==============================================================================
 
-
-/** Opens the import dialog. */
-function showImportDialog() {
-  _showImportDialog('update')
-}
+// IMPORT SERVICE ENTRY POINTS
 
 /** Opens the import dialog in clean-all mode. */
 function showImportDialogCleanAll() {
@@ -89,13 +81,11 @@ function _showImportDialog(defaultMode) {
   SpreadsheetApp.getUi().showModalDialog(html, 'Import sticker counts')
 }
 
-
 // #endregion Import
 
 // #region Export
-//==============================================================================
-// Export Dialog
-//==============================================================================
+
+// EXPORT SERVICE ENTRY POINTS
 
 /** Opens the export-all dialog. */
 function showExportAllDialog() {
@@ -138,10 +128,8 @@ function _showExportDialog(dialogMode) {
 // #endregion Export
 
 // #region QuickEntry
-//==============================================================================
-// Quick Entry Dialog
-//==============================================================================
 
+// QUICK ENTRY SERVICE ENTRY POINTS
 
 /** Opens the Quick Sticker Entry dialog. */
 function showQuickStickerEntryDialog() {
@@ -175,9 +163,8 @@ function applyQuickEntryUpdates(payload) {
 // #endregion QuickEntry
 
 // #region Trade
-//==============================================================================
-// Trade Dialog
-//==============================================================================
+
+// TRADE SERVICE ENTRY POINTS
 
 /** Opens the Trade dialog. */
 function showTradeDialog() {
@@ -236,9 +223,8 @@ function _showTradeDialog(platform) {
 // #endregion Trade
 
 // #region Mobile
-//==============================================================================
-// Mobile Web App
-//==============================================================================
+
+// MOBILE SERVICE ENTRY POINTS
 
 /**
  * GAS web app entry point — serves the mobile import page in a browser.
@@ -386,9 +372,8 @@ function _getMobileSpreadsheet() {
 
 
 // #region About
-//==============================================================================
-// About Dialog
-//==============================================================================
+
+// ABOUT SERVICE ENTRY POINTS
 
 /** Opens the About dialog. */
 function showAboutDialog() {
@@ -403,9 +388,8 @@ function showAboutDialog() {
 
 // #endregion About
 
-//==============================================================================
+
 // Helpers
-//==============================================================================
 
 /** Includes an HTML partial and evaluates any template code it contains. */
 function include(filename) {

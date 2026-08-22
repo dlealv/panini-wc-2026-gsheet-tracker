@@ -138,7 +138,6 @@
     window.clearForm = function () {
       setBusy(false)
       if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
-      if (modeInputEl) { modeInputEl.value = 'update' }
       clearPreview()
       renderWarnings([])
       if (messageEl) {

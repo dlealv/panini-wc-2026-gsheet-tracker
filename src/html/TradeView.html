@@ -648,10 +648,10 @@
           highlightProposal: state.proposal,
           previewClass: 'preview proposal-preview'
         })
-        proposalHintEl.textContent =
-          'This proposal shows all possible matches. If you click Confirm trade now, ' +
-          'only highlighted stickers will be traded. Change the limits or sorting options and ' +
-          'click Refresh to create another proposal.'
+        proposalHintEl.innerHTML =
+          'This proposal shows all possible matches. If you click Confirm trade, only highlighted ' +
+          'stickers will be traded and <span class="inline-code">COUNTS</span> will be updated. ' +
+          'Change the limits and/or sorting and click Refresh to create another proposal.'
         proposalLegendEl.style.display = ''
       } else {
         Trade.renderMatches(state.proposal, {
@@ -659,10 +659,10 @@
           sendPreviewEl: sendMatchesPreviewEl,
           previewClass: 'preview proposal-preview'
         })
-        proposalHintEl.textContent =
-          'This proposal was generated using the selected limits and sorting options. ' +
-          'Review the trade scenario or accept it and click Confirm trade. Change the limits ' +
-          'or sorting options and click Refresh to create another proposal.'
+        proposalHintEl.innerHTML =
+          'This proposal was generated using the selected limits and/or sorting. Review it and click ' +
+          'Confirm trade to update <span class="inline-code">COUNTS</span>, or change the conditions ' +
+          'again and click Refresh to create another proposal.'
         proposalLegendEl.style.display = 'none'
       }
       receiveMatchCountEl.textContent = Trade.countMatches(state.proposal.receive)
