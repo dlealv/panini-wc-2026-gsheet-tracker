@@ -201,13 +201,11 @@
 <script>
   /*
    * View controller.
-   *
    * Coordinates the Trade workflow by:
    *   - handling user interactions,
    *   - invoking GAS backend entry points,
    *   - maintaining client-side workflow state,
    *   - rendering validation, QR, and preview results.
-   *
    * The controller does not perform trade calculations.
    * Business logic remains in TradeService/TradeCalculation.
    */
@@ -427,7 +425,6 @@
       }, 0)
     }
 
-    /** Resets trade input/message state before starting a new QR capture flow. */
     /** Resets UI state before starting a new QR read flow (upload or capture). */
     function prepareForQrRead() {
       clearTradeInput()
@@ -445,7 +442,8 @@
         const qrData = await TradeQr.qrDecoder.decode(imageData)
         previewOtherTradeInfoFromQr(qrData)
       } catch (error) {
-        onReadFromQrFailed(new Error('No QR code found in the selected image. Focus the camera on the QR code and try again.'))
+        const msg = 'No QR code found in the selected image. Focus the camera on the QR code and try again.'
+        onReadFromQrFailed(new Error(msg))
       }
     }
 
@@ -453,7 +451,7 @@
      * Validates external collector information from decoded QR payload data.
      * The QR image is decoded locally in the browser and only the decoded payload
      * string is sent to Apps Script.
-     * The QR payload may come from any supported host input method, such as image upload
+     * The QR payload may come from any supported host input method, such as image upload.
      * or mobile camera capture input.
      * @param {string} qrData Decoded QR payload.
      */
@@ -473,7 +471,7 @@
 
     /**
      * Handles successful QR trade information validation.
-     * Converts serialized trade information returned by the backend
+     * Converts serialized trade information returned by the backend.
      * into the client-side TradeInfo object used by the view.
      * @param {{tradeInfo:string,warnings:Object<string,string[]>}} result Backend QR validation response.
      */

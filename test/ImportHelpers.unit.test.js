@@ -146,30 +146,10 @@ describe('ImportHelpers.html unit tests', () => {
   })
 })
 
-/** Integration tests for ImportDialogHelpers. */
-describe('integration scenarios', () => {
-  test('state flows correctly into payload and preview rendering', () => {
-    // verifies UI state → backend payload transformation
-    const state = { text: 'ARG,1,3(2)', mode: 'update' }
-    const payload = helpers._getPayloadFromState(state)
-    expect(payload).toEqual({ text: 'ARG,1,3(2)', mode: 'update' })
-    // backend-style result → UI rendering
-    const preview = helpers._renderPreviewData({
-      countries: [{
-        code: 'ARG',
-        stickers: [{ number: 1, count: 1 },
-          { number: 3, count: 2 }]
-      }]
-    })
-
-    expect(preview).toBe('ARG -> 1:1, 3:2')
-  })
-})
-
 /** Cross-layer integration tests for ImportDialogHelpers. */
 describe('cross-layer integration scenarios', () => {
   test('service output is compatible with UI renderer', () => {
-    // verifies backend format can be safely rendered by UI layer
+    // verifies backend format can be safely rendered by UI layer, through the public renderPreview() entry point
     const backendResult = {
       countries: [{
         code: 'ARG',
@@ -177,9 +157,10 @@ describe('cross-layer integration scenarios', () => {
           { number: 5, count: 1 }]
       }]
     }
-    const preview = helpers._renderPreviewData(backendResult)
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview(backendResult, { previewEl })
 
-    expect(preview).toBe('ARG -> 1:1, 3:2, 5:1')
+    expect(previewEl.textContent).toBe('ARG -> 1:1, 3:2, 5:1')
   })
 })
 
@@ -198,32 +179,38 @@ describe('true end-to-end scenarios', () => {
         { code: 'FWC', stickers: [{ number: 0, count: 1 }, { number: 1, count: 1 }, { number: 20, count: 0 }] }
       ]
     }
-    const preview = helpers._renderPreviewData(parsedResult)
-    expect(preview).toBe('ARG -> 1:1, 3:2, 5:1, 6:1\nBRA -> 10:2, 11:2, 12:2\nFWC -> 0:1, 1:1, 20:0')
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview(parsedResult, { previewEl })
+    expect(previewEl.textContent).toBe('ARG -> 1:1, 3:2, 5:1, 6:1\nBRA -> 10:2, 11:2, 12:2\nFWC -> 0:1, 1:1, 20:0')
   })
 })
 
 /** Edge cases that could occur in real usage. */
 describe('edge-case integration scenarios', () => {
-  test('empty backend result returns empty string', () => {
-    const result = { countries: [] }
-    const preview = helpers._renderPreviewData(result)
-    expect(preview).toBe('')
+  test('empty backend result renders an empty string', () => {
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview({ countries: [] }, { previewEl })
+    expect(previewEl.textContent).toBe('')
+    expect(previewEl.style.display).toBe('block')
   })
-  test('null backend result does not crash renderer', () => {
-    const preview = helpers._renderPreviewData(null)
-    expect(preview).toBe('')
+  test('null backend result does not crash renderer and clears the preview', () => {
+    const previewEl = { style: {}, textContent: 'old' }
+    helpers.renderPreview(null, { previewEl })
+    expect(previewEl.textContent).toBe('')
+    expect(previewEl.style.display).toBe('none')
   })
   test('missing stickers array is handled safely', () => {
     const result = { countries: [{ code: 'ARG' }] } // missing stickers = real API edge case
-    const preview = helpers._renderPreviewData(result)
-    expect(preview).toBe('ARG -> ')
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview(result, { previewEl })
+    expect(previewEl.textContent).toBe('ARG -> ')
   })
   test('handles null stickers collection safely', () => {
-    const preview = helpers._renderPreviewData({
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview({
       countries: [{ code: 'ARG', stickers: null }]
-    })
-    expect(preview).toBe('ARG -> ')
+    }, { previewEl })
+    expect(previewEl.textContent).toBe('ARG -> ')
   })
 })
 
@@ -237,8 +224,9 @@ describe('service-level integration scenarios', () => {
         { code: 'BRA', stickers: [{ number: 10, count: 1 }] }
       ]
     }
-    const uiOutput = helpers._renderPreviewData(serviceOutput)
+    const previewEl = { style: {}, textContent: '' }
+    helpers.renderPreview(serviceOutput, { previewEl })
 
-    expect(uiOutput).toBe('ARG -> 1:1, 3:2\nBRA -> 10:1')
+    expect(previewEl.textContent).toBe('ARG -> 1:1, 3:2\nBRA -> 10:1')
   })
 })

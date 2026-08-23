@@ -790,6 +790,7 @@ In alphabetical order and organized by folders:
   - `TradeService.gs`: Trade service to automate trades with another collector.
 
 - Under the `test/` folder:
+  - `Code.unit.test.js`: Test file for testable functions in `Code.gs`.
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
   - `ImportService.unit.test.js`: Test file for testing `src/ImportService.gs`.
   - `ImportHelpers.unit.test.js`: Test file for testing `src/html/ImportHelpers.gs`.

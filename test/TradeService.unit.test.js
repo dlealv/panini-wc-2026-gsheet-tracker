@@ -356,6 +356,31 @@ describe('TradeService (unit)', () => {
         expect(error.message).toContain('MEX,15')
       }
     })
+    test('groups multiple conflicting stickers for the same country into one Format 1 token', () => {
+      try {
+        service.previewOtherTradeInfo({
+          missingText: 'MEX,3,2,1',
+          repeatsText: 'MEX,3,2,1'
+        })
+        throw new Error('Expected previewOtherTradeInfo() to throw')
+      } catch (error) {
+        // one "MEX,3,2,1" token, not three separate "MEX,3"/"MEX,2"/"MEX,1" tokens
+        expect(error.message).toContain('MEX,3,2,1')
+        expect(error.message).not.toContain('MEX,3, MEX,2')
+      }
+    })
+    test('formats conflicts for multiple countries as separate Format 1 tokens', () => {
+      try {
+        service.previewOtherTradeInfo({
+          missingText: 'MEX,1,2\nFWC,5',
+          repeatsText: 'MEX,1,2\nFWC,5'
+        })
+        throw new Error('Expected previewOtherTradeInfo() to throw')
+      } catch (error) {
+        expect(error.message).toContain('MEX,1,2')
+        expect(error.message).toContain('FWC,5')
+      }
+    })
   })
 
   /** generateTradeInfoQr() */

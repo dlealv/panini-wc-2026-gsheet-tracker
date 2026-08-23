@@ -157,7 +157,6 @@ class ImportStickers {
     const warnings = []
     const seenCountries = new Set()
     const countries = []
-
     lines.forEach((line, lineIndex) => { // lines are in the order of the input
       const normalized = normalizer.normalizeLine(line)
       if (normalized.warnings && normalized.warnings.length) {

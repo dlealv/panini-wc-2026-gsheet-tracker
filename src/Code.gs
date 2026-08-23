@@ -55,9 +55,8 @@ function showImportDialogUpdate() {
 }
 
 /**
- * Returns a preview of import data without writing to the sheet.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
- * works from both the desktop dialog and the mobile web app.
+ * Returns a preview of import data without writing to the sheet. Resolves the spreadsheet via _getSpreadsheet() 
+ * so this entry point works from both the desktop dialog and the mobile web app.
  * @see ImportService#preview for the payload/return shape and examples.
  */
 function previewStickerData(payload) {
@@ -67,16 +66,15 @@ function previewStickerData(payload) {
 }
 
 /**
- * Imports sticker data into the sheet using the selected mode.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
- * works from both the desktop dialog and the mobile web app.
+ * Imports sticker data into the sheet using the selected mode. Resolves the spreadsheet via _getSpreadsheet() 
+ * so this entry point works from both the desktop dialog and the mobile web app.
  * @see ImportService#import for the payload/return shape and examples.
  */
 function importStickerData(payload) {
   const ss = _getSpreadsheet()
   const app = new ImportService(ss)
-  return app.import(payload && payload.text ? payload.text
-    : '', payload && payload.mode ? payload.mode : 'update')
+  return _withWriteLock(() => app.import(payload && payload.text ? payload.text
+    : '', payload && payload.mode ? payload.mode : 'update'))
 }
 
 /** Opens the import dialog with the provided mode configuration. */
@@ -104,8 +102,7 @@ function showExportSharedDialog() {
 }
 
 /**
- * Exports all sticker data from the sheet.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Exports all sticker data from the sheet. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see ExportService#exportAllStickerData for the payload/return shape and examples.
  */
@@ -116,8 +113,7 @@ function exportAllStickerData(payload) {
 }
 
 /**
- * Exports shared sticker data from the sheet.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Exports shared sticker data from the sheet. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see ExportService#exportSharedStickerData for the payload/return shape and examples.
  */
@@ -149,8 +145,7 @@ function showQuickStickerEntryDialog() {
 }
 
 /**
- * Returns the initial Quick Sticker Entry payload.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Returns the initial Quick Sticker Entry payload. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see QuickEntryService#getInitialData for the return shape and examples.
  */
@@ -161,8 +156,7 @@ function getQuickEntryInitialData() {
 }
 
 /**
- * Applies Quick Entry changes to the Stickers sheet.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Applies Quick Entry changes to the Stickers sheet. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see QuickEntryService#applyPendingUpdates for the payload/return shape and examples.
  */
@@ -170,7 +164,7 @@ function applyQuickEntryUpdates(payload) {
   const ss = _getSpreadsheet()
   const service = new QuickEntryService(ss)
   const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
-  return service.applyPendingUpdates(pendingUpdates)
+  return _withWriteLock(() => service.applyPendingUpdates(pendingUpdates))
 }
 
 // #endregion QuickEntry
@@ -197,9 +191,8 @@ function showTradeDialog() {
 }
 
 /**
- * Returns a preview of another collector's trade information.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
- * works from both the desktop dialog and the mobile web app.
+ * Returns a preview of another collector's trade information. Resolves the spreadsheet via _getSpreadsheet() 
+ * so this entry point works from both the desktop dialog and the mobile web app.
  * @see TradeService#previewOtherTradeInfo for the payload shape and examples.
  */
 function previewOtherTradeInfo(payload) {
@@ -211,9 +204,8 @@ function previewOtherTradeInfo(payload) {
 }
 
 /**
- * Returns a preview of another collector's trade information from QR image data.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
- * works from both the desktop dialog and the mobile web app.
+ * Returns a preview of another collector's trade information from QR image data. Resolves the spreadsheet via 
+ * _getSpreadsheet() so this entry point works from both the desktop dialog and the mobile web app.
  * @see TradeService#previewOtherTradeInfoFromQr for the payload shape and examples.
  */
 function previewOtherTradeInfoFromQr(payload) {
@@ -225,8 +217,7 @@ function previewOtherTradeInfoFromQr(payload) {
 }
 
 /**
- * Generates the current collector QR payload.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Generates the current collector QR payload. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see TradeService#generateTradeInfoQr for the return shape and examples.
  */
@@ -239,12 +230,11 @@ function generateTradeInfoQr() {
 }
 
 /**
- * Finds all possible trade matches with another collector.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
- * works from both the desktop dialog and the mobile web app.
- * Validates and stores the external collector's trade information before
- * delegating the calculation to TradeService#findTradeMatches, which keeps
- * a no-arg signature since it operates on state set via setOtherTradeInfo().
+ * Finds all possible trade matches with another collector. Resolves the spreadsheet via _getSpreadsheet() 
+ * so this entry pointworks from both the desktop dialog and the mobile web app.
+ * Validates and stores the external collector's trade information before delegating the calculation to 
+ * TradeService#findTradeMatches, which keeps a no-arg signature since it operates on state set 
+ * via setOtherTradeInfo().
  * @see TradeService#findTradeMatches for the return shape and examples.
  */
 function findTradeMatches(payload) {
@@ -264,15 +254,14 @@ function findTradeMatches(payload) {
 }
 
 /**
- * Applies the confirmed trade.
- * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * Applies the confirmed trade. Resolves the spreadsheet via _getSpreadsheet() so this entry point
  * works from both the desktop dialog and the mobile web app.
  * @see TradeService#executeTrade for the payload shape and examples.
  */
 function executeTrade(payload) {
   const ss = _getSpreadsheet()
   const service = new TradeService(ss)
-  return service.executeTrade(payload)
+  return _withWriteLock(() => service.executeTrade(payload))
 }
 
 /** Opens the Trade dialog with the provided platform configuration. */
@@ -290,10 +279,9 @@ function _showTradeDialog(platform) {
 // MOBILE SERVICE ENTRY POINTS
 
 /**
- * GAS web app entry point — serves the mobile import page in a browser.
- * When the script properties have not been seeded yet (i.e. the user has never
- * opened the spreadsheet and triggered onOpen), a self-contained error page is
- * returned with instructions for the user.
+ * GAS web app entry point — serves the mobile import page in a browser. When the script properties have not 
+ * been seeded yet (i.e. the user has never opened the spreadsheet and triggered onOpen), a self-contained 
+ * error page is returned with instructions for the user.
  */
 function doGet(e) {
   const ss = _getMobileSpreadsheet()
@@ -333,11 +321,9 @@ function _saveMobileConfig() {
 }
 
 /**
- * Resolves the spreadsheet to operate on for entry points shared between the
- * desktop dialog and the mobile web app. Not platform-specific itself: it
- * tries the active-spreadsheet path first, which works from a dialog, menu,
- * sidebar, or trigger context, and only defers to the mobile-specific lookup
- * below when that path isn't available.
+ * Resolves the spreadsheet to operate on for entry points shared between the desktop dialog and the mobile web app. 
+ * Not platform-specific itself: it tries the active-spreadsheet path first, which works from a dialog, menu,
+ * sidebar, or trigger context, and only defers to the mobile-specific lookup below when that path isn't available.
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
  */
 function _getSpreadsheet() {
@@ -352,10 +338,9 @@ function _getSpreadsheet() {
 }
 
 /**
- * Returns the spreadsheet bound to this script by reading its ID from script
- * properties (seeded by _saveMobileConfig during onOpen). This is the mobile
- * web app path: used as the fallback when getActiveSpreadsheet() isn't
- * available, i.e. we're running under the web app rather than a dialog.
+ * Returns the spreadsheet bound to this script by reading its ID from script properties (seeded by 
+ * _saveMobileConfig during onOpen). This is the mobile web app path: used as the fallback 
+ * when getActiveSpreadsheet() isn't available, i.e. we're running under the web app rather than a dialog.
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
  */
 function _getMobileSpreadsheet() {
@@ -370,6 +355,32 @@ function _getMobileSpreadsheet() {
 }
 
 // #endregion Mobile
+
+// #region Concurrency
+
+/**
+ * Runs fn() while holding the script-wide lock, so two overlapping writes to COUNTS - e.g. the desktop dialog
+ * and the mobile web app open at the same time, or the same spreadsheet open in two browser tabs - can't race
+ * and silently drop one side's update. Used by every entry point that ends up calling
+ * StickerSheetRepository#updateStickerCounts (importStickerData, applyQuickEntryUpdates, executeTrade).
+ * Read-only entry points (previews, exports) don't call this, since they don't write to COUNTS.
+ * @param {function(): *} fn - The write operation to run under the lock.
+ * @returns {*} Whatever fn() returns.
+ * @export
+ */
+function _withWriteLock(fn) {
+  const lock = LockService.getScriptLock()
+  if (!lock.tryLock(10000)) {
+    throw new Error('Another update is in progress on this spreadsheet. Please try again in a moment.')
+  }
+  try {
+    return fn()
+  } finally {
+    lock.releaseLock()
+  }
+}
+
+// #endregion Concurrency
 
 // #region About
 

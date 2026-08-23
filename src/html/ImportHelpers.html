@@ -15,7 +15,8 @@
   /**
    * Namespace for import-related helpers and utilities. Using namespace to avoid polluting the global
    * scope and to provide a clear structure for import-related functions.
-   * Functions exported from the namespace are tagged with @public to easy identification and documentation. 
+   * Functions exported from the namespace are tagged with @export for identification and documentation; the
+   * leading-underscore naming convention (not a JSDoc tag) is what marks a function as private.
    */
   window.Import = (function () {
 
@@ -27,7 +28,6 @@
      * (for example: replace_countries) through window.importConfig.
      * Do not cache the mode value at namespace initialization time.
      * @export
-     * @public
      */
     function getUIState(deps = {}) {
       const doc = deps.document || (typeof document !== 'undefined' ? document : null)
@@ -41,7 +41,6 @@
 
     /** Backend payload wrapper (stable contract for services).
      * @export
-     * @public
      */
     function getPayload(deps = {}) {
       return getUIState(deps)
@@ -49,7 +48,6 @@
 
     /** Clears preview output area.
      * @export
-     * @public
      */
     function clearPreview(deps = {}) {
       const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
@@ -63,7 +61,6 @@
 
     /** Renders preview content into UI.
      * @export
-     * @public
      */
     function renderPreview(result, deps = {}) {
       const el = deps.previewEl || (typeof previewEl !== 'undefined' ? previewEl : null)
@@ -82,7 +79,6 @@
 
     /** Enables/disables UI during async operations. 
      * @export
-     * @public
      */
     function setBusy(isBusy, deps = {}) {
       const doc = deps.document || (typeof document !== 'undefined' ? document : null)
@@ -98,7 +94,6 @@
 
     /** Displays a message in the dialog UI.
      * @export
-     * @public
      */
     function setMessage(text, type, deps = {}) {
       const el = deps.messageEl || (typeof messageEl !== 'undefined' ? messageEl : null)
@@ -107,19 +102,7 @@
       el.textContent = text || ''
     }
 
-    /** Normalizes state into backend payload format.
-     * @export
-     */
-    function _getPayloadFromState(state) {
-      return {
-        text: state.text || '',
-        mode: state.mode || 'update'
-      }
-    }
-
-    /** Converts backend export result into displayable text.
-     * @export
-     */
+    /** Converts backend export result into displayable text. */
     function _renderPreviewData(result) {
       if (!result || !result.countries || !result.countries.length) return ''
 

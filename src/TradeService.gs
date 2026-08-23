@@ -68,9 +68,9 @@ class TradeService {
   }
 
   /**
-   * Returns the current collector trade information.
-   * Lazy initializes the trade data on first access. The arrays preserve sticker order because 
-   * the UI/helper layer uses this order when applying trade quantity selections.
+   * Returns the current collector trade information. Lazy initializes the trade data on first access. 
+   * The arrays preserve sticker order because  the UI/helper layer uses this order when applying 
+   * trade quantity selections.
    * @returns {TradeInfo}
    */
   getTradeInfo() {
@@ -81,8 +81,7 @@ class TradeService {
   }
 
   /**
-   * Returns the StickerSheetRepository instance.
-   * Lazy initializes the repository on first access.
+   * Returns the StickerSheetRepository instance. Lazy initializes the repository on first access.
    * @returns {StickerSheetRepository}
    */
   getRepo() {
@@ -98,8 +97,7 @@ class TradeService {
   }
 
   /**
-   * Stores validated external collector trade information.
-   * Input is already normalized TradeInfo.
+   * Stores validated external collector trade information. Input is already normalized TradeInfo.
    * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo
    * @returns {void}
    */
@@ -108,8 +106,7 @@ class TradeService {
   }
 
   /**
-   * Returns the TradeCalculation instance.
-   * Lazy initializes it on first access.
+   * Returns the TradeCalculation instance. Lazy initializes it on first access.
    * @returns {TradeCalculation}
    */
   getTradeCalculation() {
@@ -143,16 +140,15 @@ class TradeService {
   // Application use cases
 
   /**
-   * Previews external collector input before using it in trade calculations.
-   * Missing and Repeats are parsed independently so warnings can be reported
-   * for each section separately.
-   * Rejects contradictory trade information when the same sticker is declared
-   * as both missing and repeated for the same country.
+   * Previews external collector input before using it in trade calculations. Missing and Repeats are parsed 
+   * independently so warnings can be reported for each section separately.
+   * Rejects contradictory trade information when the same sticker is declared as both missing and repeated 
+   * for the same country.
    * @param {{missingText:string,repeatsText:string}} payload - Raw collector input.
    *  Example: {missingText:"MEX,1,5\nFWC,10", repeatsText:"MEX,7(2)\nBRA,15"}
    * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:TradeInfo}}
    *  Example: {success:true, warnings:{missing:[],repeats:[]},
-   * tradeInfo:{missing:{MEX:[1,5],FWC:[10]}, repeats:{MEX:[7],BRA:[15]}}}
+   *    tradeInfo:{missing:{MEX:[1,5],FWC:[10]}, repeats:{MEX:[7],BRA:[15]}}}
    * @throws {Error} If a sticker is both missing and repeated for the same country.
    */
   previewOtherTradeInfo(payload) {
@@ -163,18 +159,28 @@ class TradeService {
       ? this._parseStickerInput(payload.repeatsText)
       : { countries: [], warnings: [] }
     const tradeInfo = this._buildOtherTradeInfo(missingParsed, repeatsParsed)
-    const conflictingStickers = []
+    const conflictsByCountry = {}
     Object.keys(tradeInfo.missing).forEach(countryCode => {
       const missing = new Set(tradeInfo.missing[countryCode])
         ; (tradeInfo.repeats[countryCode] || []).forEach(stickerNumber => {
           if (missing.has(stickerNumber)) {
-            conflictingStickers.push(`${countryCode},${stickerNumber}`)
+            if (!conflictsByCountry[countryCode]) {
+              conflictsByCountry[countryCode] = []
+            }
+            conflictsByCountry[countryCode].push(stickerNumber)
           }
         })
     })
-    if (conflictingStickers.length) {
+    const conflictingCountries = Object.keys(conflictsByCountry)
+    if (conflictingCountries.length) {
       const txt = 'Sticker(s) cannot be both missing and repeated. Please adjust the input:'
-      const msg = `${txt} ${conflictingStickers.join(', ')}`
+      // One Format 1 token per country (e.g. "MEX,3,2,1") instead of one token per sticker, so the conflict
+      // reads the same way the collector typed it and can be matched back to the input at a glance. Order
+      // within each token follows tradeInfo.repeats[countryCode], which preserves the original input order.
+      const tokens = conflictingCountries.map(
+        countryCode => `${countryCode},${conflictsByCountry[countryCode].join(',')}`
+      )
+      const msg = `${txt} ${tokens.join('; ')}`
       throw new Error(msg)
     }
     this.otherTradeInfo = tradeInfo
@@ -186,10 +192,9 @@ class TradeService {
   }
 
   /**
-   * Generates QR encoded trade information for the current collector.
-   * Retrieves the current collector trade information and delegates compact
-   * bit mask encoding to TradeQrHelper.
-   * This method only generates QR data and does not modify spreadsheet data.
+   * Generates QR encoded trade information for the current collector. Retrieves the current collector trade 
+   * information and delegates compact bit mask encoding to TradeQrHelper. This method only generates QR data 
+   * and does not modify spreadsheet data.
    * @returns {{success:boolean,qrData:string,tradeInfo:TradeInfo}}
    *  Example: {success:true, qrData:'{"m":{"MEX":16401},"r":{"BRA":128}}',
    * tradeInfo:{missing:{MEX:[1,5]}, repeats:{BRA:[7]}}}
@@ -201,15 +206,14 @@ class TradeService {
   }
 
   /**
- * Previews external collector trade information from QR payload data.
- * Decodes QR payload data into TradeInfo, stores the external collector
- * information, and returns the normalized trade information.
- * @param {{qrData:string}} payload - Decoded QR payload data.
- *  Example: {qrData:'{"m":{"MEX":16401},"r":{"BRA":128}}'}
- * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:TradeInfo}}
- * Example: {success:true, warnings:{missing:[],repeats:[]},
- * tradeInfo:{missing:{MEX:[1,5]}, repeats:{BRA:[7]}}}
- */
+   * Previews external collector trade information from QR payload data. Decodes QR payload data into TradeInfo, 
+   * stores the external collector information, and returns the normalized trade information.
+   * @param {{qrData:string}} payload - Decoded QR payload data.
+   *  Example: {qrData:'{"m":{"MEX":16401},"r":{"BRA":128}}'}
+   * @returns {{success:boolean,warnings:{missing:string[],repeats:string[]},tradeInfo:TradeInfo}}
+   *  Example: {success:true, warnings:{missing:[],repeats:[]},
+   *    tradeInfo:{missing:{MEX:[1,5]}, repeats:{BRA:[7]}}}
+   */
   previewOtherTradeInfoFromQr(payload) {
     const tradeInfo = this.getTradeQrHelper().decode(payload.qrData)
     this.otherTradeInfo = tradeInfo
@@ -217,14 +221,11 @@ class TradeService {
   }
 
   /**
-   * Calculates all possible trade matches between two collectors.
-   * Uses tradeInfo and otherTradeInfo as the source data and delegates the
-   * matching logic to TradeCalculation.
-   * Also retrieves album completion information (DONE values) for the
-   * countries included in the receive matches so the client can locally
+   * Calculates all possible trade matches between two collectors. Uses tradeInfo and otherTradeInfo as the source 
+   * data and delegates the matching logic to TradeCalculation. Also retrieves album completion information 
+   * (DONE values) for the countries included in the receive matches so the client can locally
    * prioritize missing stickers.
-   * This method only calculates possible exchanges and does not modify
-   * spreadsheet data.
+   * This method only calculates possible exchanges and does not modify spreadsheet data.
    * @returns {{receive:Object<string,number[]>,send:Object<string,number[]>,doneMap:Object<string,number>,
    * tradePreferences:string[]}}
    * Example: {receive:{MEX:[1,5]}, send:{ARG:[7]}, doneMap:{MEX:12}, tradePreferences:['POR15','FWC']}
@@ -243,9 +244,7 @@ class TradeService {
   }
 
   /**
-   * Executes a confirmed trade proposal.
-   *
-   * Applies the calculated sticker changes through the repository layer.
+   * Executes a confirmed trade proposal. Applies the calculated sticker changes through the repository layer.
    * @param {{receive:Object<string,number[]>, send:Object<string,number[]>}} tradeConfirmation -
    *  Confirmed trade information. Example: {receive:{MEX:[1,5]}, send:{ARG:[7]}}
    * @returns {undefined} No meaningful return value - see StickerSheetRepository.updateStickerCounts().
@@ -264,20 +263,17 @@ class TradeService {
   // Export/import preparation
 
   /**
-   * Builds the current user's trade information.
-   * Reuses ExportService row generation and ExportStickers filtering rules
-   * to obtain the current user's missing and repeated stickers.
-   * The export layer provides the canonical sticker availability data, while
-   * this method adapts it into the trade domain structure:
+   * Builds the current user's trade information. Reuses ExportService row generation and ExportStickers 
+   * filtering rules to obtain the current user's missing and repeated stickers.
+   * The export layer provides the canonical sticker availability data, while this method adapts it into
+   * the trade domain structure:
    *  - missing stickers are stored as unavailable sticker entries.
    *  - repeated stickers are converted into tradable sticker entries, where each
    *    sticker represents one available trade unit.
-   * The returned structure intentionally uses arrays instead of objects.
-   * This preserves the original album order provided by ExportService.getRows().
-   * Using objects keyed by country code can lose the expected display order when
-   * the data is later serialized or iterated.
-   * The returned structure is consumed by trade calculation logic and does not
-   * contain export formatting such as text tokens, flags, or repeat notation.
+   * The returned structure intentionally uses arrays instead of objects. This preserves the original album 
+   * order provided by ExportService.getRows(). Using objects keyed by country code can lose the expected 
+   * display order when the data is later serialized or iterated. The returned structure is consumed by 
+   * trade calculation logic and does not contain export formatting such as text tokens, flags, or repeat notation.
    * @returns {{missing:Object<string,number[]>, repeats:Object<string,number[]>}}
    *  Example: {missing:{MEX:[2,5]},repeats:{ARG:[7,8]}}
    */
@@ -305,10 +301,9 @@ class TradeService {
   }
 
   /**
-   * Parses raw sticker input when trade data is provided as text.
-   * Uses ImportStickers and LineNormalize to convert raw user input into canonical sticker data.
-   * ImportStickers always preserves the original sticker order from another collector, which is
-   * meaningful for preview operations.
+   * Parses raw sticker input when trade data is provided as text. Uses ImportStickers and LineNormalize to convert 
+   * raw user input into canonical sticker data. ImportStickers always preserves the original sticker order from another
+   * collector, which is meaningful for preview operations.
    * Warning consolidation behavior is inherited from ImportStickers.
    * @param {string} text - Raw sticker input.
    * @returns {{countries:Array<{code:string, counts:Map<number,number>}>, warnings:string[]}}
@@ -319,9 +314,8 @@ class TradeService {
   }
 
   /**
-   * Builds the external collector trade information.
-   * Converts parsed sticker input from the Trade view into the internal trade information structure.
-   * Missing and Repeats are parsed separately because they have different meanings:
+   * Builds the external collector trade information. Converts parsed sticker input from the Trade view into 
+   * the internal trade information structure. Missing and Repeats are parsed separately because they have different meanings:
    *  - missing input represents stickers the external collector needs.
    *  - repeats input represents stickers the external collector can trade.
    * ImportStickers always preserves the original normalized input order in each country's counts Map.
@@ -352,12 +346,10 @@ class TradeService {
   }
 
   /**
-   * Builds spreadsheet updates from a confirmed trade.
-   * Converts trade calculation data into StickerSheetRepository update format.
-   * Received stickers increase the current count by one, while sent stickers
-   * decrease the current count by one.
-   * Sent stickers must have an available count. Invalid updates that would
-   * result in negative sticker counts throw an error.
+   * Builds spreadsheet updates from a confirmed trade. Converts trade calculation data into StickerSheetRepository 
+   * update format. Received stickers increase the current count by one, while sent stickers decrease 
+   * the current count by one. Sent stickers must have an available count. Invalid updates that would result in negative 
+   * sticker counts throw an error.
    * @param {{receive:Object<string,number[]>, send:Object<string,number[]>}} tradeConfirmation -
    *  Confirmed trade information.
    * @returns {{countries:Array<{code:string,counts:Map<number,number>}>}} Canonical update payload for
@@ -393,12 +385,11 @@ class TradeService {
   }
 
   /**
-   * Builds a lookup of DONE values for the provided countries.
-   * Used to prioritize countries by album completion when sorting is enabled. Built from repo.getCountryCodes()
-   * (ordered, already-filtered country codes) zipped by array index against repo.getDone() (positional DONE
-   * values) - never touches a raw named range directly. Doesn't use getCountries(): only code/done are needed
-   * here, and getCountries() would pull in the COUNTS/GROUPS/FLAGS_URL/COUNTRY_NAMES reads that back the
-   * counts/name/group/flag fields this method never reads.
+   * Builds a lookup of DONE values for the provided countries. Used to prioritize countries by album completion when 
+   * sorting is enabled. Built from repo.getCountryCodes() (ordered, already-filtered country codes) zipped by array 
+   * index against repo.getDone() (positional DONE values) - never touches a raw named range directly. Doesn't use 
+   * getCountries(): only code/done are needed here, and getCountries() would pull in the 
+   * COUNTS/GROUPS/FLAGS_URL/COUNTRY_NAMES reads that back the counts/name/group/flag fields this method never reads.
    * @param {string[]} countryCodes - Country codes to retrieve DONE values for.
    * @returns {Object<string,number>} Map of country codes to completed sticker counts.
    */
@@ -417,9 +408,8 @@ class TradeService {
   }
 
   /**
-   * Retrieves the trade preferences from the repository.
-   * Returns an array of country codes in the order defined by the user.
-   * Empty or undefined values are filtered out.
+   * Retrieves the trade preferences from the repository. Returns an array of country codes in the order defined 
+   * by the user. Empty or undefined values are filtered out.
    * @returns {string[]} Array of country codes representing trade preferences.
    */
   _getTradePreferences() {
@@ -435,17 +425,14 @@ class TradeService {
 // #region TradeCalculation
 
 /**
- * Performs trade calculations without GAS or spreadsheet dependencies.
- * Finds compatible sticker exchanges between two collectors.
- * Quantity selection, sorting, and proposal presentation are handled
- * by the UI helper layer.
+ * Performs trade calculations without GAS or spreadsheet dependencies. Finds compatible sticker exchanges between 
+ * two collectors. Quantity selection, sorting, and proposal presentation are handled by the UI helper layer.
  * @export
  */
 class TradeCalculation {
   /**
-   * Calculates all possible trade matches between two collectors.
-   * The calculation layer only determines compatible exchanges.
-   * Quantity selection, sorting, and proposal presentation are handled
+   * Calculates all possible trade matches between two collectors. The calculation layer only determines 
+   * compatible exchanges. Quantity selection, sorting, and proposal presentation are handled
    * by the UI/helper layer.
    * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo 
    *  Current collector trade information.
@@ -458,16 +445,14 @@ class TradeCalculation {
   }
 
   /**
-   * Finds all possible exchanges between both collectors.
-   * Receive matches happen when:
+   * Finds all possible exchanges between both collectors. Receive matches happen when:
    * - current collector is missing a sticker.
    * - other collector has that sticker as a repeat.
    * Send matches happen when:
    * - current collector has a repeat sticker.
    * - other collector is missing that sticker.
-   * The returned arrays preserve the original sticker order so the
-   * UI/helper layer can apply quantity selection by taking items from
-   * the beginning of each list.
+   * The returned arrays preserve the original sticker order so the UI/helper layer can apply quantity selection
+   * by taking items from the beginning of each list.
    * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} tradeInfo 
    *  Current collector trade information.
    * @param {{missing:Object<string,number[]>,repeats:Object<string,number[]>}} otherTradeInfo 
@@ -489,7 +474,6 @@ class TradeCalculation {
         receive[country] = matches
       }
     }
-
     // Find send matches:
     // current collector repeats stickers and the other collector is missing them.
     const repeatCountries = Object.keys(tradeInfo.repeats || {})
@@ -506,8 +490,7 @@ class TradeCalculation {
   }
 
   /**
-   * Finds matching stickers for one country.
-   * Returns an empty array when no stickers from source are found
+   * Finds matching stickers for one country. Returns an empty array when no stickers from source are found
    * in the target list.
    * @param {number[]} source - Stickers from one collector.
    * @param {number[]} target - Stickers from the other collector.
@@ -529,25 +512,23 @@ class TradeCalculation {
 // #endregion TradeCalculation
 
 // #region TradeQrHelper
+
 /**
- * Provides QR payload encoding and decoding for trade information.
- * The QR payload is a compact representation of TradeInfo used to transfer
- * collector sticker data between users.
+ * Provides QR payload encoding and decoding for trade information. The QR payload is a compact representation 
+ * of TradeInfo used to transfer collector sticker data between users.
  * Payload format: {"m": {"MEX": 524287,"FWC": 983069},"r": {"BRA": 128,"ARG": 2048}}
  * Where:
  * - m represents missing stickers encoded as bit masks.
  * - r represents repeated stickers encoded as bit masks.
- * Each bit position represents a sticker number, where bit 0 represents
- * sticker 1, bit 1 represents sticker 2, and so on.
- * The helper only handles data representation conversion between sticker
- * arrays and bit masks. It does not apply sorting, validation, or trading
- * rules. Those responsibilities belong to TradeService.
+ * Each bit position represents a sticker number, where bit 0 represents sticker 1, bit 1 represents sticker 2, 
+ * and so on. The helper only handles data representation conversion between sticker arrays and bit masks. It does 
+ * not apply sorting, validation, or trading rules. Those responsibilities belong to TradeService.
  * @export
  */
 class TradeQrHelper {
   /**
- * Converts trade information into a compact QR payload string.
- * Empty missing or repeated collections are omitted from the payload.
+ * Converts trade information into a compact QR payload string. Empty missing or repeated collections are omitted 
+ * from the payload.
  * @param {TradeInfo} tradeInfo - Trade information to encode.
  * @returns {string} Compact JSON string ready to be stored in a QR code.
  */
@@ -591,9 +572,8 @@ class TradeQrHelper {
   }
 
   /**
-   * Converts an array of numeric positions into a bit mask number.
-   * Each position is represented by one bit in the resulting number.
-   * Sticker 0 is represented by bit 0.
+   * Converts an array of numeric positions into a bit mask number. Each position is represented by one bit in the 
+   * resulting number. Sticker 0 is represented by bit 0.
    * @param {Array} values - Numeric positions to encode.
    * @returns {number} Bit mask represented as a decimal number.
    */
@@ -602,8 +582,7 @@ class TradeQrHelper {
   }
 
   /**
-   * Converts a bit mask number into an array of numeric positions.
-   * Each active bit represents one sticker position.
+   * Converts a bit mask number into an array of numeric positions. Each active bit represents one sticker position.
    * Bit 0 represents sticker 0.
    * @param {number} mask - Bit mask represented as a decimal number.
    * @returns {Array} Numeric positions decoded from the mask.

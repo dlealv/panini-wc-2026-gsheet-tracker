@@ -13,7 +13,8 @@
   /**
    * Namespace for QuickEntryRender-related helpers and utilities. Using namespace to avoid polluting the global 
    * scope and to provide a clear structure for QuickEntryRender-related functions.
-   * Functions exported from the namespace are tagged with @public for easy identification and documentation.
+   * Functions exported from the namespace are tagged with @export for identification and documentation; the
+   * leading-underscore naming convention (not a JSDoc tag) is what marks a function as private.
    * To avoid namespace override with QuickEntry namespace from 'QuickEntryHelpers.html',
    * the namespace is defined as QuickEntryRender.
    */
@@ -24,7 +25,6 @@
      * Currently this function is not tested, but it has been designed to facilitate
      * testing.
      * @export
-     * @public
      */
     function buildCountrySection(country, state = {}, layout = {}, onStickerChange = () => { }) {
       // Section: root
@@ -62,7 +62,7 @@
       return section
     }
 
-    // Private functions
+    // PRIVATE FUNCTIONS
 
     /** Builds country header text.
      * @export

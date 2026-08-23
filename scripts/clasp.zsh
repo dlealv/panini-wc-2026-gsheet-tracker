@@ -597,7 +597,7 @@ pull_after() {
 
 # Action to carry out before push execution, including remote snapshotting and local staging bundle preparation.
 push_before() {
-    log 0 "[PREP] Workspace environment for production build deployment created."
+    log 0 "[PREP] Workspace environment for build deployment created."
     log 1 "[REMOTE_SNAPSHOT] Creating backup of live GAS project..."
     fetch_remote_snapshot
     log 1 "[BUILD_ARTIFACT] Flattening src into deployment bundle..."

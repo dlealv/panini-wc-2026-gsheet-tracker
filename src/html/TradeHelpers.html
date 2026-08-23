@@ -11,16 +11,17 @@
    * QR payload compression is handled by TradeQrHelper on the backend.
    * This helper only works with normalized TradeInfo objects.
    */
+  
   /**
    * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global scope and to
    * provide a clear structure for export-related functions. Functions exported from the namespace are tagged with
-   * @public for easy identification and documentation.
+   * @export for identification and documentation; the leading-underscore naming convention (not a JSDoc tag) is
+   * what marks a function as private.
    */
   window.Trade = (function () {
     /**
      * Builds the trade selection options from the current UI state.
      * @export
-     * @public
      */
     function getPayload(deps = {}) {
       return _getUIState(deps)
@@ -29,7 +30,6 @@
     /**
      * Enables/disables UI during async operations.
      * @export
-     * @public
      */
     function setBusy(isBusy, deps = {}) {
       const doc = deps.document || document
@@ -51,7 +51,6 @@
     /**
      * Displays a message in the Trade dialog UI.
      * @export
-     * @public
      */
     function setMessage(text, type, deps = {}) {
       const el = deps.messageEl || (typeof tradeMessageEl !== 'undefined' ? tradeMessageEl : null)
@@ -65,7 +64,6 @@
     /**
      * Shows or hides the Trade message section.
      * @export
-     * @public
      */
     function showMessage(show, deps = {}) {
       const el = deps.messageSectionEl || (typeof tradeMessageSectionEl !== 'undefined' ? tradeMessageSectionEl : null)
@@ -78,7 +76,6 @@
     /**
      * Builds the backend payload from the Trade input fields.
      * @export
-     * @public
      */
     function getValidationPayload(deps = {}) {
       const missingEl = deps.missingText || (typeof missingTextEl !== 'undefined' ? missingTextEl : null)
@@ -95,7 +92,6 @@
      * @param {Object} deps
      * @param {HTMLElement} deps.previewEl The element to render the preview into.
      * @export
-     * @public
      */
     function renderPreview(result, deps = {}) {
       const el = deps.previewEl
@@ -110,7 +106,6 @@
      * @param {Object} deps
      * @param {HTMLElement} deps.previewEl The element to clear the preview from.
      * @export
-     * @public
      */
     function clearPreview(deps = {}) {
       const el = deps.previewEl
@@ -123,7 +118,6 @@
      * Clears the QR code preview display.
      * @param {{qrEl?:HTMLImageElement,messageEl?:HTMLElement,infoEl?:HTMLElement}} elements
      * @export
-     * @public
      */
     function clearQrPreview(elements = {}) {
       if (!elements.qrEl) { return }
@@ -146,7 +140,6 @@
      * @param {{qrEl:HTMLImageElement,hintEl?:HTMLElement,infoEl?:HTMLElement}} elements
      * @return {void}
      * @export
-     * @public
      */
     function renderQrPreview(result, elements) {
       if (!elements.qrEl) { return }
@@ -184,7 +177,6 @@
      * @param {{receive:Object<string,number[]>,send:Object<string,number[]>}} deps.highlightProposal
      * Current selected proposal stickers to highlight.
      * @export
-     * @public
      */
     function renderMatches(matches, deps = {}) {
       if (!matches) { return }
@@ -209,7 +201,6 @@
      * @param {Object<string,number[]>} data
      * @returns {string}
      * @export
-     * @public
      */
     function formatTradeInput(data) {
       return Object.keys(data || {}).map(country => country + ',' + data[country].join(',')).join('\n')
@@ -219,7 +210,6 @@
      * Formats a sticker map into a readable string.
      * @param {Object<string,number[]>} data
      * @returns {string}
-     * @public
      * @export
      */
     function formatStickerMap(data) {
@@ -239,7 +229,6 @@
      * @param {Object<string,number[]>} matches
      * @returns {number}
      * @export
-     * @public
      */
     function countMatches(matches) {
       return Object.values(matches || {}).reduce((total, stickers) => total + (stickers || []).length, 0)
@@ -259,7 +248,6 @@
      * tradePreferences?:string[]}} options
      * @return {{receive:Object<string,number[]>,send:Object<string,number[]>}}
      * @export
-     * @public
      */
     function prepareTradeSelection(matches, options) {
       const safeOptions = options || {}

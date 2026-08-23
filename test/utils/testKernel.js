@@ -167,6 +167,20 @@ function initializeSpreadsheetAppMock(countries = TEST_DATA.countries) {
   global.Logger = { log: jest.fn() }
   global.__countsRange = countsRange
   global.__getRangeMock = getRangeMock
+
+  /**
+   Mock for LockService, used by Code.gs's _withWriteLock() to guard concurrent writes to COUNTS.
+  Defaults to always acquiring the lock immediately, since most tests aren't exercising contention itself;
+  individual tests can override global.LockService.getScriptLock to simulate a held/unavailable lock.
+  */
+  const lockMock = {
+    tryLock: jest.fn(() => true),
+    releaseLock: jest.fn()
+  }
+  global.LockService = {
+    getScriptLock: jest.fn(() => lockMock)
+  }
+  global.__lockMock = lockMock
 }
 
 module.exports = {

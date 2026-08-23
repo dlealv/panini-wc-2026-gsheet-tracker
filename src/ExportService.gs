@@ -283,8 +283,7 @@ class ExportStickers {
   }
 
   /**
-   * Builds one export line for a country.
-   * Returns the formatted export line.
+   * Builds one export line for a country. Returns the formatted export line.
    * @returns {string}
    */
   _buildExportLine(row, stickerTokens, shouldIncludeFlags) {

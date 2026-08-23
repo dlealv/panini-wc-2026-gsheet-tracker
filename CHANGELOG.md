@@ -28,6 +28,9 @@ No changes to the template. Current version is kept.
 - Under `docs`folder:
   - `ImportServiceMockDesign.md`: Mock design for import services based on requirements document `ImportServiceRequirements.md`.
 
+- Under the `test` folder:
+  - `Code.unit.test.js`: Test file for testing testable functions in `Code.gs`.
+
 #### Changes
 
 - Under the `docs` folder:
@@ -58,12 +61,21 @@ No changes to the template. Current version is kept.
   - `clasp.zsh`: Now ensures clasp calls are executed for a valid node version (version 18). A new function `ensure_node_version()` was created and executed before each clasp call to ensure the correct node version is used.
 
 - Under `src/html` folder:
+  - `ExportHelpers.html`: Removed the redundant `@public` JSDoc tag from every exported function, and reworded the namespace intro comment accordingly. The tag was purely informational - not read by `scripts/build.js`, not required by ESLint, not referenced anywhere else in the build - and this project already uses the leading-underscore naming convention alone to mark a function private.
   - `ExportView.html`: Wrapped the "Export result"/"Messages"/"Actions" sections in a new `export-sections` div (mirroring Import's `import-sections` and Trade's `tradeInputView` wrappers), so the three sections sit flush with no visual gap between them, matching Import's and Trade's look and feel. Shared by both the desktop dialog and the mobile view.
+  - `ImportHelpers.html`:
+    - Same `@public` tag/comment cleanup as `ExportHelpers.html` above.
+    - Removed `_getPayloadFromState()` — dead code, never called by any public function in this file (`getPayload()` calls `getUIState()` directly, not this function).
   - `ImportView.html`:
     - Now the **Clear** button doesn't reset the import mode. Removed the line that reset the import mode selector back to 'update' inside `clearInput()`.
     - Reordered the **Loading mode** dropdown options and their hint list to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
   - `MobileImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearForm()`. Also switched `previewData()`/`importData()` to call the unified `previewStickerData`/`importStickerData` GAS entry points instead of the removed `previewStickerDataMobile`/`importStickerDataMobile`, as part of the spreadsheet-resolution standardization described in the Overview above (see `Code.gs`/`ImportService.gs` below).
+  - `QuickEntryHelpers.html`:
+    - Same `@public` tag/comment cleanup as `ExportHelpers.html` above.
+    - Removed `_getPayloadFromState()` — dead code, never called by any public function in this file. Its shape (`{text, mode, includeFlags}`) doesn't match anything Quick Entry's search/filter/pending-update state actually uses, and closely mirrors `ImportHelpers.html`'s own function of the same name, suggesting an unused copy-paste.
+  - `QuickEntryRender.html`: Same `@public` tag/comment cleanup as `ExportHelpers.html` above.
   - `QuickEntryView.html`: `initializeQuickEntryView()` and `applyChanges()` no longer branch on `isDesktopDialogHost()` to pick between a desktop and a `*Mobile`-suffixed GAS function name — both now call the single unified entry point (`getQuickEntryInitialData`/`applyQuickEntryUpdates`) directly, since `Code.gs` resolves the correct spreadsheet for either platform itself. Removed the now-unused `isDesktopDialogHost()` helper from this file (Export's and Trade's views keep their own copy, used for an unrelated purpose — showing/hiding their Close button).
+  - `TradeHelpers.html`: Same `@public` tag/comment cleanup as `ExportHelpers.html` above.
   - `TradeView.html`:
     - `renderProposalPreview()`'s two hint-text states (initial proposal view and post-Refresh view) now disclose that clicking Confirm trade updates `COUNTS`, referencing the named range with the same `.inline-code` styling Import/Export's own hints already use.
     - Added a comment above the hidden `tradeQrFileInput` element documenting a known Android 14+ Chrome platform issue confirmed via live testing on a physical device: the file input's `capture="environment"` attribute no longer opens the camera directly on these Chrome versions, falling back to the regular file/gallery picker instead. Documents the non-standard `android/allowCamera` accept-token workaround that exists for this, and why it wasn't applied (Chrome-specific, no spec backing, no guarantee of continued support). No behavioral change - comment only.
@@ -76,6 +88,7 @@ No changes to the template. Current version is kept.
     - `previewStickerData`, `importStickerData`, `exportAllStickerData`, `exportSharedStickerData`, `getQuickEntryInitialData`, and `applyQuickEntryUpdates` all now resolve the spreadsheet via `_getSpreadsheet()` and pass it into their service constructor, matching the pattern already used for Trade's entry points.
     - Removed the now-dead `previewStickerDataMobile`, `importStickerDataMobile`, `exportAllStickerDataMobile`, `exportSharedStickerDataMobile`, `getQuickEntryInitialDataMobile`, and `applyQuickEntryUpdatesMobile` wrapper functions — no client ever called them once the platform-agnostic entry points above existed (Export's `*Mobile` wrappers were already unreachable dead code even before this change).
     - Trade's five entry-point functions (`previewOtherTradeInfo`, `previewOtherTradeInfoFromQr`, `generateTradeInfoQr`, `findTradeMatches`, `executeTrade`) now construct `new TradeService(ss)` directly and call an instance method, matching the pattern already used by Import/Export/Quick Entry, instead of delegating to `TradeService`'s now-removed `static` wrapper methods (see `TradeService.gs` below). The `JSON.stringify()` wire-safety wrapping those static methods used to apply to `tradeInfo`/`receive`/`send`/`doneMap`/`tradePreferences` (preserving object/array key ordering across the `google.script.run` boundary) moved here with them, since `Code.gs` — like these five wrapper functions — has no automated test coverage; a new comment block above the Trade entry points documents the rationale, including the open question of whether this safeguard is still needed after the Data Model Standardization work (release 13).
+    - Added a new `_withWriteLock()` helper, guarded by `LockService.getScriptLock()`, and wrapped the three entry points that write to `COUNTS` (`importStickerData`, `applyQuickEntryUpdates`, `executeTrade`) in it. Closes a gap where two overlapping writes — e.g. the desktop dialog and the mobile web app open on the same spreadsheet copy at the same time, or the same copy open in two browser tabs — could race on `StickerSheetRepository.updateStickerCounts()`'s read-modify-write and silently drop one side's update; `TradeService.executeTrade()` widened that window further with its own separate pre-read via `getStickerCount()`, which is why the lock wraps the whole entry-point call rather than just the final write. If the lock can't be acquired within 10 seconds, the call now throws a user-facing "Another update is in progress" error instead of proceeding unguarded. Read-only entry points (previews, exports) are unaffected.
   - `Commons.gs`: `StickerSheetRepository.updateStickerCounts()`'s JSDoc corrected — it previously claimed the single `setValues()` call at the end of the method guarantees the operation "can be undone with one Ctrl+Z action." Live testing showed that claim only holds for a write triggered from a desktop dialog (same session as the viewing tab); a write triggered from the mobile web app (which resolves the spreadsheet by ID via `_getMobileSpreadsheet()`, outside the viewing session) was observed to be unreliable to undo via Ctrl+Z/Cmd+Z — ranging from needing several presses to fully revert, to being completely un-undoable. The JSDoc now documents this platform-level distinction and recommends File > Version history > See version history as the reliable way to fully revert a mobile-triggered import. No behavioral code change — comment/documentation only.
   - `ExportService.gs`: `getRepo()`, `exportAllStickerData()`, and `exportSharedStickerData()` restructured — see the Fixed section below for the underlying bug this addresses.
   - `ImportService.gs`: Removed the unused `static previewStickerData`/`static importStickerData` methods — dead code, never called from anywhere (`Code.gs`'s entry points construct `ImportService` directly instead).
@@ -83,13 +96,36 @@ No changes to the template. Current version is kept.
     - `getRepo()` restructured — see the Fixed section below.
     - Removed the 5 `static` GAS entry-point wrapper methods (`previewOtherStickerTradeInfo`, `generateStickerTradeInfoQr`, `previewOtherStickerTradeInfoFromQr`, `findStickerTradeMatches`, `executeStickerTrades`) — each just constructed a `TradeService` and delegated to an instance method, a middle layer `Code.gs`'s own entry-point functions already made redundant (GAS can't bind `google.script.run`/menu actions directly to a class's static method, so a top-level `Code.gs` function is required either way). The instance methods themselves are unchanged. NOTE 2 at the top of the file (documenting the `JSON.stringify()` wire-safety wrapping) shortened to point at `Code.gs`, where that wrapping now lives.
 
+- Under `test/utils` folder:
+  - `testKernel.js`: Added a `LockService` mock (`getScriptLock()` returning a lock whose `tryLock()` succeeds
+    immediately and whose `releaseLock()` is a spy), so specs can exercise `Code.gs`'s new `_withWriteLock()`
+    without a real Apps Script lock. Individual tests can override `global.__lockMock.tryLock` to simulate a
+    lock that's already held.
+
 - Under `test` folder:
+  - `Code.unit.test.js`: New file — the first unit tests for `Code.gs`, covering `_withWriteLock()`: it runs
+    and returns the wrapped function's result, releases the lock on both success and a thrown error, and
+    throws a clear "Another update is in progress" error (without running the wrapped function or releasing
+    a lock it never acquired) when the lock can't be obtained.
   - `ExportService.unit.test.js`: Added a `getRepo()` test, "forwards the constructor ss into the repository
     instead of falling back to the active spreadsheet," mirroring `TradeService.unit.test.js`'s regression test
     below — this is the test that would have caught the `getRepo()` bug fixed in `ExportService.gs` above.
+  - `ImportHelpers.unit.test.js`: Converted tests that exercised the private `_renderPreviewData()` function
+    directly to instead exercise it through the public `renderPreview()` function that actually calls it,
+    matching this project's convention of testing through the public surface. Removed the `integration
+    scenarios` describe block entirely - half of it tested `_getPayloadFromState()`, removed as dead code (see
+    `ImportHelpers.html` above), and the other half duplicated coverage already present in the `renderPreview()`
+    describe block.
   - `ImportService.unit.test.js`: Added the same `getRepo()` forwarding test as `ExportService.unit.test.js`
     above. `ImportService.gs`'s `getRepo()` was already correct, so this is coverage for a fix that predates
     this release rather than a regression test for a bug fixed here.
+  - `QuickEntryHelpers.unit.test.js`: Converted tests that exercised private helper functions
+    (`_buildCountrySummary`, `_buildPendingKey`, `_filterByStickerStatus`, `_matchesGroupFilter`,
+    `_applyPendingStickerUpdate`, `_applySearch`) directly to instead exercise them through the public
+    `queueStickerChange()`/`getVisibleCountries()` functions that actually call them internally, matching this
+    project's convention of testing through the public surface. Removed the `getPayloadFromState()` describe
+    block entirely, since `_getPayloadFromState()` itself was removed as dead code (see `QuickEntryHelpers.html`
+    above).
   - `QuickEntryService.unit.test.js`: Added a new `constructor(ss)` describe block with two tests -
     confirming the repository falls back to the active spreadsheet when no `ss` is passed, and that an
     explicit `ss` reaches `service.repo.ss` instead. `QuickEntryService` builds its repository eagerly in the
@@ -97,6 +133,9 @@ No changes to the template. Current version is kept.
   - `TradeService.unit.test.js`:
     - Fixed the `constructor(ss)` describe block's "stores provided ss instance" test, which previously compared against `global.SpreadsheetApp.getActiveSpreadsheet()` — the same object `getRepo()`'s old buggy fallback would have used anyway, so it couldn't actually distinguish "ss forwarded" from "ss silently discarded." Added a `OTHER_SS` fixture (a plain object distinct from the mocked active spreadsheet) and a new `getRepo()` test, "forwards the constructor ss into the repository instead of falling back to the active spreadsheet," which is the regression test for the `getRepo()` fix described above.
     - Removed the 5 `describe('static ...')` blocks (and their tests) that delegation-tested `TradeService`'s now-removed static methods. No replacement instance-level assertions were needed, since the instance methods' return shapes are unchanged by the static-method removal.
+    - Added two tests to `previewOtherTradeInfo()`'s describe block for the conflict-message grouping fix
+      above: one country with multiple conflicting stickers now reports a single `MEX,3,2,1` token instead of
+      three separate ones, and multiple conflicting countries each get their own token in the message.
 
 - Under the root folder:
   - `.gitignore` Added `.claude` folder.
@@ -128,7 +167,12 @@ No changes to the template. Current version is kept.
     `exportSharedStickerData()` were each internally creating a brand-new, ss-less `new ExportService()` and
     using that instead of `this` — so even a correctly-resolved `ss` passed into the outer instance was
     discarded a second time. Both now use `this.getRows()` directly.
-  - `TradeService.gs`: `getRepo()` had the identical bug as `ExportService.gs` above — fixed the same way.
+  - `TradeService.gs`:
+    - `getRepo()` had the identical bug as `ExportService.gs` above — fixed the same way.
+    - `previewOtherTradeInfo()`'s "Sticker(s) cannot be both missing and repeated" error listed one token per
+      conflicting sticker (e.g. `MEX,3, MEX,2, MEX,1`), instead of one Format 1 token per country (`MEX,3,2,1`)
+      matching how the collector actually enters input. Conflicting sticker numbers are now grouped by country
+      before formatting, in the order they appear in the parsed Repeats input.
 
 ---
 

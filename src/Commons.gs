@@ -95,7 +95,10 @@ class StickerSheetRepository {
     return STICKER_MAX
   }
 
-  /* Returns the maximum number of rows allowed in the named ranges, which is 50. This includes 48 teams plus FWC and CC. */
+  /* 
+   * Returns the maximum number of rows allowed in the named ranges, which is 50. 
+   * This includes 48 teams plus FWC and CC.
+  */
   static getMaxRows() {
     return MAX_ROWS
   }
@@ -116,7 +119,6 @@ class StickerSheetRepository {
   getCountryCodesRange() {
     if (!this.countryCodeRange) {
       const COUNTRY_CODES_RANGE_NAME = this.COUNTRY_CODES_RANGE_NAME
-
       this.countryCodeRange = this.ss.getRangeByName(COUNTRY_CODES_RANGE_NAME)
       this._validateRange(this.countryCodeRange, MAX_ROWS, 1, COUNTRY_CODES_RANGE_NAME)
     }
@@ -127,7 +129,6 @@ class StickerSheetRepository {
   getCountryNamesRange() {
     if (!this.countryNamesRange) {
       const COUNTRY_NAMES_RANGE_NAME = this.COUNTRY_NAMES_RANGE_NAME
-
       this.countryNamesRange = this.ss.getRangeByName(COUNTRY_NAMES_RANGE_NAME)
       this._validateRange(this.countryNamesRange, MAX_ROWS, 1, COUNTRY_NAMES_RANGE_NAME)
     }
@@ -145,7 +146,6 @@ class StickerSheetRepository {
   getCountsRange() {
     if (!this.countsRange) {
       const COUNTS_RANGE_NAME = this.COUNTS_RANGE_NAME
-
       this.countsRange = this.ss.getRangeByName(COUNTS_RANGE_NAME)
       this._validateRange(this.countsRange, MAX_ROWS, EXPECTED_STICKER_COLUMNS, COUNTS_RANGE_NAME)
       this.startRow = this.countsRange.getRow()
@@ -163,7 +163,6 @@ class StickerSheetRepository {
   getDoneRange() {
     if (!this.doneRange) {
       const DONE_RANGE_NAME = this.DONE_RANGE_NAME
-
       this.doneRange = this.ss.getRangeByName(DONE_RANGE_NAME)
       this._validateRange(this.doneRange, MAX_ROWS, 1, DONE_RANGE_NAME)
     }
@@ -254,8 +253,8 @@ class StickerSheetRepository {
   }
 
   /**
-   * Returns normalized trade preferences from TRADE_PREFERENCES named range.
-   * Values are uppercased and stripped from separators/spaces to match TradeHelpers format.
+   * Returns normalized trade preferences from TRADE_PREFERENCES named range. Values are uppercased and stripped from 
+   * separators/spaces to match TradeHelpers format.
    * @return {string[]} Array of normalized unique tokens preserving sheet order or
    * empty array if the range is empty or not defined.
    */
@@ -411,19 +410,19 @@ class StickerSheetRepository {
    * @param {boolean} [options.includeGroup=true] - Include the group code.
    * @param {boolean} [options.includeFlag=true] - Include the flag URL.
    * @param {boolean} [options.includeIcon=false] - Include the flag icon (emoji, from getFlagIcons()), zipped
-   * in by row position.
+   *  in by row position.
    * @param {boolean} [options.includeDone=false] - Include the DONE completion count (from getDone()), zipped
-   * in by row position.
+   *  in by row position.
    * @returns {Array} An array of country records shaped per the options above.
-   * Example of a country record (default options):
-   * {
-   *   code: 'MEX',
-   *   name: 'Mexico',
-   *   group: 'B',
-   *   flag: 'https://example.com/flags/mexico.png',
-   *   counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
+   *  Example of a country record (default options):
+   *  {
+   *    code: 'MEX',
+   *    name: 'Mexico',
+   *    group: 'B',
+   *    flag: 'https://example.com/flags/mexico.png',
+   *    counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
    * }
-   * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in
+   * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in the result.
   */
   getCountries({
     onlyVisible = false, includeName = true, includeGroup = true,
@@ -438,7 +437,6 @@ class StickerSheetRepository {
       const toVisibleCountry = country => {
         const [min, max] = StickerSheetRepository.getBoundsForCountry(country.code)
         const visibleCounts = new Map()
-
         for (let number = min; number <= max; number++) {
           visibleCounts.set(number, country.counts.get(number))
         }

@@ -38,8 +38,10 @@ describe('QuickEntryService (unit)', () => {
     service = new QuickEntryService()
   })
 
-  /** constructor(ss) — unlike the other services, QuickEntryService builds its repository eagerly in the
-  constructor rather than lazily via a getRepo() method, so the forwarding check reads service.repo.ss directly. */
+  /**
+   constructor(ss) — unlike the other services, QuickEntryService builds its repository eagerly in the
+  constructor rather than lazily via a getRepo() method, so the forwarding check reads service.repo.ss directly.
+  */
   describe('constructor(ss)', () => {
     test('falls back to the active spreadsheet when no ss is provided', () => {
       expect(service.repo.ss).toBe(global.SpreadsheetApp.getActiveSpreadsheet())

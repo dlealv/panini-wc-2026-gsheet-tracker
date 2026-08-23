@@ -17,14 +17,14 @@
   /** 
    * Namespace for export-related helpers and utilities. Using namespace to avoid polluting the global 
    * scope and to provide a clear structure for export-related functions.
-   * Functions exported from the namespace are tagged with @public to easy identification and documentation.
+   * Functions exported from the namespace are tagged with @export for identification and documentation; the
+   * leading-underscore naming convention (not a JSDoc tag) is what marks a function as private.
    */
   window.Export = (function () {
 
     /** Builds a export filename using timestamp. The final name prefix is specific to the 
      * export type (e.g. shared vs full) and is passed as an argument.
      * @export
-     * @public
      */
     function buildExportFileName(type = 'all', now = new Date()) {
       const prefixMap = { all: 'panini-stickers-all', shared: 'panini-stickers-shared' }
@@ -41,7 +41,6 @@
 
     /** Backend payload wrapper (stable contract for services).
      * @export
-     * @public
      */
     function getPayload(deps = {}) {
       return _getUIState(deps)
@@ -65,7 +64,6 @@
 
     /** Copies text to clipboard (with fallback). 
      * @export
-     * @public
      */
     async function copyToClipboard(text, deps = {}) {
       const clipboard = deps.clipboard || navigator.clipboard
@@ -81,7 +79,6 @@
 
     /** Triggers download of a text file in browser. 
      * @export
-     * @public
      */
     function triggerDownload(content, fileName, deps = {}) {
       const doc = deps.document || document
