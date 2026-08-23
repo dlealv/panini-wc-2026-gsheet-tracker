@@ -56,19 +56,25 @@ function showImportDialogUpdate() {
 
 /**
  * Returns a preview of import data without writing to the sheet.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see ImportService#preview for the payload/return shape and examples.
  */
 function previewStickerData(payload) {
-  const app = new ImportService()
+  const ss = _getSpreadsheet()
+  const app = new ImportService(ss)
   return app.preview(payload && payload.text ? payload.text : '')
 }
 
 /**
  * Imports sticker data into the sheet using the selected mode.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see ImportService#import for the payload/return shape and examples.
  */
 function importStickerData(payload) {
-  const app = new ImportService()
+  const ss = _getSpreadsheet()
+  const app = new ImportService(ss)
   return app.import(payload && payload.text ? payload.text
     : '', payload && payload.mode ? payload.mode : 'update')
 }
@@ -99,19 +105,25 @@ function showExportSharedDialog() {
 
 /**
  * Exports all sticker data from the sheet.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see ExportService#exportAllStickerData for the payload/return shape and examples.
  */
 function exportAllStickerData(payload) {
-  const service = new ExportService()
+  const ss = _getSpreadsheet()
+  const service = new ExportService(ss)
   return service.exportAllStickerData(payload)
 }
 
 /**
  * Exports shared sticker data from the sheet.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see ExportService#exportSharedStickerData for the payload/return shape and examples.
  */
 function exportSharedStickerData(payload) {
-  const service = new ExportService()
+  const ss = _getSpreadsheet()
+  const service = new ExportService(ss)
   return service.exportSharedStickerData(payload)
 }
 
@@ -120,7 +132,6 @@ function _showExportDialog(dialogMode) {
   const template = HtmlService.createTemplateFromFile('ExportDialog')
   template.dialogMode = dialogMode
   const html = template.evaluate().setWidth(760).setHeight(760)
-
   SpreadsheetApp.getUi().showModalDialog(html, dialogMode === 'export_shared'
     ? 'Export shared stickers' : 'Export all stickers')
 }
@@ -133,29 +144,31 @@ function _showExportDialog(dialogMode) {
 
 /** Opens the Quick Sticker Entry dialog. */
 function showQuickStickerEntryDialog() {
-  const html = HtmlService.createTemplateFromFile('QuickEntryDialog')
-    .evaluate()
-    .setWidth(900)
-    .setHeight(760)
-
+  const html = HtmlService.createTemplateFromFile('QuickEntryDialog').evaluate().setWidth(900).setHeight(760)
   SpreadsheetApp.getUi().showModalDialog(html, 'Quick Sticker Entry')
 }
 
 /**
  * Returns the initial Quick Sticker Entry payload.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see QuickEntryService#getInitialData for the return shape and examples.
  */
 function getQuickEntryInitialData() {
-  const service = new QuickEntryService()
+  const ss = _getSpreadsheet()
+  const service = new QuickEntryService(ss)
   return service.getInitialData()
 }
 
 /**
  * Applies Quick Entry changes to the Stickers sheet.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
  * @see QuickEntryService#applyPendingUpdates for the payload/return shape and examples.
  */
 function applyQuickEntryUpdates(payload) {
-  const service = new QuickEntryService()
+  const ss = _getSpreadsheet()
+  const service = new QuickEntryService(ss)
   const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
   return service.applyPendingUpdates(pendingUpdates)
 }
@@ -166,6 +179,18 @@ function applyQuickEntryUpdates(payload) {
 
 // TRADE SERVICE ENTRY POINTS
 
+/**
+ * NOTE: the Trade entry points below JSON.stringify their trade-data return fields (tradeInfo, receive,
+ * send, doneMap, tradePreferences) before returning, and the client JSON.parses them back. This preserves
+ * object key/array ordering across the google.script.run boundary - order matters here, particularly for
+ * external collector trade information. This predates the Data Model Standardization work (release 13),
+ * which changed how stickers and countries are represented; it isn't confirmed whether GAS's own object
+ * marshalling can now be trusted to preserve order without explicit stringify, and neither the client views
+ * nor this file have automated test coverage to verify that safely, so the explicit stringify stays as a
+ * defensive measure. It's intentionally kept here at the wire boundary (Code.gs) rather than in
+ * TradeService.gs's instance methods, so the tested business logic layer stays free of transport concerns.
+ */
+
 /** Opens the Trade dialog. */
 function showTradeDialog() {
   _showTradeDialog('desktop')
@@ -173,42 +198,81 @@ function showTradeDialog() {
 
 /**
  * Returns a preview of another collector's trade information.
- * @see TradeService.previewOtherStickerTradeInfo for the payload/return shape and examples.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
+ * @see TradeService#previewOtherTradeInfo for the payload shape and examples.
  */
 function previewOtherTradeInfo(payload) {
-  return TradeService.previewOtherStickerTradeInfo(payload || {})
+  const ss = _getSpreadsheet()
+  const service = new TradeService(ss)
+  const result = service.previewOtherTradeInfo(payload || {})
+  result.tradeInfo = JSON.stringify(result.tradeInfo)
+  return result
 }
 
 /**
  * Returns a preview of another collector's trade information from QR image data.
- * @see TradeService.previewOtherStickerTradeInfoFromQr for the payload/return shape and examples.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
+ * @see TradeService#previewOtherTradeInfoFromQr for the payload shape and examples.
  */
 function previewOtherTradeInfoFromQr(payload) {
-  return TradeService.previewOtherStickerTradeInfoFromQr(payload || {})
+  const ss = _getSpreadsheet()
+  const service = new TradeService(ss)
+  const result = service.previewOtherTradeInfoFromQr(payload || {})
+  result.tradeInfo = JSON.stringify(result.tradeInfo)
+  return result
 }
 
 /**
  * Generates the current collector QR payload.
- * @see TradeService.generateStickerTradeInfoQr for the return shape and examples.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
+ * @see TradeService#generateTradeInfoQr for the return shape and examples.
  */
 function generateTradeInfoQr() {
-  return TradeService.generateStickerTradeInfoQr()
+  const ss = _getSpreadsheet()
+  const service = new TradeService(ss)
+  const result = service.generateTradeInfoQr()
+  result.tradeInfo = JSON.stringify(result.tradeInfo)
+  return result
 }
 
 /**
  * Finds all possible trade matches with another collector.
- * @see TradeService.findStickerTradeMatches for the payload/return shape and examples.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
+ * Validates and stores the external collector's trade information before
+ * delegating the calculation to TradeService#findTradeMatches, which keeps
+ * a no-arg signature since it operates on state set via setOtherTradeInfo().
+ * @see TradeService#findTradeMatches for the return shape and examples.
  */
 function findTradeMatches(payload) {
-  return TradeService.findStickerTradeMatches(payload)
+  const ss = _getSpreadsheet()
+  const service = new TradeService(ss)
+  if (!payload || !payload.otherTradeInfo) {
+    throw new Error('External collector information is required.')
+  }
+  service.setOtherTradeInfo(payload.otherTradeInfo)
+  const matches = service.findTradeMatches()
+  return {
+    receive: JSON.stringify(matches.receive),
+    send: JSON.stringify(matches.send),
+    doneMap: JSON.stringify(matches.doneMap),
+    tradePreferences: JSON.stringify(matches.tradePreferences)
+  }
 }
 
 /**
  * Applies the confirmed trade.
- * @see TradeService.executeStickerTrades for the payload shape and examples.
+ * Resolves the spreadsheet via _getSpreadsheet() so this entry point
+ * works from both the desktop dialog and the mobile web app.
+ * @see TradeService#executeTrade for the payload shape and examples.
  */
 function executeTrade(payload) {
-  return TradeService.executeStickerTrades(payload)
+  const ss = _getSpreadsheet()
+  const service = new TradeService(ss)
+  return service.executeTrade(payload)
 }
 
 /** Opens the Trade dialog with the provided platform configuration. */
@@ -216,7 +280,6 @@ function _showTradeDialog(platform) {
   const template = HtmlService.createTemplateFromFile('TradeDialog')
   template.platform = platform || 'desktop'
   const html = template.evaluate().setWidth(760).setHeight(760)
-
   SpreadsheetApp.getUi().showModalDialog(html, 'Trade stickers')
 }
 
@@ -228,10 +291,6 @@ function _showTradeDialog(platform) {
 
 /**
  * GAS web app entry point — serves the mobile import page in a browser.
- *
- * Spike 1 verification: the page displays the spreadsheet title, confirming that
- * the web app context can resolve the bound spreadsheet via script properties.
- *
  * When the script properties have not been seeded yet (i.e. the user has never
  * opened the spreadsheet and triggered onOpen), a self-contained error page is
  * returned with instructions for the user.
@@ -254,33 +313,6 @@ function doGet(e) {
   return template.evaluate()
 }
 
-/**
- * Mobile-context wrapper for import preview.
- * Resolves the bound spreadsheet via script properties instead of
- * getActiveSpreadsheet(), which returns null in web app call context.
- * @see ImportService#preview for the payload/return shape and examples.
- */
-function previewStickerDataMobile(payload) {
-  const ss = _getMobileSpreadsheet()
-  const app = new ImportService(ss)
-  return app.preview(payload && payload.text ? payload.text : '')
-}
-
-/**
- * Mobile-context wrapper for import execution.
- * Resolves the bound spreadsheet via script properties instead of
- * getActiveSpreadsheet(), which returns null in web app call context.
- * @see ImportService#import for the payload/return shape and examples.
- */
-function importStickerDataMobile(payload) {
-  const ss = _getMobileSpreadsheet()
-  const app = new ImportService(ss)
-  return app.import(
-    payload && payload.text ? payload.text : '',
-    payload && payload.mode ? payload.mode : 'update'
-  )
-}
-
 /** Opens a dialog showing the mobile web app URL so the user can copy and bookmark it. */
 function showWebAppLink() {
   const webAppUrl = PropertiesService.getScriptProperties().getProperty('WEB_APP_URL') || ''
@@ -289,57 +321,7 @@ function showWebAppLink() {
   template.isDeployed = Boolean(webAppUrl)
   //template.isDeployed = false // 🔥 TEMP: force false to test the "not deployed" message
   const height = template.isDeployed ? 200 : 280
-  SpreadsheetApp.getUi().showModalDialog(
-    template.evaluate().
-      setWidth(500)
-      .setHeight(height),
-    'Mobile Web App Link'
-  )
-}
-
-/**
- * Mobile-context wrapper for exporting all stickers.
- * Uses spreadsheet resolved from script properties for web app context safety.
- * @see ExportService#exportAllStickerData for the payload/return shape and examples.
- */
-function exportAllStickerDataMobile(payload) {
-  const ss = _getMobileSpreadsheet()
-  const service = new ExportService(ss)
-  return service.exportAllStickerData(payload)
-}
-
-/**
- * Mobile-context wrapper for exporting shared stickers.
- * Uses spreadsheet resolved from script properties for web app context safety.
- * @see ExportService#exportSharedStickerData for the payload/return shape and examples.
- */
-function exportSharedStickerDataMobile(payload) {
-  const ss = _getMobileSpreadsheet()
-  const service = new ExportService(ss)
-  return service.exportSharedStickerData(payload)
-}
-
-/**
- * Mobile-context wrapper for Quick Entry initial data.
- * Uses spreadsheet resolved from script properties for web app context safety.
- * @see QuickEntryService#getInitialData for the return shape and examples.
- */
-function getQuickEntryInitialDataMobile() {
-  const ss = _getMobileSpreadsheet()
-  const service = new QuickEntryService(ss)
-  return service.getInitialData()
-}
-
-/**
- * Mobile-context wrapper for Quick Entry updates.
- * Uses spreadsheet resolved from script properties for web app context safety.
- * @see QuickEntryService#applyPendingUpdates for the payload/return shape and examples.
- */
-function applyQuickEntryUpdatesMobile(payload) {
-  const ss = _getMobileSpreadsheet()
-  const service = new QuickEntryService(ss)
-  const pendingUpdates = payload && payload.pendingUpdates ? payload.pendingUpdates : []
-  return service.applyPendingUpdates(pendingUpdates)
+  SpreadsheetApp.getUi().showModalDialog(template.evaluate().setWidth(500).setHeight(height), 'Mobile Web App Link')
 }
 
 /** Persists the active spreadsheet ID in script properties for use by the web app. */
@@ -351,9 +333,29 @@ function _saveMobileConfig() {
 }
 
 /**
+ * Resolves the spreadsheet to operate on for entry points shared between the
+ * desktop dialog and the mobile web app. Not platform-specific itself: it
+ * tries the active-spreadsheet path first, which works from a dialog, menu,
+ * sidebar, or trigger context, and only defers to the mobile-specific lookup
+ * below when that path isn't available.
+ * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
+ */
+function _getSpreadsheet() {
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet()
+    if (active) { return active }
+  } catch (e) {
+    // getActiveSpreadsheet() is documented as unavailable when a bound script
+    // runs as a web app - fall through to the mobile-specific lookup below.
+  }
+  return _getMobileSpreadsheet()
+}
+
+/**
  * Returns the spreadsheet bound to this script by reading its ID from script
- * properties (seeded by _saveMobileConfig during onOpen).
- * Using openById instead of getActiveSpreadsheet is required in web app context.
+ * properties (seeded by _saveMobileConfig during onOpen). This is the mobile
+ * web app path: used as the fallback when getActiveSpreadsheet() isn't
+ * available, i.e. we're running under the web app rather than a dialog.
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
  */
 function _getMobileSpreadsheet() {
@@ -362,7 +364,6 @@ function _getMobileSpreadsheet() {
   try {
     return SpreadsheetApp.openById(id)
   } catch (e) {
-    //return null
     Logger.log("OPEN by ID FAILED: " + e.message)
     throw e  // 🔥 IMPORTANT: do NOT hide it
   }
@@ -370,19 +371,13 @@ function _getMobileSpreadsheet() {
 
 // #endregion Mobile
 
-
 // #region About
 
 // ABOUT SERVICE ENTRY POINTS
 
 /** Opens the About dialog. */
 function showAboutDialog() {
-  const html = HtmlService
-    .createTemplateFromFile('AboutDialog')
-    .evaluate()
-    .setWidth(465)
-    .setHeight(200)
-
+  const html = HtmlService.createTemplateFromFile('AboutDialog').evaluate().setWidth(465).setHeight(200)
   SpreadsheetApp.getUi().showModalDialog(html, 'About')
 }
 
@@ -393,8 +388,5 @@ function showAboutDialog() {
 
 /** Includes an HTML partial and evaluates any template code it contains. */
 function include(filename) {
-  return HtmlService
-    .createTemplateFromFile(filename)
-    .evaluate()
-    .getContent();
+  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }

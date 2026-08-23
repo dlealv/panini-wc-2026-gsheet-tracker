@@ -384,13 +384,11 @@ class StickerSheetRepository {
       const normalizedCountryCode = this._normalizeCountryCode(code)
       const countryIndex = this._getCountryIndex(normalizedCountryCode)
       const countValues = this.getCountsRange().getValues()[countryIndex]
-
       if (!countValues) {
         throw new Error(`No count data found for country "${code}"`)
       }
       return new Map(countValues.map((value, index) => [index, this._toCount(value)]))
     }
-
     return getCountryCounts(countryCode).get(validStickerNumber)
   }
 
@@ -428,12 +426,8 @@ class StickerSheetRepository {
    * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in
   */
   getCountries({
-    onlyVisible = false,
-    includeName = true,
-    includeGroup = true,
-    includeFlag = true,
-    includeIcon = false,
-    includeDone = false
+    onlyVisible = false, includeName = true, includeGroup = true,
+    includeFlag = true, includeIcon = false, includeDone = false
   } = {}) {
     if (!this.countries) {
       this.countries = this._loadCountries()
@@ -478,7 +472,17 @@ class StickerSheetRepository {
    * Updates multiple sticker counts using a single spreadsheet write operation.
    * The input is a sparse country-based update model where only changed sticker numbers are provided.
    * The method loads the COUNTS range once, applies every update in memory, and persists the modified
-   * values with a single `setValues()` call so the operation can be undone with one Ctrl+Z action.
+   * values with a single `setValues()` call. 
+   * NOTE: Ctrl+Z/Cmd+Z reliability after this call depends on where the write came from, not on this 
+   *  method - a write triggered from a desktop dialog (same session as the viewing tab) reverts cleanly with 
+   *  one Ctrl+Z. A write triggered from the mobile web app (`doGet()`, which resolves the spreadsheet by ID 
+   *  via `_getMobileSpreadsheet()` rather than the active session) is NOT reliably undoable: observed behavior 
+   *  ranges from a correct full revert needing several Ctrl+Z presses, to a partial revert stuck on the 
+   *  just-imported country, to the write being completely un-undoable. This is believed to be a Google Sheets 
+   *  platform behavior - an out-of-session script write reaches the viewing client over the same channel as a remote
+   *  collaborator's edit, rather than as a local action - not something fixable by changing how this method batches 
+   *  its write. For a guaranteed full revert of a mobile-triggered import, use File > Version history > See version 
+   *  history instead.
    * @param {{countries:Array<{code:string,counts:Map<number,number>}>}} updates -
    * Canonical sticker update payload.
    * Example: { countries: [{ code:'ARG', counts:Map{1=>2,5=>4} }, { code:'BRA', counts:Map{3=>1} }] }
@@ -486,16 +490,13 @@ class StickerSheetRepository {
    */
   updateStickerCounts(updates, mode = 'update') {
     const countries = updates && updates.countries
-    if (!Array.isArray(countries) || !countries.length) {
-      return
-    }
+    if (!Array.isArray(countries) || !countries.length) { return }
     const range = this.getCountsRange()
     const values = range.getValues()
     const codesToClear = mode === 'clean_all' ? this.getCountryCodes() : countries.map(country => country.code)
     if (mode === 'clean_all' || mode === 'replace_countries') {
       codesToClear.forEach(code => {
         const index = this._getCountryIndex(this._normalizeCountryCode(code))
-
         values[index].fill('')
         if (mode === 'clean_all') {
           this._normalizeCountryRow(code, values[index])
@@ -504,7 +505,6 @@ class StickerSheetRepository {
     }
     countries.forEach(country => {
       const index = this._getCountryIndex(this._normalizeCountryCode(country.code))
-
       this._applyCountUpdates(country, values[index], mode === 'clean_all')
     })
     range.setValues(values)
@@ -559,25 +559,20 @@ class StickerSheetRepository {
     const groupValues = this.getGroupsRange().getValues()
     const flagValues = this.getFlagsUrlRange().getDisplayValues()
     const countryNameValues = this.getCountryNamesRange().getDisplayValues()
-
     return countryValues.
       map((row, index) => {
         return this._buildCountryRecord(
           row, groupValues[index], flagValues[index], countryNameValues[index], countValues[index]
         )
-      }).
-      filter(Boolean)
+      }).filter(Boolean)
   }
 
   /** Builds one country record from named range rows. */
   _buildCountryRecord(countryRow, groupRow, flagRow, countryNameRow, countRow) {
     const countryCode = String(countryRow[0] || '').trim().toUpperCase()
-    if (!countryCode) {
-      return null
-    }
+    if (!countryCode) { return null }
     const groupCode = String((groupRow && groupRow[0]) || '').trim().toUpperCase()
     const name = String(countryNameRow[0] || '').trim()
-
     return {
       code: countryCode,
       name,
@@ -590,11 +585,9 @@ class StickerSheetRepository {
   /** Normalizes and validates a country code. */
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
-
     if (!this.getCountryCodes().has(normalizedCountryCode)) {
       throw new Error(`Country code "${countryCode}" was not found in the COUNTRIES named range.`)
     }
-
     return normalizedCountryCode
   }
 
@@ -623,7 +616,6 @@ class StickerSheetRepository {
   _normalizeCountryRow(code, values) {
     const normalizedCountryCode = String(code).trim().toUpperCase()
     const [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
-
     for (let sticker = 0; sticker < values.length; sticker++) {
       if (sticker < minSticker || sticker > maxSticker) {
         values[sticker] = 0
@@ -648,7 +640,6 @@ class StickerSheetRepository {
     let maxSticker
     if (!isNormalized) {
       const normalizedCountryCode = String(country.code).trim().toUpperCase(); // required ; here
-
       [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
     }
     for (let sticker = 0; sticker < values.length; sticker++) {

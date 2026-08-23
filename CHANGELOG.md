@@ -12,6 +12,8 @@ The format is inspired by **Keep a Changelog** and this project uses simple rele
 
 Audit of the UI with respect the requirement and mock document for all services. Adjusted the documentation in case the UI behavior is correct or adjusted the UI when the requirements are not correctly satisfied.
 
+Standardized how Import, Export, Quick Entry, and Trade resolve the spreadsheet they operate on, across both the desktop dialogs and the mobile web app. `TradeService` and `ExportService` were silently discarding the spreadsheet instance passed to their constructors and always falling back to `SpreadsheetApp.getActiveSpreadsheet()`, which Google documents as unavailable when a bound script runs as a web app; a new shared `_getSpreadsheet()` helper in `Code.gs` now resolves the spreadsheet the same way for every service, and each service's `getRepo()` correctly forwards it. This also removed the need for separate `*Mobile`-suffixed entry-point functions per service - Import, Export, and Quick Entry now share the same single entry points across both platforms, matching Trade.
+
 ### Google Spreadsheet template
 
 No changes to the template. Current version is kept.
@@ -23,42 +25,87 @@ No changes to the template. Current version is kept.
 - Under `data` folder:
   - `TEST_panini-stickers-all.txt`: File used to set the state of the `Sticker`tab for testing purpose.
 
-- Under `doc`folder:
+- Under `docs`folder:
   - `ImportServiceMockDesign.md`: Mock design for import services based on requirements document `ImportServiceRequirements.md`.
 
 #### Changes
 
 - Under the `docs` folder:
   - `ExportServiceRequirements.md`: "Export shared stickers requirements" section updated to match the actual implementation - the worked example and both section header definitions now show `🔄 Repeats (N)` / `❌ Missing (N)` (with a note on how the counts add up), replacing the previous `🔄 Repeated stickers` / `❌ Missing stickers` wording that the code had already moved away from.
-  - `ImportServiceRequirements.md`: "Import validation rules" section clarified - the "Strict rules" heading now explicitly states it means a literal thrown `Error` with parsing stopped immediately; removed "no valid sticker entries remain to import" from that list, since that case never actually throws; added a new paragraph after the flexible-rules table documenting the real behavior instead: when every line in the input ends up flexible-skipped, the operation still completes normally (`Imported 0 country row(s) successfully.` plus the per-line warnings already generated).
+  - `ImportServiceMockDesign.md`:
+    - Removed the "Open Import Dialog → Update counts" line from the menu-entry/pre-selected-mode list (that menu entry no longer exists — see `src/Code.gs` below) and renumbered the remaining 3 entries.
+    - Reordered the remaining 3 entries, the desktop ASCII mockup's dropdown hint list, and the "Loading mode" dropdown description to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
+  - `ImportServiceRequirements.md`:
+    - "Import validation rules" section clarified - the "Strict rules" heading now explicitly states it means a literal thrown `Error` with parsing stopped immediately; removed "no valid sticker entries remain to import" from that list, since that case never actually throws; added a new paragraph after the flexible-rules table documenting the real behavior instead: when every line in the input ends up flexible-skipped, the operation still completes normally (`Imported 0 country row(s) successfully.` plus the per-line warnings already generated).
+    - "Service entry points" and the "Menu requirements"/"Menu behavior" sections updated to drop the removed "Open import dialog" 4th menu entry and list the remaining 3 entries in `src/Code.gs`'s new order (`Update counts`, `Update counts clearing country counts`, `Import data`).
   - `QuickEntryServiceMockDesign.md`: "Filter behavior" → "Search input" reworded to describe the actual left-to-right/prefix matching behavior instead of the ambiguous "Partial matches are allowed"; added the undocumented sticker-number search to both ASCII mock placeholder strings, the "Top action and filter area" placeholder description, and the "Recommended decisions" bullet.
   - `QuickEntryServiceRequirements.md`: "Scope" and "Search behavior" updated to document sticker-number search (an all-digits search term filters to that specific sticker) alongside country code/name search; "Partial matches must be supported" replaced with an explicit left-to-right/prefix description and worked examples (`m`→`MEX`/`MAR`, `me`→`MEX` only, `bos`→`Bosnia and Herzegovina`).
+  - `TechnicalArchitecture.md`:
+    - Added a note for the question related to Node.js version that `clasp.zsh` script already ensures the correct version of Node.js during the execution.
+    - Reworded the Trade `JSON.stringify()` bullet under "The Trade Exception" to point at the comment block above the Trade entry points in `Code.gs`, since that wrapping now lives there rather than in `TradeService.gs`.
+    - Rewrote the "Shared repository layer" section, which still described separate `*Mobile`-suffixed wrapper functions per service, to instead describe the actual unified `_getSpreadsheet()`/`_getMobileSpreadsheet()` resolution shared by every Import/Export/Quick Entry/Trade entry point on both platforms.
+    - Reworded the Mobile Quick Entry flow's step 6, which implied a separate "mobile Quick Entry service," to name the actual shared `Code.gs` entry points (`getQuickEntryInitialData`, `applyQuickEntryUpdates`) that invoke `QuickEntryService.gs`.
+    - Fixed a typo in the directory tree: `appscript.json` → `appsscript.json`.
   - `TradeServiceMockDesign.md`: Both ASCII mock blocks ("View 1: Initial view" and "View 2: Trade proposal updated (after Refresh)") and the two "Provide customized hint information..." prose bullets updated to include the new Confirm-trade `COUNTS`-update disclosure text (see `TradeView.html` below).
   - `TradeServiceRequirements.md`: §14.4 reworded to match §10.1's explicit-refresh model, cross-referencing §10.1 directly, instead of contradicting it with "Changing trade quantities must automatically update the corresponding sticker lists."
-  - `ImportServiceMockDesign.md`: removed the "Open Import Dialog → Update counts" line from the menu-entry/pre-selected-mode list (that menu entry no longer exists — see `src/Code.gs` below) and renumbered the remaining 3 entries.
 
 - Under the `images` folder:
-  - `tradeViewInitialTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
+  - `managePaniniMenuView.jpg`: Updated to reflect the removed "Open import dialog" entry and the reordered remaining menu items.
   - `tradeViewAdjustedTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
-  - `managePaniniMenuView.jpg`: Updated the image to included the updated version of the input services.
+  - `tradeViewInitialTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
+
+- Under the `scripts` folder:
+  - `clasp.zsh`: Now ensures clasp calls are executed for a valid node version (version 18). A new function `ensure_node_version()` was created and executed before each clasp call to ensure the correct node version is used.
 
 - Under `src/html` folder:
   - `ExportView.html`: Wrapped the "Export result"/"Messages"/"Actions" sections in a new `export-sections` div (mirroring Import's `import-sections` and Trade's `tradeInputView` wrappers), so the three sections sit flush with no visual gap between them, matching Import's and Trade's look and feel. Shared by both the desktop dialog and the mobile view.
-  - `ImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearInput()`.
-  - `MobileImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearForm()`.
-  - `TradeView.html`: `renderProposalPreview()`'s two hint-text states (initial proposal view and post-Refresh view) now disclose that clicking Confirm trade updates `COUNTS`, referencing the named range with the same `.inline-code` styling Import/Export's own hints already use.
+  - `ImportView.html`:
+    - Now the **Clear** button doesn't reset the import mode. Removed the line that reset the import mode selector back to 'update' inside `clearInput()`.
+    - Reordered the **Loading mode** dropdown options and their hint list to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
+  - `MobileImportView.html`: Now the **Clear** button doesn't reset the import mode.  Removed the line that reset the import mode selector back to 'update' inside `clearForm()`. Also switched `previewData()`/`importData()` to call the unified `previewStickerData`/`importStickerData` GAS entry points instead of the removed `previewStickerDataMobile`/`importStickerDataMobile`, as part of the spreadsheet-resolution standardization described in the Overview above (see `Code.gs`/`ImportService.gs` below).
+  - `QuickEntryView.html`: `initializeQuickEntryView()` and `applyChanges()` no longer branch on `isDesktopDialogHost()` to pick between a desktop and a `*Mobile`-suffixed GAS function name — both now call the single unified entry point (`getQuickEntryInitialData`/`applyQuickEntryUpdates`) directly, since `Code.gs` resolves the correct spreadsheet for either platform itself. Removed the now-unused `isDesktopDialogHost()` helper from this file (Export's and Trade's views keep their own copy, used for an unrelated purpose — showing/hiding their Close button).
+  - `TradeView.html`:
+    - `renderProposalPreview()`'s two hint-text states (initial proposal view and post-Refresh view) now disclose that clicking Confirm trade updates `COUNTS`, referencing the named range with the same `.inline-code` styling Import/Export's own hints already use.
+    - Added a comment above the hidden `tradeQrFileInput` element documenting a known Android 14+ Chrome platform issue confirmed via live testing on a physical device: the file input's `capture="environment"` attribute no longer opens the camera directly on these Chrome versions, falling back to the regular file/gallery picker instead. Documents the non-standard `android/allowCamera` accept-token workaround that exists for this, and why it wasn't applied (Chrome-specific, no spec backing, no guarantee of continued support). No behavioral change - comment only.
 
 - Under `src` folder:
   - `Code.gs`: 
     - Removed the redundant `'Open import dialog'` entry from the `Manage Panini` menu in `onOpen()`, and the now-unreachable `showImportDialog()` function it called (functionally identical to `showImportDialogUpdate()`). Desktop-only — mobile has no equivalent menu.
-    - Reordered the import options, now the order is: `Update counts`, `Update counts clearing country counts`, `Import dialog`.
+    - Reordered the import options, now the order is: `Update counts`, `Update counts clearing country counts`, `Import data`.
+    - Split the old `_getMobileSpreadsheet()` into two functions with separated responsibilities: `_getSpreadsheet()` is the new platform-agnostic resolver (tries `SpreadsheetApp.getActiveSpreadsheet()` first, defensively wrapped in a try/catch, and falls back to the ID-based lookup) used by every Import/Export/Quick Entry/Trade entry point; `_getMobileSpreadsheet()` is narrowed down to just that ID-based lookup, still called directly by `doGet()`.
+    - `previewStickerData`, `importStickerData`, `exportAllStickerData`, `exportSharedStickerData`, `getQuickEntryInitialData`, and `applyQuickEntryUpdates` all now resolve the spreadsheet via `_getSpreadsheet()` and pass it into their service constructor, matching the pattern already used for Trade's entry points.
+    - Removed the now-dead `previewStickerDataMobile`, `importStickerDataMobile`, `exportAllStickerDataMobile`, `exportSharedStickerDataMobile`, `getQuickEntryInitialDataMobile`, and `applyQuickEntryUpdatesMobile` wrapper functions — no client ever called them once the platform-agnostic entry points above existed (Export's `*Mobile` wrappers were already unreachable dead code even before this change).
+    - Trade's five entry-point functions (`previewOtherTradeInfo`, `previewOtherTradeInfoFromQr`, `generateTradeInfoQr`, `findTradeMatches`, `executeTrade`) now construct `new TradeService(ss)` directly and call an instance method, matching the pattern already used by Import/Export/Quick Entry, instead of delegating to `TradeService`'s now-removed `static` wrapper methods (see `TradeService.gs` below). The `JSON.stringify()` wire-safety wrapping those static methods used to apply to `tradeInfo`/`receive`/`send`/`doneMap`/`tradePreferences` (preserving object/array key ordering across the `google.script.run` boundary) moved here with them, since `Code.gs` — like these five wrapper functions — has no automated test coverage; a new comment block above the Trade entry points documents the rationale, including the open question of whether this safeguard is still needed after the Data Model Standardization work (release 13).
+  - `Commons.gs`: `StickerSheetRepository.updateStickerCounts()`'s JSDoc corrected — it previously claimed the single `setValues()` call at the end of the method guarantees the operation "can be undone with one Ctrl+Z action." Live testing showed that claim only holds for a write triggered from a desktop dialog (same session as the viewing tab); a write triggered from the mobile web app (which resolves the spreadsheet by ID via `_getMobileSpreadsheet()`, outside the viewing session) was observed to be unreliable to undo via Ctrl+Z/Cmd+Z — ranging from needing several presses to fully revert, to being completely un-undoable. The JSDoc now documents this platform-level distinction and recommends File > Version history > See version history as the reliable way to fully revert a mobile-triggered import. No behavioral code change — comment/documentation only.
+  - `ExportService.gs`: `getRepo()`, `exportAllStickerData()`, and `exportSharedStickerData()` restructured — see the Fixed section below for the underlying bug this addresses.
+  - `ImportService.gs`: Removed the unused `static previewStickerData`/`static importStickerData` methods — dead code, never called from anywhere (`Code.gs`'s entry points construct `ImportService` directly instead).
+  - `TradeService.gs`:
+    - `getRepo()` restructured — see the Fixed section below.
+    - Removed the 5 `static` GAS entry-point wrapper methods (`previewOtherStickerTradeInfo`, `generateStickerTradeInfoQr`, `previewOtherStickerTradeInfoFromQr`, `findStickerTradeMatches`, `executeStickerTrades`) — each just constructed a `TradeService` and delegated to an instance method, a middle layer `Code.gs`'s own entry-point functions already made redundant (GAS can't bind `google.script.run`/menu actions directly to a class's static method, so a top-level `Code.gs` function is required either way). The instance methods themselves are unchanged. NOTE 2 at the top of the file (documenting the `JSON.stringify()` wire-safety wrapping) shortened to point at `Code.gs`, where that wrapping now lives.
+
+- Under `test` folder:
+  - `ExportService.unit.test.js`: Added a `getRepo()` test, "forwards the constructor ss into the repository
+    instead of falling back to the active spreadsheet," mirroring `TradeService.unit.test.js`'s regression test
+    below — this is the test that would have caught the `getRepo()` bug fixed in `ExportService.gs` above.
+  - `ImportService.unit.test.js`: Added the same `getRepo()` forwarding test as `ExportService.unit.test.js`
+    above. `ImportService.gs`'s `getRepo()` was already correct, so this is coverage for a fix that predates
+    this release rather than a regression test for a bug fixed here.
+  - `QuickEntryService.unit.test.js`: Added a new `constructor(ss)` describe block with two tests -
+    confirming the repository falls back to the active spreadsheet when no `ss` is passed, and that an
+    explicit `ss` reaches `service.repo.ss` instead. `QuickEntryService` builds its repository eagerly in the
+    constructor rather than through a lazy `getRepo()`, so the assertion reads `service.repo.ss` directly.
+  - `TradeService.unit.test.js`:
+    - Fixed the `constructor(ss)` describe block's "stores provided ss instance" test, which previously compared against `global.SpreadsheetApp.getActiveSpreadsheet()` — the same object `getRepo()`'s old buggy fallback would have used anyway, so it couldn't actually distinguish "ss forwarded" from "ss silently discarded." Added a `OTHER_SS` fixture (a plain object distinct from the mocked active spreadsheet) and a new `getRepo()` test, "forwards the constructor ss into the repository instead of falling back to the active spreadsheet," which is the regression test for the `getRepo()` fix described above.
+    - Removed the 5 `describe('static ...')` blocks (and their tests) that delegation-tested `TradeService`'s now-removed static methods. No replacement instance-level assertions were needed, since the instance methods' return shapes are unchanged by the static-method removal.
 
 - Under the root folder:
   - `.gitignore` Added `.claude` folder.
   - `README.md`: 
-    - Reworded the sentence naming the "Open import dialog" menu entry to instead describe all three `Manage Panini` import menu entries opening the same dialog, pre-set to the corresponding mode. The `managePaniniMenuView.jpg` screenshot will be retaken after redeploy.
+    - Reworded the sentence naming the "Open import dialog" menu entry to instead describe all three `Manage Panini` import menu entries opening the same dialog, pre-set to the corresponding mode.
+    - Reordered the "Available import modes" bullet list to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
     - Updated the Documentation section to include the file `ImportServiceMockDesign.md`.
     - Updated the Files section to include the file `data/TEST_panini-stickers-all.txt`.
+  - `TODO.md`: Added UI audit and marked as done.
 
 #### Fixed
 
@@ -67,6 +114,21 @@ No changes to the template. Current version is kept.
     **Clear** is clicked — it now leaves whatever mode was pre-selected (by the menu entry point) or chosen
     by the user untouched, matching `docs/ImportServiceMockDesign.md` §2.1.
   - `MobileImportView.html`: same fix applied to `clearForm()`, matching §3.1 of the same doc.
+
+- Under `src` folder:
+  - `Code.gs`: `previewStickerData`, `importStickerData`, `exportAllStickerData`, `exportSharedStickerData`,
+    `getQuickEntryInitialData`, `applyQuickEntryUpdates`, and Trade's five entry points now resolve the
+    spreadsheet via `_getSpreadsheet()` instead of relying on each service's own default
+    `SpreadsheetApp.getActiveSpreadsheet()` fallback — Google documents that call as unavailable when a bound
+    script runs as a web app, so mobile web app calls were silently depending on undocumented, unsupported
+    behavior rather than an explicitly-resolved spreadsheet.
+  - `ExportService.gs`: `getRepo()` was calling `new StickerSheetRepository()` with no argument, silently
+    discarding `this.ss`; now forwards it (`this.ss ? new StickerSheetRepository(this.ss) : new
+    StickerSheetRepository()`, matching `ImportService`). Separately, `exportAllStickerData()` and
+    `exportSharedStickerData()` were each internally creating a brand-new, ss-less `new ExportService()` and
+    using that instead of `this` — so even a correctly-resolved `ss` passed into the outer instance was
+    discarded a second time. Both now use `this.getRows()` directly.
+  - `TradeService.gs`: `getRepo()` had the identical bug as `ExportService.gs` above — fixed the same way.
 
 ---
 

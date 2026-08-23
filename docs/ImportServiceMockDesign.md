@@ -81,11 +81,11 @@ Example layout:
 | 3) Loading mode                                                                     |
 | Choose how to apply the load                                                        |
 | [ Update counts                                                                 ▼ ] |
-|  - Import data: clears all values in COUNTS, then loads the input.                  |
-|  - Update counts clearing country counts: clears only the rows for                  |
-|    countries in the input, then loads those countries.                              |
 |  - Update counts: overwrites only the positions explicitly                          |
 |    provided; all other values remain unchanged.                                     |
+|  - Update counts clearing country counts: clears only the rows for                  |
+|    countries in the input, then loads those countries.                              |
+|  - Import data: clears all values in COUNTS, then loads the input.                  |
 +-------------------------------------------------------------------------------------+
 +-------------------------------------------------------------------------------------+
 | Actions                                                                             |
@@ -104,9 +104,9 @@ Example layout:
 ```
 
 Depending on the action taken from the **Manage Panini** the dropdown will be pre-assigned to corresponding selection:
-1. Import data  $\rightarrow$ Import data.
+1. Update counts  $\rightarrow$ Update counts.
 2. Update counts clearing country counts $\rightarrow$ Update counts clearing country counts.
-3. Update counts  $\rightarrow$ Update counts.
+3. Import data  $\rightarrow$ Import data.
 
 The user can change this preset from any of the import options selected from **Manage Panini**.
 
@@ -155,7 +155,7 @@ User interface elements:
   - **ⓘ** button opens the full **Input format guide** modal (see §2.2) with the complete rule set and additional examples.
 
 - **Loading mode**
-  - Dropdown with the three modes defined in [ImportServiceRequirements.md](ImportServiceRequirements.md#import-modes): `Import data`, `Update counts clearing country counts`, `Update counts`.
+  - Dropdown with the three modes defined in [ImportServiceRequirements.md](ImportServiceRequirements.md#import-modes): `Update counts`, `Update counts clearing country counts`, `Import data`.
   - The mode preselected depends on which **Manage Panini** menu entry was used to open the dialog.
   - Inline hint text under the dropdown summarizes each mode's clearing behavior.
 

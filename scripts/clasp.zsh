@@ -39,6 +39,8 @@
 #   A config file (rather than inline scriptId/deploymentId values on the command line) is deliberate:
 #   scriptId/deploymentId are long, opaque, easily-confused strings - naming each one inside a file makes it
 #   self-labeling, and keeps both values out of shell history and process listings entirely.
+#  clasp requires Node v18; this script will attempt to switch to the correct version via NVM if a mismatch is detected.
+#  See docs/TechnicalArchitecture.md ("Local Clasp Configuration") for details.
 # -------------------------------------------------------------------------------------
 
 set -e # Exit immediately if a command exits with a non-zero status
@@ -64,6 +66,7 @@ DEFAULT_ROOT="__ROOT_DIR__"
 DEFAULT_SCRIPT_ID="__SCRIPT_ID__"
 LOG_LEVEL=${LOG_LEVEL:-0} # 0 = minimal, 1 = normal
 DRY_RUN=${DRY_RUN:-false} # Toggle this to true to enable dry run mode (no actual file changes or network calls)
+REQUIRED_NODE_VERSION="18" # Centralized Node version requirement for clasp execution
 
 TMP_WORKDIR="/tmp/clasp_run_$$"
 CLASP_CONFIG="$TMP_WORKDIR/.clasp.json"
@@ -120,6 +123,27 @@ SAFETY
     • Local src/ is backed up before pull.
     • Deploy never modifies local source files.
 EOF
+}
+
+# Helper: Verifies current Node version matches required baseline. 
+# Lazily invokes NVM env switches only when an active discrepancy is detected.
+ensure_node_version() {
+    # Check if the active version already starts with the required version number (e.g., v18.)
+    if [[ "$(node -v)" == "v${REQUIRED_NODE_VERSION}."* ]]; then
+        log 1 "[CONF] Already using required Node version: $(node -v)"
+        return 0
+    fi
+
+    log 1 "[CONF] Node mismatch detected. Activating NVM context..."
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        \. "$NVM_DIR/nvm.sh"
+        nvm use "$REQUIRED_NODE_VERSION" > /dev/null
+    else
+        log 0 "[ERROR] NVM not found. Cannot force Node v${REQUIRED_NODE_VERSION} context. Install nvm and ensure it's available in the shell environment."
+        exit 1
+    fi
+    log 1 "[CONF] Switched to required Node version: $(node -v)"
 }
 
 # Helper: DRY_RUN check. Recognizes true/1/yes/on and false/0/no/off (case-insensitive) explicitly; any other
@@ -729,6 +753,8 @@ fi
 trap on_exit EXIT INT TERM
 update_script_id "start"
 
+# Main execution router
+ensure_node_version  # force correct node version for clasp
 if [[ "$CMD" == "pull" ]]; then
     pull_before
     pull_execute

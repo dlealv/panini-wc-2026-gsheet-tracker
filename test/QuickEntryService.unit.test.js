@@ -22,6 +22,11 @@ const { QuickEntryService } = require('../build/QuickEntryService.js')
 
 /** QuickEntryService (unit) */
 describe('QuickEntryService (unit)', () => {
+  /**
+   * A spreadsheet double distinct from testKernel's mocked getActiveSpreadsheet() result,
+   *  used to verify explicit ss forwarding rather than an accidental fallback to the active spreadsheet.
+   */
+  const OTHER_SS = { marker: 'explicit-ss-fixture' }
   let service
 
   /** Create a fresh service before each test. */
@@ -31,6 +36,19 @@ describe('QuickEntryService (unit)', () => {
     or reliance on actual spreadsheet data. */
     initTestKernel()
     service = new QuickEntryService()
+  })
+
+  /** constructor(ss) — unlike the other services, QuickEntryService builds its repository eagerly in the
+  constructor rather than lazily via a getRepo() method, so the forwarding check reads service.repo.ss directly. */
+  describe('constructor(ss)', () => {
+    test('falls back to the active spreadsheet when no ss is provided', () => {
+      expect(service.repo.ss).toBe(global.SpreadsheetApp.getActiveSpreadsheet())
+    })
+    test('forwards the constructor ss into the repository instead of falling back to the active spreadsheet', () => {
+      const svc = new QuickEntryService(OTHER_SS)
+      expect(svc.repo.ss).toBe(OTHER_SS)
+      expect(svc.repo.ss).not.toBe(global.SpreadsheetApp.getActiveSpreadsheet())
+    })
   })
 
   /** Tests for initial data retrieval. */

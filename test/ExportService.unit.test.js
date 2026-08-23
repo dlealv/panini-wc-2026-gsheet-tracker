@@ -135,6 +135,11 @@ const computeDone = (pairs = []) => {
 /** ExportService (unit) */
 describe('ExportService (unit)', () => {
   const { initTestKernel } = require('./utils/testKernel.js')
+  /**
+   * A spreadsheet double distinct from testKernel's mocked getActiveSpreadsheet() result,
+   *  used to verify explicit ss forwarding rather than an accidental fallback to the active spreadsheet.
+   */
+  const OTHER_SS = { marker: 'explicit-ss-fixture' }
   let service
   beforeAll(() => {
     initTestKernel()
@@ -147,6 +152,12 @@ describe('ExportService (unit)', () => {
       const repo1 = service.getRepo()
       const repo2 = service.getRepo()
       expect(repo1).toBe(repo2)
+    })
+    test('forwards the constructor ss into the repository instead of falling back to the active spreadsheet', () => {
+      const svc = new ExportService(OTHER_SS)
+      const repo = svc.getRepo()
+      expect(repo.ss).toBe(OTHER_SS)
+      expect(repo.ss).not.toBe(global.SpreadsheetApp.getActiveSpreadsheet())
     })
   })
 

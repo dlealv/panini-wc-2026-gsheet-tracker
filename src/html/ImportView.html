@@ -106,18 +106,18 @@
       <div class="section-title">3) Loading mode</div>
       <label for="mode">Choose how to apply the load</label>
       <select id="mode">
-        <option value="clean_all">Import data</option>
+        <option value="update">Update counts</option>
         <option value="replace_countries">Update counts
           clearing country counts</option>
-        <option value="update">Update counts</option>
+        <option value="clean_all">Import data</option>
       </select>
       <ul class="actions-help hint">
-        <li><strong>Import data</strong>: clears all values in <span class="inline-code">COUNTS</span>, then loads
-          the input.</li>
-        <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries in the input,
-          then loads those countries.</li>
         <li><strong>Update counts</strong>: overwrites only the sticker positions explicitly provided; all other
           values remain unchanged.</li>
+        <li><strong>Update counts clearing country counts</strong>: clears only the rows for countries in the input,
+          then loads those countries.</li>
+        <li><strong>Import data</strong>: clears all values in <span class="inline-code">COUNTS</span>, then loads
+          the input.</li>
       </ul>
     </div><!-- /section: 3) Loading mode -->
 

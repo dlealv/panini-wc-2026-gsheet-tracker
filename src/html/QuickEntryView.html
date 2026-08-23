@@ -133,9 +133,6 @@
       if (typeof QuickEntry.applyLayout === 'function') {
         QuickEntry.applyLayout(layout.stickersPerRow)
       }
-      const backendMethod = isDesktopDialogHost()
-        ? 'getQuickEntryInitialData'
-        : 'getQuickEntryInitialDataMobile'
       google.script.run
         .withSuccessHandler(result => {
           try {
@@ -156,7 +153,7 @@
           showBusyState(false)
           setMessage(err && err.message ? err.message : 'Init failed', 'error')
         })
-      [backendMethod]()
+        .getQuickEntryInitialData()
     }
 
     /**Updates the selected status filter (desktop buttons and mobile compatibility).*/
@@ -178,9 +175,6 @@
       }
       showBusyState(true)
       setMessage('Updating sticker data...', 'info')
-      const backendMethod = isDesktopDialogHost()
-        ? 'applyQuickEntryUpdates'
-        : 'applyQuickEntryUpdatesMobile'
       google.script.run
         .withSuccessHandler(result => {
           QuickEntry.commitPendingUpdates(state, pending)
@@ -190,7 +184,7 @@
           setMessage(result.message || 'Updated', 'success')
         })
         .withFailureHandler(handleFailure)
-      [backendMethod]({ pendingUpdates: pending })
+        .applyQuickEntryUpdates({ pendingUpdates: pending })
     }
 
     /**Updates filters and refreshes the country list.*/
@@ -323,11 +317,6 @@
     /** Returns the current layout configuration. */
     function getLayout() {
       return window.quickEntryLayout || { stickersPerRow: 8 }
-    }
-
-    /**Returns true when running inside spreadsheet dialog host (desktop), false in standalone mobile web app.*/
-    function isDesktopDialogHost() {
-      return Boolean(window.google && google.script && google.script.host && google.script.host.close)
     }
 
   })();

@@ -97,9 +97,9 @@ Another useful use case is when the user wants to upgrade this tracker, using a 
 
 Available import modes:
 
-- **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
-- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
 - **Update counts**: only overwrites sticker positions explicitly provided in the input, while all other values remain unchanged.
+- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
+- **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
 
 Each of the three **Manage Panini** import menu entries opens the same Import dialog, pre-set to the corresponding mode via the **Choose how to apply the load** drop-down — the mode can still be changed from the dropdown before running the import:
 

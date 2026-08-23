@@ -18,3 +18,4 @@
 - [x] Panini sticker card repository and lookup
 - [x] Trade Service Apps Script service to simplify trading process.
 - [x] Data model standardization, to ensure country/sticker representation is the same and it is used by all services in the backend.
+- [x] UI audit review UI using Claude Chrome extension to identify discrepancies between the UI and the requirements or possible improvements.

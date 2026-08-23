@@ -19,9 +19,9 @@
  */
 class ExportService {
   /** Creates an export application service.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet=} ss Optional spreadsheet for mobile web app context.
- *   Defined for architecture consistency, but not required for export services, since it doesn't need
- *   to write to the sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet=} ss - Optional spreadsheet instance.
+ *   Pass an explicit instance when operating from a web app context where
+ *   getActiveSpreadsheet() returns null. Omit for normal dialog context.
  */
   constructor(ss) {
     this.ss = ss || null
@@ -37,10 +37,10 @@ class ExportService {
    * Example: {success:true, text:'🇲🇽 MEX,1,2(3),5-7\nARG,1-3(2),5', lines:2}
   */
   exportAllStickerData(payload) {
-    const service = new ExportService()
-    const includeFlags = payload && payload.includeFlags != null && payload.includeFlags !== false && payload.includeFlags !== 'false' && payload.includeFlags !== ''
+    const includeFlags = payload && payload.includeFlags != null && payload.includeFlags !== false
+      && payload.includeFlags !== 'false' && payload.includeFlags !== ''
     const isCompact = payload && payload.isCompact === true
-    const exportStickers = new ExportStickers(service.getRows())
+    const exportStickers = new ExportStickers(this.getRows())
     const result = exportStickers.exportAllData({ includeFlags: includeFlags, isCompact: isCompact })
     return result
   }
@@ -53,12 +53,15 @@ class ExportService {
    * Example: {success:true, text:'MEX,7(2)\nARG,15', lines:2}
   */
   exportSharedStickerData(payload) {
-    const service = new ExportService()
-    const includeFlags = payload && payload.includeFlags != null && payload.includeFlags !== false && payload.includeFlags !== 'false' && payload.includeFlags !== ''
+    const includeFlags = payload && payload.includeFlags != null && payload.includeFlags !== false
+      && payload.includeFlags !== 'false' && payload.includeFlags !== ''
     const sortByDone = payload && payload.sortByDone === true
     const isCompact = payload && payload.isCompact === true
-    const exportStickers = new ExportStickers(service.getRows())
-    const result = exportStickers.exportSharedData({ includeFlags: includeFlags, isCompact: isCompact, sortByDone: sortByDone })
+    const exportStickers = new ExportStickers(this.getRows())
+    const result = exportStickers.exportSharedData({
+      includeFlags: includeFlags,
+      isCompact: isCompact, sortByDone: sortByDone
+    })
     return result
   }
 
@@ -67,7 +70,7 @@ class ExportService {
   /** Gets the sticker sheet repository instance. Lazy initializes the repository on first access.*/
   getRepo() {
     if (!this.repo) {
-      this.repo = new StickerSheetRepository()
+      this.repo = this.ss ? new StickerSheetRepository(this.ss) : new StickerSheetRepository()
     }
     return this.repo
   }

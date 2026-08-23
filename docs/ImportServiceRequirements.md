@@ -38,7 +38,7 @@ This service does not cover:
 This service is accessed from the **Manage Panini** menu through:
 - `Update counts`
 - `Update counts clearing country counts`
-- `Import dialog`
+- `Import data`
 
 The service uses: 
 - `ImportService.gs` for backend logic

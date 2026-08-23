@@ -247,7 +247,7 @@ panini-wc-2026-gsheet-tracker/
 │   ├── *_clasp.cfg.zsh           # GITIGNORED - not present by default; create manually, see §2 "Local Clasp Configuration".
 |   ├── fix-jsdoc.js              # Fit short JSDOC comments into a single line.
 ├── src/                          # MUTABLE LOCAL SOURCE OF TRUTH.
-│   ├── appscript.json            # Project manifest. Central configuration file for a Google Apps Script project.
+│   ├── appsscript.json           # Project manifest. Central configuration file for a Google Apps Script project.
 │   ├── Code.gs                   # Structural GAS cloud UI generation menu bindings.
 │   ├── Commons.gs                # General runtime utilities and global system declarations.
 │   ├── *Service.gs               # Modular system business data service providers.
@@ -314,7 +314,7 @@ This applies to record fields returned or consumed as data. It does not extend t
 - Trade's wire shape is `Object<countryCode, number[]>` — a country-code-keyed object of plain sticker-number arrays — used throughout parsing, QR bit-mask encoding, matching, and rendering.
 - This is safe without any special handling: the outer keys are country codes, which are never numeric-like, so they are never subject to the integer-key reordering problem described above; sticker order is carried entirely by the array.
 - The canonical `Map<number,number>` reappears exactly once in the whole Trade flow — `TradeService.executeTrade()` → `_buildTradeUpdates()` — immediately before the final `updateStickerCounts()` write.
-- `TradeService.gs` also wraps several of its return fields in `JSON.stringify()` before sending them (`tradeInfo`, `receive`, `send`, `doneMap`, `tradePreferences`), even though none of the shapes involved are actually at risk by the rule above. This is a documented defensive safeguard against undocumented `google.script.run` marshalling behavior across execution contexts (dialog vs. mobile web app), not an order-preservation mechanism — see `NOTE 2` at the top of `TradeService.gs`.
+- The Trade entry points in `Code.gs` also wrap several return fields in `JSON.stringify()` before sending them (`tradeInfo`, `receive`, `send`, `doneMap`, `tradePreferences`), even though none of the shapes involved are actually at risk by the rule above. This is a documented defensive safeguard against undocumented `google.script.run` marshalling behavior across execution contexts (dialog vs. mobile web app), not an order-preservation mechanism — see the comment block above the Trade entry points in `Code.gs`. It is kept at that wire boundary rather than in `TradeService.gs`'s instance methods so the tested business logic layer stays free of transport concerns.
 
 ### Rule for New Methods
 
@@ -412,12 +412,12 @@ Responsibilities:
 
 #### Shared repository layer
 
-`Commons.gs` contains the shared spreadsheet repository layer (reading and writing from/to Google Spreadsheet). The `StickerSheetRepository` constructor accepts an optional spreadsheet instance. Desktop services use the active spreadsheet by default, while mobile services explicitly pass the target spreadsheet.
+`Commons.gs` contains the shared spreadsheet repository layer (reading and writing from/to Google Spreadsheet). The `StickerSheetRepository` constructor accepts an optional spreadsheet instance, and every service entry point in `Code.gs` (Import, Export, Quick Entry, Trade) obtains that instance the same way, on both platforms, via `Code.gs`'s `_getSpreadsheet()` helper.
 
-This constructor parameter is a key part of the mobile architecture because:
-- Desktop dialogs continue using `SpreadsheetApp.getActiveSpreadsheet()`.
-- The mobile Web app cannot rely on `getActiveSpreadsheet()`.
-- Mobile wrapper functions in `Code.gs` resolve the spreadsheet from the request and pass it to the constructors of `ImportService`, `ExportService`, and `QuickEntryService`.
+This is a key part of the mobile architecture because:
+- `_getSpreadsheet()` first tries `SpreadsheetApp.getActiveSpreadsheet()` (desktop dialogs, menu, sidebar, triggers); if that throws, it falls back to `_getMobileSpreadsheet()`.
+- `_getMobileSpreadsheet()` reads the spreadsheet ID that `onOpen()` seeded into `PropertiesService.getScriptProperties()` and opens it via `SpreadsheetApp.openById()` — this is also how `doGet()` resolves the spreadsheet to render the mobile shell.
+- Because both code paths live behind one function, there are no separate `*Mobile`-suffixed wrapper functions: every entry point calls `_getSpreadsheet()` and constructs its service directly, regardless of which platform invoked it.
 
 This design allows the same repository implementation to operate correctly in both execution environments without duplicating business logic.
 
@@ -554,7 +554,7 @@ Examples:
 3. `MobileHome.html` calls `showQuickEntryView()`.
 4. `MobileQuickEntryView.html` configures the mobile layout (five stickers per row).
 5. `QuickEntryView.html` loads the shared interface and initializes the data.
-6. Backend wrapper functions invoke the mobile Quick Entry service to retrieve and update sticker data.
+6. The same `Code.gs` entry points used by desktop (`getQuickEntryInitialData`, `applyQuickEntryUpdates`) invoke `QuickEntryService.gs` to retrieve and update sticker data.
 
 ### Mobile Trade stickers flow
 
@@ -943,4 +943,7 @@ then restart the terminal:
 ```bash
 source ~/.zshrc   # if using zsh or adjust it to the shell of your preference
 ```
+
+>[!IMPORTANT]
+> The script `clasp.zsh` already forces the correct version of Node.js, before any call execution.
 ---

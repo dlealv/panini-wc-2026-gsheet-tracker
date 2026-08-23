@@ -37,6 +37,20 @@
         <button id="captureQrButton" class="btn btn-inline" style="display:none;">Capture QR code</button>
         <!--Hidden QR image input. Desktop uses it for uploaded images.
             Mobile uses it to launch camera capture when supported.
+            KNOWN ISSUE (2026-08-23, tested on a physical Android phone): starting with Android 14,
+            Chrome's file picker dropped the "Camera" option for `capture` inputs like this one - tapping
+            "Capture QR code" now opens the regular file/gallery picker instead of the camera. This is a
+            broad Android/Chrome platform change (Chrome's system Photo Picker no longer shows a Camera
+            tile for many `accept`/`capture` combinations), not specific to this app or to Google Apps
+            Script - widely reported by other sites hitting the same regression. A known non-standard
+            workaround exists: adding `android/allowCamera` as an extra token to `accept`, e.g.
+            accept="image/jpeg,image/png,android/allowCamera" reportedly restores the Camera option in
+            Chrome on Android 14/15. Deliberately not applied here - it's a Chrome-specific hack with no
+            spec backing and no guarantee it keeps working across future Chrome versions. Not a functional
+            dead end either way: users can still complete the flow by picking an existing photo of the QR
+            code from their gallery/files, just without the one-tap camera launch. Revisit this
+            accept/capture combination (and the android/allowCamera workaround above) if this ever becomes
+            worth fixing.
         -->
         <input id="tradeQrFileInput" type="file" accept="image/jpeg,image/png" capture="environment"
           style="display:none;">
