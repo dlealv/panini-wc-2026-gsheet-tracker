@@ -679,11 +679,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.5` `557` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.6` `543` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|     95.37    |  80.76   |   95.73     |  95.91  |                                            
+|     95.51    |  82.69   |   96.25     |  96.07  |                                            
 
 ---
 

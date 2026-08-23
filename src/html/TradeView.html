@@ -350,7 +350,7 @@
       tradeMessageSectionEl.style.display = 'none'
       Trade.clearPreview({ previewEl })
       renderWarnings([])
-      setMessage('', 'info', tradeMessageEl )
+      setMessage('', 'info', tradeMessageEl)
     }
 
     /** Validates the imported trade information. */
@@ -363,10 +363,7 @@
       google.script.run
         .withSuccessHandler(onOtherTradeInfoValidated)
         .withFailureHandler(onOtherTradeInfoValidationFailed)
-        .previewOtherTradeInfo(Trade.getValidationPayload({
-          missingText: missingTextEl,
-          repeatsText: repeatsTextEl
-        }))
+        .previewOtherTradeInfo(Trade.getValidationPayload({ missingText: missingTextEl, repeatsText: repeatsTextEl }))
     }
 
     /**
@@ -464,9 +461,7 @@
       google.script.run
         .withSuccessHandler(onReadFromQrValidated)
         .withFailureHandler(onReadFromQrFailed)
-        .previewOtherTradeInfoFromQr({
-          qrData: qrData
-        })
+        .previewOtherTradeInfoFromQr({ qrData: qrData })
     }
 
     /**
@@ -559,14 +554,22 @@
 
     /**
      * Displays the calculated trade matches.
-     * @param {{receive:string,send:string}} result Trade matches.
+     * @param {{receive:string,send:string,doneMap:Object<string,number>,tradePreferences:string[]}} result
+     *  Trade matches. receive/send arrive as JSON strings and need parsing back - their country-code key order
+     *  matters (see the NOTE in Code.gs above the Trade entry points) and only JSON.stringify/parse guarantees
+     *  it survives the google.script.run boundary. doneMap/tradePreferences arrive as plain values already -
+     *  see the same NOTE for why neither of them needs the stringify/parse round trip.
      */
     function onTradeMatchesFound(result) {
       Trade.setBusy(false)
       const matches = { receive: JSON.parse(result.receive), send: JSON.parse(result.send) }
       state.matches = matches
-      state.doneMap = JSON.parse(result.doneMap || '{}')
-      state.tradePreferences = JSON.parse(result.tradePreferences || '[]')
+      // doneMap is only ever read by key (doneMap[countryCode], see TradeHelpers.html's
+      // _sortMatchesByCompletion()) - its key order is irrelevant, so it's used as-is rather than JSON.parsed.
+      state.doneMap = result.doneMap || {}
+      // tradePreferences is a plain Array - its order survives the google.script.run boundary natively - so
+      // it's used as-is rather than JSON.parsed.
+      state.tradePreferences = result.tradePreferences || []
       showProposalView(matches)
     }
 

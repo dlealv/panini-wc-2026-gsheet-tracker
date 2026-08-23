@@ -391,7 +391,7 @@ class TradeService {
    * getCountries(): only code/done are needed here, and getCountries() would pull in the 
    * COUNTS/GROUPS/FLAGS_URL/COUNTRY_NAMES reads that back the counts/name/group/flag fields this method never reads.
    * @param {string[]} countryCodes - Country codes to retrieve DONE values for.
-   * @returns {Object<string,number>} Map of country codes to completed sticker counts.
+   * @returns {Object<string,number>} Lookup of country codes to completed sticker counts
    */
   _getCountryDoneMap(countryCodes) {
     const repo = this.getRepo()

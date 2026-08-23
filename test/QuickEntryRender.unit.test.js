@@ -32,6 +32,57 @@ global.document = {
   }
 }
 
+/**
+ * Tests for QuickEntryRender.html.
+ * Every function in this file - including the private (underscore-prefixed) rendering helpers - is exercised
+ * exclusively through the public buildCountrySection() entry point below, never called directly. The
+ * findByClass()/findAllByClass()/getTitleText() helpers navigate its rendered DOM-mock output instead of
+ * hardcoding child indices, so a test doesn't depend on which private function happens to build which part
+ * of the tree - only on what buildCountrySection() actually renders, which is its real contract.
+ */
+
+/**
+ * Recursively finds descendant nodes (via the DOM mock's children arrays) whose className includes the given
+ * class, depth-first in document order. Used instead of hardcoded child indices, which would silently break
+ * (or worse, silently drift to asserting the wrong node) if the rendering functions ever restructure the tree.
+ */
+function findAllByClass(root, className) {
+  const matches = []
+  const visit = (node) => {
+    if (!node) return
+    if ((node.className || '').split(' ').includes(className)) matches.push(node)
+    ; (node.children || []).forEach(visit)
+  }
+  visit(root)
+  return matches
+}
+
+/** Returns the first descendant with the given class, or undefined if none exists. */
+function findByClass(root, className) {
+  return findAllByClass(root, className)[0]
+}
+
+/**
+ * The country title's full rendered text. The flag image (when present) has no textContent, so joining every
+ * child's textContent reads as just the header text regardless of whether a flag is rendered alongside it.
+ */
+function getTitleText(section) {
+  return findByClass(section, 'country-title').children.map(c => c.textContent).join('')
+}
+
+/**
+ * Minimal country fixture - buildCountrySection() reads country.summary unconditionally, so every test needs
+ * one even when the summary values themselves aren't under test.
+ */
+function baseCountry(overrides = {}) {
+  return {
+    code: 'ARG',
+    summary: { owned: 0, total: 0, missing: 0, repeated: 0, completionPercent: 0 },
+    stickers: [],
+    ...overrides
+  }
+}
+
 /** Tests for QuickEntryRender.html. */
 describe('QuickEntryRender.html', () => {
   describe('buildCountrySection', () => {
@@ -53,234 +104,197 @@ describe('QuickEntryRender.html', () => {
     test('builds country section without flag when flag is missing', () => {
       const country = {
         code: 'ARG',
-        summary: {
-          owned: 1,
-          total: 1,
-          missing: 0,
-          repeated: 0,
-          completionPercent: 100
-        },
+        summary: { owned: 1, total: 1, missing: 0, repeated: 0, completionPercent: 100 },
         stickers: []
       }
       const section = helpers.buildCountrySection(
         country, { selectedStatusFilter: 'all', isBusy: false }, { stickersPerRow: 2 }, () => { })
       expect(section.className).toContain('country-section')
+      expect(findByClass(section, 'country-flag')).toBeUndefined()
     })
-  })
+    test('renders the flag image when the country has a flag', () => {
+      const section = helpers.buildCountrySection(
+        baseCountry({ flag: 'flag.png' }), { selectedStatusFilter: 'all' }, {}, () => { })
+      const flag = findByClass(section, 'country-flag')
+      expect(flag.tagName).toBe('img')
+      expect(flag.src).toBe('flag.png')
+    })
 
-  /** Tests for buildCountryHeaderText function. */
-  describe('_buildCountryHeaderText', () => {
-    test('_buildCountryHeaderText formats correctly', () => {
-      expect(helpers._buildCountryHeaderText({ code: 'ARG' })).toBe('ARG')
-      expect(helpers._buildCountryHeaderText({ code: 'ARG', group: 'A' })).toBe('ARG · A')
+    /** Covers _buildCountryHeaderText() and _buildCountryTitleText(), only observable through the title text. */
+    describe('country title text', () => {
+      test('renders just the country code when no group is set', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ code: 'ARG' }), { selectedStatusFilter: 'all' }, {}, () => { })
+        expect(getTitleText(section)).toBe('ARG')
+      })
+      test('renders code and group separated by · when group is set', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ code: 'ARG', group: 'A' }), { selectedStatusFilter: 'all' }, {}, () => { })
+        expect(getTitleText(section)).toBe('ARG · A')
+      })
+      test('ignores an empty group string and renders just the code', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ code: 'ARG', group: '' }), { selectedStatusFilter: 'all' }, {}, () => { })
+        expect(getTitleText(section)).toBe('ARG')
+      })
+      test('handles a null group safely and renders just the code', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ code: 'ARG', group: null }), { selectedStatusFilter: 'all' }, {}, () => { })
+        expect(getTitleText(section)).toBe('ARG')
+      })
     })
-    test('returns code when group is missing', () => {
-      expect(helpers._buildCountryHeaderText({ code: 'ARG' })).toBe('ARG')
-    })
-    test('returns code with group when group exists', () => {
-      expect(helpers._buildCountryHeaderText({ code: 'ARG', group: 'A' })).toBe('ARG · A')
-    })
-    test('ignores empty group string', () => {
-      expect(helpers._buildCountryHeaderText({ code: 'ARG', group: '' })).toBe('ARG')
-    })
-    test('handles null group safely', () => {
-      expect(helpers._buildCountryHeaderText({ code: 'ARG', group: null })).toBe('ARG')
-    })
-  })
 
-  /** Tests for usesCompactGrid function. */
-  describe('_usesCompactGrid', () => {
-    test('returns false only for all filter', () => {
-      expect(helpers._usesCompactGrid({ selectedStatusFilter: 'all' })).toBe(false)
-      expect(helpers._usesCompactGrid({ selectedStatusFilter: 'missing' })).toBe(true)
-      expect(helpers._usesCompactGrid({ selectedStatusFilter: 'repeated' })).toBe(true)
-      expect(helpers._usesCompactGrid({ selectedStatusFilter: 'completed' })).toBe(true)
+    /** Covers _buildSummaryItem(), called once per summary metric. */
+    describe('summary section', () => {
+      test('renders owned, missing, repeated, and completion percent', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ summary: { owned: 5, total: 10, missing: 3, repeated: 2, completionPercent: 50 } }), { selectedStatusFilter: 'all' }, {}, () => { }
+        )
+        const summaryEl = findByClass(section, 'country-summary')
+        expect(summaryEl.children).toHaveLength(4)
+        const [owned, missing, repeated, complete] = summaryEl.children
+        expect(owned.children[0].textContent).toBe('Owned: ')
+        expect(owned.children[1].textContent).toBe('5/10')
+        expect(missing.children[0].textContent).toBe('Missing: ')
+        expect(missing.children[1].textContent).toBe('3')
+        expect(repeated.children[0].textContent).toBe('Repeated: ')
+        expect(repeated.children[1].textContent).toBe('2')
+        expect(complete.children[0].textContent).toBe('Complete: ')
+        expect(complete.children[1].textContent).toBe('50%')
+      })
     })
-  })
 
-  /** Tests for chunkStickers function */
-  describe('_chunkStickers', () => {
-    test('_chunkStickers splits correctly', () => {
-      const input = [1, 2, 3, 4, 5]
-      expect(helpers._chunkStickers(input, 2)).toEqual([[1, 2], [3, 4], [5]])
+    /** Covers _buildStickerGrid() and _usesCompactGrid() - the compact-vs-album dispatch. */
+    describe('sticker grid layout', () => {
+      test('renders the standard album grid when the status filter is "all"', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers: [{ number: 1, count: 1 }] }), { selectedStatusFilter: 'all' }, { stickersPerRow: 2 }, () => { })
+        expect(section.children[1].className).toBe('sticker-grid')
+      })
+      test('renders a compact grid when the status filter is "missing"', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers: [{ number: 1, count: 1 }] }), { selectedStatusFilter: 'missing' }, {}, () => { })
+        expect(section.children[1].className).toBe('sticker-grid compact')
+      })
+      test('renders a compact grid for any non-"all" status filter', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers: [{ number: 1, count: 1 }] }), { selectedStatusFilter: 'repeated' }, {}, () => { })
+        expect(section.children[1].className).toBe('sticker-grid compact')
+      })
     })
-    test('returns empty array when stickers is empty', () => {
-      expect(helpers._chunkStickers([], 2)).toEqual([])
-    })
-    test('returns single row when size exceeds sticker count', () => {
-      expect(helpers._chunkStickers([1, 2, 3], 10)).toEqual([[1, 2, 3]])
-    })
-    test('returns one sticker per row when size is one', () => {
-      expect(helpers._chunkStickers([1, 2, 3], 1)).toEqual([[1], [2], [3]])
-    })
-    test('handles size larger than array length', () => {
-      expect(helpers._chunkStickers([1, 2], 10)).toEqual([[1, 2]])
-    })
-  })
 
-  /** Tests for getStickerColorClass function */
-  describe('_getStickerColorClass', () => {
-    test('_getStickerColorClass maps correctly', () => {
-      expect(helpers._getStickerColorClass(0)).toBe('count-0')
-      expect(helpers._getStickerColorClass(5)).toBe('count-5-plus')
-    })
-    test('_getStickerColorClass maps correctly', () => {
-      expect(helpers._getStickerColorClass(0)).toBe('count-0')
-      expect(helpers._getStickerColorClass(3)).toBe('count-3')
-      expect(helpers._getStickerColorClass(10)).toBe('count-5-plus')
-    })
-    test('returns count-0 for zero', () => {
-      expect(helpers._getStickerColorClass(0)).toBe('count-0')
-    })
-    test('returns count-1 for one', () => {
-      expect(helpers._getStickerColorClass(1)).toBe('count-1')
-    })
-    test('returns count-2 for two', () => {
-      expect(helpers._getStickerColorClass(2)).toBe('count-2')
-    })
-    test('returns count-3 for three', () => {
-      expect(helpers._getStickerColorClass(3)).toBe('count-3')
-    })
-    test('returns count-4 for four', () => {
-      expect(helpers._getStickerColorClass(4)).toBe('count-4')
-    })
-    test('returns count-5-plus for five and above', () => {
-      expect(helpers._getStickerColorClass(5)).toBe('count-5-plus')
-      expect(helpers._getStickerColorClass(10)).toBe('count-5-plus')
-    })
-    test('handles negative numbers as count-0', () => {
-      expect(helpers._getStickerColorClass(-1)).toBe('count-0')
-    })
-  })
-
-  /** Tests for _buildCountryTitleText function. */
-  describe('_buildCountryTitleText', () => {
-    test('_buildCountryTitleText creates span with text', () => {
-      const el = helpers._buildCountryTitleText('ARG · A')
-      expect(el.textContent).toBe('ARG · A')
-      expect(el.tagName).toBe('span')
-    })
-  })
-
-  /** Tests for _buildCountryFlag function. */
-  describe('_buildCountryFlag', () => {
-    test('_buildCountryFlag creates image with correct src', () => {
-      const el = helpers._buildCountryFlag('flag.png')
-      expect(el.tagName).toBe('img')
-      expect(el.src).toBe('flag.png')
-      expect(el.className).toBe('country-flag')
-    })
-  })
-
-  /** Tests for buildSummaryItem function. */
-  describe('_buildSummaryItem', () => {
-    test('_buildSummaryItem creates label and value nodes', () => {
-      const el = helpers._buildSummaryItem('Owned', '5/10')
-      expect(el.children.length).toBe(2)
-      expect(el.children[0].textContent).toBe('Owned: ')
-      expect(el.children[1].textContent).toBe('5/10')
-    })
-  })
-
-  /** Tests for _buildStickerCard function. */
-  describe('_buildStickerCard', () => {
-    test('_buildStickerCard creates label and buttons', () => {
-      const state = { isBusy: false }
-      const sticker = { number: 1, count: 2 }
-      const el = helpers._buildStickerCard({ code: 'ARG' }, sticker, state, () => { })
-      expect(el.className).toContain('sticker-card')
-      expect(el.children.length).toBeGreaterThan(0)
-    })
-    test('_buildStickerCard applies color class', () => {
-      const state = { isBusy: false }
-      const sticker = { number: 1, count: 3 }
-      const el = helpers._buildStickerCard({ code: 'ARG' }, sticker, state, () => { })
-      expect(el.className).toContain('count-3')
-    })
-    test('_buildStickerCard adds pending class when needed', () => {
-      const state = { isBusy: false }
-      const sticker = { number: 1, count: 2, hasPendingChange: true }
-      const el = helpers._buildStickerCard({ code: 'ARG' }, sticker, state, () => { })
-      expect(el.classList).toBeDefined()
-    })
-    test('_buildStickerCard calls callback when decrement button is clicked', () => {
-      const onStickerChange = jest.fn()
-      const el = helpers._buildStickerCard(
-        { code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, onStickerChange)
-      const buttons = el.children[1].children
-      buttons[0].onclick()
-      expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 1)
-    })
-    test('_buildStickerCard calls callback when increment button is clicked', () => {
-      const onStickerChange = jest.fn()
-      const el = helpers._buildStickerCard({ code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, onStickerChange)
-      const buttons = el.children[1].children
-      buttons[1].onclick()
-      expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 3)
-    })
-    test('_buildStickerCard adds badge when the country has an icon label for this sticker', () => {
-      const el = helpers._buildStickerCard(
-        { code: 'ARG', iconLabels: { 1: 'TEAM' } }, {
-          number: 1,
-          count: 2
-        }, { isBusy: false }, () => { }
-      )
-      expect(el.children[0].className).toBe('sticker-badge')
-      expect(el.children[0].textContent).toBe('TEAM')
-    })
-    test('_buildStickerCard omits badge when the country has no icon label for this sticker', () => {
-      const el = helpers._buildStickerCard(
-        { code: 'ARG', iconLabels: { 1: 'CREST' } }, {
-          number: 5,
-          count: 2
-        }, { isBusy: false }, () => { }
-      )
-      expect(el.children.find(c => c.className === 'sticker-badge')).toBeUndefined()
-    })
-    test('_buildStickerCard builds the label text from number and count', () => {
-      const el = helpers._buildStickerCard({ code: 'ARG' }, { number: 5, count: 2 }, { isBusy: false }, () => { })
-      const label = el.children.find(c => c.className === 'sticker-label')
-      expect(label.textContent).toBe('5 (2)')
-    })
-  })
-
-  /** Tests for _buildStickerRow function. */
-  describe('_buildStickerRow', () => {
-    test('_buildStickerRow groups stickers into row elements', () => {
-      const state = { isBusy: false }
-      const stickers = [{ number: 1, count: 1 }, { number: 2, count: 2 }]
-      const el = helpers._buildStickerRow(
-        { code: 'ARG' }, stickers, false, 2, state, () => { }
-      )
-      expect(el.className).toBe('sticker-row')
-      expect(el.children.length).toBe(2)
-    })
-  })
-
-  /** Tests for _buildStickerGrid function. */
-  describe('_buildStickerGrid layout switch', () => {
-    test('_buildStickerGrid uses compact grid when filter is not all', () => {
-      const state = { selectedStatusFilter: 'missing' }
-      const country = { stickers: [{ count: 1 }] }
-      const el = helpers._buildStickerGrid(country, state, {}, () => { })
-      expect(el.className).toContain('compact')
-    })
-    test('_buildStickerGrid uses album grid when filter is all', () => {
-      const state = { selectedStatusFilter: 'all' }
-      const country = { stickers: [{ count: 1 }] }
-      const el = helpers._buildStickerGrid(country, state, { stickersPerRow: 2 }, () => { })
-      expect(el.className).toBe('sticker-grid')
-    })
-  })
-
-  describe('_buildAlbumStickerGrid function', () => {
-    test('_buildAlbumStickerGrid splits rows correctly', () => {
-      const state = { selectedStatusFilter: 'all' }
-      const country = {
-        stickers: [{ count: 1 }, { count: 2 }, { count: 3 }]
+    /** Covers _buildAlbumStickerGrid(), _buildStickerRow(), and _chunkStickers() - the album row layout. */
+    describe('album grid rows', () => {
+      function rowSizes(section) {
+        return section.children[1].children.map(row => row.children.length)
       }
-      const el = helpers._buildAlbumStickerGrid(country, state, { stickersPerRow: 2 }, () => { })
-      expect(el.children.length).toBe(2) // 2 rows
+      test('splits stickers into full rows with a smaller last row', () => {
+        const stickers = [1, 2, 3, 4, 5].map(n => ({ number: n, count: 1 }))
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers }), { selectedStatusFilter: 'all' }, { stickersPerRow: 2 }, () => { })
+        expect(rowSizes(section)).toEqual([2, 2, 1])
+      })
+      test('returns no rows when the country has no stickers', () => {
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers: [] }), { selectedStatusFilter: 'all' }, { stickersPerRow: 2 }, () => { })
+        expect(section.children[1].children).toHaveLength(0)
+      })
+      test('puts all stickers in one row when stickersPerRow exceeds the sticker count', () => {
+        const stickers = [1, 2, 3].map(n => ({ number: n, count: 1 }))
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers }), { selectedStatusFilter: 'all' }, { stickersPerRow: 10 }, () => { })
+        expect(rowSizes(section)).toEqual([3])
+      })
+      test('puts one sticker per row when stickersPerRow is one', () => {
+        const stickers = [1, 2, 3].map(n => ({ number: n, count: 1 }))
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers }), { selectedStatusFilter: 'all' }, { stickersPerRow: 1 }, () => { })
+        expect(rowSizes(section)).toEqual([1, 1, 1])
+      })
+      test('defaults to 8 stickers per row when layout does not specify stickersPerRow', () => {
+        const stickers = Array.from({ length: 9 }, (_, i) => ({ number: i + 1, count: 1 }))
+        const section = helpers.buildCountrySection(
+          baseCountry({ stickers }), { selectedStatusFilter: 'all' }, {}, () => { })
+        expect(rowSizes(section)).toEqual([8, 1])
+      })
+    })
+
+    /**
+     * Covers _buildStickerCard() and _getStickerColorClass() - a single sticker keeps the card unambiguous
+     * to find regardless of which grid layout builds it.
+     */
+    describe('sticker cards', () => {
+      function buildCardSection(sticker, countryOverrides = {}, state = { selectedStatusFilter: 'all', isBusy: false }, onStickerChange = () => { }) {
+        return helpers.buildCountrySection(
+          baseCountry({ stickers: [sticker], ...countryOverrides }), state, { stickersPerRow: 8 }, onStickerChange
+        )
+      }
+      test('applies the count-0 color class for zero stickers', () => {
+        const section = buildCardSection({ number: 1, count: 0 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-0')
+      })
+      test('applies the count-1 color class for one sticker', () => {
+        const section = buildCardSection({ number: 1, count: 1 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-1')
+      })
+      test('applies the count-2 color class for two stickers', () => {
+        const section = buildCardSection({ number: 1, count: 2 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-2')
+      })
+      test('applies the count-3 color class for three stickers', () => {
+        const section = buildCardSection({ number: 1, count: 3 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-3')
+      })
+      test('applies the count-4 color class for four stickers', () => {
+        const section = buildCardSection({ number: 1, count: 4 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-4')
+      })
+      test('applies the count-5-plus color class for five stickers', () => {
+        const section = buildCardSection({ number: 1, count: 5 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-5-plus')
+      })
+      test('applies the count-5-plus color class for counts above five', () => {
+        const section = buildCardSection({ number: 1, count: 10 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-5-plus')
+      })
+      test('treats a negative count as count-0', () => {
+        const section = buildCardSection({ number: 1, count: -1 })
+        expect(findByClass(section, 'sticker-card').className).toContain('count-0')
+      })
+      test('renders a badge with the country icon label when one exists for this sticker', () => {
+        const section = buildCardSection({ number: 1, count: 2 }, { iconLabels: { 1: 'TEAM' } })
+        const badge = findByClass(findByClass(section, 'sticker-card'), 'sticker-badge')
+        expect(badge.textContent).toBe('TEAM')
+      })
+      test('omits the badge when no icon label exists for this sticker', () => {
+        const section = buildCardSection({ number: 5, count: 2 }, { iconLabels: { 1: 'CREST' } })
+        expect(findByClass(findByClass(section, 'sticker-card'), 'sticker-badge')).toBeUndefined()
+      })
+      test('builds the sticker label text from its number and count', () => {
+        const section = buildCardSection({ number: 5, count: 2 })
+        const card = findByClass(section, 'sticker-card')
+        expect(findByClass(card, 'sticker-label').textContent).toBe('5 (2)')
+      })
+      test('calls the change callback with count-1 when the decrement button is clicked', () => {
+        const onStickerChange = jest.fn()
+        const section = buildCardSection({ number: 5, count: 2 }, {}, { selectedStatusFilter: 'all', isBusy: false }, onStickerChange)
+        const [decrementButton] = findAllByClass(findByClass(section, 'sticker-card'), 'btn-sticker')
+        decrementButton.onclick()
+        expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 1)
+      })
+      test('calls the change callback with count+1 when the increment button is clicked', () => {
+        const onStickerChange = jest.fn()
+        const section = buildCardSection({ number: 5, count: 2 }, {}, { selectedStatusFilter: 'all', isBusy: false }, onStickerChange)
+        const [, incrementButton] = findAllByClass(findByClass(section, 'sticker-card'), 'btn-sticker')
+        incrementButton.onclick()
+        expect(onStickerChange).toHaveBeenCalledWith('ARG', 5, 3)
+      })
+      test('disables the decrement button when count is zero', () => {
+        const section = buildCardSection({ number: 5, count: 0 })
+        const [decrementButton, incrementButton] = findAllByClass(findByClass(section, 'sticker-card'), 'btn-sticker')
+        expect(decrementButton.disabled).toBe(true)
+        expect(incrementButton.disabled).toBe(false)
+      })
     })
   })
 })

@@ -134,8 +134,25 @@ function initializeSpreadsheetAppMock(countries = TEST_DATA.countries) {
     }
   }
   global.SpreadsheetApp = {
-    getActiveSpreadsheet: () => spreadsheetMock
+    getActiveSpreadsheet: jest.fn(() => spreadsheetMock),
+    openById: jest.fn(() => spreadsheetMock)
   }
+
+  /**
+   * Mock for PropertiesService, used by Code.gs's _getMobileSpreadsheet()/_saveMobileConfig()/showWebAppLink()
+   * to persist the bound spreadsheet ID and the deployed web app URL. A plain in-memory key/value store scoped
+   * fresh to each initTestKernel() call, so tests can seed it directly via
+   * global.__scriptProperties.setProperty(...) before exercising code that reads it.
+   */
+  const scriptPropertiesStore = {}
+  const scriptPropertiesMock = {
+    getProperty: jest.fn(key => (key in scriptPropertiesStore ? scriptPropertiesStore[key] : null)),
+    setProperty: jest.fn((key, value) => { scriptPropertiesStore[key] = value })
+  }
+  global.PropertiesService = {
+    getScriptProperties: jest.fn(() => scriptPropertiesMock)
+  }
+  global.__scriptProperties = scriptPropertiesMock
 
   /** Computes the done from an array of count values. */
   const buildDoneFromCounts = (countsValues) => {

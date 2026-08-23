@@ -174,15 +174,24 @@ function applyQuickEntryUpdates(payload) {
 // TRADE SERVICE ENTRY POINTS
 
 /**
- * NOTE: the Trade entry points below JSON.stringify their trade-data return fields (tradeInfo, receive,
- * send, doneMap, tradePreferences) before returning, and the client JSON.parses them back. This preserves
- * object key/array ordering across the google.script.run boundary - order matters here, particularly for
- * external collector trade information. This predates the Data Model Standardization work (release 13),
- * which changed how stickers and countries are represented; it isn't confirmed whether GAS's own object
- * marshalling can now be trusted to preserve order without explicit stringify, and neither the client views
- * nor this file have automated test coverage to verify that safely, so the explicit stringify stays as a
- * defensive measure. It's intentionally kept here at the wire boundary (Code.gs) rather than in
- * TradeService.gs's instance methods, so the tested business logic layer stays free of transport concerns.
+ * NOTE: tradeInfo/receive/send below are JSON.stringify'd before returning, and the client JSON.parses them
+ * back. Plain-object key order is not guaranteed to survive the automatic google.script.run marshalling between
+ * the server and the sandboxed client iframe - confirmed by direct testing (removing the stringify/parse round
+ * trip scrambled country key order even though country codes are ordinary string keys, not the well-known
+ * numeric-string-key reordering case). tradeInfo/receive/send are all objects keyed by country code whose key
+ * order is read directly by the UI (Object.keys() drives display order in TradeHelpers.html's _formatMatches(),
+ * and the default 'album' sort mode trusts the incoming key order as-is), so losing it would scramble countries
+ * into a meaningless order. Kept here at the wire boundary (Code.gs) rather than in TradeService.gs's instance
+ * methods, so the tested business logic layer stays free of transport concerns.
+ *
+ * doneMap and tradePreferences are deliberately NOT stringified, for two different reasons:
+ *  - doneMap is a plain object too (keyed by country code), but the client only ever reads it via
+ *    doneMap[countryCode] lookups (TradeHelpers.html's _sortMatchesByCompletion()) - it never iterates doneMap's
+ *    own key order - so the ordering risk above doesn't matter for it.
+ *  - tradePreferences is a genuine Array, not a keyed object. Array order is positional, not key-based, so it
+ *    isn't exposed to the object-key-ordering risk above and crosses the google.script.run boundary intact either
+ *    way (also confirmed by direct testing). It IS read in order downstream (TradeHelpers.html's
+ *    _buildPreferenceRules() uses the array index) - it just doesn't need stringify to get there safely.
  */
 
 /** Opens the Trade dialog. */
@@ -246,10 +255,16 @@ function findTradeMatches(payload) {
   service.setOtherTradeInfo(payload.otherTradeInfo)
   const matches = service.findTradeMatches()
   return {
+    // receive/send are keyed by country code and their key order drives the UI's display/album-sort order -
+    // see the NOTE above the Trade entry points.
     receive: JSON.stringify(matches.receive),
     send: JSON.stringify(matches.send),
-    doneMap: JSON.stringify(matches.doneMap),
-    tradePreferences: JSON.stringify(matches.tradePreferences)
+    // doneMap is only ever read by key (doneMap[countryCode]) on the client - its own key order is never used,
+    // so it's returned as-is rather than JSON.stringify'd. See the NOTE above the Trade entry points.
+    doneMap: matches.doneMap,
+    // tradePreferences is an Array - order is positional, not key-based, so it survives the google.script.run
+    // boundary intact without stringify. See the NOTE above the Trade entry points.
+    tradePreferences: matches.tradePreferences
   }
 }
 
@@ -321,10 +336,14 @@ function _saveMobileConfig() {
 }
 
 /**
- * Resolves the spreadsheet to operate on for entry points shared between the desktop dialog and the mobile web app. 
+ * Resolves the spreadsheet to operate on for entry points shared between the desktop dialog and the mobile web app.
  * Not platform-specific itself: it tries the active-spreadsheet path first, which works from a dialog, menu,
  * sidebar, or trigger context, and only defers to the mobile-specific lookup below when that path isn't available.
+ * Tested directly rather than through a public entry point - see the note on _withWriteLock() below, which
+ * applies here too: none of this file's entry points are themselves exported/tested, so there is no tested
+ * public caller to route through.
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
+ * @export
  */
 function _getSpreadsheet() {
   try {
@@ -338,10 +357,14 @@ function _getSpreadsheet() {
 }
 
 /**
- * Returns the spreadsheet bound to this script by reading its ID from script properties (seeded by 
- * _saveMobileConfig during onOpen). This is the mobile web app path: used as the fallback 
+ * Returns the spreadsheet bound to this script by reading its ID from script properties (seeded by
+ * _saveMobileConfig during onOpen). This is the mobile web app path: used as the fallback
  * when getActiveSpreadsheet() isn't available, i.e. we're running under the web app rather than a dialog.
+ * Tested directly - see the note on _withWriteLock() below; the re-throw here (rather than swallowing the
+ * error) is deliberate and is exactly the kind of behavior a test protects against an accidental future
+ * "simplification."
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet|null}
+ * @export
  */
 function _getMobileSpreadsheet() {
   const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
@@ -364,6 +387,10 @@ function _getMobileSpreadsheet() {
  * and silently drop one side's update. Used by every entry point that ends up calling
  * StickerSheetRepository#updateStickerCounts (importStickerData, applyQuickEntryUpdates, executeTrade).
  * Read-only entry points (previews, exports) don't call this, since they don't write to COUNTS.
+ * Tested directly rather than through a public entry point: this file's actual entry points
+ * (importStickerData, applyQuickEntryUpdates, executeTrade, etc.) are thin wrappers with no exported/tested
+ * contract of their own, so there is no tested public caller to route a test through. _getSpreadsheet() and
+ * _getMobileSpreadsheet() below are direct-tested for the same reason.
  * @param {function(): *} fn - The write operation to run under the lock.
  * @returns {*} Whatever fn() returns.
  * @export
