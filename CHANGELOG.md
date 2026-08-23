@@ -144,6 +144,7 @@ No changes to the template. Current version is kept.
     - Reordered the "Available import modes" bullet list to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
     - Updated the Documentation section to include the file `ImportServiceMockDesign.md`.
     - Updated the Files section to include the file `data/TEST_panini-stickers-all.txt`.
+    - Added `Code.unit.test.js` to the file list in Files section.
   - `TODO.md`: Added UI audit and marked as done.
 
 #### Fixed
