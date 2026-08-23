@@ -67,7 +67,6 @@ class QuickEntryService {
   */
   applyPendingUpdates(pendingUpdates) {
     const normalizedUpdates = this._normalizePendingUpdates(pendingUpdates)
-
     this.repo.updateStickerCounts(normalizedUpdates)
     // Counts individual sticker updates actually applied, not country entries - pendingUpdates.length would
     // now undercount (one entry per country, not per sticker) since the wire input is grouped by country.
@@ -110,14 +109,8 @@ class QuickEntryService {
     const summary = this._buildSummary(stickers)
     const isCompleted = summary.missing === 0
     return {
-      code: country.code,
-      name: country.name,
-      group: country.group,
-      flag: country.flag,
-      isCompleted,
-      stickers,
-      iconLabels: this._buildIconLabels(country.code),
-      summary
+      code: country.code, name: country.name, group: country.group, flag: country.flag,
+      isCompleted, stickers, iconLabels: this._buildIconLabels(country.code), summary
     }
   }
 

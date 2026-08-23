@@ -227,11 +227,11 @@ The process has two stages:
   - Shows all possible matches between both collectors.
   - The default confirmation proposal is a balance trade. The default values for **Stickers to receive** and **Stickers to send** are calculated using the minimum number of available matches between both trade directions.
   - Highlight with green color the stickers included in the current confirmation proposal.
-  - Provide customized hint information explaining that only highlighted stickers will be traded if the user confirms without refreshing.
+  - Provide customized hint information explaining that only highlighted stickers will be traded and `COUNTS` will be updated if the user confirms without refreshing.
 2. Proposal updated (after Refresh action)
   - Shows the trade proposal generated using the selected quantities and sorting options.
   - Sticker information is not highlighted because all displayed stickers are part of the current trade proposal.
-  - Provide customized hint information explaining that the user can review the scenario or confirm the trade.
+  - Provide customized hint information explaining that the user can review the scenario or confirm the trade to update `COUNTS`.
 
 Example layout:
 
@@ -240,10 +240,10 @@ View 1: Initial view
 Trade proposal                                                   [ Close ]
 +--------------------------------------------------------------------------+
 |                                                              [ Refresh ] |
-|  This proposal shows all possible matches.                               |
-|  If you click Confirm Trade now, only highlighted stickers will be       |
-|  traded. Change the limits or sorting options and click Refresh to       |
-|  create another proposal.                                                |
+|  This proposal shows all possible matches. If you click Confirm trade,   |
+|  only highlighted stickers will be traded and `COUNTS` will be updated.  |
+|  Change the limits and/or sorting and click Refresh to create another    |
+|  proposal.                                                               |
 |                                                                          |
 |  Legend: 🟩 Included in current proposal  ▫ Available with higher limit  |
 |  Stickers to receive (3)                                                 |
@@ -279,10 +279,9 @@ Trade proposal                                                   [ Close ]
 
 +--------------------------------------------------------------------------+
 |                                                              [ Refresh ] |
-|  This proposal was generated using the selected limits and sorting       |
-|  options. Review the trade scenario or accept it and click Confirm       |
-|  Trade. Change the limits or sorting options and click Refresh to        |
-|  create another proposal.                                                |
+|  This proposal was generated using the selected limits and/or sorting.   |
+|  Review it and click Confirm trade to update `COUNTS`, or change the     |
+|  conditions again and click Refresh to create another proposal.          |
 |                                                                          |
 |  Stickers to receive (3) Sort by: [ Album ▼ ]                            |
 |  +--------------------------------------------------------------------+  |

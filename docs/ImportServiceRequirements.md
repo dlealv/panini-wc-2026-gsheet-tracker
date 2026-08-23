@@ -36,10 +36,9 @@ This service does not cover:
 ## Service entry points
 
 This service is accessed from the **Manage Panini** menu through:
-- `Import dialog`
-- `Import data`
-- `Update counts clearing country counts`
 - `Update counts`
+- `Update counts clearing country counts`
+- `Import data`
 
 The service uses: 
 - `ImportService.gs` for backend logic
@@ -354,9 +353,13 @@ The import parser is designed to be flexible: it does not abort the entire impor
 
 #### Strict rules — stop on first occurrence, report an error
 
+These are conditions where the implementation raises an `Error` (in the literal `throw new Error(...)`
+sense). Raising it stops parsing immediately: no further lines or tokens are processed, no additional
+warnings are collected, and the caller (preview/import) surfaces it as a blocking error to the user — there
+is no way to skip past it and continue, unlike the flexible rules below.
+
 - The overall input is empty.
 - A line contains an unrecognized structure that cannot be classified as any known format.
-- After all flexible skips are applied, no valid sticker entries remain to import.
 
 #### Flexible rules — skip and continue, collect a warning
 
@@ -373,6 +376,15 @@ The import parser is designed to be flexible: it does not abort the entire impor
 | A sticker number appears more than once for the same country, including via overlapping ranges (e.g. `MEX,1,1,2`; `MEX,1-3,3-4`; `MEX,1-3(2),3-5(3)`) | First occurrence is used; duplicate token skipped; all duplicates in the same line are consolidated into a single warning |
 | Exclusion line with no sticker tokens | Line skipped; warning reported |
 | Exclusion result is an empty set | Line produces no entries; warning reported |
+
+Since flexible rules never raise an `Error`, it's possible for **every** line/token in an input to be
+skipped by one flexible rule or another, leaving nothing left to import — for example `MEX,-1` / `FWC,-1`,
+where both lines produce zero valid stickers after normalization. This is not a strict rule and does not
+stop anything: nothing ever threw, so the operation completes normally, reporting
+`Imported 0 country row(s) successfully.` together with the individual warning already generated for each
+skipped line/token explaining why it was dropped. This gives the user enough information to fix their input
+without treating an all-flexible-skips outcome — which is really just a collection of already-reported
+flexible-rule issues — as a harder failure than any of its parts.
 
 ### Warning reporting
 
@@ -447,17 +459,15 @@ Custom menu name:
 - `Manage Panini`
 
 Menu options related to this service:
-- `Import dialog`
-- `Import data`
-- `Update counts clearing country counts`
 - `Update counts`
+- `Update counts clearing country counts`
+- `Import data`
 
 ### Menu behavior
 
-- `Import dialog` opens the dialog in import mode with the default import mode preselected.
-- `Import data` opens the dialog in import mode with **Import data** preselected.
-- `Update counts clearing country counts` opens the dialog in import mode with that mode preselected.
 - `Update counts` opens the dialog in import mode with that mode preselected.
+- `Update counts clearing country counts` opens the dialog in import mode with that mode preselected.
+- `Import data` opens the dialog in import mode with **Import data** preselected.
 
 ### Import dialog requirements
 

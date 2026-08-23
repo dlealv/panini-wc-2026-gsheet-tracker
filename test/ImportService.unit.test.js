@@ -37,6 +37,11 @@ function checkStickers(row, stickersWithValues, stickersWithZero = []) {
 /** ImportService (unit) */
 describe('ImportService (unit)', () => {
   const { initTestKernel } = require('./utils/testKernel.js')
+  /**
+   * A spreadsheet double distinct from testKernel's mocked getActiveSpreadsheet() result,
+   *  used to verify explicit ss forwarding rather than an accidental fallback to the active spreadsheet.
+   */
+  const OTHER_SS = { marker: 'explicit-ss-fixture' }
   let service
 
   /* Each test starts with cleared mocks to ensure isolation and prevent state leakage between tests.
@@ -57,6 +62,12 @@ describe('ImportService (unit)', () => {
     })
     test('getRepo() returns a StickerSheetRepository without explicit ss', () => {
       expect(service.getRepo()).toBeDefined()
+    })
+    test('forwards the constructor ss into the repository instead of falling back to the active spreadsheet', () => {
+      const svc = new ImportService(OTHER_SS)
+      const repo = svc.getRepo()
+      expect(repo.ss).toBe(OTHER_SS)
+      expect(repo.ss).not.toBe(global.SpreadsheetApp.getActiveSpreadsheet())
     })
   })
 

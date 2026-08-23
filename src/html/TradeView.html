@@ -37,6 +37,20 @@
         <button id="captureQrButton" class="btn btn-inline" style="display:none;">Capture QR code</button>
         <!--Hidden QR image input. Desktop uses it for uploaded images.
             Mobile uses it to launch camera capture when supported.
+            KNOWN ISSUE (2026-08-23, tested on a physical Android phone): starting with Android 14,
+            Chrome's file picker dropped the "Camera" option for `capture` inputs like this one - tapping
+            "Capture QR code" now opens the regular file/gallery picker instead of the camera. This is a
+            broad Android/Chrome platform change (Chrome's system Photo Picker no longer shows a Camera
+            tile for many `accept`/`capture` combinations), not specific to this app or to Google Apps
+            Script - widely reported by other sites hitting the same regression. A known non-standard
+            workaround exists: adding `android/allowCamera` as an extra token to `accept`, e.g.
+            accept="image/jpeg,image/png,android/allowCamera" reportedly restores the Camera option in
+            Chrome on Android 14/15. Deliberately not applied here - it's a Chrome-specific hack with no
+            spec backing and no guarantee it keeps working across future Chrome versions. Not a functional
+            dead end either way: users can still complete the flow by picking an existing photo of the QR
+            code from their gallery/files, just without the one-tap camera launch. Revisit this
+            accept/capture combination (and the android/allowCamera workaround above) if this ever becomes
+            worth fixing.
         -->
         <input id="tradeQrFileInput" type="file" accept="image/jpeg,image/png" capture="environment"
           style="display:none;">
@@ -187,13 +201,11 @@
 <script>
   /*
    * View controller.
-   *
    * Coordinates the Trade workflow by:
    *   - handling user interactions,
    *   - invoking GAS backend entry points,
    *   - maintaining client-side workflow state,
    *   - rendering validation, QR, and preview results.
-   *
    * The controller does not perform trade calculations.
    * Business logic remains in TradeService/TradeCalculation.
    */
@@ -338,7 +350,7 @@
       tradeMessageSectionEl.style.display = 'none'
       Trade.clearPreview({ previewEl })
       renderWarnings([])
-      setMessage('', 'info', tradeMessageEl )
+      setMessage('', 'info', tradeMessageEl)
     }
 
     /** Validates the imported trade information. */
@@ -351,10 +363,7 @@
       google.script.run
         .withSuccessHandler(onOtherTradeInfoValidated)
         .withFailureHandler(onOtherTradeInfoValidationFailed)
-        .previewOtherTradeInfo(Trade.getValidationPayload({
-          missingText: missingTextEl,
-          repeatsText: repeatsTextEl
-        }))
+        .previewOtherTradeInfo(Trade.getValidationPayload({ missingText: missingTextEl, repeatsText: repeatsTextEl }))
     }
 
     /**
@@ -413,7 +422,6 @@
       }, 0)
     }
 
-    /** Resets trade input/message state before starting a new QR capture flow. */
     /** Resets UI state before starting a new QR read flow (upload or capture). */
     function prepareForQrRead() {
       clearTradeInput()
@@ -431,7 +439,8 @@
         const qrData = await TradeQr.qrDecoder.decode(imageData)
         previewOtherTradeInfoFromQr(qrData)
       } catch (error) {
-        onReadFromQrFailed(new Error('No QR code found in the selected image. Focus the camera on the QR code and try again.'))
+        const msg = 'No QR code found in the selected image. Focus the camera on the QR code and try again.'
+        onReadFromQrFailed(new Error(msg))
       }
     }
 
@@ -439,7 +448,7 @@
      * Validates external collector information from decoded QR payload data.
      * The QR image is decoded locally in the browser and only the decoded payload
      * string is sent to Apps Script.
-     * The QR payload may come from any supported host input method, such as image upload
+     * The QR payload may come from any supported host input method, such as image upload.
      * or mobile camera capture input.
      * @param {string} qrData Decoded QR payload.
      */
@@ -452,14 +461,12 @@
       google.script.run
         .withSuccessHandler(onReadFromQrValidated)
         .withFailureHandler(onReadFromQrFailed)
-        .previewOtherTradeInfoFromQr({
-          qrData: qrData
-        })
+        .previewOtherTradeInfoFromQr({ qrData: qrData })
     }
 
     /**
      * Handles successful QR trade information validation.
-     * Converts serialized trade information returned by the backend
+     * Converts serialized trade information returned by the backend.
      * into the client-side TradeInfo object used by the view.
      * @param {{tradeInfo:string,warnings:Object<string,string[]>}} result Backend QR validation response.
      */
@@ -547,14 +554,22 @@
 
     /**
      * Displays the calculated trade matches.
-     * @param {{receive:string,send:string}} result Trade matches.
+     * @param {{receive:string,send:string,doneMap:Object<string,number>,tradePreferences:string[]}} result
+     *  Trade matches. receive/send arrive as JSON strings and need parsing back - their country-code key order
+     *  matters (see the NOTE in Code.gs above the Trade entry points) and only JSON.stringify/parse guarantees
+     *  it survives the google.script.run boundary. doneMap/tradePreferences arrive as plain values already -
+     *  see the same NOTE for why neither of them needs the stringify/parse round trip.
      */
     function onTradeMatchesFound(result) {
       Trade.setBusy(false)
       const matches = { receive: JSON.parse(result.receive), send: JSON.parse(result.send) }
       state.matches = matches
-      state.doneMap = JSON.parse(result.doneMap || '{}')
-      state.tradePreferences = JSON.parse(result.tradePreferences || '[]')
+      // doneMap is only ever read by key (doneMap[countryCode], see TradeHelpers.html's
+      // _sortMatchesByCompletion()) - its key order is irrelevant, so it's used as-is rather than JSON.parsed.
+      state.doneMap = result.doneMap || {}
+      // tradePreferences is a plain Array - its order survives the google.script.run boundary natively - so
+      // it's used as-is rather than JSON.parsed.
+      state.tradePreferences = result.tradePreferences || []
       showProposalView(matches)
     }
 
@@ -648,10 +663,10 @@
           highlightProposal: state.proposal,
           previewClass: 'preview proposal-preview'
         })
-        proposalHintEl.textContent =
-          'This proposal shows all possible matches. If you click Confirm trade now, ' +
-          'only highlighted stickers will be traded. Change the limits or sorting options and ' +
-          'click Refresh to create another proposal.'
+        proposalHintEl.innerHTML =
+          'This proposal shows all possible matches. If you click Confirm trade, only highlighted ' +
+          'stickers will be traded and <span class="inline-code">COUNTS</span> will be updated. ' +
+          'Change the limits and/or sorting and click Refresh to create another proposal.'
         proposalLegendEl.style.display = ''
       } else {
         Trade.renderMatches(state.proposal, {
@@ -659,10 +674,10 @@
           sendPreviewEl: sendMatchesPreviewEl,
           previewClass: 'preview proposal-preview'
         })
-        proposalHintEl.textContent =
-          'This proposal was generated using the selected limits and sorting options. ' +
-          'Review the trade scenario or accept it and click Confirm trade. Change the limits ' +
-          'or sorting options and click Refresh to create another proposal.'
+        proposalHintEl.innerHTML =
+          'This proposal was generated using the selected limits and/or sorting. Review it and click ' +
+          'Confirm trade to update <span class="inline-code">COUNTS</span>, or change the conditions ' +
+          'again and click Refresh to create another proposal.'
         proposalLegendEl.style.display = 'none'
       }
       receiveMatchCountEl.textContent = Trade.countMatches(state.proposal.receive)

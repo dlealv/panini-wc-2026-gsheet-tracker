@@ -12,6 +12,7 @@ panini_fwc2026_roster_clean.csv
 .Spotlight-V100
 .Trashes
 .fseventsd
+.claude/
 CLAUDE*.md
 scripts/*_clasp.cfg.zsh
 !scripts/ENV_clasp.cfg.zsh

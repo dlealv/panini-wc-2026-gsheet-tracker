@@ -112,7 +112,7 @@
           clearPreview()
           setMessage(err && err.message ? err.message : String(err), 'error')
         })
-        .previewStickerDataMobile(Import.getPayload())
+        .previewStickerData(Import.getPayload())
     }
 
     /** Imports the current sticker data into the spreadsheet. */
@@ -131,14 +131,13 @@
           setBusy(false)
           setMessage(err && err.message ? err.message : String(err), 'error')
         })
-        .importStickerDataMobile(Import.getPayload())
+        .importStickerData(Import.getPayload())
     }
 
     /** Resets the form to its initial state. */
     window.clearForm = function () {
       setBusy(false)
       if (textInputEl) { textInputEl.value = ''; textInputEl.focus() }
-      if (modeInputEl) { modeInputEl.value = 'update' }
       clearPreview()
       renderWarnings([])
       if (messageEl) {

@@ -13,17 +13,17 @@
     /**
      * Namespace for quickEntry-related helpers and utilities. Using namespace to avoid polluting the global 
      * scope and to provide a clear structure for quickEntry-related functions.
-     * Functions exported from the namespace are tagged with @public to easy identification and documentation.
+     * Functions exported from the namespace are tagged with @export for identification and documentation; the
+     * leading-underscore naming convention (not a JSDoc tag) is what marks a function as private.
      */
     window.QuickEntry = (function () {
 
         /**
          * Updates the current sticker grid layout.
-         * - stores the selected stickers-per-row value
-         * - updates the CSS variable in browser environments
-         * - safely skips DOM access during Jest execution
+         * - stores the selected stickers-per-row value.
+         * - updates the CSS variable in browser environments.
+         * - safely skips DOM access during Jest execution.
          * @export
-         * @public
          */
         function applyLayout(value) {
             stickersPerRow = value
@@ -33,10 +33,9 @@
 
         /**
          * Builds an empty-state UI representation.
-         * - browser: creates a DOM element
-         * - Jest/Node: returns a safe plain object
+         * - browser: creates a DOM element.
+         * - Jest/Node: returns a safe plain object.
          * @export
-         * @public
          */
         function buildEmptyState(msg) {
             if (typeof document === 'undefined') {
@@ -45,7 +44,6 @@
                     textContent: msg
                 }
             }
-
             const el = document.createElement('div')
             el.className = 'empty-state'
             el.textContent = msg
@@ -58,7 +56,6 @@
          * - applies standardized message styling
          * - safe for tests and browser execution
          * @export
-         * @public
          */
         function setMessage(el, text, type) {
             if (el) {
@@ -77,11 +74,9 @@
          * - applies sticker visibility filters
          * Include safety checks for missing or malformed state to prevent runtime errors in edge cases.
          * @export
-         * @public
          */
         function getVisibleCountries(state) {
             if (!state || !Array.isArray(state.countries)) return []
-
             return state.countries
                 .map(c => _applyPendingCountryUpdates(c, state))
                 .map(c => _applySearch(c, state))
@@ -93,13 +88,11 @@
 
         /**
          * Converts pending update map into a payload array grouped by country.
-         * - transforms UI state into backend-friendly format
+         * - transforms UI state into backend-friendly format.
          * @export
-         * @public
          */
         function getPendingUpdates(pendingUpdates) {
             const grouped = new Map()
-
             Object.keys(pendingUpdates || {}).forEach(k => {
                 const [code, number] = k.split('|')
                 if (!grouped.has(code)) {
@@ -112,31 +105,27 @@
 
         /**
          * Queues a sticker count modification.
-         * - prevents negative sticker counts
-         * - removes updates when values match originals
-         * - stores pending modifications deterministically
+         * - prevents negative sticker counts.
+         * - removes updates when values match originals.
+         * - stores pending modifications deterministically.
          * @export
-         * @public
          */
         function queueStickerChange(state, c, n, next) {
             const key = _buildPendingKey(c, n)
             const safe = Math.max(0, next)
             const original = state.countries.find(x => x.code === c)?.stickers.find(s => s.number === n)?.count || 0
-
             if (safe === original) {
                 delete state.pendingUpdates[key]
             } else {
                 state.pendingUpdates[key] = safe
             }
-
             return { pendingUpdates: state.pendingUpdates }
         }
 
         /**
          * Commits pending sticker updates into the local country state.
-         * - synchronizes the UI model after a successful backend update
+         * - synchronizes the UI model after a successful backend update.
          * @export
-         * @public
          */
         function commitPendingUpdates(state, updates) {
             updates.forEach(update => {
@@ -152,10 +141,9 @@
         }
 
         /**
-         * - shows ready state when no changes exist
-         * - shows pending change count otherwise
+         * - shows ready state when no changes exist.
+         * - shows pending change count otherwise.
          * @export
-         * @public
          */
         function updatePendingChangesMessage(state, setMessageFn) {
             // Counts individual sticker edits, not countries - state.pendingUpdates stays flat
@@ -167,26 +155,12 @@
             )
         }
 
-        // Private functions
-
-        /**
-         * Converts UI state into import/export payload.
-         * - normalizes export settings
-         * - guarantees predictable payload structure
-         * @export
-         */
-        function _getPayloadFromState(state = {}) {
-            return {
-                text: state.text || '',
-                mode: state.mode || 'update',
-                includeFlags: !!state.includeFlags
-            }
-        }
+        // PRIVATE FUNCTIONS
 
         /**
          * Toggles busy-state UI controls.
-         * - disables inputs during async operations
-         * - safe for browser and Jest environments
+         * - disables inputs during async operations.
+         * - safe for browser and Jest environments.
          */
         function _setBusy(isBusy) {
             const elements = [
@@ -203,8 +177,8 @@
 
         /**
          * Clears the current preview area.
-         * - hides preview container
-         * - removes preview text
+         * - hides preview container.
+         * - removes preview text.
          */
         function _clearPreview() {
             if (global.previewEl) {
@@ -215,8 +189,8 @@
 
         /**
          * Applies pending sticker updates to a country.
-         * - recalculates sticker counts
-         * - recalculates summary metrics
+         * - recalculates sticker counts.
+         * - recalculates summary metrics.
          * - marks completion state
          */
         function _applyPendingCountryUpdates(country, state) {
@@ -234,8 +208,8 @@
 
         /**
          * Returns the current UI configuration state.
-         * - exposes shared UI values
-         * - used by rendering and tests
+         * - exposes shared UI values.
+         * - used by rendering and tests.
          */
         function _getUIState() {
             return { stickersPerRow }
@@ -243,7 +217,7 @@
 
         /**
          * Creates a normalized group option object.
-         * - converts dropdown values into a consistent structure
+         * - converts dropdown values into a consistent structure.
          */
         function _buildGroupOption(value, text) {
             return { value, text }
@@ -251,8 +225,8 @@
 
         /**
          * Builds a stable pending-update identifier.
-         * - combines country code and sticker number
-         * - used for deterministic update tracking
+         * - combines country code and sticker number.
+         * - used for deterministic update tracking.
          * @export
          */
         function _buildPendingKey(c, n) {
@@ -261,10 +235,10 @@
 
         /**
          * Builds summary statistics for a sticker collection.
-         * - calculates owned stickers
-         * - calculates missing stickers
-         * - calculates repeated stickers
-         * - calculates completion percentage
+         * - calculates owned stickers.
+         * - calculates missing stickers.
+         * - calculates repeated stickers.
+         * - calculates completion percentage.
          * @export
          */
         function _buildCountrySummary(stickers) {
@@ -284,9 +258,9 @@
 
         /**
         * Filters stickers according to the active status filter.
-        * - supports missing stickers
-        * - supports repeated stickers
-        * - supports pending sticker changes
+         * - supports missing stickers.
+         * - supports repeated stickers.
+         * - supports pending sticker changes.
         * @export
         */
         function _filterByStickerStatus(country, state) {
@@ -309,8 +283,8 @@
 
         /**
          * Matches a country against the selected group filter.
-         * - supports "all" as wildcard
-         * - otherwise requires exact group match
+         * - supports "all" as wildcard.
+         * - otherwise requires exact group match.
          * @export  
          */
         function _matchesGroupFilter(country, state) {
@@ -321,16 +295,13 @@
 
         /**
          * Applies the active search criteria to a country.
-         * 
          * Search behavior:
          * - empty search returns the country unchanged
          * - text search matches country code or country name by prefix
          * - numeric search keeps only stickers with the matching number
          * - returns null when the country does not satisfy the search
-         *
          * This function handles search only.
          * Sticker status filtering (missing/repeated/pending) is handled separately.
-         *
          * @param {Object} country Country object to evaluate.
          * @param {Object} state Current application state containing searchText.
          * @returns {Object|null} Filtered country or null when no match exists.
@@ -365,8 +336,8 @@
 
         /**
         * Applies pending changes to a single sticker.
-        * - overlays temporary pending counts
-        * - marks stickers with pending changes
+        * - overlays temporary pending counts.
+        * - marks stickers with pending changes.
         * @export
         */
         function _applyPendingStickerUpdate(countryCode, sticker, state) {

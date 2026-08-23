@@ -95,7 +95,10 @@ class StickerSheetRepository {
     return STICKER_MAX
   }
 
-  /* Returns the maximum number of rows allowed in the named ranges, which is 50. This includes 48 teams plus FWC and CC. */
+  /* 
+   * Returns the maximum number of rows allowed in the named ranges, which is 50. 
+   * This includes 48 teams plus FWC and CC.
+  */
   static getMaxRows() {
     return MAX_ROWS
   }
@@ -116,7 +119,6 @@ class StickerSheetRepository {
   getCountryCodesRange() {
     if (!this.countryCodeRange) {
       const COUNTRY_CODES_RANGE_NAME = this.COUNTRY_CODES_RANGE_NAME
-
       this.countryCodeRange = this.ss.getRangeByName(COUNTRY_CODES_RANGE_NAME)
       this._validateRange(this.countryCodeRange, MAX_ROWS, 1, COUNTRY_CODES_RANGE_NAME)
     }
@@ -127,7 +129,6 @@ class StickerSheetRepository {
   getCountryNamesRange() {
     if (!this.countryNamesRange) {
       const COUNTRY_NAMES_RANGE_NAME = this.COUNTRY_NAMES_RANGE_NAME
-
       this.countryNamesRange = this.ss.getRangeByName(COUNTRY_NAMES_RANGE_NAME)
       this._validateRange(this.countryNamesRange, MAX_ROWS, 1, COUNTRY_NAMES_RANGE_NAME)
     }
@@ -145,7 +146,6 @@ class StickerSheetRepository {
   getCountsRange() {
     if (!this.countsRange) {
       const COUNTS_RANGE_NAME = this.COUNTS_RANGE_NAME
-
       this.countsRange = this.ss.getRangeByName(COUNTS_RANGE_NAME)
       this._validateRange(this.countsRange, MAX_ROWS, EXPECTED_STICKER_COLUMNS, COUNTS_RANGE_NAME)
       this.startRow = this.countsRange.getRow()
@@ -163,7 +163,6 @@ class StickerSheetRepository {
   getDoneRange() {
     if (!this.doneRange) {
       const DONE_RANGE_NAME = this.DONE_RANGE_NAME
-
       this.doneRange = this.ss.getRangeByName(DONE_RANGE_NAME)
       this._validateRange(this.doneRange, MAX_ROWS, 1, DONE_RANGE_NAME)
     }
@@ -254,8 +253,8 @@ class StickerSheetRepository {
   }
 
   /**
-   * Returns normalized trade preferences from TRADE_PREFERENCES named range.
-   * Values are uppercased and stripped from separators/spaces to match TradeHelpers format.
+   * Returns normalized trade preferences from TRADE_PREFERENCES named range. Values are uppercased and stripped from 
+   * separators/spaces to match TradeHelpers format.
    * @return {string[]} Array of normalized unique tokens preserving sheet order or
    * empty array if the range is empty or not defined.
    */
@@ -384,13 +383,11 @@ class StickerSheetRepository {
       const normalizedCountryCode = this._normalizeCountryCode(code)
       const countryIndex = this._getCountryIndex(normalizedCountryCode)
       const countValues = this.getCountsRange().getValues()[countryIndex]
-
       if (!countValues) {
         throw new Error(`No count data found for country "${code}"`)
       }
       return new Map(countValues.map((value, index) => [index, this._toCount(value)]))
     }
-
     return getCountryCounts(countryCode).get(validStickerNumber)
   }
 
@@ -413,27 +410,23 @@ class StickerSheetRepository {
    * @param {boolean} [options.includeGroup=true] - Include the group code.
    * @param {boolean} [options.includeFlag=true] - Include the flag URL.
    * @param {boolean} [options.includeIcon=false] - Include the flag icon (emoji, from getFlagIcons()), zipped
-   * in by row position.
+   *  in by row position.
    * @param {boolean} [options.includeDone=false] - Include the DONE completion count (from getDone()), zipped
-   * in by row position.
+   *  in by row position.
    * @returns {Array} An array of country records shaped per the options above.
-   * Example of a country record (default options):
-   * {
-   *   code: 'MEX',
-   *   name: 'Mexico',
-   *   group: 'B',
-   *   flag: 'https://example.com/flags/mexico.png',
-   *   counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
+   *  Example of a country record (default options):
+   *  {
+   *    code: 'MEX',
+   *    name: 'Mexico',
+   *    group: 'B',
+   *    flag: 'https://example.com/flags/mexico.png',
+   *    counts: Map{0=>0,1=>1,2=>0,...} // dense sticker-number -> count map, one entry per sticker (0-20)
    * }
-   * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in
+   * If the COUNTRIES named range contains empty rows, those rows will be skipped and not included in the result.
   */
   getCountries({
-    onlyVisible = false,
-    includeName = true,
-    includeGroup = true,
-    includeFlag = true,
-    includeIcon = false,
-    includeDone = false
+    onlyVisible = false, includeName = true, includeGroup = true,
+    includeFlag = true, includeIcon = false, includeDone = false
   } = {}) {
     if (!this.countries) {
       this.countries = this._loadCountries()
@@ -444,7 +437,6 @@ class StickerSheetRepository {
       const toVisibleCountry = country => {
         const [min, max] = StickerSheetRepository.getBoundsForCountry(country.code)
         const visibleCounts = new Map()
-
         for (let number = min; number <= max; number++) {
           visibleCounts.set(number, country.counts.get(number))
         }
@@ -478,7 +470,17 @@ class StickerSheetRepository {
    * Updates multiple sticker counts using a single spreadsheet write operation.
    * The input is a sparse country-based update model where only changed sticker numbers are provided.
    * The method loads the COUNTS range once, applies every update in memory, and persists the modified
-   * values with a single `setValues()` call so the operation can be undone with one Ctrl+Z action.
+   * values with a single `setValues()` call. 
+   * NOTE: Ctrl+Z/Cmd+Z reliability after this call depends on where the write came from, not on this 
+   *  method - a write triggered from a desktop dialog (same session as the viewing tab) reverts cleanly with 
+   *  one Ctrl+Z. A write triggered from the mobile web app (`doGet()`, which resolves the spreadsheet by ID 
+   *  via `_getMobileSpreadsheet()` rather than the active session) is NOT reliably undoable: observed behavior 
+   *  ranges from a correct full revert needing several Ctrl+Z presses, to a partial revert stuck on the 
+   *  just-imported country, to the write being completely un-undoable. This is believed to be a Google Sheets 
+   *  platform behavior - an out-of-session script write reaches the viewing client over the same channel as a remote
+   *  collaborator's edit, rather than as a local action - not something fixable by changing how this method batches 
+   *  its write. For a guaranteed full revert of a mobile-triggered import, use File > Version history > See version 
+   *  history instead.
    * @param {{countries:Array<{code:string,counts:Map<number,number>}>}} updates -
    * Canonical sticker update payload.
    * Example: { countries: [{ code:'ARG', counts:Map{1=>2,5=>4} }, { code:'BRA', counts:Map{3=>1} }] }
@@ -486,16 +488,13 @@ class StickerSheetRepository {
    */
   updateStickerCounts(updates, mode = 'update') {
     const countries = updates && updates.countries
-    if (!Array.isArray(countries) || !countries.length) {
-      return
-    }
+    if (!Array.isArray(countries) || !countries.length) { return }
     const range = this.getCountsRange()
     const values = range.getValues()
     const codesToClear = mode === 'clean_all' ? this.getCountryCodes() : countries.map(country => country.code)
     if (mode === 'clean_all' || mode === 'replace_countries') {
       codesToClear.forEach(code => {
         const index = this._getCountryIndex(this._normalizeCountryCode(code))
-
         values[index].fill('')
         if (mode === 'clean_all') {
           this._normalizeCountryRow(code, values[index])
@@ -504,7 +503,6 @@ class StickerSheetRepository {
     }
     countries.forEach(country => {
       const index = this._getCountryIndex(this._normalizeCountryCode(country.code))
-
       this._applyCountUpdates(country, values[index], mode === 'clean_all')
     })
     range.setValues(values)
@@ -559,25 +557,20 @@ class StickerSheetRepository {
     const groupValues = this.getGroupsRange().getValues()
     const flagValues = this.getFlagsUrlRange().getDisplayValues()
     const countryNameValues = this.getCountryNamesRange().getDisplayValues()
-
     return countryValues.
       map((row, index) => {
         return this._buildCountryRecord(
           row, groupValues[index], flagValues[index], countryNameValues[index], countValues[index]
         )
-      }).
-      filter(Boolean)
+      }).filter(Boolean)
   }
 
   /** Builds one country record from named range rows. */
   _buildCountryRecord(countryRow, groupRow, flagRow, countryNameRow, countRow) {
     const countryCode = String(countryRow[0] || '').trim().toUpperCase()
-    if (!countryCode) {
-      return null
-    }
+    if (!countryCode) { return null }
     const groupCode = String((groupRow && groupRow[0]) || '').trim().toUpperCase()
     const name = String(countryNameRow[0] || '').trim()
-
     return {
       code: countryCode,
       name,
@@ -590,11 +583,9 @@ class StickerSheetRepository {
   /** Normalizes and validates a country code. */
   _normalizeCountryCode(countryCode) {
     const normalizedCountryCode = String(countryCode || '').trim().toUpperCase()
-
     if (!this.getCountryCodes().has(normalizedCountryCode)) {
       throw new Error(`Country code "${countryCode}" was not found in the COUNTRIES named range.`)
     }
-
     return normalizedCountryCode
   }
 
@@ -623,7 +614,6 @@ class StickerSheetRepository {
   _normalizeCountryRow(code, values) {
     const normalizedCountryCode = String(code).trim().toUpperCase()
     const [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
-
     for (let sticker = 0; sticker < values.length; sticker++) {
       if (sticker < minSticker || sticker > maxSticker) {
         values[sticker] = 0
@@ -648,7 +638,6 @@ class StickerSheetRepository {
     let maxSticker
     if (!isNormalized) {
       const normalizedCountryCode = String(country.code).trim().toUpperCase(); // required ; here
-
       [minSticker, maxSticker] = StickerSheetRepository.getBoundsForCountry(normalizedCountryCode)
     }
     for (let sticker = 0; sticker < values.length; sticker++) {

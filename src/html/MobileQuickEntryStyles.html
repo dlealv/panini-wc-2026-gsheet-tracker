@@ -23,12 +23,14 @@
     --completed-text: #ffffff;
   }
 
+  /* Quick Entry view container. Holds the Quick Entry sections and controls the spacing between them. */
   #view-quickentry .container {
     height: auto;
     overflow: visible;
     padding: 0;
   }
 
+  /* Quick Entry view sections. Each section is visually separated from the others. */
   #view-quickentry .section {
     background: #fff;
     border: 1px solid var(--border);
@@ -37,6 +39,7 @@
     margin-bottom: 12px;
   }
 
+  /* Quick Entry view section headers. */
   #view-quickentry .section-header {
     display: flex;
     justify-content: space-between;
@@ -44,22 +47,26 @@
     margin-bottom: 12px;
   }
 
+  /* Quick Entry view section titles. */
   #view-quickentry .section-title {
     font-size: var(--text-xl);
     font-weight: 700;
   }
 
+  /* Quick Entry view top bar. Contains the top actions and filters. */
   #view-quickentry .top-bar {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
+  /* Quick Entry view top actions. Contains the primary action button. */
   #view-quickentry .top-actions {
     display: flex;
     justify-content: flex-end;
   }
 
+  /* Quick Entry view primary action button. */
   #view-quickentry .btn-primary {
     -webkit-appearance: none;
     appearance: none;
@@ -75,31 +82,37 @@
     cursor: pointer;
   }
 
+  /* Quick Entry view primary action button hover state. */
   #view-quickentry .btn-primary:active:not(:disabled) {
     background: var(--primary-hover);
   }
 
+  /* Quick Entry view primary action button disabled state. */
   #view-quickentry .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
+  /* Quick Entry view filters. Contains the filter inputs and buttons. */
   #view-quickentry .filters {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
+  /* Quick Entry view filter row. Contains the filter inputs and buttons. */
   #view-quickentry .filter-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
 
+  /* Quick Entry view filter inputs. */
   #view-quickentry .filter-btn-desktop {
     display: none !important;
   }
 
+  /* Quick Entry view filter inputs. */
   #view-quickentry .filter-input,
   #view-quickentry .filter-select {
     width: 100%;
@@ -111,6 +124,7 @@
     min-height: 48px;
   }
 
+  /* Quick Entry view legend. Contains the color swatches and labels. */
   #view-quickentry .legend {
     display: flex;
     flex-wrap: wrap;
@@ -120,12 +134,14 @@
     margin-top: 8px;
   }
 
+  /* Quick Entry view legend items. Each item contains a color swatch and a label. */
   #view-quickentry .legend-item {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
 
+  /* Quick Entry view legend color swatches. */
   #view-quickentry .legend-swatch {
     width: 14px;
     height: 14px;
@@ -135,35 +151,43 @@
     flex: 0 0 auto;
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-0 {
     background: var(--count-0-bg);
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-1 {
     background: var(--count-1-bg);
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-2 {
     background: var(--count-2-bg);
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-3 {
     background: var(--count-3-bg);
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-4 {
     background: var(--count-4-bg);
   }
 
+  /* Quick Entry view legend color swatches for each count. */
   #view-quickentry .legend-swatch.count-5-plus {
     background: var(--count-5-plus-bg);
   }
 
+  /* Quick Entry view legend color swatches for completed countries. */
   #view-quickentry .legend-swatch.pending {
     position: relative;
     background: #fff;
   }
 
+  /* Quick Entry view legend color swatches for completed countries. */
   #view-quickentry .legend-swatch.pending::after {
     content: '';
     position: absolute;
@@ -176,11 +200,13 @@
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.95);
   }
 
+  /* Quick Entry view legend color swatches for completed countries. */
   #view-quickentry .legend-swatch.completed {
     background: var(--completed-bg);
     border-color: var(--completed-bg);
   }
 
+  /* Quick Entry view messages. Contains the message text and optional icon. */
   #view-quickentry .message {
     padding: 12px;
     border-radius: 8px;
@@ -191,36 +217,43 @@
     margin-bottom: 12px;
   }
 
+  /* Quick Entry view messages. Hidden when empty. */
   #view-quickentry .message:empty {
     display: none;
   }
 
+  /* Quick Entry view messages. Success message style. */
   #view-quickentry .message.success {
     background: #e6f4ea;
     color: var(--success);
   }
 
+  /* Quick Entry view messages. Error message style. */
   #view-quickentry .message.error {
     background: #fce8e6;
     color: var(--error);
   }
 
+  /* Quick Entry view messages. Info message style. */
   #view-quickentry .message.info {
     background: var(--bg-soft);
     color: var(--muted);
   }
 
+  /* Quick Entry view messages. Pending message style. */
   #view-quickentry .message.pending {
     color: var(--pending-text);
     font-weight: 700;
   }
 
+  /* Quick Entry view country list wrapper. Contains the country sections and controls the spacing between them. */
   #view-quickentry .country-list-wrapper {
     background: transparent;
     border: none;
     padding: 0;
   }
 
+  /* Quick Entry view country list. Contains the country sections and controls the spacing between them. */
   #view-quickentry .country-list {
     display: flex;
     flex-direction: column;
@@ -228,6 +261,7 @@
     overflow-y: auto;
   }
 
+  /* Quick Entry view country sections. Each section represents a country and contains the country header and sticker grid. */
   #view-quickentry .country-section {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -235,11 +269,13 @@
     background: #fff;
   }
 
+  /* Quick Entry view country sections. Completed countries have a different background and text color. */
   #view-quickentry .country-section.completed {
     background: var(--completed-bg);
     color: var(--completed-text);
   }
 
+  /* Quick Entry view country header. Contains the country title, flag, and summary. */
   #view-quickentry .country-header {
     display: flex;
     flex-wrap: wrap;
@@ -248,6 +284,7 @@
     margin-bottom: 12px;
   }
 
+  /* Quick Entry view country title. Contains the country name and flag. */
   #view-quickentry .country-title {
     display: flex;
     align-items: center;
@@ -256,6 +293,7 @@
     font-weight: 700;
   }
 
+  /* Quick Entry view country flag. Displays the country's flag image. */
   #view-quickentry .country-flag {
     width: 40px;
     height: 24px;
@@ -267,6 +305,7 @@
     flex: 0 0 auto;
   }
 
+  /* Quick Entry view country summary. Displays the summary of the country's sticker counts. */
   #view-quickentry .country-summary {
     display: flex;
     flex-wrap: wrap;
@@ -274,10 +313,12 @@
     font-size: var(--text-xs);
   }
 
+  /* Quick Entry view country summary values. Displays the count of stickers for each category. */
   #view-quickentry .summary-value {
     font-weight: 700;
   }
 
+  /* Quick Entry view sticker grid. Contains the sticker cards for the country. */
   #view-quickentry .sticker-grid {
     display: flex;
     flex-direction: column;
@@ -285,12 +326,14 @@
     width: 100%;
   }
 
+  /* Quick Entry view sticker grid in compact mode. Displays the sticker cards in a row with wrapping. */
   #view-quickentry .sticker-grid.compact {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: flex-start;
   }
 
+  /* Quick Entry view sticker rows. Each row contains a set of sticker cards. */
   #view-quickentry .sticker-row {
     display: grid;
     grid-template-columns: repeat(var(--stickers-per-row), minmax(0, 1fr));
@@ -298,12 +341,14 @@
     width: 100%;
   }
 
+  /* Quick Entry view sticker rows. The last row is centered and has a gap between the cards. */
   #view-quickentry .sticker-row.last-row {
     display: flex;
     justify-content: center;
     gap: 6px;
   }
 
+  /* Quick Entry view sticker cards. Each card represents a sticker and displays its number and owned count. */
   #view-quickentry .sticker-card {
     position: relative;
     min-height: 0;
@@ -333,31 +378,37 @@
     width: calc((100% - (var(--stickers-per-row) - 1) * 6px) / var(--stickers-per-row));
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-0 {
     background: var(--count-0-bg);
     color: var(--count-0-text);
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-1 {
     background: var(--count-1-bg);
     color: var(--count-1-text);
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-2 {
     background: var(--count-2-bg);
     color: var(--count-2-text);
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-3 {
     background: var(--count-3-bg);
     color: var(--count-3-text);
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-4 {
     background: var(--count-4-bg);
     color: var(--count-4-text);
   }
 
+  /* Quick Entry view sticker cards. Different background and text colors for each owned count. */
   #view-quickentry .sticker-card.count-5-plus {
     background: var(--count-5-plus-bg);
     color: var(--count-5-plus-text);
@@ -406,6 +457,7 @@
     color: var(--text);
   }
 
+  /* Increment and decrement buttons on sticker cards. Disabled state. */
   #view-quickentry .sticker-actions button:disabled {
     opacity: 1;
     background: #f1f3f4;
@@ -413,6 +465,7 @@
     border-color: var(--border);
   }
 
+  /* Increment and decrement buttons on sticker cards. Active state. */
   #view-quickentry .sticker-badge {
     position: absolute;
     top: 4px;
@@ -423,6 +476,7 @@
     letter-spacing: 0.3px;
   }
 
+  /* Quick Entry view empty state. Displayed when there are no countries or stickers to show. */
   #view-quickentry .empty-state {
     color: var(--muted);
     font-size: var(--text-md);

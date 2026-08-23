@@ -40,6 +40,7 @@
     "nullglob",
     "octry",
     "passthroughs",
+    "pointworks",
     "qfmj",
     "quickentry",
     "Ronaldo",
@@ -53,6 +54,7 @@
     "Türkiye",
     "undercount",
     "undercounting",
+    "undoable",
     "uppercased",
     "yapf"
   ]

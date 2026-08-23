@@ -97,11 +97,11 @@ Another useful use case is when the user wants to upgrade this tracker, using a 
 
 Available import modes:
 
-- **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
-- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
 - **Update counts**: only overwrites sticker positions explicitly provided in the input, while all other values remain unchanged.
+- **Update counts clearing country counts**: clears only the rows for countries present in the input, then reloads those countries.
+- **Import data**: clears all values in the `COUNTS` named range, then loads the input data.
 
-The **Open import dialog** allows the user to select the import mode via: **Choose how to apply the load** drop-down:
+Each of the three **Manage Panini** import menu entries opens the same Import dialog, pre-set to the corresponding mode via the **Choose how to apply the load** drop-down — the mode can still be changed from the dropdown before running the import:
 
 ![Import dialog](images/importDialogView.jpg)
 
@@ -666,6 +666,7 @@ Service-specific documents are available in the `docs/` folder:
 
 - `CodeStyleGuideline.md`: Code style guide used in this project.
 - `ImportServiceRequirements.md`: Functional requirements and business rules for the import service.
+- `ImportServiceMockDesign.md`: Mock design notes and UI behavior reference for the Import service.
 - `ExportServiceRequirements.md`: Functional requirements and business rules for the export service.
 - `QuickEntryServiceRequirements.md`: Functional requirements and business rules for the Quick Sticker Entry service.
 - `QuickEntryServiceMockDesign.md`: Mock design notes and UI behavior references for the Quick Sticker Entry service.
@@ -678,11 +679,11 @@ Service-specific documents are available in the `docs/` folder:
 
 ## Testing
 
-Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.5` `557` tests passed with the following coverage:
+Since version `1.0.2`, Apps Script artifacts have been tested in a VS Code Node.js project using Jest. For more information, please refer to `docs/TechnicalArchitecture.md` for the testing framework. In version `1.1.6` `543` tests passed with the following coverage:
 
 | % Statements | % Branch | % Functions | % Lines |                                     
 |--------------|----------|-------------|---------|
-|     95.37    |  80.76   |   95.73     |  95.91  |                                            
+|     95.51    |  82.69   |   96.25     |  96.07  |                                            
 
 ---
 
@@ -722,13 +723,17 @@ In alphabetical order and organized by folders:
 - Under the `data` folder:
   - `panini_fwc2026_roster.csv`: Panini sticker roster file. Player names and sticker numbers were validated against the [Panini Official Collection](https://www.paniniamerica.net/album-fifa-world-cup-2026-official-sticker-collection.html) website. Players' clubs were validated based on the club they were with at the time the Panini stickers were published. The file also includes each player's position, date of birth, and special Coca-Cola stickers. It can be considered a trusted roster file.
   - `clean_roster.py`: Helper script to standardize and validate the `panini_fwc2026_roster.csv` file. Cleans and standardizes the roster, validates the header and row structure, removes repeated headers and blank lines, normalizes Sticker IDs and club names, verifies sticker groups and field requirements, validates dates of birth and positions, checks for duplicates and correct sorting, verifies the consistency of Coca-Cola stickers with the corresponding player's information, and reports a final summary.
+  - `TEST_panini-stickers-all.txt`: All stickers used for set the initial state of the `Stickers` tab for testing purposes.
 
 - Under the `docs` folder:
   - `CodeStyleGuideline.md`: Code style guide used in this project.
+  - `GoogleAccessStepByStep.md`: Step-by-step guide explaining how to create a copy of the template and authorize the Apps Script project.
   - `ImportExportServiceRequirements.md`: Requirements document for the import/export service.
+  - `ImportServiceMockDesign.md`: Mock design notes and UI behavior reference for the Import service.
   - `QuickEntryServiceRequirements.md`: Requirements document for the Quick Entry service.
   - `QuickEntryServiceMockDesign.md`: Mock design document for Quick Entry.
-  - `GoogleAccessStepByStep.md`: Step-by-step guide explaining how to create a copy of the template and authorize the Apps Script project.
+  - `TradeServiceRequirements.md`: Functional requirements for Trade stickers entry service.
+  - `TradeServiceMockDesign.md`: Mock design notes and UI behavior  references for the Trade stickers entry service.
   - `TechnicalArchitecture.md`: Comprehensive technical overview of the system architecture, file structure, development lifecycle pipelines, and core engineering design constraints governing the project.
   - `FAQ.md`: Frequently Asked Questions document. It includes questions related to Google security and access for Apps Script.
 
@@ -785,6 +790,7 @@ In alphabetical order and organized by folders:
   - `TradeService.gs`: Trade service to automate trades with another collector.
 
 - Under the `test/` folder:
+  - `Code.unit.test.js`: Test file for testable functions in `Code.gs`.
   - `Commons.unit.test.js`: Test file for testing `src/Commons.gs`.
   - `ImportService.unit.test.js`: Test file for testing `src/ImportService.gs`.
   - `ImportHelpers.unit.test.js`: Test file for testing `src/html/ImportHelpers.gs`.

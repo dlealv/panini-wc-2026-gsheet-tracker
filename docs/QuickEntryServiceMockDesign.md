@@ -27,7 +27,7 @@ This mock design reflects the current UI direction shown in the latest screen ca
 +----------------------------------------------------------------------------------------------------------------------+
 |                                                                                                       [ Update ]     |
 |                                                                                                                      |
-| [ Search by team code or country name__________________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
+| [ Search by country code/name or sticker #_____________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
 |                                                                                                                      |
 | [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+                  |
 | [•] Pending changes   [■] Complete team                                                                              |
@@ -117,7 +117,7 @@ This example reflects the actual card pattern from the current UI and explicitly
 +----------------------------------------------------------------------------------------------------------------------+
 |                                                                                                       [ Update ]     |
 |                                                                                                                      |
-| [ Search by team code or country name__________________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
+| [ Search by country code/name or sticker #_____________ ] [ All groups v ] [All] [Missing] [Repeated] [Pending]      |
 |                                                                                                                      |
 | [ ] Missing   [■] Owned x1   [■] Repeated x2   [■] Repeated x3   [■] Repeated x4   [■] Repeated x5+                  |
 | [•] Pending changes   [■] Complete team                                                                              |
@@ -142,7 +142,7 @@ Purpose:
 
 ### 2. Top action and filter area
 The top control area must include:
-- search input with placeholder text similar to `Search by team code or country name`.
+- search input with placeholder text similar to `Search by country code/name or sticker #`.
 - group dropdown with `All groups` as the default option.
 - button-style sticker status filters:
   - `All`
@@ -325,9 +325,13 @@ This must also apply to the `Pending` filter. If a sticker no longer has a pendi
 ## Filter behavior
 
 ### Search input
-- Supports incremental search by country code and country name.
+- Supports incremental search by country code, country name, or sticker number.
 - Matching is case-insensitive.
-- Partial matches are allowed.
+- Matches are left-to-right partial (prefix) matches on country code/name: the search text matches the
+  beginning of the code or name (e.g. `m` matches any code starting with `M`; `bos` matches `Bosnia and
+  Herzegovina`), not any position within it.
+- If the search text is entirely numeric, it is treated as a sticker number search instead: only the matching
+  sticker card is shown within each visible country section.
 
 ### Group dropdown
 - Includes `All groups`.
@@ -454,7 +458,7 @@ Invalid sticker positions used internally by the spreadsheet must not be shown i
 - Do not write to the spreadsheet on each click.
 - Batch updates through the top-right **Update** button.
 - Use button-style sticker filters instead of a dropdown.
-- Include search by country code and country name.
+- Include search by country code, country name, or sticker number.
 - Include group filtering.
 - Include legend items for color and state interpretation.
 - Include a pending-change dot indicator.
