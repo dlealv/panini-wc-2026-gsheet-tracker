@@ -2,7 +2,12 @@ name: Panini WC 2026 GSheet Tracker - Production Deployment
 # .github/workflows/deploy.yml
 
 # Deploys the production Google Apps Script project.
-# Runs only for pushes to main that modify deployable source files.
+# Runs automatically for pushes to main that modify deployable source files (see paths below), and can also be
+# run on demand from the Actions tab (workflow_dispatch) for cases the path filter deliberately excludes - e.g.
+# a scripts/clasp.zsh or docs/-only change, which doesn't affect the deployed app itself but may still need a
+# real push+deploy exercised to confirm it works (see docs/TechnicalArchitecture.md's FAQ for an example: the
+# Node-version fix in scripts/clasp.zsh). Manual runs always use whatever is currently on the selected branch -
+# normally 'main', to match the production SCRIPT_ID/DEPLOYMENT_ID secrets/config this workflow assumes.
 
 permissions:
   contents: read # runner can only read repository contents
@@ -15,6 +20,7 @@ on:
       - 'src/**'
       - '.github/workflows/deploy.yml'
       - '.github/actions/setup-project/**'
+  workflow_dispatch: # Manual "Run workflow" button in the Actions tab - bypasses the paths filter above entirely
 
 jobs:
   deploy:
