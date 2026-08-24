@@ -33,6 +33,14 @@ No changes to the template. Current version is kept.
 
 #### Changes
 
+- Under the `.github` folder:
+  - `workflows/deploy.yml`: Added `workflow_dispatch:` alongside the existing `push` trigger, so a production
+    push+deploy can be run on demand from the Actions tab's "Run workflow" button - bypassing the `paths:`
+    filter entirely - instead of only being able to force one by making an unrelated change under `src/`. Useful
+    for a `scripts/`/`docs/`-only change (like the `clasp.zsh` Node-version fix earlier in this release) that
+    doesn't touch the deployed app itself but still benefits from a real push+deploy exercise. The existing
+    automatic `push`/`paths` behavior is unchanged - this is purely an additional, independent trigger.
+
 - Under the `docs` folder:
   - `ExportServiceRequirements.md`: "Export shared stickers requirements" section updated to match the actual implementation - the worked example and both section header definitions now show `🔄 Repeats (N)` / `❌ Missing (N)` (with a note on how the counts add up), replacing the previous `🔄 Repeated stickers` / `❌ Missing stickers` wording that the code had already moved away from.
   - `ImportServiceMockDesign.md`:
@@ -78,6 +86,7 @@ No changes to the template. Current version is kept.
     the full story on the error this used to work around.
 
 - Under `src/html` folder:
+  - `AboutView.html` Updated the release version and date.
   - `ExportHelpers.html`: Removed the redundant `@public` JSDoc tag from every exported function, and reworded the namespace intro comment accordingly. The tag was purely informational - not read by `scripts/build.js`, not required by ESLint, not referenced anywhere else in the build - and this project already uses the leading-underscore naming convention alone to mark a function private.
   - `ExportView.html`: Wrapped the "Export result"/"Messages"/"Actions" sections in a new `export-sections` div (mirroring Import's `import-sections` and Trade's `tradeInputView` wrappers), so the three sections sit flush with no visual gap between them, matching Import's and Trade's look and feel. Shared by both the desktop dialog and the mobile view.
   - `ImportHelpers.html`:
