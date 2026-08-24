@@ -911,39 +911,31 @@ If you try to run `npx clasp login`, any `clasp` command, or the script `clasp.z
 ```text
 Invalid response body while trying to fetch https://oauth2.googleapis.com/token: Premature close
 ```
-It is usually related to:
-- Node 20+ / 22+ TLS and networking behavior changes.
-- instability in OAuth token exchange in clasp CLI (v3.x).
-- environment differences between local shell and CI runtime.
+This is a failure of one specific live network call - the OAuth token exchange - not a general "clasp won't
+run" failure. It's usually related to:
+- a flaky local connection, or a VPN/proxy/antivirus doing TLS inspection on that connection.
+- a transient networking bug in a specific Node point release's fetch/`undici` stack.
+- environment differences between local shell and CI runtime (this project's CI never hits this code path at
+  all - see below).
 
-The stable solution in this project is to use Node version 18 for local clasp authentication flows, while CI can safely run Node 22 for linting and tests.
+**This is not a Node major-version incompatibility, and Node 18 is not a valid workaround.** `@google/clasp`
+(currently `3.3.0`) declares `"engines": {"node": ">=20.0.0"}` in its own `package.json` - Node 18 is actually
+*below* clasp's own minimum supported version, not a safe fallback above some incompatibility ceiling. This
+project's CI (`.github/workflows/deploy.yml`) runs clasp push/deploy under Node 22 on every production
+deployment with no issue, which is direct evidence Node 20+ works fine; CI never calls `clasp login` though - it
+injects a pre-existing token (`secrets.CLASPRC_JSON_SECRET`) instead, so it never exercises the interactive OAuth
+handshake this error occurs in, which is consistent with the error being tied to local network conditions rather
+than clasp-on-Node-20+ in general.
 
-To install node version 18 do the following:
-
-```bash
-nvm install 18.20.8
-nvm use 18.20.8
-node -v             # to verify
-```
-after installation `node -v` should show `18.20.8`. 
-
-If another node version is currently active, then:
-
-```bash
-nvm use 18.20.8
-node -v           # and verify, expected output: 18.20.8
-```
-
-If you don't have Node Version Manager (NVM) you can install it as follows for macOS/Linux install:
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-```
-then restart the terminal:
-```bash
-source ~/.zshrc   # if using zsh or adjust it to the shell of your preference
-```
+If you hit this locally, try (in rough order):
+- Retry - this class of "premature close" error is often a one-off blip in the TLS connection.
+- Temporarily disable any VPN/proxy, or check whether antivirus/security software is intercepting TLS traffic.
+- Update to the latest Node 20/22 LTS point release, in case it's a since-patched networking bug.
+- Confirm you're not on a Node version below clasp's own minimum (`node -v`, must be `>=20.0.0`).
 
 >[!IMPORTANT]
-> The script `clasp.zsh` already forces the correct version of Node.js, before any call execution.
+> `clasp.zsh` defines `ensure_node_version()`, which can force a minimum Node version (`>=20` today) via NVM,
+> but it is **not currently called** - Node 20+ is already the default both locally and in CI, so there's
+> nothing to force. It's kept available/callable in the script in case a future environment needs a minimum
+> Node version enforced again; if you re-enable it, do not lower `REQUIRED_NODE_VERSION` below `20`.
 ---
