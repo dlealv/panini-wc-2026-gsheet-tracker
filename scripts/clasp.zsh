@@ -39,8 +39,11 @@
 #   A config file (rather than inline scriptId/deploymentId values on the command line) is deliberate:
 #   scriptId/deploymentId are long, opaque, easily-confused strings - naming each one inside a file makes it
 #   self-labeling, and keeps both values out of shell history and process listings entirely.
-#  clasp requires Node v18; this script will attempt to switch to the correct version via NVM if a mismatch is detected.
-#  See docs/TechnicalArchitecture.md ("Local Clasp Configuration") for details.
+#  clasp (currently @google/clasp@3.3.0) declares "engines": {"node": ">=20.0.0"} in its own package.json.
+#  ensure_node_version() below can enforce that minimum via NVM, but is not currently called - Node 20+ is
+#  already the default both locally and in CI. See docs/TechnicalArchitecture.md's FAQ ("Invalid response body
+#  ... Premature close") for the history of the Node 18 workaround this script used to apply here, and why it
+#  no longer applies (Node 18 is actually below clasp's own minimum, not a safe fallback).
 # -------------------------------------------------------------------------------------
 
 set -e # Exit immediately if a command exits with a non-zero status
@@ -66,7 +69,8 @@ DEFAULT_ROOT="__ROOT_DIR__"
 DEFAULT_SCRIPT_ID="__SCRIPT_ID__"
 LOG_LEVEL=${LOG_LEVEL:-0} # 0 = minimal, 1 = normal
 DRY_RUN=${DRY_RUN:-false} # Toggle this to true to enable dry run mode (no actual file changes or network calls)
-REQUIRED_NODE_VERSION="18" # Centralized Node version requirement for clasp execution
+REQUIRED_NODE_VERSION="20" # Minimum Node major version clasp requires (per @google/clasp's own "engines" field
+                           # in its package.json) - a floor (>=), not an exact-version pin
 
 TMP_WORKDIR="/tmp/clasp_run_$$"
 CLASP_CONFIG="$TMP_WORKDIR/.clasp.json"
@@ -125,12 +129,18 @@ SAFETY
 EOF
 }
 
-# Helper: Verifies current Node version matches required baseline. 
+# Helper: Verifies the current Node version satisfies the minimum required baseline (>= REQUIRED_NODE_VERSION).
 # Lazily invokes NVM env switches only when an active discrepancy is detected.
+# Not currently called anywhere in this script (see the NOTE at the call site in the main execution router) -
+# kept available/callable in case a future environment needs a minimum Node version enforced again.
 ensure_node_version() {
-    # Check if the active version already starts with the required version number (e.g., v18.)
-    if [[ "$(node -v)" == "v${REQUIRED_NODE_VERSION}."* ]]; then
-        log 1 "[CONF] Already using required Node version: $(node -v)"
+    # Numeric floor check (>=), not an exact-version match: clasp declares "node": ">=20.0.0" in its own
+    # package.json, so any Node major version >= REQUIRED_NODE_VERSION satisfies it - unlike the old exact-match
+    # check this replaced, which only accepted a single major version (e.g. only "v18.*").
+    local current_major
+    current_major=$(node -v | sed -E 's/^v([0-9]+).*/\1/')
+    if [[ "$current_major" -ge "$REQUIRED_NODE_VERSION" ]]; then
+        log 1 "[CONF] Already using a Node version that satisfies the >=${REQUIRED_NODE_VERSION} requirement: $(node -v)"
         return 0
     fi
 
@@ -140,7 +150,7 @@ ensure_node_version() {
         \. "$NVM_DIR/nvm.sh"
         nvm use "$REQUIRED_NODE_VERSION" > /dev/null
     else
-        log 0 "[ERROR] NVM not found. Cannot force Node v${REQUIRED_NODE_VERSION} context. Install nvm and ensure it's available in the shell environment."
+        log 0 "[ERROR] NVM not found. Cannot force Node >=v${REQUIRED_NODE_VERSION} context. Install nvm and ensure it's available in the shell environment."
         exit 1
     fi
     log 1 "[CONF] Switched to required Node version: $(node -v)"
@@ -754,7 +764,11 @@ trap on_exit EXIT INT TERM
 update_script_id "start"
 
 # Main execution router
-ensure_node_version  # force correct node version for clasp
+# ensure_node_version() is intentionally not called here: clasp requires Node >=20 (its own package.json
+# "engines" field), which is already the norm both locally and in CI - forcing an older version is not a valid
+# workaround (see docs/TechnicalArchitecture.md's FAQ for why a Node 18 workaround used to live here and why it
+# no longer applies). Left callable below in case a future environment needs a minimum Node version enforced.
+#ensure_node_version  # currently unused - see comment above
 if [[ "$CMD" == "pull" ]]; then
     pull_before
     pull_execute

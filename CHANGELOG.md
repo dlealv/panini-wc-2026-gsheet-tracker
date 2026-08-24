@@ -49,6 +49,15 @@ No changes to the template. Current version is kept.
     - Rewrote the "Shared repository layer" section, which still described separate `*Mobile`-suffixed wrapper functions per service, to instead describe the actual unified `_getSpreadsheet()`/`_getMobileSpreadsheet()` resolution shared by every Import/Export/Quick Entry/Trade entry point on both platforms.
     - Reworded the Mobile Quick Entry flow's step 6, which implied a separate "mobile Quick Entry service," to name the actual shared `Code.gs` entry points (`getQuickEntryInitialData`, `applyQuickEntryUpdates`) that invoke `QuickEntryService.gs`.
     - Fixed a typo in the directory tree: `appscript.json` → `appsscript.json`.
+    - FAQ entry for the `Invalid response body ... Premature close` clasp OAuth error rewritten: the previous
+      "install Node 18" fix was wrong - `@google/clasp` (currently `3.3.0`) declares `"engines": {"node":
+      ">=20.0.0"}` in its own `package.json`, so Node 18 is actually below clasp's own minimum, not a safe
+      fallback. The error is a live-network TLS/OAuth-token-exchange failure (a flaky connection, a VPN/proxy/AV
+      doing TLS inspection, or a transient Node point-release networking bug), not a Node-major-version
+      incompatibility - this project's CI runs clasp push/deploy under Node 22 on every production deploy with
+      no issue. Replaced the Node 18 install instructions with local troubleshooting steps that don't involve
+      downgrading below clasp's minimum, and corrected the closing note about `clasp.zsh`'s Node-version guard
+      (see `scripts/clasp.zsh` below).
   - `TradeServiceMockDesign.md`: Both ASCII mock blocks ("View 1: Initial view" and "View 2: Trade proposal updated (after Refresh)") and the two "Provide customized hint information..." prose bullets updated to include the new Confirm-trade `COUNTS`-update disclosure text (see `TradeView.html` below).
   - `TradeServiceRequirements.md`: §14.4 reworded to match §10.1's explicit-refresh model, cross-referencing §10.1 directly, instead of contradicting it with "Changing trade quantities must automatically update the corresponding sticker lists."
 
@@ -58,7 +67,15 @@ No changes to the template. Current version is kept.
   - `tradeViewInitialTradeProposal.jpg`: Updated the image to reflect the updated hint message on top.
 
 - Under the `scripts` folder:
-  - `clasp.zsh`: Now ensures clasp calls are executed for a valid node version (version 18). A new function `ensure_node_version()` was created and executed before each clasp call to ensure the correct node version is used.
+  - `clasp.zsh`: `ensure_node_version()`'s check corrected and its call site disabled. It previously did an
+    exact-prefix match against Node 18 and ran before every clasp call; `@google/clasp`'s own `package.json`
+    actually declares `"engines": {"node": ">=20.0.0"}`, so forcing Node 18 was forcing a version *below*
+    clasp's own minimum, not a valid one. The function now does a numeric `>=` floor check against
+    `REQUIRED_NODE_VERSION` (now `"20"`, previously `"18"`) instead of an exact-version match, but is no longer
+    called by default - Node 20+ is already the norm both locally and in CI, so there's nothing to force today.
+    Left defined and callable (commented out at the call site, with a note explaining why) in case a future
+    environment needs a minimum Node version enforced again. See `docs/TechnicalArchitecture.md`'s FAQ above for
+    the full story on the error this used to work around.
 
 - Under `src/html` folder:
   - `ExportHelpers.html`: Removed the redundant `@public` JSDoc tag from every exported function, and reworded the namespace intro comment accordingly. The tag was purely informational - not read by `scripts/build.js`, not required by ESLint, not referenced anywhere else in the build - and this project already uses the leading-underscore naming convention alone to mark a function private.
@@ -178,6 +195,9 @@ No changes to the template. Current version is kept.
 
 - Under the root folder:
   - `.gitignore` Added `.claude` folder.
+  - `package.json`: `engines.node` corrected from `"18.x"` to `">=20.0.0"`, matching `@google/clasp`'s own
+    declared minimum (see `scripts/clasp.zsh` and `docs/TechnicalArchitecture.md`'s FAQ above) instead of a
+    version below it.
   - `README.md`: 
     - Reworded the sentence naming the "Open import dialog" menu entry to instead describe all three `Manage Panini` import menu entries opening the same dialog, pre-set to the corresponding mode.
     - Reordered the "Available import modes" bullet list to `Update counts`, `Update counts clearing country counts`, `Import data`, matching `src/Code.gs`'s new menu order.
